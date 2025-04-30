@@ -1,0 +1,20 @@
+Package: multimod
+Title: Define and Render Mathematical Models Across Multiple Optimization Languages.
+Version: 0.0.0.9000
+Authors@R: 
+  c(person(given = "Oleg", 
+          family = "Lugovoy", 
+          email = "olugovoy@optimalsolution.dev", 
+          role = c("aut", "cre"), 
+          comment = c(ORCID = "0000-0001-5546-9875"))
+Description: Multimod provides a domain-specific language (DSL) for defining algebraic equations and constraints in R, and rendering them to multiple mathematical programming languages, including GAMS, AMPL, Pyomo, and JuMP. It supports structured storage of equations, parameters, sets, and mappings, and aims to simplify the development of complex optimization models across platforms.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
+Depends: R (>= 4.0)
+Imports:
+    stringr,
+    dplyr,
+    data.table,
+    visNetwork
