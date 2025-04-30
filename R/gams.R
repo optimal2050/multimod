@@ -341,7 +341,6 @@ parse_gams_expr <- function(expr, symbols = list(), known_funcs = c("log", "exp"
   return(list(type = "symbol", value = expr))
 }
 
-
 gams_to_multimod <- function(gams_eq, symbols) {
   # Collapse and normalize
   gams_eq <- gsub("[\r\n]", " ", gams_eq)
@@ -443,6 +442,7 @@ if (F) {
   eq_obj <- gams_to_multimod(eqn_str, symbols)
   str(eq_obj, max.level = 5)
   names(eq_obj)
+  class(eq_obj)
 
 
   gams_eq <- "
@@ -797,7 +797,6 @@ build_symbols_list <- function(model_info) {
 }
 
 
-
 if (F) {
   # Example usage
   gams_file <- "../energyRt/gams/energyRt.gms"
@@ -824,6 +823,7 @@ if (F) {
   str(model_info, max.level = 1)
   str(model_info$equations$eqTechSng2Sng)
   model_info$equations$eqTechActSng
+  names(model_info$equations)
 
   class(model_info)
   model_info$equations$eqTechSng2Sng
@@ -890,7 +890,8 @@ coerce_variable <- function(name, var_info) {
 # }
 
 
-coerce_equation <- function(name, eqn_info, symbols) {
+coerce_equation <- function(eqn_info, symbols) {
+  name <- eqn_info$name
   lhs_rhs <- eqn_info$gams
   domain_str <- ""
 
@@ -932,6 +933,29 @@ coerce_equation <- function(name, eqn_info, symbols) {
 }
 
 
+if (F) {
+  # Example usage
+  model_info <- read_gams_model_structure(gams_file)
+  symbols <- build_symbols_list(model_info)
+
+  x <- parse_gams_expr(
+    model_info$equations$eqStorageEac$gams,
+    symbols
+  )
+  str(x, max.level = 5)
+
+  gams_to_multimod(
+    model_info$equations$eqStorageEac$gams,
+    symbols
+  )
+
+  parsed_eqn <-
+    coerce_equation(
+    model_info$equations$eqStorageEac,
+    symbols)
+  str(parsed_eqn, max.level = 5)
+}
+
 coerce_model_info_to_multimod <- function(model_info) {
   symbols <- build_symbols_list(model_info)
 
@@ -946,7 +970,7 @@ coerce_model_info_to_multimod <- function(model_info) {
   names(variables) <- names(model_info$variables)
 
   equations <- lapply(names(model_info$equations), function(e) {
-    coerce_equation(e, model_info$equations[[e]], symbols)
+    coerce_equation(model_info$equations[[e]], symbols)
   })
   names(equations) <- names(model_info$equations)
 

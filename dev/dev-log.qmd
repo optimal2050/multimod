@@ -10,6 +10,7 @@ editor_options:
 # usethis::use_mit_license()
 # usethis::use_r("gams")
 # usethis::use_r("multimod")
+usethis::use_r("latex")
 
 ```
 
