@@ -34,12 +34,30 @@ usethis::use_r("multimod-classes")
 usethis::use_package("rlang", type = "Imports")
 usethis::use_import_from("rlang", "is_empty")
 
+# recommended packages
+# usethis::use_package("DiagrammeR", type = "Suggests")
+usethis::use_package("visNetwork", type = "Suggests")
+usethis::use_package("purrr", type = "Suggests")
+usethis::use_package("lobstr", type = "Suggests")
+
+
+
 usethis::use_vignette("multimod")
 usethis::use_vignette("ast")
 
 usethis::use_data_raw()
 
+
+
 ```
+
+☐ In your package code, use
+  `rlang::is_installed("purrr")` or
+  `rlang::check_installed("purrr")` to test if
+  purrr is installed.
+☐ Then directly refer to functions with
+  `purrr::fun()`.
+
 
 ```{r}
 # usethis::use_package("DiagrammeR")
@@ -64,6 +82,7 @@ pkgdown::build_reference()
 
 
 # build the whole pkgdown site
+options(rmarkdown.html_vignette.check_title = FALSE)
 pkgdown::build_site()
 pkgdown.offline::build_site()
 

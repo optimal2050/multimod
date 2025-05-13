@@ -31,7 +31,8 @@ names(eq)
 
 ### Full tree structure
 ```{r}
-tree(eq)
+purrr::pluck_depth(eq)
+tree(eq, max_depth = 2)
 ```
 
 ### Network representation
@@ -51,13 +52,14 @@ print(eq$name); print(eq$desc)
 
 ### Partial tree structure
 ```{r}
-tree(eq, max_depth = 2)
+tree(eq, max_depth = 1)
 ```
 
 ### Network representation
 ```{r}
-eq_net <- multimod::get_network_data(eq)
+eq_net <- get_network_data(eq)
 visNetwork(eq_net$nodes, eq_net$edges) |>
   visOptions(highlightNearest = TRUE, nodesIdSelection = TRUE) |>
-  visHierarchicalLayout(direction = "LR")  
+  visInteraction(navigationButtons = TRUE) |>
+  visHierarchicalLayout(direction = "LR")
 ```
