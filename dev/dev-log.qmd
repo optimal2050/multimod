@@ -7,10 +7,37 @@ editor_options:
 
 ```{r, eval=FALSE}
 # usethis::create_package(getwd(), open = FALSE)
+# usethis::use_readme_rmd()
 # usethis::use_mit_license()
 # usethis::use_r("gams")
 # usethis::use_r("multimod")
-usethis::use_r("latex")
+# usethis::use_r("model_structure")
+# usethis::use_r("latex")
+# usethis::use_r("html")
+# usethis::use_r("utils")
+# usethis::use_r("code_handlers")
+usethis::use_r("parsing")
+# usethis::use_r("plot")
+# usethis::use_r("print")
+# usethis::use_r("as_character")
+# usethis::use_r("as_multimod")
+# usethis::use_r("as_latex")
+
+# AST classes and methods
+usethis::use_r("ast-classes")
+usethis::use_r("ast-methods")
+
+# multimod classes and methods
+usethis::use_r("multimod-classes")
+
+# import
+usethis::use_package("rlang", type = "Imports")
+usethis::use_import_from("rlang", "is_empty")
+
+usethis::use_vignette("multimod")
+usethis::use_vignette("ast")
+
+usethis::use_data_raw()
 
 ```
 
@@ -18,4 +45,31 @@ usethis::use_r("latex")
 # usethis::use_package("DiagrammeR")
 
 ```
+
+## website
+```{r}
+# usethis::use_pkgdown()
+# usethis::use_pkgdown_github_pages()
+# usethis::use_logo("tmp/multimod.png", retina = TRUE)
+# pkgdown::build_favicons(overwrite = TRUE)
+
+# render `README.Rmd` regularly, to keep `README.md` up-to-date.
+devtools::build_readme()
+
+options(pkgdown.internet = FALSE)
+pkgdown::build_home()
+pkgdown::build_home_index()
+pkgdown::build_articles()
+pkgdown::build_reference()
+
+
+# build the whole pkgdown site
+pkgdown::build_site()
+pkgdown.offline::build_site()
+
+pkgdown::preview_site()
+
+```
+
+You'll still need to render `README.Rmd` regularly, to keep `README.md` up-to-date. `devtools::build_readme()` is handy for this.
 

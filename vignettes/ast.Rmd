@@ -1,0 +1,63 @@
+---
+title: "Abstract Syntax Tree"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{ast}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(multimod)
+library(lobstr)
+library(visNetwork)
+```
+
+## Example equation #1
+```{r}
+eq <- example_model$multimod$equations$eqTechCapUp
+print(eq$name); print(eq$desc)
+names(eq)
+```
+
+### Full tree structure
+```{r}
+tree(eq)
+```
+
+### Network representation
+```{r}
+eq_net <- multimod::get_network_data(eq)
+visNetwork(eq_net$nodes, eq_net$edges) |>
+  visOptions(highlightNearest = TRUE, nodesIdSelection = TRUE) |>
+  visHierarchicalLayout(direction = "LR")  
+
+```
+
+## Example equation #2
+```{r}
+eq <- example_model$multimod$equations$eqTechAInp
+print(eq$name); print(eq$desc)
+```
+
+### Partial tree structure
+```{r}
+tree(eq, max_depth = 2)
+```
+
+### Network representation
+```{r}
+eq_net <- multimod::get_network_data(eq)
+visNetwork(eq_net$nodes, eq_net$edges) |>
+  visOptions(highlightNearest = TRUE, nodesIdSelection = TRUE) |>
+  visHierarchicalLayout(direction = "LR")  
+```
