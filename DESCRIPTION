@@ -22,6 +22,8 @@ Imports:
     rlang
 Suggests: 
     knitr,
+    lobstr,
+    purrr,
     rmarkdown
 VignetteBuilder: knitr
 LazyData: true
