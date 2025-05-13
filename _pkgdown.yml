@@ -1,4 +1,50 @@
-url: ~
+url: https://optimal2050.github.io/multimod/
 template:
   bootstrap: 5
 
+title: multimod
+
+development:
+  mode: unreleased
+  version_label: danger
+
+reference:
+- title: Abstract Syntax Tree (AST) classes
+  desc:  Data structures to represent mathematical expressions.
+  contents:
+  - new_ast
+  - starts_with("ast_")
+
+- title: Multimod classes
+  desc:  Classes to represent a model with sets, parameters, variables, equations, and data.
+  contents:
+  - starts_with("multimod_")
+  - starts_with("new_multimod_")
+
+- title: generic methods
+  desc:  Generic methods for multimod classes.
+  contents:
+  - starts_with("as_")
+  - starts_with("print.")
+  - starts_with("plot.")
+  - starts_with("summary.")
+
+- title: utility functions
+  desc:  Utility functions for multimod.
+  contents:
+  - starts_with("get_")
+  - starts_with("set_")
+  - starts_with("is_")
+  - starts_with("check_")
+  - starts_with("validate_")
+  - starts_with("parse_")
+  - starts_with("format_")
+  - starts_with("extract_")
+
+- title: visualization
+  desc:  Visualization functions for multimod.
+  contents:
+  - starts_with("plot_")
+  - starts_with("ggplot_")
+  - starts_with("draw_")
+  - starts_with("render_")

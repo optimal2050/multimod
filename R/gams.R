@@ -1,21 +1,30 @@
+gams_ops <- c(
+  "+", "-", "*", "/", "**",
+  "<", ">", "=", "<=", ">=", "==", "!=", "<>",
+  "and", "or", "not"
+  # , "$" # handle separately
+)
+
 split_top_level_dollar <- function(expr_str) {
   chars <- strsplit(expr_str, "")[[1]]
   level <- 0
   for (i in seq_along(chars)) {
-    if (chars[i] == "(") level <- level + 1
-    else if (chars[i] == ")") level <- level - 1
-    else if (chars[i] == "$" && level == 0) {
+    if (chars[i] == "(") {
+      level <- level + 1
+    } else if (chars[i] == ")") {
+      level <- level - 1
+    } else if (chars[i] == "$" && level == 0) {
       return(c(
         substring(expr_str, 1, i - 1),
         substring(expr_str, i + 1)
       ))
     }
   }
-  return(NULL)  # No top-level $
+  return(NULL) # No top-level $
 }
 
 
-split_aggregate_args <- function(expr_str) {
+split_indexed_operator <- function(expr_str) {
   # Remove leading aggregate name
   expr_str <- sub("^(sum|prod)\\(", "", expr_str)
   expr_str <- sub("\\)$", "", expr_str)
@@ -24,324 +33,178 @@ split_aggregate_args <- function(expr_str) {
   level <- 0
   for (i in seq_along(chars)) {
     ch <- chars[i]
-    if (ch == "(") level <- level + 1
-    else if (ch == ")") level <- level - 1
-    else if (ch == "," && level == 0) {
-      arg1 <- substring(expr_str, 1, i - 1)
-      arg2 <- substring(expr_str, i + 1)
-      return(c(trimws(arg1), trimws(arg2)))
-    }
-  }
-  return(NULL)  # malformed or no split point
-}
-
-split_top_level_operators <- function(expr_str) {
-  chars <- strsplit(expr_str, "")[[1]]
-  ops <- c()
-  parts <- c()
-  buf <- ""
-  level <- 0
-
-  for (ch in chars) {
     if (ch == "(") {
       level <- level + 1
-      buf <- paste0(buf, ch)
     } else if (ch == ")") {
       level <- level - 1
-      buf <- paste0(buf, ch)
-    } else if ((ch == "*" || ch == "/") && level == 0) {
-      parts <- c(parts, trimws(buf))
-      ops <- c(ops, ch)
-      buf <- ""
-    } else {
-      buf <- paste0(buf, ch)
+    } else if (ch == "," && level == 0) {
+      # browser()
+      index <- substring(expr_str, 1, i - 1)
+      value_expr <- substring(expr_str, i + 1)
+      return(c(trimws(index), trimws(value_expr)))
     }
   }
-  parts <- c(parts, trimws(buf))
-
-  list(parts = parts, ops = ops)
+  return(NULL) # malformed or no split point
 }
 
+parse_gams_expr <- function(
+    expr,
+    symbols = list(),
+    known_funcs = c("log", "exp", "abs", "sqrt"),
+    depth = 0, max_depth = 20) {
+  # message(expr)
+  # browser()
+  if (depth > max_depth) stop("Maximum expression nesting depth exceeded")
 
-parse_gams_domain <- function(expr, symbols = list()) {
   expr <- trimws(expr)
-  if (grepl("\\band\\b", expr, ignore.case = TRUE)) {
-    parts <- strsplit(expr, "(?i)\\band\\b", perl = TRUE)[[1]]
-    result <- parse_gams_domain(parts[1], symbols)
-    for (i in 2:length(parts)) {
-      result <- list(
-        type = "logic", op = "and",
-        left = result,
-        right = parse_gams_domain(parts[i], symbols)
-      )
-    }
-    return(result)
+  if (expr == "") {
+    return(NULL)
   }
 
-  if (grepl("\\bor\\b", expr, ignore.case = TRUE)) {
-    parts <- strsplit(expr, "(?i)\\bor\\b", perl = TRUE)[[1]]
-    result <- parse_gams_domain(parts[1], symbols)
-    for (i in 2:length(parts)) {
-      result <- list(
-        type = "logic", op = "or",
-        left = result,
-        right = parse_gams_domain(parts[i], symbols)
-      )
-    }
-    return(result)
-  }
-
-  if (grepl("(?<![<>=])=(?![=])", expr, perl = TRUE)) {
-    parts <- strsplit(expr, "=", fixed = TRUE)[[1]]
-    return(list(
-      type = "compare", op = "=",
-      left = parse_gams_domain(parts[1], symbols),
-      right = parse_gams_domain(parts[2], symbols)
-    ))
-  }
-
-  if (grepl(">=", expr, fixed = TRUE)) {
-    parts <- strsplit(expr, ">=", fixed = TRUE)[[1]]
-    return(list(
-      type = "compare", op = ">=",
-      left = parse_gams_domain(parts[1], symbols),
-      right = parse_gams_domain(parts[2], symbols)
-    ))
-  }
-
-  if (grepl("<=", expr, fixed = TRUE)) {
-    parts <- strsplit(expr, "<=", fixed = TRUE)[[1]]
-    return(list(
-      type = "compare", op = "<=",
-      left = parse_gams_domain(parts[1], symbols),
-      right = parse_gams_domain(parts[2], symbols)
-    ))
-  }
-
-  if (grepl(">", expr, fixed = TRUE)) {
-    parts <- strsplit(expr, ">", fixed = TRUE)[[1]]
-    return(list(
-      type = "compare", op = ">",
-      left = parse_gams_domain(parts[1], symbols),
-      right = parse_gams_domain(parts[2], symbols)
-    ))
-  }
-
-  if (grepl("<", expr, fixed = TRUE)) {
-    parts <- strsplit(expr, "<", fixed = TRUE)[[1]]
-    return(list(
-      type = "compare", op = "<",
-      left = parse_gams_domain(parts[1], symbols),
-      right = parse_gams_domain(parts[2], symbols)
-    ))
-  }
-
-  # If nothing matched, it's just a set membership or parameter
-  return(parse_gams_expr(expr, symbols))
-}
-
-parse_gams_header <- function(header) {
-  # remove extra spaces
-  header <- trimws(header)
-
-  # Find the ".." separator (equation definition start)
-  pos_double_dot <- regexpr("\\.\\.", header)
-  if (pos_double_dot == -1) stop("Cannot find '..' in equation header.")
-
-  header_part <- substring(header, 1, pos_double_dot - 1)
-  rest <- substring(header, pos_double_dot + 2)
-
-  # Split at top-level $
-  parts <- split_top_level_dollar(header_part)
-
-  if (!is.null(parts)) {
-    # With domain condition
-    eq_name_indices <- parts[1]
-    domain_expr <- parts[2]
-
-    eq_match <- regmatches(eq_name_indices, regexec("^([a-zA-Z0-9_]+)\\((.*)\\)$", eq_name_indices))[[1]]
-    if (length(eq_match) < 3) stop("Cannot parse equation name and indices.")
-
-    eq_name <- eq_match[2]
-    indices <- trimws(strsplit(eq_match[3], ",")[[1]])
-
-    dom_match <- regmatches(domain_expr, regexec("^([a-zA-Z0-9_]+)\\((.*)\\)$", domain_expr))[[1]]
-    if (length(dom_match) < 3) stop("Cannot parse domain condition.")
-
-    domain_name <- dom_match[2]
-    domain_args <- trimws(strsplit(dom_match[3], ",")[[1]])
-
-    domain <- list(
-      type = "param",
-      name = domain_name,
-      args = domain_args
+  # check if expr has relational operator
+  if (grepl("=\\s*(E|L|G|LE|GE)\\s*=", gsub("\\s+", "", expr), ignore.case = TRUE)) {
+    # !!! add LE GE
+    stop(
+      "A relational operator: =e=, =l=, =g= found in the expression.\n",
+      "Use gams_to_multimod() to parse equations with relational operators."
     )
-  } else {
-    # No domain condition
-    eq_match <- regmatches(header_part, regexec("^([a-zA-Z0-9_]+)\\((.*)\\)$", header_part))[[1]]
-    if (length(eq_match) < 3) stop("Cannot parse equation name and indices.")
-
-    eq_name <- eq_match[2]
-    indices <- trimws(strsplit(eq_match[3], ",")[[1]])
-    domain <- NULL
   }
-
-  list(
-    name = eq_name,
-    indices = indices,
-    domain = domain,
-    rest = rest
-  )
-}
-
-# Utility: split at top-level operators only
-split_top_level <- function(expr, ops = c("+", "-")) {
-  chars <- strsplit(expr, "")[[1]]
-  level <- 0
-  tokens <- c()
-  current <- ""
-  for (i in seq_along(chars)) {
-    ch <- chars[i]
-    if (ch == "(") level <- level + 1
-    else if (ch == ")") level <- level - 1
-    if (level == 0 && ch %in% ops) {
-      tokens <- c(tokens, current)
-      tokens <- c(tokens, ch)
-      current <- ""
-    } else {
-      current <- paste0(current, ch)
-    }
-  }
-  tokens <- c(tokens, current)
-  return(tokens)
-}
-
-parse_gams_expr <- function(expr, symbols = list(), known_funcs = c("log", "exp", "abs", "sqrt")) {
-  if (is.null(expr) || is.na(expr)) stop("parse_gams_expr() received NULL or NA")
-  expr <- trimws(expr)
 
   # Clean malformed operator sequences
   expr <- gsub("\\*\\s*\\+", "*", expr)
   expr <- gsub("\\+\\s*\\+", "+", expr)
-  expr <- gsub("\\*\\s*\\*", "*", expr)
-  expr <- gsub("^\\*", "", expr)
+  # expr <- gsub("\\*\\s*\\*", "*", expr)
+  # expr <- gsub("^\\*", "", expr)
   expr <- gsub("\\s+", " ", expr)
 
-  # Handle aggregates: sum(...) or prod(...)
-  if (grepl("^(sum|prod)\\(", expr)) {
-    agg_type <- if (grepl("^sum\\(", expr)) "sum" else "prod"
-    parts <- split_aggregate_args(expr)
-    if (is.null(parts) || length(parts) != 2) stop("Malformed aggregate: cannot split arguments")
-
-    index_domain <- split_top_level_dollar(parts[1])
-    index <- trimws(index_domain[1])
-    domain <- if (length(index_domain) > 1) parse_gams_domain(trimws(index_domain[2]), symbols) else NULL
-    value <- parse_gams_expr(trimws(parts[2]), symbols, known_funcs)
-
-    return(list(type = agg_type, index = index, domain = domain, value = value))
-  }
-
-  # Top-level $ condition
-  split_dollar <- function(expr_str) {
-    chars <- strsplit(expr_str, "")[[1]]
-    level <- 0
-    for (i in seq_along(chars)) {
-      if (chars[i] == "(") level <- level + 1
-      else if (chars[i] == ")") level <- level - 1
-      else if (chars[i] == "$" && level == 0) {
-        return(c(substring(expr_str, 1, i - 1), substring(expr_str, i + 1)))
+  # math and logic ####
+  # `*`, `/`
+  # `and`, `or` `not`
+  # ">=", "<=", ">", "<", "="
+  # `+`, `-`
+  # browser()
+  top_ops <- top_level_operators(expr, descending = TRUE)$op |> unique()
+  for (op in top_ops) {
+    tokens <- split_top_level(expr, op, keep_op = FALSE, as_list = FALSE)
+    if (!is.null(tokens) && length(tokens) >= 2) {
+      lhs <- parse_gams_expr(tokens[[1]], symbols, known_funcs, depth + 1, max_depth)
+      rhs <- parse_gams_expr(paste(tokens[-1], collapse = paste0(" ", op, " ")), symbols, known_funcs, depth + 1, max_depth)
+      # return(list(type = "expression", op = tolower(op), left = lhs, right = rhs))
+      return(ast_expression(op, left = lhs, right = rhs))
+    } else if (length(tokens) == 1) {
+      # Handle unary operators
+      if (op %in% c("not", "-", "!")) {
+        rhs <- parse_gams_expr(tokens[[1]], symbols, known_funcs,
+                               depth + 1, max_depth)
+        return(ast_unary(op, rhs))
+      } else if (op %in% "+") {
+        # ignore unary plus
+        return(parse_gams_expr(tokens[[1]], symbols, known_funcs,
+                               depth, max_depth))
+      } else {
+        stop("Unrecognized unary operator: ", op, "\n",
+             "Cannot parse expression: ", expr)
       }
     }
-    return(NULL)
   }
 
-  dollar_parts <- split_dollar(expr)
+  # Has top-level operator(s)
+  top_dollar <- top_level_operators(expr, ops = "$", precedence = NULL)
+  # top-level $ condition ####
+  dollar_parts <- split_top_level_dollar(expr)
   if (!is.null(dollar_parts)) {
-    return(list(
-      type = "cond",
+    return(ast_condition(
       condition = parse_gams_expr(dollar_parts[2], symbols, known_funcs),
       then = parse_gams_expr(dollar_parts[1], symbols, known_funcs)
     ))
   }
 
-  # Handle parentheses
+  # parentheses ####
+  # !!! any other cases were parentheses should not be removed?
   if (startsWith(expr, "(") && endsWith(expr, ")")) {
-    return(parse_gams_expr(substr(expr, 2, nchar(expr) - 1), symbols, known_funcs))
+    return(parse_gams_expr(
+      substr(expr, 2, nchar(expr) - 1),
+      symbols, known_funcs,
+      depth + 1, max_depth
+    ))
   }
 
-  # Arithmetic + and -
-  split_top_level <- function(expr, ops = c("+", "-")) {
-    chars <- strsplit(expr, "")[[1]]
-    level <- 0
-    tokens <- c()
-    current <- ""
-    for (i in seq_along(chars)) {
-      ch <- chars[i]
-      if (ch == "(") level <- level + 1
-      else if (ch == ")") level <- level - 1
-      if (level == 0 && ch %in% ops) {
-        tokens <- c(tokens, current)
-        tokens <- c(tokens, ch)
-        current <- ""
-      } else {
-        current <- paste0(current, ch)
-      }
-    }
-    tokens <- c(tokens, current)
-    return(tokens)
-  }
+  # sum(...), prod(...) ####
+  if (grepl("^(sum|prod)\\(", expr)) {
+    # browser()
+    agg_type <- if (grepl("^sum\\(", expr)) "sum" else "prod"
+    parts <- split_indexed_operator(expr)
+    if (is.null(parts) || length(parts) != 2) stop("Malformed aggregate: cannot split arguments")
 
-  tokens <- split_top_level(expr, c("+", "-"))
-  if (length(tokens) >= 3) {
-    result <- parse_gams_expr(tokens[1], symbols, known_funcs)
-    for (i in seq(2, length(tokens) - 1, by = 2)) {
-      op <- tokens[i]
-      rhs <- parse_gams_expr(tokens[i + 1], symbols, known_funcs)
-      result <- list(type = "expr", op = op, left = result, right = rhs)
-    }
-    return(result)
-  }
-
-  # Multiplication and division
-  if (grepl("\\*", expr) || grepl("/", expr)) {
-    ops <- unlist(regmatches(expr, gregexpr("\\*|/", expr)))
-    tokens <- unlist(strsplit(expr, "\\*|/", perl = TRUE))
-    tokens <- trimws(tokens)
-
-    if (length(tokens) != length(ops) + 1) {
-      stop(sprintf(
-        "Malformed multiplication/division expression:\n  expr = %s\n  tokens = %d, operators = %d",
-        expr, length(tokens), length(ops)
-      ))
-    }
-
-    parsed <- lapply(tokens, parse_gams_expr, symbols = symbols, known_funcs = known_funcs)
-    result <- parsed[[1]]
-    for (i in seq_along(ops)) {
-      result <- list(
-        type = "expr", op = ops[i],
-        left = result,
-        right = parsed[[i + 1]]
+    index_domain <- split_top_level_dollar(parts[1]) |> trimws()
+    index <- parse_gams_expr(index_domain[1], symbols = symbols)
+    domain <- if (length(index_domain) > 1) {
+      ast_condition(
+        condition = parse_gams_expr(index_domain[2], symbols),
+        then = NULL
       )
+    } else {
+      NULL
     }
-    return(result)
+    value_expr <- parse_gams_expr(trimws(parts[2]), symbols, known_funcs)
+
+    parsed_expr <- switch(
+      agg_type,
+      "sum" = ast_sum(index, domain, value_expr),
+      "prod" = ast_prod(index, domain, value_expr)
+    )
+
+    return(parsed_expr)
   }
 
-  # Function-like: name(args)
+  # dims and function-like: name(dims) ####
+  # use "dims" name for both: dimension and arguments
   if (grepl("^[a-zA-Z0-9_]+\\([^()]+\\)$", expr)) {
     name <- sub("\\(.*", "", expr)
-    args <- gsub("[()]", "", sub("^[^(]+\\(", "", expr))
-    args <- trimws(strsplit(args, ",")[[1]])
-
+    dims <- gsub("[()]", "", sub("^[^(]+\\(", "", expr))
+    dims <- trimws(strsplit(dims, ",")[[1]])
     symbol_type <- detect_symbol_type(name, symbols, known_funcs)
-    return(list(type = symbol_type, name = name, args = args))
+    # browser()
+    dims <- as_dims(dims)
+    return(do.call(paste0("ast_", symbol_type), list(name, dims)))
   }
 
-  # Fallback: simple symbol
-  return(list(type = "symbol", value = expr))
+  # Sequence of symbols
+  max_lev <- expression_level(expr, as_data_frame = FALSE) |> max()
+  if (max_lev == 0) {
+    sq <- top_level_operators(expr, ",", precedence = NULL)
+    if (nrow(sq) > 0) {
+      symb <- split_top_level(expr, ",", keep_op = FALSE, as_list = FALSE)
+    } else {
+      # check if expr is a word-like symbol
+      if (grepl("^[a-zA-Z][a-zA-Z0-9_]*$", expr)) {
+        symb <- list(expr)
+      } else if (grepl("^[+-]?([0-9]+(\\.[0-9]*)?|\\.[0-9]+)([eE][+-]?[0-9]+)?$", expr)) {
+        # numeric constant
+        return(ast_constant(as.numeric(expr)))
+      } else {
+        stop("Unrecognized expression: ", expr)
+      }
+    }
+    # assign
+    symb <- symb |>
+      lapply(function(x) {
+        sb <- detect_symbol_type(x, symbols = symbols, known_funcs = known_funcs)
+        do.call(paste0("ast_", sb), list(x))
+      })
+    return(ast_dims(symb))
+  }
+
+  if (max_lev > 0) {
+    browser()
+    stop("Expression has unrecognized operators or structure: ", expr)
+  }
+
+  return(ast_symbol(expr))
 }
 
 gams_to_multimod <- function(gams_eq, symbols) {
+  # browser()
   # Collapse and normalize
   gams_eq <- gsub("[\r\n]", " ", gams_eq)
   gams_eq <- gsub("\\s+", " ", gams_eq)
@@ -359,11 +222,18 @@ gams_to_multimod <- function(gams_eq, symbols) {
   if (length(match) >= 5 && !any(is.na(match))) {
     eq_name <- match[2]
     indices <- trimws(strsplit(match[3], ",")[[1]])
-    domain <- list(
-      type = "param",
+    # symbol_type <- detect_symbol_type(match[4], symbols)
+    # domain <- list(
+    #   type = symbol_type,
+    #   name = match[4],
+    #   dims = trimws(strsplit(match[5], ",")[[1]])
+    # )
+    domain <- new_ast(
+      type = detect_symbol_type(match[4], symbols),
       name = match[4],
-      args = trimws(strsplit(match[5], ",")[[1]])
+      dims = trimws(strsplit(match[5], ",")[[1]])
     )
+
     body <- gsub(pattern_with_domain, "", gams_eq)
   } else {
     match2 <- regmatches(gams_eq, regexec(pattern_no_domain, gams_eq))[[1]]
@@ -377,48 +247,46 @@ gams_to_multimod <- function(gams_eq, symbols) {
     }
   }
 
-    # Clean trailing semicolon
-    body <- trimws(gsub(";$", "", body))
+  # Clean trailing semicolon
+  body <- trimws(gsub(";$", "", body))
 
-    # Identify relational operator and split
-    if (grepl("=[lL]=", body)) {
-      sense <- "<="
-      parts <- strsplit(body, "=[lL]=")[[1]]
-    } else if (grepl("=[gG]=", body)) {
-      sense <- ">="
-      parts <- strsplit(body, "=[gG]=")[[1]]
-    } else if (grepl("=[eE]=", body)) {
-      sense <- "=="
-      parts <- strsplit(body, "=[eE]=")[[1]]
-    } else {
-      stop("Unsupported or missing relational operator (=e=, =l=, =g=).")
-    }
+  # Identify relational operator and split
+  if (grepl("=[lL]=", body)) {
+    relation <- "<="
+    parts <- strsplit(body, "=[lL]=")[[1]]
+  } else if (grepl("=[gG]=", body)) {
+    relation <- ">="
+    parts <- strsplit(body, "=[gG]=")[[1]]
+  } else if (grepl("=[eE]=", body)) {
+    relation <- "=="
+    parts <- strsplit(body, "=[eE]=")[[1]]
+  } else {
+    stop("Unsupported or missing relational operator (=e=, =l=, =g=).")
+  }
 
-    if (length(parts) != 2) {
-      stop("Equation body does not split into valid LHS and RHS.")
-    }
+  if (length(parts) != 2) {
+    stop("Equation body does not split into valid LHS and RHS.")
+  }
 
-    # Parse both sides using parse_gams_expr()
-    lhs_str <- trimws(parts[1])
-    rhs_str <- trimws(parts[2])
+  # Parse both sides using parse_gams_expr()
+  lhs_str <- trimws(parts[1])
+  rhs_str <- trimws(parts[2])
 
-    lhs <- parse_gams_expr(lhs_str, symbols)
-    rhs <- parse_gams_expr(rhs_str, symbols)
+  lhs <- parse_gams_expr(lhs_str, symbols)
+  rhs <- parse_gams_expr(rhs_str, symbols)
 
-    # Return the multimod_eqn object
-    new_multimod_eqn(
-      name = eq_name,
-      declared_dims = indices,
-      lhs = lhs,
-      rhs = rhs,
-      sense = sense,
-      domain = domain
-    )
+  # Return the multimod_equation object
+  new_multimod_equation(
+    name = eq_name,
+    dims = indices,
+    lhs = lhs,
+    rhs = rhs,
+    relation = relation,
+    domain = domain
+  )
 }
 
-
 if (F) {
-
   # Avoid shadowing base::symbols (a graphics function)
   # rm(symbols)  # remove if accidentally defined as a function
 
@@ -467,8 +335,10 @@ eqTechAfUp(tech, region, year, slice)$meqTechAfUp(tech, region, year, slice)..
   symbols <- list(
     variables = c("vTechAct", "vTechCap"),
     parameters = c("pTechAfUp", "pTechCap2act", "pWeather", "pTechWeatherAfUp"),
-    mappings = c("mTechWeatherAfUp", "mTechGroupComm", "mTechSpan",
-                 "meqTechAfUp" ),
+    mappings = c(
+      "mTechWeatherAfUp", "mTechGroupComm", "mTechSpan",
+      "meqTechAfUp"
+    ),
     sets = c("tech", "region", "year", "slice", "weather")
   )
 
@@ -479,7 +349,7 @@ eqTechAfUp(tech, region, year, slice)$meqTechAfUp(tech, region, year, slice)..
 
 
 
-###########
+  ###########
 
   gams_eq <- "
 eqTechAfUp(tech, region, year, slice)$meqTechAfUp(tech, region, year, slice)..
@@ -525,8 +395,8 @@ eqTechAfUp(tech, region, year, slice)$meqTechAfUp(tech, region, year, slice)..
   # nodes_df <- do.call(rbind, lapply(res$nodes, as.data.frame))
   # edges_df <- do.call(rbind, lapply(res$edges, as.data.frame))
   #
-  # graph <- create_graph() %>%
-  #   add_nodes_from_table(nodes_df, label_col = "label") %>%
+  # graph <- create_graph() |>
+  #   add_nodes_from_table(nodes_df, label_col = "label") |>
   #   add_edges_from_table(edges_df, from_col = "from", to_col = "to")
   #
   # render_graph(graph)
@@ -540,12 +410,8 @@ eqTechAfUp(tech, region, year, slice)$meqTechAfUp(tech, region, year, slice)..
 
   # plot_expr_visnetwork(eq_obj$rhs, title = "RHS Expression Tree")
 
-  plot_multimod_eqn_visnetwork(eq_obj, title = "Full Equation: eqTechAfUp")
-
-
+  plot_multimod_equation_visnetwork(eq_obj, title = "Full Equation: eqTechAfUp")
 }
-
-
 
 # Remove comments between $ontext and $offtext
 remove_ontext_offtext <- function(lines) {
@@ -569,36 +435,216 @@ remove_ontext_offtext <- function(lines) {
   result
 }
 
-read_gams_model_structure <- function(file_or_text, strict = TRUE) {
+# include files
+expand_gams_includes <- function(lines, base_path = ".") {
+  expanded <- character()
+
+  for (line in lines) {
+    trimmed <- trimws(line)
+
+    if (grepl("^\\$include\\b", trimmed, ignore.case = TRUE)) {
+      # Extract filename
+      include_file <- sub("^\\$include\\s+", "", trimmed, ignore.case = TRUE)
+      include_file <- gsub('"', "", include_file) # remove optional quotes
+      include_path <- file.path(base_path, include_file)
+
+      if (!file.exists(include_path)) {
+        warning("Included file not found: ", include_path)
+        next
+      }
+
+      # Read included file lines and append
+      included_lines <- readLines(include_path, warn = FALSE)
+      expanded <- c(expanded, included_lines)
+    } else {
+      expanded <- c(expanded, line)
+    }
+  }
+
+  return(expanded)
+}
+
+
+normalize_gams_lines <- function(lines) {
+  decl_patterns <- c(
+    "^set(s)?\\b", "^alias(es)?\\b", "^parameter(s)?\\b", "^scalar(s)?\\b",
+    "^table(s)?\\b", "^variable(s)?\\b", "^positive variable(s)?\\b",
+    "^negative variable(s)?\\b", "^binary variable(s)?\\b", "^integer variable(s)?\\b",
+    "^equation(s)?\\b", "^model(s)?\\b"
+  )
+  decl_regex <- paste(decl_patterns, collapse = "|")
+
+  result <- character()
+  in_decl_block <- FALSE
+  buffer <- NULL
+
+  for (line in lines) {
+    # if (grepl("alias", line, ignore.case = TRUE)) {
+    #   browser()
+    # }
+
+    # Skip lines starting with $
+    if (startsWith(line, "$")) {
+      next
+    }
+
+    trimmed <- trimws(line)
+
+    # Start of declaration block
+    if (!in_decl_block && grepl(decl_regex, trimmed, ignore.case = TRUE)) {
+      in_decl_block <- TRUE
+
+      # capture the declaration keyword
+      # browser()
+      decl_keyword <- regmatches(
+        trimmed,
+        regexpr(decl_regex, trimmed, ignore.case = TRUE)
+      )[[1]]
+      result <- c(result, decl_keyword)
+
+      # Remove the keyword from the line
+      trimmed <- gsub(decl_regex, "", trimmed, ignore.case = TRUE) |> trimws()
+
+      if (grepl(";", trimmed)) {
+        result <- c(result, sub(";", "", trimmed), ";")
+        in_decl_block <- FALSE
+      } else {
+        result <- c(result, trimmed)
+      }
+      next
+    }
+
+    # Still in declaration block
+    if (in_decl_block) {
+      result <- c(result, line)
+      if (grepl(";", trimmed)) {
+        in_decl_block <- FALSE
+      }
+      next
+    }
+
+    # Accumulate multi-line expression
+    if (is.null(buffer)) {
+      buffer <- trimmed
+    } else {
+      buffer <- paste(buffer, trimmed)
+    }
+
+    if (grepl(";", trimmed)) {
+      stmts <- strsplit(buffer, ";", fixed = TRUE)[[1]]
+      for (stmt in stmts) {
+        stmt <- trimws(stmt)
+        if (nzchar(stmt)) {
+          result <- c(result, paste0(stmt, ";"))
+        }
+      }
+      buffer <- NULL
+    }
+  }
+
+  # Final flush
+  if (!is.null(buffer)) {
+    result <- c(result, trimws(buffer))
+  }
+
+  return(result)
+}
+
+
+read_gams_model_structure <- function(
+    file_or_text,
+    include = TRUE,
+    interim_file = NULL,
+    strict = TRUE,
+    verbose = FALSE,
+    ...) {
+  # browser()
   if (file.exists(file_or_text)) {
     lines <- readLines(file_or_text)
   } else {
     lines <- unlist(strsplit(file_or_text, "\n"))
   }
 
-  # lines <- lines[!grepl("^\\s*\\*", lines)]  # Remove comments
-
-  # Remove lines between $ontext and $offtext
-  remove_ontext_offtext <- function(lines) {
-    result <- character(0)
-    inside_comment <- FALSE
-    for (line in lines) {
-      trimmed <- trimws(tolower(line))
-      if (grepl("^\\$ontext", trimmed)) {
-        inside_comment <- TRUE
-        next
-      }
-      if (grepl("^\\$offtext", trimmed)) {
-        inside_comment <- FALSE
-        next
-      }
-      if (!inside_comment) {
-        result <- c(result, line)
-      }
-    }
-    result
-  }
+  # Remove commented lines
+  lines <- lines[!grepl("^\\*", lines)]
   lines <- remove_ontext_offtext(lines)
+  if (include) {
+    lines <- expand_gams_includes(lines, base_path = dirname(file_or_text))
+  } else {
+    lines <- lines[!grepl("^\\$include\\b", lines, ignore.case = TRUE)]
+  }
+
+  lines <- normalize_gams_lines(lines)
+  # writeLines(lines, "tmp/no_comments.gms")
+
+  # Concatenate lines between semicolons
+  # lines <- gsub("\\s*;\\s*", ";", lines) # remove spaces around semicolon
+
+  lines <- gsub(";+", ";", lines) # normalize semicolon
+  # semicolon to individual lines
+  lines <- split_line_on_pattern(lines, ";", position = "both", ignore.case = TRUE)
+  # add line-break after equation's `..`
+  lines <- split_line_on_pattern(lines, "\\.\\.", position = "after", ignore.case = TRUE)
+  # equation's `=E=`, `=L=`, `=G=`, ... to individual lines
+  lines <- split_line_on_pattern(
+    lines,
+    c("=E=", "=L=", "=G=", "=LE=", "=GE="),
+    position = "both", ignore.case = TRUE
+  )
+  # remove empty and white-space-only lines
+  lines <- lines[!grepl("^\\s*$", lines)]
+  # remove lines with more than one line break
+  lines <- lines[!grepl("^\n+$", lines)]
+  # lines <- unlist(strsplit(lines, "\n"))
+
+  # kewords_in_one_line <- function(key_pattern, lines) {
+  #   result <- character(0)
+  #   # Find the line number of the first occurrence of the keyword
+  #   for (line in lines) {
+  #     if (grepl(key_pattern, line, ignore.case = TRUE)) {
+  #       # if (grepl(key_pattern, "alias")) browser()
+  #       # extract the keyword and add it to the result
+  #       keyword <- regmatches(line, regexpr(key_pattern, line, ignore.case = TRUE))[[1]]
+  #       # keyword <- gsub("\\s+", "", keyword)  # remove spaces
+  #       result <- c(result, keyword)
+  #       # check if anything else is in the line
+  #       the_rest <- gsub(key_pattern, "", line, ignore.case = TRUE)
+  #       the_rest <- gsub("\\s+", "", the_rest)
+  #       if (nchar(the_rest) > 0) {
+  #         # add as a new line
+  #         result <- c(result, the_rest)
+  #       }
+  #       next
+  #     }
+  #     result <- c(result, line)
+  #   }
+  #   result
+  # }
+  #
+  # lines <- kewords_in_one_line("^set(s)\\b", lines)
+  # lines <- kewords_in_one_line("^alias(es)?\\b", lines)
+  # lines <- kewords_in_one_line("^parameter(s)?\\b", lines)
+  # lines <- kewords_in_one_line("^(positive\\s+)?variable(s)?\\b", lines)
+  # lines <- kewords_in_one_line("^variable(s)?\\b", lines)
+  # lines <- kewords_in_one_line("^equation(s)?\\b", lines)
+  # lines <- kewords_in_one_line("=[LEG]=", lines)
+  # remove empty and white-space-only lines
+  lines <- lines[!grepl("^\\s*$", lines)]
+  # trim excess spaces
+  lines <- gsub("\\s+", " ", lines)
+  # normalize brackets
+  lines <- gsub("\\{", "(", lines)
+  lines <- gsub("\\}", ")", lines)
+  lines <- gsub("\\[", "(", lines)
+  lines <- gsub("\\]", ")", lines)
+  # around comas (inside brackets)
+  lines <- gsub("\\s*,\\s+", ",", lines)
+
+  if (!is.null(interim_file)) {
+    writeLines(lines, interim_file)
+  }
+  # writeLines(lines, "tmp/no_comments.gms")
+  # browser()
 
   # Initialize
   sets <- list()
@@ -617,55 +663,122 @@ read_gams_model_structure <- function(file_or_text, strict = TRUE) {
     # Skip blank or *-comment lines
     if (line == "" || grepl("^\\*", line)) {
       i <- i + 1
+      if (verbose) message(line)
       next
     }
 
-    ## Block start detection
+    if (verbose) {
+      # cat("Processing line", i, "of", length(lines), "\n")
+      cat(mode, "| ")
+      # Sys.sleep(0.25)
+    }
+
+    ## Comment detection (if not removed above)
+    if (isTRUE(mode == "comment")) {
+      # browser()
+      if (grepl("^\\$offtext", line, ignore.case = TRUE)) {
+        mode <- NULL
+        # i <- i + 1
+        # if (verbose) message("End of comment block\n")
+        if (verbose) message(line)
+      }
+      i <- i + 1
+      next
+    } else if (grepl("^\\$ontext", line, ignore.case = TRUE)) {
+      mode <- "comment"
+      i <- i + 1
+      # if (verbose) message("Detected comment block\n")
+      if (verbose) message(line, " -> ", mode)
+      next
+    } else if (grepl("^\\$offtext", line, ignore.case = TRUE)) {
+      stop("Unmatched $offtext found without a corresponding $ontext.")
+      # mode <- NULL
+      # i <- i + 1
+      # if (verbose) message("End of comment block\n")
+      # next
+    }
+
+    # End of block detection
+    if (grepl(";", line)) {
+      # browser()
+      stopifnot(nchar(line) == 1)
+      mode <- NULL
+      if (verbose) message(line)
+      i <- i + 1
+      next
+    }
+
+    # Search for declaration blocks
+
     if (grepl("^set(s)?\\b", line, ignore.case = TRUE)) {
       mode <- "sets"
       i <- i + 1
       next
-    }
-    if (grepl("^alias(es)?\\b", line, ignore.case = TRUE)) {
+    } else if (grepl("^alias(es)?\\b", line, ignore.case = TRUE)) {
+      # browser()
       mode <- "aliases"
+      if (verbose) message(line, " -> ", mode)
       i <- i + 1
       next
-    }
-    if (grepl("^parameter(s)?\\b", line, ignore.case = TRUE)) {
+    } else if (grepl("^parameter(s)?\\b", line, ignore.case = TRUE)) {
       mode <- "parameters"
+      if (verbose) message(line, " -> ", mode)
       i <- i + 1
       next
-    }
-    if (grepl("^(positive\\s+)?variable(s)?\\b", line, ignore.case = TRUE)) {
+    } else if (grepl("^(positive\\s+)?variable(s)?\\b", line, ignore.case = TRUE)) {
       mode <- "variables"
+      if (verbose) message(line, " -> ", mode)
       i <- i + 1
       next
-    }
-    if (grepl("^equation(s)?\\b", line, ignore.case = TRUE)) {
+    } else if (grepl("^equation(s)?\\b", line, ignore.case = TRUE)) {
       mode <- "equations"
+      if (verbose) message(line, " -> ", mode)
       i <- i + 1
       next
     }
 
+    if (verbose) cat(i, line, "\n")
 
     ## Mode-based parsing
     if (!is.null(mode) && mode == "sets") {
-      if (grepl("\\(", line)) {
+      # drop data - everything after the first "/"
+      line <- sub("/.*$", "", line)
+      # name and desc
+      parts <- strsplit(line, "\\s+")[[1]]
+      name_part <- parts[[1]][1]
+      if (length(parts) > 1) {
+        desc <- paste(parts[-1], collapse = " ") |> trimws()
+      } else {
+        desc <- character(0)
+      }
+      # browser()
+      if (grepl("\\(", name_part)) {
         name <- sub("\\(.*", "", line)
         inside <- sub("^[^(]+\\(([^)]+)\\).*", "\\1", line)
         dims <- trimws(unlist(strsplit(inside, ",")))
-        mappings[[name]] <- list(name = name, dims = dims)
+        # check string after ()
+        # rest_of_line <- sub("^[^(]+\\([^)]*\\)", "", line)
+        mappings[[name]] <- list(name = name, desc = desc, dims = dims)
       } else {
-        parts <- strsplit(line, "\\s+")[[1]]
-        if (length(parts) >= 1) {
-          sets[[parts[1]]] <- list(name = parts[1])
-        }
+        name <- name_part
+        # parts <- strsplit(line, "\\s+")[[1]]
+        # if (length(parts) >= 1) {
+        #   name <- parts[1]
+        #   desc <- paste(parts[-1], collapse = " ") |> trimws()
+        #   # sets[[parts[1]]] <- list(name = parts[1])
+        #   sets[[name]] <- list(name = name, dims = character(0), desc = desc)
+        # } else {
+        #   sets[[parts[1]]] <-
+        #     list(name = parts[1], dims = character(0), desc = character(0))
+        # }
+        sets[[name]] <- list(name = name, desc = desc, dims = character(0))
       }
       i <- i + 1
       next
     }
 
     if (!is.null(mode) && mode == "aliases") {
+      # browser()
       matches <- gregexpr("\\([^()]+\\)", line)[[1]]
       if (matches[1] != -1) {
         for (start in matches) {
@@ -685,7 +798,10 @@ read_gams_model_structure <- function(file_or_text, strict = TRUE) {
     if (!is.null(mode) && mode %in% c("parameters", "variables")) {
       line <- sub("^\\*+@", "", line)
       line <- trimws(line)
-      if (line == "") { i <- i + 1; next }
+      if (line == "") {
+        i <- i + 1
+        next
+      }
 
       close_paren_pos <- regexpr("\\)", line)
       if (close_paren_pos > 0) {
@@ -750,6 +866,13 @@ read_gams_model_structure <- function(file_or_text, strict = TRUE) {
         body_accum <- c(body_accum, trimws(lines[i]))
         i <- i + 1
       }
+      if (verbose) {
+        if (grepl(";", lines[i])) {
+          message("Found semicolon at end of equation body")
+        } else {
+          message("No semicolon found at end of equation body")
+        }
+      }
       if (i <= length(lines)) {
         body_accum <- c(body_accum, trimws(gsub(";", "", lines[i])))
         i <- i + 1
@@ -777,122 +900,40 @@ read_gams_model_structure <- function(file_or_text, strict = TRUE) {
     i <- i + 1
   }
 
-  list(
+  new_model_structure(
     sets = sets,
     mappings = mappings,
     aliases = aliases,
     parameters = parameters,
     variables = variables,
-    equations = equations
+    equations = equations,
+    source = file_or_text,
+    language = "GAMS"
   )
 }
 
-build_symbols_list <- function(model_info) {
-  list(
-    sets = names(model_info$sets),
-    mappings = names(model_info$mappings),
-    parameters = names(model_info$parameters),
-    variables = names(model_info$variables)
-  )
-}
-
-
-if (F) {
-  # Example usage
-  gams_file <- "../energyRt/gams/energyRt.gms"
-  # sets_info <- read_gams_symbols(gams_file)
-
-  # names(sets_info)
-
-  # sets_info$variables |> str()
-
-  # names(sets_info)
-  # print(sets_info$sets)
-
-  # length(sets_info$mappings)
-  # unique(names(sets_info$mappings)) |> length()
-  # print(sets_info$mappings)
-  # print(sets_info$aliases)
-
-  # eqns_info <- read_gams_equations(gams_file)
-
-  # eqns_info$eqTechSng2Sng
-
-
-  model_info <- read_gams_model_structure(gams_file)
-  str(model_info, max.level = 1)
-  str(model_info$equations$eqTechSng2Sng)
-  model_info$equations$eqTechActSng
-  names(model_info$equations)
-
-  class(model_info)
-  model_info$equations$eqTechSng2Sng
-
-  symbols <- build_symbols_list(model_info)
-
-  parse_gams_expr(model_info$equations$eqTechSng2Sng$gams, symbols) |>
-    str(max.level = 5)
-
-  multimod_model <- coerce_model_info_to_multimod(model_info)
-
-}
 
 coerce_param <- function(name, param_info) {
-  new_multimod_param(
+  new_multimod_parameter(
     name = name,
-    declared_dims = param_info$dims,
+    dims = param_info$dims,
     data = param_info$data
   )
 }
 
 coerce_variable <- function(name, var_info) {
-  new_multimod_var(
+  new_multimod_variable(
     name = name,
-    declared_dims = var_info$dims,
+    dims = var_info$dims,
     data = var_info$data,
     domain = var_info$domain %||% "continuous"
   )
 }
 
-# coerce_equation <- function(name, eqn_info, symbols) {
-#   lhs_rhs <- eqn_info$gams
-#   domain_str <- ""
-#
-#   if (!is.null(eqn_info$domain) && nzchar(eqn_info$domain)) {
-#     domain_str <- paste0("$", eqn_info$domain)
-#   }
-#
-#   # If gams field already contains "..", assume full GAMS string
-#   if (grepl("\\.\\.", lhs_rhs, fixed = TRUE)) {
-#     full_string <- lhs_rhs
-#   } else {
-#     # Else build full GAMS declaration
-#     full_string <- paste0(
-#       name, "(", paste(eqn_info$dims, collapse = ","), ")",
-#       domain_str, " .. ", lhs_rhs
-#     )
-#   }
-#
-#   # Safe parse: if still error, capture it
-#   parsed_eqn <- tryCatch(
-#     {
-#       gams_to_multimod(full_string, symbols)
-#     },
-#     error = function(e) {
-#       message("Failed to parse equation: ", name)
-#       message("Equation text: ", full_string)
-#       stop(e)  # propagate error
-#     }
-#   )
-#
-#   parsed_eqn$description <- eqn_info$desc
-#   return(parsed_eqn)
-# }
-
-
-coerce_equation <- function(eqn_info, symbols) {
-  name <- eqn_info$name
-  lhs_rhs <- eqn_info$gams
+coerce_gams_equation <- function(eqn_info, symbols) {
+  # browser()
+  name <- trimws(eqn_info$name)
+  lhs_rhs <- trimws(eqn_info$gams)
   domain_str <- ""
 
   # ⛑ Skip if body is missing
@@ -912,77 +953,29 @@ coerce_equation <- function(eqn_info, symbols) {
     # Else build full GAMS declaration
     full_string <- paste0(
       name, "(", paste(eqn_info$dims, collapse = ","), ")",
-      domain_str, " .. ", lhs_rhs
+      domain_str, ".. ", lhs_rhs
     )
   }
 
-  # Safe parse
-  parsed_eqn <- tryCatch(
-    {
-      gams_to_multimod(full_string, symbols)
-    },
-    error = function(e) {
-      message("Failed to parse equation: ", name)
-      message("Equation text: ", full_string)
-      stop(e)  # propagate
-    }
-  )
+  parsed_eqn <- gams_to_multimod(full_string, symbols)
+  # parsed_eqn <- tryCatch(
+  #   {
+  #     gams_to_multimod(full_string, symbols)
+  #   },
+  #   error = function(e) {
+  #     cat("❌ Failed to parse equation:\n")
+  #     cat("Name: ", name, "\n")
+  #     cat("Equation: ", full_string, "\n")
+  #     cat("Error: ", conditionMessage(e), "\n")
+  #     # Force termination
+  #     base::stop(simpleError(stop(simpleError(sprintf("Parsing failed for equation '%s': %s", name, conditionMessage(e))))))
+  #   }
+  # )
 
-  parsed_eqn$description <- eqn_info$desc
+
+
+
+  parsed_eqn$desc <- eqn_info$desc
   return(parsed_eqn)
 }
-
-
-if (F) {
-  # Example usage
-  model_info <- read_gams_model_structure(gams_file)
-  symbols <- build_symbols_list(model_info)
-
-  x <- parse_gams_expr(
-    model_info$equations$eqStorageEac$gams,
-    symbols
-  )
-  str(x, max.level = 5)
-
-  gams_to_multimod(
-    model_info$equations$eqStorageEac$gams,
-    symbols
-  )
-
-  parsed_eqn <-
-    coerce_equation(
-    model_info$equations$eqStorageEac,
-    symbols)
-  str(parsed_eqn, max.level = 5)
-}
-
-coerce_model_info_to_multimod <- function(model_info) {
-  symbols <- build_symbols_list(model_info)
-
-  parameters <- lapply(names(model_info$parameters), function(p) {
-    coerce_param(p, model_info$parameters[[p]])
-  })
-  names(parameters) <- names(model_info$parameters)
-
-  variables <- lapply(names(model_info$variables), function(v) {
-    coerce_variable(v, model_info$variables[[v]])
-  })
-  names(variables) <- names(model_info$variables)
-
-  equations <- lapply(names(model_info$equations), function(e) {
-    coerce_equation(model_info$equations[[e]], symbols)
-  })
-  names(equations) <- names(model_info$equations)
-
-  new_multimod_model(
-    sets = model_info$sets,
-    mappings = model_info$mappings,
-    parameters = parameters,
-    variables = variables,
-    equations = equations
-  )
-}
-
-
-
 
