@@ -110,8 +110,8 @@ as.character.ast_set <- function(x, ...) {
 #' @method as.character ast_dims
 as.character.ast_dims <- function(x, brackets = "[", ...) {
   # browser()
-  if (length(x$dims) == 0) return("")
-  out <- paste(sapply(x$dims, function(y) y$name), collapse = ",")
+  if (length(x) == 0) return("")
+  out <- paste(sapply(x, function(y) y$name), collapse = ",")
   if (is.null(brackets) || all(brackets == "")) return(out)
   brackets <- brackets_pair(brackets)
   out <- paste0(brackets[1], out, brackets[2])

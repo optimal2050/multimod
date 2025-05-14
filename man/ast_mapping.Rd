@@ -4,7 +4,7 @@
 \alias{ast_mapping}
 \title{Create a mapping AST node}
 \usage{
-ast_mapping(name, dims = ast_dims(), domain = NULL, ...)
+ast_mapping(name, dims = ast_dims(), ...)
 }
 \arguments{
 \item{name}{A character string representing the mapping name.}
