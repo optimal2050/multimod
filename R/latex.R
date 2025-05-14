@@ -1,5 +1,4 @@
 
-
 latex_operators <- list(
   "*" = " \\cdot ",
   "/" = " \\div ",
@@ -18,6 +17,21 @@ latex_operators <- list(
   "!" = " \\lnot ",
   "not" = " \\lnot "
 )
+
+latex_brackets <- function(x, brackets = NULL) {
+  if (is.null(brackets)) return(x)
+  if (is.null(x)) return(NULL)
+  brackets <- brackets_pair(brackets)
+  if (brackets[1] == "[") {
+    return(paste0("\\left[", x, "\\right]"))
+  } else if (brackets[1] == "{") {
+    return(paste0("\\left\\{", x, "\\right\\}"))
+  } else if (brackets[1] == "(") {
+    return(paste0("\\left(", x, "\\right)"))
+  } else {
+    stop("Unsupported bracket type: ", brackets[1])
+  }
+}
 
 
 #' Convert objects to LaTeX format
@@ -73,34 +87,144 @@ as_latex.character <- function(x, math = FALSE, bold = FALSE, italic = FALSE) {
   sapply(x, function(s) format_decorations(escape_latex(s)), USE.NAMES = FALSE)
 }
 
-# as_latex.multimod_ast <- function(x, add_parens = TRUE, ...) {
-#   if (x$type == "unary") {
-#     rhs <- as_latex(x$rhs, add_parens = add_parens)
-#     op <- if (x$op == "-") "-" else if (x$op == "+") "+" else x$op
-#     out <- paste0(op, rhs)
-#     return(if (add_parens) paste0("\\left(", out, "\\right)") else out)
-#   }
-# }
-
-latex_brackets <- function(x, brackets = NULL) {
-  if (is.null(brackets)) return(x)
-  # if (length(brackets) != 2) stop("brackets must be a vector of length 2.")
-  if (is.null(x)) return(NULL)
-  if (brackets[1] == "[") {
-    return(paste0("\\left[", x, "\\right]"))
-  } else if (brackets[1] == "{") {
-    return(paste0("\\left\\{", x, "\\right\\}"))
-  } else if (brackets[1] == "(") {
-    return(paste0("\\left(", x, "\\right)"))
+#' @export
+#' @method as_latex ast_set
+#' @rdname as_latex
+as_latex.ast_set <- function(x, ...) {
+  if (is.null(x$name)) {
+    return("\\emptyset")
   } else {
-    stop("Unsupported bracket type: ", brackets[1])
+    name <- x$name
+    return(paste0("\\mathcal{", name, "}"))
   }
 }
 
 #' @export
-#' @method as_latex multimod_ast
+#' @method as_latex ast_dims
 #' @rdname as_latex
-as_latex.multimod_ast <- function(x, brackets = TRUE, ...) {
+as_latex.ast_dims <- function(x, brackets = "[]", ...) {
+  if (is.null(x$name)) {
+    return(x)
+    # return("\\emptyset")
+  } else {
+    name <- x$name
+    dims <- paste(x$dims, collapse = ",")
+    dims <- latex_brackets(dims, brackets)
+    return(paste0("\\mathcal{", name, "}(", dims, ")"))
+  }
+}
+
+#' @export
+#' @method as_latex ast_expression
+#' @rdname as_latex
+as_latex.ast_mapping <- function(x, brackets = "[]", ...) {
+  if (is.null(x$name)) {
+    return("\\emptyset")
+  } else {
+    name <- x$name
+    dims <- paste(x$dims, collapse = ",") |> latex_brackets(brackets)
+    return(paste0("\\mathsf{", name, "}(", dims, ")"))
+  }
+}
+
+#' @export
+#' @method as_latex ast_parameter
+#' @rdname as_latex
+as_latex.ast_parameter <- function(x, brackets = "[]", ...) {
+  if (is.null(x$name)) {
+    return("\\emptyset")
+  } else {
+    name <- x$name
+    dims <- paste(x$dims, collapse = ",") |> latex_brackets(brackets)
+    return(paste0("\\mathsf{", name, "}(", dims, ")"))
+  }
+}
+
+#' @export
+#' @method as_latex ast_variable
+#' @rdname as_latex
+as_latex.ast_variable <- function(x, brackets = "[]", ...) {
+  if (is.null(x$name)) {
+    return("\\emptyset")
+  } else {
+    name <- x$name
+    dims <- paste(x$dims, collapse = ",") |> latex_brackets(brackets)
+    return(paste0("\\mathit{", name, "}(", dims, ")"))
+  }
+}
+
+#' @export
+#' @method as_latex ast_symbol
+#' @rdname as_latex
+as_latex.ast_symbol <- function(x, ...) {
+  paste0("\\texttt{", x$value, "}")
+}
+
+#' @export
+#' @method as_latex ast_constant
+#' @rdname as_latex
+as_latex.ast_constant <- function(x, ...) {
+  as.character(x$value)
+}
+
+#' @export
+#' @method as_latex ast_unary
+#' @rdname as_latex
+as_latex.ast_unary <- function(x, brackets = NULL, ...) {
+  rhs <- as_latex(x$rhs, brackets = brackets)
+  op <- latex_operators[[x$op]]
+  if (is.null(op)) {
+    stop("Unrecognized operator: ", x$op)
+  }
+  out <- paste0(op, rhs)
+  return(out)
+}
+
+#' @export
+#' @method as_latex ast_expression
+#' @rdname as_latex
+as_latex.ast_expression <- function(x, brackets = NULL, ...) {
+  lhs <- as_latex(x$lhs, brackets = NULL)
+  rhs <- as_latex(x$rhs, brackets = NULL)
+  op <- latex_operators[[x$op]]
+  if (is.null(op)) {
+    stop("Unrecognized operator: ", x$op)
+  }
+  out <- paste0(lhs, " ", op, " ", rhs)
+  out <- latex_brackets(out, brackets)
+  return(out)
+}
+
+#' @export
+#' @method as_latex ast_condition
+#' @rdname as_latex
+as_latex.ast_condition <- function(x, brackets = NULL, ...) {
+  cond <- as_latex(x$condition, brackets = brackets)
+  then <- as_latex(x$then, brackets = brackets)
+  return(paste0(then, "\\quad \\text{if }", cond))
+}
+
+#' @export
+#' @method as_latex ast_sum
+#' @rdname as_latex
+as_latex.ast_sum <- function(x, brackets = NULL, ...) {
+  index <- x$index
+  domain <- if (!is.null(x$domain)) paste0(",\\; ", as_latex(x$domain, brackets = brackets)) else ""
+  body <- as_latex(x$value, brackets = brackets)
+  return(paste0("\\sum_{", index, domain, "} ", body))
+}
+
+#' @export
+#' @method as_latex ast_prod
+#' @rdname as_latex
+as_latex.ast_prod <- function(x, brackets = NULL, ...) {
+  index <- x$index
+  domain <- if (!is.null(x$domain)) paste0(",\\; ", as_latex(x$domain, brackets = brackets)) else ""
+  body <- as_latex(x$value, brackets = brackets)
+  return(paste0("\\prod_{", index, domain, "} ", body))
+}
+
+.as_latex.multimod_ast <- function(x, brackets = TRUE, ...) {
 
   if (x$type == "set") {
     name <- x$name
@@ -150,7 +274,6 @@ as_latex.multimod_ast <- function(x, brackets = TRUE, ...) {
   }
 
 }
-
 
 
 #' @export

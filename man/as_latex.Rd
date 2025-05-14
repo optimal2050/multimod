@@ -4,7 +4,18 @@
 \alias{as_latex}
 \alias{as_latex.default}
 \alias{as_latex.character}
-\alias{as_latex.multimod_ast}
+\alias{as_latex.ast_set}
+\alias{as_latex.ast_dims}
+\alias{as_latex.ast_mapping}
+\alias{as_latex.ast_parameter}
+\alias{as_latex.ast_variable}
+\alias{as_latex.ast_symbol}
+\alias{as_latex.ast_constant}
+\alias{as_latex.ast_unary}
+\alias{as_latex.ast_expression}
+\alias{as_latex.ast_condition}
+\alias{as_latex.ast_sum}
+\alias{as_latex.ast_prod}
 \alias{as_latex.multimod_equation}
 \title{Convert objects to LaTeX format}
 \usage{
@@ -14,7 +25,29 @@ as_latex(x, ...)
 
 \method{as_latex}{character}(x, math = FALSE, bold = FALSE, italic = FALSE)
 
-\method{as_latex}{multimod_ast}(x, brackets = TRUE, ...)
+\method{as_latex}{ast_set}(x, ...)
+
+\method{as_latex}{ast_dims}(x, brackets = "[]", ...)
+
+\method{as_latex}{ast_expression}(x, brackets = "[]", ...)
+
+\method{as_latex}{ast_parameter}(x, brackets = "[]", ...)
+
+\method{as_latex}{ast_variable}(x, brackets = "[]", ...)
+
+\method{as_latex}{ast_symbol}(x, ...)
+
+\method{as_latex}{ast_constant}(x, ...)
+
+\method{as_latex}{ast_unary}(x, brackets = NULL, ...)
+
+\method{as_latex}{ast_expression}(x, brackets = NULL, ...)
+
+\method{as_latex}{ast_condition}(x, brackets = NULL, ...)
+
+\method{as_latex}{ast_sum}(x, brackets = NULL, ...)
+
+\method{as_latex}{ast_prod}(x, brackets = NULL, ...)
 
 \method{as_latex}{multimod_equation}(eqn, math_env = "dmath")
 }
