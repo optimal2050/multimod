@@ -16,8 +16,6 @@ as_multimod.default <- function(x, ...) {
   stop("No as_multimod method for object of class: ", class(x))
 }
 
-
-
 #' @export
 as_multimod.model_structure <- function(x, ...) {
   stopifnot(inherits(x, "model_structure"))

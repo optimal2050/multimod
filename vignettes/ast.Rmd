@@ -24,15 +24,17 @@ library(visNetwork)
 
 ## Example equation #1
 ```{r}
-eq <- example_model$multimod$equations$eqTechCapUp
+mm <- example_model$model_info |> as_multimod()
+# eq <- example_model$multimod$equations$eqTechCapUp
+eq <- mm$equations$eqTechCapUp
 print(eq$name); print(eq$desc)
 names(eq)
 ```
 
 ### Full tree structure
 ```{r}
-purrr::pluck_depth(eq)
-tree(eq, max_depth = 2)
+depth(eq)
+tree(eq, max_depth = 5)
 ```
 
 ### Network representation
@@ -52,7 +54,7 @@ print(eq$name); print(eq$desc)
 
 ### Partial tree structure
 ```{r}
-tree(eq, max_depth = 1)
+tree(eq, max_depth = 3)
 ```
 
 ### Network representation
@@ -63,3 +65,4 @@ visNetwork(eq_net$nodes, eq_net$edges) |>
   visInteraction(navigationButtons = TRUE) |>
   visHierarchicalLayout(direction = "LR")
 ```
+

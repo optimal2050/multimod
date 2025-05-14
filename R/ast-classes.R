@@ -313,5 +313,15 @@ ast_prod <- function(index, domain = NULL, value) {
   new_multimod_ast("prod", index = index, domain = domain, value = value)
 }
 
-
+#' Get the class of an AST node
+#'
+#' This function retrieves the class of an AST node.
+#'
+#' @param x An AST node object.
+#'
+#' @return A character string representing the class of the AST node.
+#' @export
+ast_type <- function(x) {
+  gsub("^ast_", "", class(x)[1])
+}
 
