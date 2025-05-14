@@ -89,8 +89,8 @@ parse_gams_expr <- function(
     if (!is.null(tokens) && length(tokens) >= 2) {
       lhs <- parse_gams_expr(tokens[[1]], symbols, known_funcs, depth + 1, max_depth)
       rhs <- parse_gams_expr(paste(tokens[-1], collapse = paste0(" ", op, " ")), symbols, known_funcs, depth + 1, max_depth)
-      # return(list(type = "expression", op = tolower(op), left = lhs, right = rhs))
-      return(ast_expression(op, left = lhs, right = rhs))
+      # return(list(type = "expression", op = tolower(op), lhs = lhs, rhs = rhs))
+      return(ast_expression(op, lhs = lhs, rhs = rhs))
     } else if (length(tokens) == 1) {
       # Handle unary operators
       if (op %in% c("not", "-", "!")) {
@@ -165,7 +165,7 @@ parse_gams_expr <- function(
     dims <- trimws(strsplit(dims, ",")[[1]])
     symbol_type <- detect_symbol_type(name, symbols, known_funcs)
     # browser()
-    dims <- as_dims(dims)
+    dims <- ast_dims(dims)
     return(do.call(paste0("ast_", symbol_type), list(name, dims)))
   }
 
@@ -222,18 +222,11 @@ gams_to_multimod <- function(gams_eq, symbols) {
   if (length(match) >= 5 && !any(is.na(match))) {
     eq_name <- match[2]
     indices <- trimws(strsplit(match[3], ",")[[1]])
-    # symbol_type <- detect_symbol_type(match[4], symbols)
-    # domain <- list(
-    #   type = symbol_type,
-    #   name = match[4],
-    #   dims = trimws(strsplit(match[5], ",")[[1]])
-    # )
     domain <- new_ast(
-      type = detect_symbol_type(match[4], symbols),
+      ast_type = detect_symbol_type(match[4], symbols),
       name = match[4],
       dims = trimws(strsplit(match[5], ",")[[1]])
     )
-
     body <- gsub(pattern_with_domain, "", gams_eq)
   } else {
     match2 <- regmatches(gams_eq, regexec(pattern_no_domain, gams_eq))[[1]]
@@ -377,7 +370,7 @@ eqTechAfUp(tech, region, year, slice)$meqTechAfUp(tech, region, year, slice)..
 
   eq_obj$lhs
   eq_obj$rhs |> str()
-  eq_obj$rhs$left$right |> str()
+  eq_obj$rhs$lhs$rhs |> str()
 
   pretty_print_multimod(eq_obj, multiline = TRUE)
   pretty_print_multimod(eq_obj, latex = TRUE)
@@ -388,7 +381,7 @@ eqTechAfUp(tech, region, year, slice)$meqTechAfUp(tech, region, year, slice)..
 
   # library(DiagrammeR)
 
-  # expr_tree <- eq_obj$rhs  # or any expression subtree like eq_obj$rhs$left$right
+  # expr_tree <- eq_obj$rhs  # or any expression subtree like eq_obj$rhs$lhs$rhs
   #
   # res <- build_graph_from_expr(expr_tree)
   #

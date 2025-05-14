@@ -16,7 +16,7 @@ editor_options:
 # usethis::use_r("html")
 # usethis::use_r("utils")
 # usethis::use_r("code_handlers")
-usethis::use_r("parsing")
+# usethis::use_r("parsing")
 # usethis::use_r("plot")
 # usethis::use_r("print")
 # usethis::use_r("as_character")
@@ -39,6 +39,10 @@ usethis::use_import_from("rlang", "is_empty")
 usethis::use_package("visNetwork", type = "Suggests")
 usethis::use_package("purrr", type = "Suggests")
 usethis::use_package("lobstr", type = "Suggests")
+
+# Imported functions and methods
+usethis::use_import_from("purrr", "pluck_depth")
+usethis::use_import_from("rlang", "is_empty")
 
 
 

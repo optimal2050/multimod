@@ -41,8 +41,8 @@ plot.multimod_ast <- function(x, ...) {
 
     # Recurse
     if (node$type == "expression") {
-      walk_ast(node$left, id)
-      walk_ast(node$right, id)
+      walk_ast(node$lhs, id)
+      walk_ast(node$rhs, id)
     } else if (node$type == "condition") {
       walk_ast(node$condition, id)
       walk_ast(node$then, id)
@@ -97,8 +97,8 @@ plot_d.multimod_ast <- function(x, ...) {
     dot_nodes <<- c(dot_nodes, sprintf("%s [label = \"%s\"]", node_id, label))
 
     if (node$type == "expression") {
-      left_id <- walk_ast(node$left)
-      right_id <- walk_ast(node$right)
+      left_id <- walk_ast(node$lhs)
+      right_id <- walk_ast(node$rhs)
       dot_edges <<- c(dot_edges, sprintf("%s -> %s", node_id, left_id))
       dot_edges <<- c(dot_edges, sprintf("%s -> %s", node_id, right_id))
     }
@@ -205,15 +205,15 @@ get_network_data <- function(eq, alias_map = NULL, show_dims = FALSE) {
     }
 
     if (expr$type == "expression") {
-      recurse_expr(expr$left, my_id)
-      recurse_expr(expr$right, my_id)
+      recurse_expr(expr$lhs, my_id)
+      recurse_expr(expr$rhs, my_id)
     } else if (expr$type == "unary") {
       recurse_expr(expr$rhs, my_id)
     } else if (expr$type %in% c("sum", "prod", "condition", "logic", "compare")) {
       # browser()
       if (!is.null(expr$domain)) recurse_expr(expr$domain, my_id)
-      if (!is.null(expr$left)) recurse_expr(expr$left, my_id)
-      if (!is.null(expr$right)) recurse_expr(expr$right, my_id)
+      if (!is.null(expr$lhs)) recurse_expr(expr$lhs, my_id)
+      if (!is.null(expr$rhs)) recurse_expr(expr$rhs, my_id)
       if (!is.null(expr$value)) recurse_expr(expr$value, my_id)
       if (!is.null(expr$condition)) recurse_expr(expr$condition, my_id)
       if (!is.null(expr$then)) recurse_expr(expr$then, my_id)

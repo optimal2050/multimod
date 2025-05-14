@@ -7,7 +7,8 @@
 ast_condition(condition, then)
 }
 \arguments{
-\item{condition}{The condition to check (right-hand side of \code{$}). Must be an AST node.}
+\item{condition}{The condition to check (a.k.a. right-hand side of \code{$}
+in GAMS statements). Must be an AST node.}
 
 \item{then}{The expression to evaluate if the condition is true (usually the left-hand side).}
 }

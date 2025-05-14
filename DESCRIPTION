@@ -19,11 +19,11 @@ Imports:
     dplyr,
     data.table,
     visNetwork,
-    rlang
+    rlang,
+    purrr
 Suggests: 
     knitr,
     lobstr,
-    purrr,
     rmarkdown
 VignetteBuilder: knitr
 LazyData: true

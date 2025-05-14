@@ -1,6 +1,38 @@
+
+
+latex_operators <- list(
+  "*" = " \\cdot ",
+  "/" = " \\div ",
+  "+" = " + ",
+  "-" = " - ",
+  "^" = " ^ ",
+  "=" = " = ",
+  "<=" = " \\leq ",
+  ">=" = " \\geq ",
+  "==" = " = ",
+  "!=" = " \\neq ",
+  "<" = " < ",
+  ">" = " > ",
+  "and" = " \\land ",
+  "or"  = " \\lor ",
+  "!" = " \\lnot ",
+  "not" = " \\lnot "
+)
+
+
+#' Convert objects to LaTeX format
+#'
 #' @export
+#' @rdname as_latex
 as_latex <- function(x, ...) {
   UseMethod("as_latex")
+}
+
+#' @export
+#' @method as_latex default
+#' @rdname as_latex
+as_latex.default <- function(x, ...) {
+  stop("as_latex not implemented for this class.")
 }
 
 #' Convert a character string to LaTeX-safe format
@@ -50,6 +82,77 @@ as_latex.character <- function(x, math = FALSE, bold = FALSE, italic = FALSE) {
 #   }
 # }
 
+latex_brackets <- function(x, brackets = NULL) {
+  if (is.null(brackets)) return(x)
+  # if (length(brackets) != 2) stop("brackets must be a vector of length 2.")
+  if (is.null(x)) return(NULL)
+  if (brackets[1] == "[") {
+    return(paste0("\\left[", x, "\\right]"))
+  } else if (brackets[1] == "{") {
+    return(paste0("\\left\\{", x, "\\right\\}"))
+  } else if (brackets[1] == "(") {
+    return(paste0("\\left(", x, "\\right)"))
+  } else {
+    stop("Unsupported bracket type: ", brackets[1])
+  }
+}
+
+#' @export
+#' @method as_latex multimod_ast
+#' @rdname as_latex
+as_latex.multimod_ast <- function(x, brackets = TRUE, ...) {
+
+  if (x$type == "set") {
+    name <- x$name
+    return(paste0("\\mathcal{", name, "}"))
+  } else if (x$type == "unary") {
+    rhs <- as_latex(x$rhs, add_parentheses = add_parentheses)
+    op <- if (x$op == "-") "-" else if (x$op == "+") "+" else x$op
+    out <- paste0(op, rhs)
+    return(if (add_parentheses) paste0("\\left(", out, "\\right)") else out)
+
+  } else if (x$type == "expression") {
+    lhs <- as_latex(x$lhs, add_parentheses = add_parentheses)
+    rhs <- as_latex(x$rhs, add_parentheses = add_parentheses)
+    op <- x$op
+    out <- paste0(lhs, " ", latex_operators[[op]], " ", rhs)
+    return(if (add_parentheses) paste0("\\left(", out, "\\right)") else out)
+
+  } else if (x$type == "variable" || x$type == "parameter") {
+    dims <- paste(x$dims, collapse = ",")
+    return(paste0("\\mathit{", x$name, "}(", dims, ")"))
+
+  } else if (x$type == "constant") {
+    return(as.character(x$value))
+
+  } else if (x$type == "symbol") {
+    return(paste0("\\texttt{", x$value, "}"))
+
+  } else if (x$type == "condition") {
+    cond <- as_latex(x$condition, add_parentheses = add_parentheses)
+    then <- as_latex(x$then, add_parentheses = add_parentheses)
+    return(paste0(then, "\\quad \\text{if }", cond))
+
+  } else if (x$type == "sum") {
+    index <- x$index
+    domain <- if (!is.null(x$domain)) paste0(",\\; ", as_latex(x$domain, add_parentheses = add_parentheses)) else ""
+    body <- as_latex(x$value, add_parentheses = add_parentheses)
+    return(paste0("\\sum_{", index, domain, "} ", body))
+
+  } else if (x$type == "prod") {
+    index <- x$index
+    domain <- if (!is.null(x$domain)) paste0(",\\; ", as_latex(x$domain, add_parentheses = add_parentheses)) else ""
+    body <- as_latex(x$value, add_parentheses = add_parentheses)
+    return(paste0("\\prod_{", index, domain, "} ", body))
+
+  } else {
+    stop("Unsupported AST node type: ", x$type)
+  }
+
+}
+
+
+
 #' @export
 write_latex <- function(x, file, ...) {
   UseMethod("write_latex")
@@ -61,15 +164,15 @@ write_latex <- function(x, file, ...) {
 #     if (is.null(expr)) return("")
 #     switch(expr$type,
 #            "expression" = {
-#              left <- render_expr(expr$left)
-#              right <- render_expr(expr$right)
+#              lhs <- render_expr(expr$lhs)
+#              rhs <- render_expr(expr$rhs)
 #              op <- switch(expr$op,
 #                           "*" = " \\cdot ",
 #                           "/" = " \\div ",
 #                           "+" = " + ",
 #                           "-" = " - ",
 #                           expr$op)
-#              paste0("(", left, op, right, ")")
+#              paste0("(", lhs, op, rhs, ")")
 #            },
 #            "sum" = {
 #              index <- expr$index
@@ -100,16 +203,16 @@ write_latex <- function(x, file, ...) {
 #              paste0("\\texttt{", expr$value, "}")
 #            },
 #            # "compare" = {
-#            #   left <- render_expr(expr$left)
-#            #   right <- render_expr(expr$right)
+#            #   lhs <- render_expr(expr$lhs)
+#            #   rhs <- render_expr(expr$rhs)
 #            #   op <- paste0(" ", expr$op, " ")
-#            #   paste0(left, op, right)
+#            #   paste0(lhs, op, rhs)
 #            # },
 #            # "logic" = {
-#            #   left <- render_expr(expr$left)
-#            #   right <- render_expr(expr$right)
+#            #   lhs <- render_expr(expr$lhs)
+#            #   rhs <- render_expr(expr$rhs)
 #            #   op <- paste0(" \\text{", expr$op, "} ")
-#            #   paste0("(", left, op, right, ")")
+#            #   paste0("(", lhs, op, rhs, ")")
 #            # },
 #            paste0("[Unsupported type: ", expr$type, "]")
 #     )
@@ -140,12 +243,12 @@ as_latex.multimod_equation <- function(eqn,
                                        ) {
   # Recursive rendering of AST
   render_expr <- function(expr) {
-    browser()
+    # browser()
     if (is.null(expr)) return("")
     switch(expr$type,
            "expression" = {
-             left <- render_expr(expr$left)
-             right <- render_expr(expr$right)
+             lhs <- render_expr(expr$lhs)
+             rhs <- render_expr(expr$rhs)
              op <- switch(expr$op,
                           "*" = " \\cdot ",
                           "/" = " \\div ",
@@ -164,10 +267,10 @@ as_latex.multimod_equation <- function(eqn,
                           "!" = " \\lnot ",
                           "not" = " \\lnot ",
                           expr$op)
-             paste0("(", left, op, right, ")")
+             paste0("(", lhs, op, rhs, ")")
            },
            "unary" = {
-             # left <- render_expr(expr$left)
+             # lhs <- render_expr(expr$lhs)
              rhs <- render_expr(expr$rhs)
              op <- switch(expr$op,
                           # "*" = " \\cdot ",
@@ -187,7 +290,7 @@ as_latex.multimod_equation <- function(eqn,
                           # "or"  = " \\lor ",
                           "not" = " \\lnot ",
                           expr$op)
-             paste0("(", left, op, right, ")")
+             paste0("(", lhs, op, rhs, ")")
            },
            "sum" = {
              idx <- expr$index
@@ -554,8 +657,8 @@ if (F) {
 #       return(paste0(expr$type, "(", expr$index, dom_txt, ", ", val_txt, ")"))
 #     }
 #     if (expr$type == "expression") {
-#       lhs <- format_expr(expr$left, subscript_map, indent_level)
-#       rhs <- format_expr(expr$right, subscript_map, indent_level)
+#       lhs <- format_expr(expr$lhs, subscript_map, indent_level)
+#       rhs <- format_expr(expr$rhs, subscript_map, indent_level)
 #       op <- expr$op
 #       if (nchar(lhs) + nchar(rhs) + 3 > max_width) {
 #         return(paste0(lhs, "\\\\\n", pad, op, " ", rhs))
@@ -634,13 +737,13 @@ if (F) {
 #
 #     if (expr$type == "expression") {
 #       if (expr$op == "/") {
-#         num <- format_expr(expr$left, subscript_map, indent_level, in_frac = TRUE)
-#         den <- format_expr(expr$right, subscript_map, indent_level, in_frac = TRUE)
+#         num <- format_expr(expr$lhs, subscript_map, indent_level, in_frac = TRUE)
+#         den <- format_expr(expr$rhs, subscript_map, indent_level, in_frac = TRUE)
 #         return(paste0("\\frac{", num, "}{", den, "}"))
 #       }
 #
-#       lhs <- format_expr(expr$left, subscript_map, indent_level, in_frac)
-#       rhs <- format_expr(expr$right, subscript_map, indent_level, in_frac)
+#       lhs <- format_expr(expr$lhs, subscript_map, indent_level, in_frac)
+#       rhs <- format_expr(expr$rhs, subscript_map, indent_level, in_frac)
 #       op <- expr$op
 #       return(paste(lhs, op, rhs))
 #     }
@@ -764,8 +867,8 @@ apply_aliases_to_ast <- function(ast, alias_map) {
 
   # Apply to expressions recursively
   if (out$type == "expression") {
-    out$left <- apply_aliases_to_ast(out$left, alias_map)
-    out$right <- apply_aliases_to_ast(out$right, alias_map)
+    out$lhs <- apply_aliases_to_ast(out$lhs, alias_map)
+    out$rhs <- apply_aliases_to_ast(out$rhs, alias_map)
     return(out)
   }
 
@@ -797,10 +900,12 @@ apply_aliases_to_eqn <- function(eqn, alias_map) {
   return(eqn)
 }
 
+#' @exportS3method
 apply_aliases <- function(x, alias_map, ...) {
   UseMethod("apply_aliases")
 }
 
+#' @exportS3method
 apply_aliases.multimod_equation <- function(x, alias_map, ...) {
   apply_aliases_to_eqn(x, alias_map)
 }
@@ -809,6 +914,7 @@ apply_aliases.multimod_equation <- function(x, alias_map, ...) {
 #   x$equations <- lapply(x$equations, apply_aliases, alias_map = alias_map)
 #   return(x)
 # }
+#' @exportS3method
 apply_aliases.multimod_ast <- function(x, alias_map, ...) {
   apply_aliases_to_ast(x, alias_map)
 }
@@ -856,8 +962,8 @@ as_latex2.multimod_equation <- function(eqn,
     }
 
     if (expr$type == "expression") {
-      lhs <- format_expr(expr$left, subscript_map, indent_level)
-      rhs <- format_expr(expr$right, subscript_map, indent_level)
+      lhs <- format_expr(expr$lhs, subscript_map, indent_level)
+      rhs <- format_expr(expr$rhs, subscript_map, indent_level)
       op <- expr$op
       if (nchar(lhs) + nchar(rhs) + 3 > max_width) {
         return(paste0(lhs, "\\\\\n", pad, op, " ", rhs))

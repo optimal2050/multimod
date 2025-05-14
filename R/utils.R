@@ -43,6 +43,18 @@ is_expression <- function(
   return(length(top_ops) > 0)
 }
 
+#' Get the depth of a nested list structure (AST, multimod, and other objects)
+#'
+#' This function calculates the depth of a nested list structure.
+#' Wrapper for `purrr::pluck_depth`.
+#'
+#' @param x A list or nested list structure.
+#'
+#' @returns An integer representing the depth of the list.
+#' @export
+depth <- function(x) {
+  purrr::pluck_depth(x)
+}
 
 #' Check if a character is a special character
 #'

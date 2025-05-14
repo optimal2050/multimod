@@ -7,9 +7,5 @@
 \method{print}{multimod_ast}(x, ...)
 }
 \description{
-\subsection{Title: Print Methods for AST and Multimod Classes
-Description: S3 print methods to display human-readable summaries of multimod and AST objects.
-Purpose: Improve interpretability and debugging of parsed modeling components.
-Dependencies: Assumes multimod_ast and multimod_symbol classes are defined.}{
-}
+Print methods for AST classes
 }

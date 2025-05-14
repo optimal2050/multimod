@@ -4,15 +4,17 @@
 \alias{new_ast}
 \title{Create a new multimod AST (Abstract Syntax Tree) node}
 \usage{
-new_ast(type, ..., inherits_class = NULL)
+new_ast(ast_type, ..., inherits_class = NULL)
 }
 \arguments{
-\item{type}{The type of AST node (e.g., \code{"expression"}, \code{"variable"}, \code{"constant"}, \code{"parameter"}, \code{"symbol"}).}
+\item{ast_type}{The type of AST node (e.g., \code{"expression"}, \code{"variable"},
+\code{"constant"}, \code{"parameter"}, \code{"symbol"}).}
 
 \item{...}{Additional named fields passed as components of the AST node.}
 }
 \value{
-A structured S3 object of class \code{multimod_ast}, with a subclass matching \code{type}.
+A structured S3 object of class \code{multimod_ast}, with a subclass
+matching \code{ast_type}.
 }
 \description{
 This is a generic constructor for all \code{multimod_ast} node types,
