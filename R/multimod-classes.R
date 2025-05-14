@@ -18,7 +18,7 @@ new_multimod_set <- function(name, desc = NULL, subset_of = NULL,
       subset_of = subset_of,
       data = data
     ),
-    class = c("multimod_set")
+    class = c("multimod_set", "ast_set")
   )
 }
 new_set <- new_multimod_set
@@ -42,16 +42,16 @@ new_multimod_mapping <- function(name,
                                  data = NULL,
                                  auto_fold = FALSE) {
   stopifnot(is.character(name), length(name) == 1)
-
+  # browser()
   structure(
     list(
       name = name,
       desc = desc,
-      dims = dims,
-      active_dims = active_dims,
+      dims = ast_dims(dims),
+      active_dims = ast_dims(active_dims),
       data = data
     ),
-    class = c("multimod_mapping")
+    class = c("multimod_mapping", "ast_mapping")
   )
 }
 new_mapping <- new_multimod_mapping
@@ -89,11 +89,11 @@ new_multimod_parameter <- function(
     list(
       name = name,
       desc = desc,
-      dims = dims,
-      active_dims = active_dims,
+      dims = ast_dims(dims),
+      active_dims = ast_dims(active_dims),
       data = data
     ),
-    class = "multimod_parameter"
+    class = c("multimod_parameter", "ast_parameter")
   )
 }
 new_parameter <- new_multimod_parameter
@@ -111,36 +111,37 @@ new_parameter <- new_multimod_parameter
 #' @export
 #' @aliases new_variable
 #'
-#' @examples
 new_multimod_variable <- function(
     name,
     desc = NULL,
     dims,
-    data = NULL,
     active_dims = NULL,
-    domain = "continuous",
-    auto_fold = TRUE) {
-  stopifnot(domain %in% c("continuous", "integer", "binary"))
+    domain = NULL,
+    data = NULL, # mapping parameter/set
+    # domain = "continuous",
+    auto_fold = FALSE) {
+  # stopifnot(domain %in% c("continuous", "integer", "binary"))
 
   if (is.null(active_dims)) {
     if (auto_fold) {
       # dims_folded <- fold_param_dims(data, dims)
       # active_dims <- dims_folded$active_dims
     } else {
-      active_dims <- setdiff(names(data), c("value", "lb", "ub", "start"))
+      active_dims <- dims
     }
   }
-
+  # message(name)
   structure(
     list(
       name = name,
       desc = desc,
-      dims = dims,
-      active_dims = active_dims,
+      dims = ast_dims(dims),
+      active_dims = ast_dims(active_dims),
+      # domain = ast_mapping(active_dims),
       domain = domain,
       data = as.data.frame(data)
     ),
-    class = "multimod_variable"
+    class = c("multimod_variable", "ast_variable")
   )
 }
 new_variable <- new_multimod_variable
@@ -185,18 +186,22 @@ new_multimod_equation <- function(
     relation = "==",
     domain = NULL) {
   stopifnot(relation %in% c("==", "<=", ">="))
+  # if (!inherits(rhs, "ast_expression")) browser()
+  stopifnot(inherits(lhs, "multimod_ast"), inherits(rhs, "multimod_ast"))
+
+  # if (name == "eqTechSng2Grp") browser()
 
   structure(
     list(
       name = name,
       desc = desc,
-      dims = dims,
+      dims = ast_dims(dims),
       domain = domain,
       lhs = lhs,
       relation = relation,
       rhs = rhs
     ),
-    class = "multimod_equation"
+    class = c("multimod_equation", "ast_equation")
   )
 }
 

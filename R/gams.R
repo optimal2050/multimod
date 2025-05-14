@@ -225,7 +225,7 @@ gams_to_multimod <- function(gams_eq, symbols) {
     domain <- new_ast(
       ast_type = detect_symbol_type(match[4], symbols),
       name = match[4],
-      dims = trimws(strsplit(match[5], ",")[[1]])
+      dims = ast_dims(trimws(strsplit(match[5], ",")[[1]]))
     )
     body <- gsub(pattern_with_domain, "", gams_eq)
   } else {
@@ -971,4 +971,68 @@ coerce_gams_equation <- function(eqn_info, symbols) {
   parsed_eqn$desc <- eqn_info$desc
   return(parsed_eqn)
 }
+
+#' @title Convert multimod_equation to GAMS syntax
+#' @description Render a `multimod_equation` object as a GAMS equation string.
+#' @param eqn A `multimod_equation` object.
+#' @returns A character string with valid GAMS syntax.
+#' @export
+as_gams.multimod_equation <- function(eqn) {
+  stopifnot(inherits(eqn, "multimod_equation"))
+
+  format_expr_gams <- function(expr) {
+    if (is.null(expr)) return("")
+    switch(expr$type,
+           "expression" = {
+             lhs <- format_expr_gams(expr$lhs %||% expr$left)
+             rhs <- format_expr_gams(expr$rhs %||% expr$right)
+             paste0("(", lhs, " ", expr$op, " ", rhs, ")")
+           },
+           "sum" = {
+             index <- expr$index
+             domain <- if (!is.null(expr$domain)) paste0("$", format_expr_gams(expr$domain)) else ""
+             body <- format_expr_gams(expr$value)
+             paste0("sum(", index, domain, ", ", body, ")")
+           },
+           "prod" = {
+             index <- expr$index
+             domain <- if (!is.null(expr$domain)) paste0("$", format_expr_gams(expr$domain)) else ""
+             body <- format_expr_gams(expr$value)
+             paste0("prod(", index, domain, ", ", body, ")")
+           },
+           "condition" = {
+             then <- format_expr_gams(expr$then)
+             cond <- format_expr_gams(expr$condition)
+             paste0(then, "$", cond)
+           },
+           "variable" = {
+             if (length(expr$dims)) paste0(expr$name, "(", paste(expr$dims, collapse = ","), ")") else expr$name
+           },
+           "parameter" = {
+             if (length(expr$dims)) paste0(expr$name, "(", paste(expr$dims, collapse = ","), ")") else expr$name
+           },
+           "mapping" = {
+             paste0(expr$name, "(", paste(expr$dims, collapse = ","), ")")
+           },
+           "symbol" = expr$value,
+           "constant" = as.character(expr$value),
+           paste0("<?>", expr$type)
+    )
+  }
+
+  dims <- paste(eqn$dims, collapse = ",")
+  dom <- if (!is.null(eqn$domain)) paste0("$", format_expr_gams(eqn$domain)) else ""
+  lhs <- format_expr_gams(eqn$lhs)
+  rhs <- format_expr_gams(eqn$rhs)
+  relation <- switch(eqn$relation,
+                     "==" = "=e=",
+                     "<=" = "=l=",
+                     ">=" = "=g=",
+                     eqn$relation
+  )
+
+  paste0(eqn$name, "(", dims, ")", dom, " .. ", lhs, " ", relation, " ", rhs, ";")
+}
+
+
 

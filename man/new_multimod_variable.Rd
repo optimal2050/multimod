@@ -9,10 +9,10 @@ new_multimod_variable(
   name,
   desc = NULL,
   dims,
-  data = NULL,
   active_dims = NULL,
-  domain = "continuous",
-  auto_fold = TRUE
+  domain = NULL,
+  data = NULL,
+  auto_fold = FALSE
 )
 }
 \arguments{
@@ -20,11 +20,11 @@ new_multimod_variable(
 
 \item{dims}{character vector, names of the declared dimensions}
 
-\item{data}{data frame, data for the variable}
-
 \item{active_dims}{character vector, names of the active dimensions}
 
 \item{domain}{character, domain of the variable (e.g., "continuous", "integer", "binary")}
+
+\item{data}{data frame, data for the variable}
 
 \item{auto_fold}{logical, whether to automatically fold dimensions}
 }

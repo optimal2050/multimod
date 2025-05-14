@@ -2,21 +2,35 @@
 % Please edit documentation in R/ast-classes.R
 \name{new_ast}
 \alias{new_ast}
+\alias{ast_set}
 \title{Create a new multimod AST (Abstract Syntax Tree) node}
 \usage{
 new_ast(ast_type, ..., inherits_class = NULL)
+
+ast_set(name)
 }
 \arguments{
 \item{ast_type}{The type of AST node (e.g., \code{"expression"}, \code{"variable"},
 \code{"constant"}, \code{"parameter"}, \code{"symbol"}).}
 
 \item{...}{Additional named fields passed as components of the AST node.}
+
+\item{name}{Character. Name of the set (e.g., "b").}
 }
 \value{
 A structured S3 object of class \code{multimod_ast}, with a subclass
 matching \code{ast_type}.
+
+An object of class \code{multimod_ast} and \code{ast_set}
 }
 \description{
 This is a generic constructor for all \code{multimod_ast} node types,
 used internally by the \verb{ast_*()} functions to define structured equations.
+
+Constructs a set object used as an index domain for other symbols
+(e.g., mappings, parameters, variables, equations).
+}
+\examples{
+ast_set("b")                     # standalone set
+ast_set("b", domain = ast_set("a"))  # subset declaration b ⊆ a
 }

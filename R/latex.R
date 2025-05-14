@@ -1023,12 +1023,12 @@ apply_aliases_to_eqn <- function(eqn, alias_map) {
   return(eqn)
 }
 
-#' @exportS3method
+#' @export
 apply_aliases <- function(x, alias_map, ...) {
   UseMethod("apply_aliases")
 }
 
-#' @exportS3method
+#' @export
 apply_aliases.multimod_equation <- function(x, alias_map, ...) {
   apply_aliases_to_eqn(x, alias_map)
 }
@@ -1037,7 +1037,7 @@ apply_aliases.multimod_equation <- function(x, alias_map, ...) {
 #   x$equations <- lapply(x$equations, apply_aliases, alias_map = alias_map)
 #   return(x)
 # }
-#' @exportS3method
+#' @export
 apply_aliases.multimod_ast <- function(x, alias_map, ...) {
   apply_aliases_to_ast(x, alias_map)
 }
