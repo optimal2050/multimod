@@ -4,11 +4,12 @@
 \alias{ast_dims}
 \title{Create an AST node for dimensions (dims) of a symbol}
 \usage{
-ast_dims(dims = list())
+ast_dims(...)
 }
 \arguments{
 \item{...}{One or more dimension expressions, typically created using
-\code{\link[=ast_set]{ast_set()}} or \code{\link[=ast_symbol]{ast_symbol()}}. Expected AST objects or character strings.
+\code{\link[=ast_set]{ast_set()}} or \code{\link[=ast_symbol]{ast_symbol()}}. Expected AST objects or character strings,
+comma-separated.
 If character strings are provided, they will be converted to \code{ast_symbol} objects.}
 }
 \value{

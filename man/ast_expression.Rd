@@ -4,14 +4,14 @@
 \alias{ast_expression}
 \title{Create an expression AST node}
 \usage{
-ast_expression(op, left, right)
+ast_expression(op, lhs, rhs)
 }
 \arguments{
 \item{op}{A character string representing the operator (e.g., \code{+}, \code{*}, \code{/}).}
 
-\item{left}{The left-hand side AST node.}
+\item{lhs}{The left-hand side AST node.}
 
-\item{right}{The right-hand side AST node.}
+\item{rhs}{The right-hand side AST node.}
 }
 \value{
 An \code{ast_expression} S3 object (subclass of \code{multimod_ast}).
