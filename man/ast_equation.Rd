@@ -24,7 +24,7 @@ One of \code{"=="}, \code{"<="}, or \code{">="}.
 @param domain Optional AST node representing the domain condition.
 @param desc Optional character string. A description or label for the equation.
 
-@return An \code{ast_equation} S3 object.
+@return An \code{equation} S3 object.
 @export}
 }
 \description{

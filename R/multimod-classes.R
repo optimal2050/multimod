@@ -1,13 +1,12 @@
-#' Create a new multimod_set object
+#' Create a new set object
 #'
 #' @param name Character. Name of the set.
 #' @param desc Character. Description of the set (optional).
 #' @param subset_of Character vector. Name of the parent set (optional).
 #' @param data Optional values (e.g., character vector or data.frame).
-#' @return An object of class `multimod_set`
+#' @return An object of class `set`
 #' @export
-#' @aliases new_set
-new_multimod_set <- function(name, desc = NULL, subset_of = NULL,
+new_set <- function(name, desc = NULL, subset_of = NULL,
                              data = NULL) {
   stopifnot(is.character(name), length(name) == 1)
 
@@ -18,11 +17,9 @@ new_multimod_set <- function(name, desc = NULL, subset_of = NULL,
       subset_of = subset_of,
       data = data
     ),
-    class = c("multimod_set", "ast_set")
+    class = c("set", "multimod", "ast")
   )
 }
-new_set <- new_multimod_set
-
 
 #' Create a multimod mapping object
 #'
@@ -31,10 +28,9 @@ new_set <- new_multimod_set
 #' @param subset_of character, name of the parent mapping
 #' @param dims character vector, names of the declared dimensions
 #' @param data data frame, data for the mapping
-#' @return An object of class `multimod_mapping`
+#' @return An object of class `mapping`
 #' @export
-#' @aliases new_mapping
-new_multimod_mapping <- function(name,
+new_mapping <- function(name,
                                  desc = NULL,
                                  subset_of = NULL,
                                  dims = NULL,
@@ -51,10 +47,9 @@ new_multimod_mapping <- function(name,
       active_dims = ast_dims(active_dims),
       data = data
     ),
-    class = c("multimod_mapping", "ast_mapping")
+    class = c("mapping", "multimod", "ast")
   )
 }
-new_mapping <- new_multimod_mapping
 
 #' Create a multimod parameter
 #'
@@ -64,12 +59,11 @@ new_mapping <- new_multimod_mapping
 #' @param active_dims character vector, names of the active dimensions
 #' @param auto_fold logical, whether to automatically fold dimensions
 #'
-#' @returns a multimod_parameter object
+#' @returns a parameter object
 #' @export
-#' @aliases new_parameter
 #'
 #' @examples
-new_multimod_parameter <- function(
+new_parameter <- function(
     name,
     desc = NULL,
     dims,
@@ -93,10 +87,9 @@ new_multimod_parameter <- function(
       active_dims = ast_dims(active_dims),
       data = data
     ),
-    class = c("multimod_parameter", "ast_parameter")
+    class = c("parameter", "multimod", "ast")
   )
 }
-new_parameter <- new_multimod_parameter
 
 #' Create a multimod variable
 #'
@@ -107,11 +100,9 @@ new_parameter <- new_multimod_parameter
 #' @param domain character, domain of the variable (e.g., "continuous", "integer", "binary")
 #' @param auto_fold logical, whether to automatically fold dimensions
 #'
-#' @returns a multimod_variable object
+#' @returns a variable object
 #' @export
-#' @aliases new_variable
-#'
-new_multimod_variable <- function(
+new_variable <- function(
     name,
     desc = NULL,
     dims,
@@ -141,10 +132,9 @@ new_multimod_variable <- function(
       domain = domain,
       data = as.data.frame(data)
     ),
-    class = c("multimod_variable", "ast_variable")
+    class = c("variable", "multimod", "ast")
   )
 }
-new_variable <- new_multimod_variable
 
 #' Create a multimod equation object
 #'
@@ -160,15 +150,14 @@ new_variable <- new_multimod_variable
 #' @param relation Character string. The relation type: one of `"=="`, `"<="`, or `">="`.
 #' @param domain Optional AST or symbol representing the domain/mapping condition for the equation.
 #'
-#' @returns An object of class `multimod_equation`, containing the parsed equation structure.
+#' @returns An object of class `equation`, containing the parsed equation structure.
 #'
 #' @export
-#' @aliases new_equation
 #'
 #' @examples
 #' lhs <- ast_variable("vTechOut", dims = c("tech", "region"))
-#' rhs <- ast_expression("*", ast_param("pTechEff", dims = c("tech")), ast_variable("vTechInp", dims = c("tech", "region")))
-#' eq <- new_multimod_equation(
+#' rhs <- ast_expression("*", param("pTechEff", dims = c("tech")), ast_variable("vTechInp", dims = c("tech", "region")))
+#' eq <- new_equation(
 #'   name = "eqTechEff",
 #'   desc = "Technology output efficiency",
 #'   dims = c("tech", "region"),
@@ -177,7 +166,7 @@ new_variable <- new_multimod_variable
 #'   relation = "=="
 #' )
 #' print(eq)
-new_multimod_equation <- function(
+new_equation <- function(
     name,
     desc = NULL,
     dims,
@@ -186,8 +175,8 @@ new_multimod_equation <- function(
     relation = "==",
     domain = NULL) {
   stopifnot(relation %in% c("==", "<=", ">="))
-  # if (!inherits(rhs, "ast_expression")) browser()
-  stopifnot(inherits(lhs, "multimod_ast"), inherits(rhs, "multimod_ast"))
+  # if (!inherits(rhs, "expression")) browser()
+  stopifnot(inherits(lhs, "ast"), inherits(rhs, "ast"))
 
   # if (name == "eqTechSng2Grp") browser()
 
@@ -201,7 +190,7 @@ new_multimod_equation <- function(
       relation = relation,
       rhs = rhs
     ),
-    class = c("multimod_equation", "ast_equation")
+    class = c("equation", "multimod", "ast")
   )
 }
 
@@ -236,25 +225,20 @@ new_model_structure <- function(
   )
 }
 
-
-#' @export
-#' @rdname new_multimod_equation
-new_equation <- new_multimod_equation
-
 #' Create a multimod model object
 #'
 #' @param sets named list of sets
 #' @param mappings named list of mappings
-#' @param parameters named list of multimod_parameter objects
-#' @param variables named list of multimod_variable objects
-#' @param equations named list of multimod_equation objects
+#' @param parameters named list of parameter objects
+#' @param variables named list of variable objects
+#' @param equations named list of equation objects
 #' @param desc
 #'
 #' @returns
 #' @export
 #'
 #' @examples
-new_multimod_model <- function(
+new_model <- function(
     name = NULL,
     desc = NULL,
     sets = list(),
@@ -271,11 +255,11 @@ new_multimod_model <- function(
       sets = sets, # Named character vectors (optional descriptions)
       aliases = aliases, # Named list of character vectors (optional descriptions)
       mappings = mappings, # Named list of mapping sets
-      parameters = parameters, # Named list of multimod_parameter
-      variables = variables, # Named list of multimod_variable
-      equations = equations # Named list of multimod_equation
+      parameters = parameters, # Named list of parameter
+      variables = variables, # Named list of variable
+      equations = equations # Named list of equation
     ),
-    class = "multimod_model"
+    class = c("model", "multimod")
   )
 }
 

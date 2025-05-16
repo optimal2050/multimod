@@ -4,19 +4,19 @@
 \alias{as_latex}
 \alias{as_latex.default}
 \alias{as_latex.character}
-\alias{as_latex.ast_set}
-\alias{as_latex.ast_dims}
-\alias{as_latex.ast_mapping}
-\alias{as_latex.ast_parameter}
-\alias{as_latex.ast_variable}
-\alias{as_latex.ast_symbol}
-\alias{as_latex.ast_constant}
-\alias{as_latex.ast_unary}
-\alias{as_latex.ast_expression}
-\alias{as_latex.ast_condition}
-\alias{as_latex.ast_sum}
-\alias{as_latex.ast_prod}
-\alias{as_latex.multimod_equation}
+\alias{as_latex.set}
+\alias{as_latex.dims}
+\alias{as_latex.mapping}
+\alias{as_latex.parameter}
+\alias{as_latex.variable}
+\alias{as_latex.symbol}
+\alias{as_latex.constant}
+\alias{as_latex.unary}
+\alias{as_latex.expression}
+\alias{as_latex.condition}
+\alias{as_latex.sum}
+\alias{as_latex.prod}
+\alias{as_latex.equation}
 \title{Convert objects to LaTeX format}
 \usage{
 as_latex(x, ...)
@@ -25,31 +25,31 @@ as_latex(x, ...)
 
 \method{as_latex}{character}(x, math = FALSE, bold = FALSE, italic = FALSE)
 
-\method{as_latex}{ast_set}(x, ...)
+\method{as_latex}{set}(x, ...)
 
-\method{as_latex}{ast_dims}(x, brackets = "[]", ...)
+\method{as_latex}{dims}(x, brackets = "[]", ...)
 
-\method{as_latex}{ast_expression}(x, brackets = "[]", ...)
+\method{as_latex}{expression}(x, brackets = "[]", ...)
 
-\method{as_latex}{ast_parameter}(x, brackets = "[]", ...)
+\method{as_latex}{parameter}(x, brackets = "[]", ...)
 
-\method{as_latex}{ast_variable}(x, brackets = "[]", ...)
+\method{as_latex}{variable}(x, brackets = "[]", ...)
 
-\method{as_latex}{ast_symbol}(x, ...)
+\method{as_latex}{symbol}(x, ...)
 
-\method{as_latex}{ast_constant}(x, ...)
+\method{as_latex}{constant}(x, ...)
 
-\method{as_latex}{ast_unary}(x, brackets = NULL, ...)
+\method{as_latex}{unary}(x, brackets = NULL, ...)
 
-\method{as_latex}{ast_expression}(x, brackets = NULL, ...)
+\method{as_latex}{expression}(x, brackets = NULL, ...)
 
-\method{as_latex}{ast_condition}(x, brackets = NULL, ...)
+\method{as_latex}{condition}(x, brackets = NULL, ...)
 
-\method{as_latex}{ast_sum}(x, brackets = NULL, ...)
+\method{as_latex}{sum}(x, brackets = NULL, ...)
 
-\method{as_latex}{ast_prod}(x, brackets = NULL, ...)
+\method{as_latex}{prod}(x, brackets = NULL, ...)
 
-\method{as_latex}{multimod_equation}(eqn, math_env = "dmath")
+\method{as_latex}{equation}(x, math_env = "align*", ...)
 }
 \arguments{
 \item{x}{A character string (or vector of strings) to be converted to LaTeX.}

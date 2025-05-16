@@ -6,7 +6,7 @@
 # ---
 
 # This file defines S3 print methods for:
-# - Abstract syntax tree (AST) nodes: ast_expr, ast_var, ast_param, ast_sum, ast_cond, etc.
+# - Abstract syntax tree (AST) nodes: expr, var, param, sum, cond, etc.
 # - Multimod domain-specific objects: multimod_equation, multimod_model, etc.
 #
 # Guidelines:
@@ -19,7 +19,7 @@
 # > print(ast_variable("x", dims = c("region", "year")))
 # Variable: x(region, year)
 
-# S3 generic dispatch for print(x) where class(x) is e.g. ast_expr, multimod_equation, etc.
+# S3 generic dispatch for print(x) where class(x) is e.g. expr, multimod_equation, etc.
 
 #' @title Print methods for AST classes
 
@@ -31,29 +31,29 @@ print.multimod_ast <- function(x, ...) {
 }
 
 #' @export
-#' @method print ast_set
-print.ast_set <- function(x, ...) {
+#' @method print set
+print.set <- function(x, ...) {
   cat("<AST set> ", x$name, "\n", sep = "")
 }
 
 #' @export
-#' @method print ast_dims
-print.ast_dims <- function(x, brackets = "[", ...) {
+#' @method print dims
+print.dims <- function(x, brackets = "[", ...) {
   cat("<AST dims> \n")
   cat(as.character(x, brackets = brackets))
 }
 
 #' @export
-#' @method print ast_expression
-print.ast_expression <- function(x, ...) {
+#' @method print expression
+print.expression <- function(x, ...) {
   cat("<AST expression> ", x$op, "\n", sep = "")
   cat("  lhs :\n"); print(x$lhs)
   cat("  rhs:\n"); print(x$rhs)
 }
 
 #' @export
-#' @method print ast_unary
-print.ast_unary <- function(x, ...) {
+#' @method print unary
+print.unary <- function(x, ...) {
   cat("<AST unary>\n")
   cat("  Operator: ", x$op, "\n", sep = "")
   cat("  Argument:\n")
@@ -63,42 +63,42 @@ print.ast_unary <- function(x, ...) {
 
 
 #' @export
-#' @method print ast_variable
-print.ast_variable <- function(x, ...) {
+#' @method print variable
+print.variable <- function(x, ...) {
   cat("<AST variable> ", x$name, "\n", sep = "")
   if (length(x$dims) > 0) cat("  dims: ", paste(x$dims, collapse = ", "), "\n")
 }
 
 #' @export
-#' @method print ast_parameter
-print.ast_parameter <- function(x, ...) {
+#' @method print parameter
+print.parameter <- function(x, ...) {
   cat("<AST parameter> ", x$name, "\n", sep = "")
   if (length(x$dims) > 0) cat("  dims: ", as.character(x$dims), "\n")
 }
 
 #' @export
-#' @method print ast_mapping
-print.ast_mapping <- function(x, ...) {
+#' @method print mapping
+print.mapping <- function(x, ...) {
   cat("<AST mapping> ", x$name, "\n", sep = "")
   if (length(x$dims) > 0) cat("  dims: ", paste(x$dims, collapse = ", "), "\n")
 }
 
 
 #' @export
-#' @method print ast_symbol
-print.ast_symbol <- function(x, ...) {
+#' @method print symbol
+print.symbol <- function(x, ...) {
   cat("<AST symbol> ", x$value, "\n", sep = "")
 }
 
 #' @export
-#' @method print ast_constant
-print.ast_constant <- function(x, ...) {
+#' @method print constant
+print.constant <- function(x, ...) {
   cat("<AST constant> ", x$value, "\n", sep = "")
 }
 
 #' @export
-#' @method print ast_condition
-print.ast_condition <- function(x, ...) {
+#' @method print condition
+print.condition <- function(x, ...) {
   cat("<AST condition> ", x$op, "\n", sep = "")
   cat("  then :\n"); print(x$then)
   cat("  condition:\n"); print(x$condition)

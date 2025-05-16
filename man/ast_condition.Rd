@@ -13,7 +13,7 @@ in GAMS statements). Must be an AST node.}
 \item{then}{The expression to evaluate if the condition is true (usually the left-hand side).}
 }
 \value{
-An object of class \code{multimod_ast} and subclass \code{ast_condition}
+An object of class \code{ast} and subclass \code{condition}
 }
 \description{
 This function constructs a conditional expression node of type \code{"condition"},

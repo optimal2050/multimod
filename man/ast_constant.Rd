@@ -10,7 +10,7 @@ ast_constant(value)
 \item{value}{A numeric or character constant.}
 }
 \value{
-An \code{ast_constant} S3 object (subclass of \code{multimod_ast}).
+An \code{constant} S3 object (subclass of \code{ast}).
 }
 \description{
 Create a constant AST node

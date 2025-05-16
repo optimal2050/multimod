@@ -10,7 +10,7 @@ ast_symbol(name)
 \item{name}{A character string representing the symbol.}
 }
 \value{
-An \code{ast_symbol} S3 object (subclass of \code{multimod_ast}).
+An \code{symbol} S3 object (subclass of \code{ast}).
 }
 \description{
 Create a symbol AST node (for unclassified identifiers)

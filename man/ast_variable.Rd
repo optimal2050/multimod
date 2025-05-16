@@ -9,10 +9,10 @@ ast_variable(name, dims = ast_dims())
 \arguments{
 \item{name}{Name of the variable.}
 
-\item{dims}{Optional vector of dimension \code{ast_dims} objects.}
+\item{dims}{Optional vector of dimension \code{dims} objects.}
 }
 \value{
-An \code{ast_variable} S3 object (subclass of \code{multimod_ast}).
+An \code{variable} S3 object (subclass of \code{ast}).
 }
 \description{
 Create a variable AST node

@@ -18,7 +18,7 @@ plot.multimod_ast <- function(x, ...) {
   walk_ast <- function(node, parent_id = NULL) {
     id <- new_id()
 
-    label <- switch(ast_type(node),
+    label <- switch(node_type(node),
                     expression = node$op,
                     variable   = paste0("v: ", node$name),
                     parameter  = paste0("p: ", node$name),
@@ -30,26 +30,26 @@ plot.multimod_ast <- function(x, ...) {
                     prod       = paste0("prod(", node$index, ")"),
                     mapping    = paste0("map: ", node$name),
                     set        = paste0("set: ", node$name),
-                    paste0("?", ast_type(node))
+                    paste0("?", node_type(node))
     )
 
-    nodes[[length(nodes) + 1]] <<- data.frame(id = id, label = label, group = ast_type(node), stringsAsFactors = FALSE)
+    nodes[[length(nodes) + 1]] <<- data.frame(id = id, label = label, group = node_type(node), stringsAsFactors = FALSE)
 
     if (!is.null(parent_id)) {
       edges[[length(edges) + 1]] <<- data.frame(from = parent_id, to = id)
     }
 
     # Recurse
-    if (ast_type(node) == "expression") {
+    if (node_type(node) == "expression") {
       walk_ast(node$lhs, id)
       walk_ast(node$rhs, id)
-    } else if (ast_type(node) == "condition") {
+    } else if (node_type(node) == "condition") {
       walk_ast(node$condition, id)
       walk_ast(node$then, id)
-    } else if (ast_type(node) %in% c("sum", "prod")) {
+    } else if (node_type(node) %in% c("sum", "prod")) {
       if (!is.null(node$domain)) walk_ast(node$domain, id)
       walk_ast(node$value, id)
-    } else if (ast_type(node) %in% c("variable", "parameter", "mapping")) {
+    } else if (node_type(node) %in% c("variable", "parameter", "mapping")) {
       if (!is.null(node$dims)) {
         # for (arg in node$dims) {
         #   arg_id <- new_id()
@@ -87,16 +87,16 @@ plot_d.multimod_ast <- function(x, ...) {
 
   walk_ast <- function(node) {
     node_id <- paste0("n", node_counter <<- node_counter + 1)
-    label <- switch(ast_type(node),
+    label <- switch(node_type(node),
                     "expression" = node$op,
                     "variable" = paste0(node$name, "[", paste(node$dims, collapse = ","), "]"),
                     "parameter" = paste0(node$name, "[", paste(node$dims, collapse = ","), "]"),
                     "constant" = as.character(node$value),
                     "symbol" = node$value,
-                    ast_type(node))
+                    node_type(node))
     dot_nodes <<- c(dot_nodes, sprintf("%s [label = \"%s\"]", node_id, label))
 
-    if (ast_type(node) == "expression") {
+    if (node_type(node) == "expression") {
       left_id <- walk_ast(node$lhs)
       right_id <- walk_ast(node$rhs)
       dot_edges <<- c(dot_edges, sprintf("%s -> %s", node_id, left_id))
@@ -154,10 +154,10 @@ get_network_data <- function(eq, alias_map = NULL, show_dims = FALSE) {
       expr$name <- alias_map[[expr$name]]
     }
 
-    # if (ast_type(expr) %in% c("sum")) browser()
+    # if (node_type(expr) %in% c("sum")) browser()
 
     label <- switch(
-      ast_type(expr),
+      node_type(expr),
       "expression" = expr$op,
       "unary" = expr$op,
       "variable" = with_dims(expr$name, expr$dims, show_dims = show_dims),
@@ -171,22 +171,22 @@ get_network_data <- function(eq, alias_map = NULL, show_dims = FALSE) {
       "logic" = expr$op,
       "constant" = as.character(expr$value),
       "compare" = expr$op,
-      paste0("<", ast_type(expr), ">")
+      paste0("<", node_type(expr), ">")
     )
 
     color <- "lightgray" # Default fallback
 
-    if (ast_type(expr) == "variable") {
+    if (node_type(expr) == "variable") {
       color <- "dodgerblue"
-    } else if (ast_type(expr) %in% c("parameter", "constant")) {
+    } else if (node_type(expr) %in% c("parameter", "constant")) {
       color <- "orange"
-    } else if (ast_type(expr) == "mapping") {
+    } else if (node_type(expr) == "mapping") {
       color <- "palegreen"
-    } else if (ast_type(expr) %in% c("set", "dims")) {
+    } else if (node_type(expr) %in% c("set", "dims")) {
       color <- "plum"
-    } else if (ast_type(expr) %in% c("expression", "unary", "func", "sum", "prod")) {
+    } else if (node_type(expr) %in% c("expression", "unary", "func", "sum", "prod")) {
       color <- "lightblue"
-    } else if (ast_type(expr) == "condition") {
+    } else if (node_type(expr) == "condition") {
       color <- "lightcoral"
     } else {
       color <- "lightgray"
@@ -204,12 +204,12 @@ get_network_data <- function(eq, alias_map = NULL, show_dims = FALSE) {
       edges[[length(edges) + 1]] <<- data.frame(from = parent_id, to = my_id)
     }
 
-    if (ast_type(expr) == "expression") {
+    if (node_type(expr) == "expression") {
       recurse_expr(expr$lhs, my_id)
       recurse_expr(expr$rhs, my_id)
-    } else if (ast_type(expr) == "unary") {
+    } else if (node_type(expr) == "unary") {
       recurse_expr(expr$rhs, my_id)
-    } else if (ast_type(expr) %in% c("sum", "prod", "condition", "logic", "compare")) {
+    } else if (node_type(expr) %in% c("sum", "prod", "condition", "logic", "compare")) {
       # browser()
       if (!is.null(expr$domain)) recurse_expr(expr$domain, my_id)
       if (!is.null(expr$lhs)) recurse_expr(expr$lhs, my_id)

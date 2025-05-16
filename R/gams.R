@@ -54,6 +54,7 @@ parse_gams_expr <- function(
     depth = 0, max_depth = 20) {
   # message(expr)
   # browser()
+  # if (expr == "mvTechInp(tech,comm,region,year,slice)") browser()
   if (depth > max_depth) stop("Maximum expression nesting depth exceeded")
 
   expr <- trimws(expr)
@@ -187,6 +188,7 @@ parse_gams_expr <- function(
       }
     }
     # assign
+    # browser()
     symb <- symb |>
       lapply(function(x) {
         sb <- detect_symbol_type(x, symbols = symbols, known_funcs = known_funcs)
@@ -223,7 +225,7 @@ gams_to_multimod <- function(gams_eq, symbols) {
     eq_name <- match[2]
     indices <- trimws(strsplit(match[3], ",")[[1]])
     domain <- new_ast(
-      ast_type = detect_symbol_type(match[4], symbols),
+      node_type = detect_symbol_type(match[4], symbols),
       name = match[4],
       dims = ast_dims(trimws(strsplit(match[5], ",")[[1]]))
     )
@@ -268,8 +270,8 @@ gams_to_multimod <- function(gams_eq, symbols) {
   lhs <- parse_gams_expr(lhs_str, symbols)
   rhs <- parse_gams_expr(rhs_str, symbols)
 
-  # Return the multimod_equation object
-  new_multimod_equation(
+  # Return the equation object
+  new_equation(
     name = eq_name,
     dims = indices,
     lhs = lhs,
@@ -394,16 +396,16 @@ eqTechAfUp(tech, region, year, slice)$meqTechAfUp(tech, region, year, slice)..
   #
   # render_graph(graph)
 
-  # plot_multimod_expr(eq_obj$rhs, title = "RHS")
+  # plot_expr(eq_obj$rhs, title = "RHS")
 
-  # plot_multimod_expr(eq_obj$rhs, title = "RHS of Equation")
+  # plot_expr(eq_obj$rhs, title = "RHS of Equation")
   build_expr_graph(eq_obj$rhs)
-  # plot_multimod_expr(eq_obj$rhs, title = "RHS Expression Tree")
-  # plot_multimod_expr(eq_obj$lhs, title = "RHS Expression Tree")
+  # plot_expr(eq_obj$rhs, title = "RHS Expression Tree")
+  # plot_expr(eq_obj$lhs, title = "RHS Expression Tree")
 
   # plot_expr_visnetwork(eq_obj$rhs, title = "RHS Expression Tree")
 
-  plot_multimod_equation_visnetwork(eq_obj, title = "Full Equation: eqTechAfUp")
+  plot_equation_visnetwork(eq_obj, title = "Full Equation: eqTechAfUp")
 }
 
 # Remove comments between $ontext and $offtext
@@ -907,7 +909,7 @@ read_gams_model_structure <- function(
 
 
 coerce_param <- function(name, param_info) {
-  new_multimod_parameter(
+  new_parameter(
     name = name,
     dims = param_info$dims,
     data = param_info$data
@@ -915,7 +917,7 @@ coerce_param <- function(name, param_info) {
 }
 
 coerce_variable <- function(name, var_info) {
-  new_multimod_variable(
+  new_variable(
     name = name,
     dims = var_info$dims,
     data = var_info$data,
@@ -972,13 +974,13 @@ coerce_gams_equation <- function(eqn_info, symbols) {
   return(parsed_eqn)
 }
 
-#' @title Convert multimod_equation to GAMS syntax
-#' @description Render a `multimod_equation` object as a GAMS equation string.
-#' @param eqn A `multimod_equation` object.
+#' @title Convert equation to GAMS syntax
+#' @description Render a `equation` object as a GAMS equation string.
+#' @param eqn A `equation` object.
 #' @returns A character string with valid GAMS syntax.
 #' @export
-as_gams.multimod_equation <- function(eqn) {
-  stopifnot(inherits(eqn, "multimod_equation"))
+as_gams.equation <- function(eqn) {
+  stopifnot(inherits(eqn, "equation"))
 
   format_expr_gams <- function(expr) {
     if (is.null(expr)) return("")

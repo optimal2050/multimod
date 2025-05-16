@@ -10,16 +10,16 @@ ast_dims(...)
 \item{...}{One or more dimension expressions, typically created using
 \code{\link[=ast_set]{ast_set()}} or \code{\link[=ast_symbol]{ast_symbol()}}. Expected AST objects or character strings,
 comma-separated.
-If character strings are provided, they will be converted to \code{ast_symbol} objects.}
+If character strings are provided, they will be converted to \code{symbol} objects.}
 }
 \value{
-A list of class \code{ast_dims} and \code{multimod_ast}, representing the dimension nodes.
+A list of class \code{dims} and \code{ast}, representing the dimension nodes.
 }
 \description{
-Constructs an \code{ast_dims} object, which represents the declared dimensions
+Constructs an \code{dims} object, which represents the declared dimensions
 of a variable, parameter, or equation in a structured symbolic model. Each
-dimension is typically represented as a set reference (\code{ast_set}) or as a
-symbolic identifier (\code{ast_symbol}). This is similar to \code{ast_index}, but
+dimension is typically represented as a set reference (\code{set}) or as a
+symbolic identifier (\code{symbol}). This is similar to \code{index}, but
 specifically for dimensions.
 }
 \examples{
