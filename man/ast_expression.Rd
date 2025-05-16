@@ -14,7 +14,7 @@ ast_expression(op, lhs, rhs)
 \item{rhs}{The right-hand side AST node.}
 }
 \value{
-An \code{ast_expression} S3 object (subclass of \code{multimod_ast}).
+An \code{expression} S3 object (subclass of \code{ast}).
 }
 \description{
 Constructs a binary operation node representing an expression such as addition, multiplication, etc.

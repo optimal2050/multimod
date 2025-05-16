@@ -2,7 +2,7 @@
 % Please edit documentation in R/ast-classes.R
 \name{as_dims}
 \alias{as_dims}
-\title{Method for converting various objects to \code{ast_dims}}
+\title{Method for converting various objects to \code{dims}}
 \usage{
 as_dims(x, ...)
 }
@@ -11,5 +11,5 @@ as_dims(x, ...)
 }
 \description{
 This function is a generic method for converting various objects
-to \code{ast_dims} objects.
+to \code{dims} objects.
 }

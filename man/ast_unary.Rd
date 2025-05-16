@@ -9,10 +9,10 @@ ast_unary(op, rhs)
 \arguments{
 \item{op}{Character string. The unary operator, e.g., "-" or "not".}
 
-\item{rhs}{The operand (a \code{multimod_ast} object).}
+\item{rhs}{The operand (a \code{ast} object).}
 }
 \value{
-An object of class \code{multimod_ast} and \code{ast_unary}.
+An object of class \code{ast} and \code{unary}.
 }
 \description{
 Represents a unary operator such as "-" or "not" applied to a single argument.

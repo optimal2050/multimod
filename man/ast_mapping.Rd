@@ -9,10 +9,10 @@ ast_mapping(name, dims = ast_dims(), ...)
 \arguments{
 \item{name}{A character string representing the mapping name.}
 
-\item{dims}{An \code{ast_dims} object representing the dimensions of the mapping.}
+\item{dims}{An \code{dims} object representing the dimensions of the mapping.}
 }
 \value{
-An \code{ast_mapping} S3 object (subclass of \code{multimod_ast}).
+An \code{mapping} S3 object (subclass of \code{ast}).
 }
 \description{
 Constructs a mapping node representing a mapping or set of indices.

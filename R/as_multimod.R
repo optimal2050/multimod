@@ -30,13 +30,13 @@ as_multimod.model_structure <- function(x, ...) {
 
   # Convert sets and aliases
   sets <- lapply(x$sets, function(s) {
-    new_multimod_set(name = s$name, desc = s$desc)
+    new_set(name = s$name, desc = s$desc)
   })
   aliases <- x$aliases # assumed to be list of character pairs
 
   # Convert mappings
   mappings <- lapply(x$mappings, function(m) {
-    new_multimod_mapping(
+    new_mapping(
       name = m$name,
       desc = m$desc,
       dims = m$dims,
@@ -46,7 +46,7 @@ as_multimod.model_structure <- function(x, ...) {
 
   # Convert parameters
   parameters <- lapply(x$parameters, function(p) {
-    new_multimod_parameter(
+    new_parameter(
       name = p$name,
       desc = p$desc,
       dims = p$dims,
@@ -56,7 +56,7 @@ as_multimod.model_structure <- function(x, ...) {
 
   # Convert variables
   variables <- lapply(x$variables, function(v) {
-    new_multimod_variable(
+    new_variable(
       name = v$name,
       desc = v$desc,
       dims = v$dims
@@ -66,6 +66,8 @@ as_multimod.model_structure <- function(x, ...) {
   # Convert equations with error capture
   equations <- list()
   for (eq_name in names(x$equations)) {
+    # message(eq_name)
+    # browser()
     eqn_info <- x$equations[[eq_name]]
     eqn <- tryCatch(
       {
@@ -81,7 +83,7 @@ as_multimod.model_structure <- function(x, ...) {
     }
   }
 
-  new_multimod_model(
+  new_model(
     name = name,
     desc = desc,
     sets = sets,

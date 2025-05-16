@@ -9,10 +9,10 @@ ast_parameter(name, dims = ast_dims())
 \arguments{
 \item{name}{Name of the parameter.}
 
-\item{dims}{Optional vector of dimension \code{ast_dims} objects.}
+\item{dims}{Optional vector of dimension \code{dims} objects.}
 }
 \value{
-An \code{ast_parameter} S3 object (subclass of \code{multimod_ast}).
+An \code{parameter} S3 object (subclass of \code{ast}).
 }
 \description{
 Create a parameter AST node

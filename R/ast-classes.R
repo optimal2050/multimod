@@ -1,21 +1,22 @@
 #' Create a new multimod AST (Abstract Syntax Tree) node
 #'
-#' This is a generic constructor for all `multimod_ast` node types,
-#' used internally by the `ast_*()` functions to define structured equations.
+#' This is a generic constructor for all `ast` node types,
+#' used internally by the `*()` functions to define structured equations.
 #'
-#' @param ast_type The type of AST node (e.g., `"expression"`, `"variable"`,
+#' @param node_type The type of AST node (e.g., `"expression"`, `"variable"`,
 #' `"constant"`, `"parameter"`, `"symbol"`).
 #' @param ... Additional named fields passed as components of the AST node.
 #'
-#' @return A structured S3 object of class `multimod_ast`, with a subclass
-#' matching `ast_type`.
+#' @return A structured S3 object of class `ast`, with a subclass
+#' matching `node_type`.
 #' @export
-new_ast <- function(ast_type, ..., inherits_class = NULL) {
-  stopifnot(is.character(ast_type))
-  stopifnot(length(ast_type) == 1)
+new_ast <- function(node_type, ..., inherits_class = NULL) {
+  stopifnot(is.character(node_type))
+  stopifnot(length(node_type) == 1)
   stopifnot(is.null(inherits_class) || !is.na(inherits_class) || is.character(inherits_class))
   structure(list(...),
-            class = c(paste0("ast_", ast_type), inherits_class, "multimod_ast"))
+            class = c(node_type, inherits_class, "ast"))
+            # class = c(paste0("", node_type), inherits_class, "ast"))
 }
 
 #' Create an AST node representing a set
@@ -25,7 +26,7 @@ new_ast <- function(ast_type, ..., inherits_class = NULL) {
 #'
 #' @param name Character. Name of the set (e.g., "b").
 #'
-#' @return An object of class `multimod_ast` and `ast_set`
+#' @return An object of class `ast` and subclass `set`.
 #'
 #' @export
 #' @rdname new_ast
@@ -34,7 +35,7 @@ new_ast <- function(ast_type, ..., inherits_class = NULL) {
 #' ast_set("b", domain = ast_set("a"))  # subset declaration b ⊆ a
 ast_set <- function(name) {
   stopifnot(is.character(name), length(name) == 1)
-  # if (!is.null(domain)) stopifnot(inherits(domain, "multimod_ast") && domain$type == "set")
+  # if (!is.null(domain)) stopifnot(inherits(domain, "ast") && domain$type == "set")
   new_ast("set", name = name)
 }
 # @param domain Optional. Another AST set node representing the parent set
@@ -42,37 +43,37 @@ ast_set <- function(name) {
 
 # Create an AST node for a list of index symbols
 #
-# Constructs an `ast_index` object, which represents a list of index symbols
+# Constructs an `index` object, which represents a list of index symbols
 # used in a indexed function or expression. Each index is typically represented
-# as a set reference (`ast_set`) or as a symbolic identifier (`ast_symbol`).
-# Similar to `ast_dims`, but specifically for indexing.
+# as a set reference (`set`) or as a symbolic identifier (`symbol`).
+# Similar to `dims`, but specifically for indexing.
 #
-# @param sets A list of AST nodes (e.g., ast_set or ast_symbol), one for each index
+# @param sets A list of AST nodes (e.g., set or symbol), one for each index
 #
-# @return An `ast_index` object (subclass of `multimod_ast`)
+# @return An `index` object (subclass of `ast`)
 # @export
-# ast_index <- function(sets) {
+# index <- function(sets) {
 #   stopifnot(is.list(sets))
 #   lapply(sets, function(x) {
-#     stopifnot(inherits(x, "multimod_ast"))
+#     stopifnot(inherits(x, "ast"))
 #   })
 #   new_ast("index", symbols = symbols)
 # }
 
 #' Create an AST node for dimensions (dims) of a symbol
 #'
-#' Constructs an `ast_dims` object, which represents the declared dimensions
+#' Constructs an `dims` object, which represents the declared dimensions
 #' of a variable, parameter, or equation in a structured symbolic model. Each
-#' dimension is typically represented as a set reference (`ast_set`) or as a
-#' symbolic identifier (`ast_symbol`). This is similar to `ast_index`, but
+#' dimension is typically represented as a set reference (`set`) or as a
+#' symbolic identifier (`symbol`). This is similar to `index`, but
 #' specifically for dimensions.
 #'
 #' @param ... One or more dimension expressions, typically created using
 #'   [ast_set()] or [ast_symbol()]. Expected AST objects or character strings,
 #'   comma-separated.
-#'   If character strings are provided, they will be converted to `ast_symbol` objects.
+#'   If character strings are provided, they will be converted to `symbol` objects.
 #'
-#' @return A list of class `ast_dims` and `multimod_ast`, representing the dimension nodes.
+#' @return A list of class `dims` and `ast`, representing the dimension nodes.
 #'
 #' @export
 #' @examples
@@ -87,7 +88,7 @@ ast_dims <- function(...) {
   }
   # check if ... is an unnamed list of objects
   if (length(dims) == 1 && is.null(names(dims)) &&
-      !inherits(dims, "multimod_ast") &&
+      !inherits(dims, "ast") &&
       (is.list(dims[[1]]) || is.vector(dims[[1]]))
       ) {
     dims <- dims[[1]]
@@ -95,24 +96,24 @@ ast_dims <- function(...) {
 
   cls <- sapply(dims, function(x) class(x)[1])
 
-  if (all(cls %in% c("ast_set", "ast_symbol"))) {
+  if (all(cls %in% c("set", "symbol"))) {
     # pass
   } else if (all(cls %in% "character")) {
-    # Convert character to ast_set
+    # Convert character to set
     dims <- lapply(dims, ast_set)
   } else {
     stop("Invalid input for `dims`: ",
-         "must be ast_set, ast_symbol, or characters.")
+         "must be set, symbol, or characters.")
   }
   if (!is.list(dims)) browser()
   out <- do.call(new_ast, c("dims", dims))
   return(out)
 }
 
-#' Method for converting various objects to `ast_dims`
+#' Method for converting various objects to `dims`
 #'
 #' This function is a generic method for converting various objects
-#' to `ast_dims` objects.
+#' to `dims` objects.
 #'
 #' @param x The object to be converted.
 as_dims <- function(x, ...) {
@@ -127,9 +128,9 @@ as_dims.default <- function(x, ...) {
 #' @export
 #' @method as_dims character
 as_dims.character <- function(x, ...) {
-  # Convert character to ast_symbol
+  # Convert character to symbol
   args <- c(x, ...) |> unlist() |> as.character()
-  ast_dims(unlist(lapply(args, ast_set)))
+  ast_dims(unlist(lapply(args, set)))
 }
 
 #' @export
@@ -146,20 +147,20 @@ as_dims.list <- function(x, ...) {
 #' Constructs a mapping node representing a mapping or set of indices.
 #'
 #' @param name A character string representing the mapping name.
-#' @param dims An `ast_dims` object representing the dimensions of the mapping.
+#' @param dims An `dims` object representing the dimensions of the mapping.
 #'
-#' @return An `ast_mapping` S3 object (subclass of `multimod_ast`).
+#' @return An `mapping` S3 object (subclass of `ast`).
 #' @export
 ast_mapping <- function(name, dims = ast_dims(), ...) {
   stopifnot(is.character(name))
   # stopifnot(is.character(dims))
   stopifnot(length(dims) > 0)
   # if (!is.null(domain)) {
-  #   stopifnot(inherits(domain, "multimod_ast") && domain$type == "mapping")
+  #   stopifnot(inherits(domain, "ast") && domain$type == "mapping")
   # }
   new_ast("mapping", name = name, dims = dims, ...)
 }
-# @param domain An optional `ast_mapping` object representing the parent mapping,
+# @param domain An optional `mapping` object representing the parent mapping,
 # indicating that this mapping is a subset of the parent mapping.
 
 
@@ -167,9 +168,9 @@ ast_mapping <- function(name, dims = ast_dims(), ...) {
 #' Create a variable AST node
 #'
 #' @param name Name of the variable.
-#' @param dims Optional vector of dimension `ast_dims` objects.
+#' @param dims Optional vector of dimension `dims` objects.
 #'
-#' @return An `ast_variable` S3 object (subclass of `multimod_ast`).
+#' @return An `variable` S3 object (subclass of `ast`).
 #' @export
 ast_variable <- function(name, dims = ast_dims()) {
   stopifnot(is.character(name))
@@ -179,9 +180,9 @@ ast_variable <- function(name, dims = ast_dims()) {
 #' Create a parameter AST node
 #'
 #' @param name Name of the parameter.
-#' @param dims Optional vector of dimension `ast_dims` objects.
+#' @param dims Optional vector of dimension `dims` objects.
 #'
-#' @return An `ast_parameter` S3 object (subclass of `multimod_ast`).
+#' @return An `parameter` S3 object (subclass of `ast`).
 #' @export
 ast_parameter <- function(name, dims = ast_dims()) {
   stopifnot(is.character(name))
@@ -192,7 +193,7 @@ ast_parameter <- function(name, dims = ast_dims()) {
 #'
 #' @param name A character string representing the symbol.
 #'
-#' @return An `ast_symbol` S3 object (subclass of `multimod_ast`).
+#' @return An `symbol` S3 object (subclass of `ast`).
 #' @export
 ast_symbol <- function(name) {
   stopifnot(is.character(name))
@@ -203,7 +204,7 @@ ast_symbol <- function(name) {
 #'
 #' @param value A numeric or character constant.
 #'
-#' @return An `ast_constant` S3 object (subclass of `multimod_ast`).
+#' @return An `constant` S3 object (subclass of `ast`).
 #' @export
 ast_constant <- function(value) {
   stopifnot(is.numeric(value) || is.character(value))
@@ -219,7 +220,7 @@ ast_constant <- function(value) {
 #' in GAMS statements). Must be an AST node.
 #' @param then The expression to evaluate if the condition is true (usually the left-hand side).
 #'
-#' @return An object of class `multimod_ast` and subclass `ast_condition`
+#' @return An object of class `ast` and subclass `condition`
 #' @export
 #'
 #' @examples
@@ -228,8 +229,9 @@ ast_constant <- function(value) {
 #'   then = ast_variable("x", c("i"))
 #' )
 ast_condition <- function(condition, then) {
-  stopifnot(inherits(then, "multimod_ast") || is.null(then))
-  stopifnot(inherits(condition, "multimod_ast"))
+  # browser()
+  stopifnot(inherits(then, "ast") || is.null(then))
+  stopifnot(inherits(condition, "ast"))
 
   new_ast("condition", then = then, condition = condition)
 }
@@ -240,18 +242,18 @@ ast_condition <- function(condition, then) {
 #' optionally restricted by a domain condition (such as a mapping, logical condition, or parameter).
 #'
 #' @param index Character. The index variable (e.g., `"t"`).
-#' @param domain An optional AST node (class `multimod_ast`) representing a domain condition.
+#' @param domain An optional AST node (class `ast`) representing a domain condition.
 #'   This can be a mapping, a logical condition (e.g., from a `$`-filter), or a parameter.
 #'   Use `NULL` if there is no restriction.
 #' @param value An AST node representing the expression to be summed.
 #'
-#' @return An object of class `multimod_ast` and `ast_sum`.
+#' @return An object of class `ast` and `sum`.
 #' @export
 ast_sum <- function(index = ast_dims(), domain = NULL, value) {
-  stopifnot(inherits(index, "ast_dims"))
-  stopifnot(inherits(domain, "multimod_ast") || is.null(domain))
-  stopifnot(inherits(value, "multimod_ast"))
-  if (!is.null(domain)) stopifnot(inherits(domain, "multimod_ast"))
+  stopifnot(inherits(index, "dims"))
+  stopifnot(inherits(domain, "ast") || is.null(domain))
+  stopifnot(inherits(value, "ast"))
+  if (!is.null(domain)) stopifnot(inherits(domain, "ast"))
   new_ast("sum", index = index, domain = domain, value = value)
 }
 
@@ -261,12 +263,12 @@ ast_sum <- function(index = ast_dims(), domain = NULL, value) {
 #' optionally restricted by a domain condition (such as a mapping, logical condition, or parameter).
 #'
 #' @inheritParams ast_sum
-#' @return An object of class `multimod_ast` and `ast_prod`.
+#' @return An object of class `ast` and `prod`.
 #' @export
 ast_prod <- function(index, domain = NULL, value) {
-  stopifnot(inherits(index, "multimod_ast"))
-  if (!is.null(domain)) stopifnot(inherits(domain, "multimod_ast"))
-  stopifnot(inherits(value, "multimod_ast"))
+  stopifnot(inherits(index, "ast"))
+  if (!is.null(domain)) stopifnot(inherits(domain, "ast"))
+  stopifnot(inherits(value, "ast"))
   new_ast("prod", index = index, domain = domain, value = value)
 }
 
@@ -278,12 +280,12 @@ ast_prod <- function(index, domain = NULL, value) {
 #' @param lhs The left-hand side AST node.
 #' @param rhs The right-hand side AST node.
 #'
-#' @return An `ast_expression` S3 object (subclass of `multimod_ast`).
+#' @return An `expression` S3 object (subclass of `ast`).
 #' @export
 ast_expression <- function(op, lhs, rhs) {
   # browser()
   stopifnot(is.character(op), !is.null(lhs), !is.null(rhs))
-  # stopifnot(inherits(lhs, "multimod_ast"), inherits(rhs, "multimod_ast"))
+  # stopifnot(inherits(lhs, "ast"), inherits(rhs, "ast"))
   new_ast("expression", op = op, lhs = lhs, rhs = rhs)
 }
 
@@ -292,9 +294,9 @@ ast_expression <- function(op, lhs, rhs) {
 #' Represents a unary operator such as "-" or "not" applied to a single argument.
 #'
 #' @param op Character string. The unary operator, e.g., "-" or "not".
-#' @param rhs The operand (a `multimod_ast` object).
+#' @param rhs The operand (a `ast` object).
 #'
-#' @return An object of class `multimod_ast` and `ast_unary`.
+#' @return An object of class `ast` and `unary`.
 #' @export
 #' @examples
 #' ast <- ast_unary("-", ast_symbol("x"))
@@ -302,7 +304,7 @@ ast_expression <- function(op, lhs, rhs) {
 #' ast_unary("not", ast_symbol("x"))
 ast_unary <- function(op, rhs) {
   stopifnot(is.character(op), length(op) == 1)
-  stopifnot(inherits(rhs, "multimod_ast"))
+  stopifnot(inherits(rhs, "ast"))
   # Check if the operator is valid
   valid_operators <- c("-", "not", "+", "!")
   if (!op %in% valid_operators) {
@@ -311,7 +313,7 @@ ast_unary <- function(op, rhs) {
   }
   # Create the unary AST node
   new_ast("unary", op = op, rhs = rhs)
-  # new_ast_unary(op, rhs)
+  # new_unary(op, rhs)
 }
 
 
@@ -330,14 +332,14 @@ ast_unary <- function(op, rhs) {
 #'  @param domain Optional AST node representing the domain condition.
 #'  @param desc Optional character string. A description or label for the equation.
 #'
-#'  @return An `ast_equation` S3 object.
+#'  @return An `equation` S3 object.
 #'  @export
 ast_equation <- function(lhs, rhs, relation = "==",
                          name = NULL, domain = NULL, desc = NULL) {
   stopifnot(relation %in% c("==", "<=", ">=", "<", ">"))
-  # if (!inherits(rhs, "ast_expression")) browser()
-  stopifnot(inherits(lhs, "multimod_ast"))
-  stopifnot(inherits(rhs, "multimod_ast"))
+  # if (!inherits(rhs, "expression")) browser()
+  stopifnot(inherits(lhs, "ast"))
+  stopifnot(inherits(rhs, "ast"))
   new_ast(
     "equation",
     lhs = lhs,
@@ -350,15 +352,21 @@ ast_equation <- function(lhs, rhs, relation = "==",
 }
 
 
-#' Get the class of an AST node
+#' Get the type of an AST or multimod node
 #'
-#' This function retrieves the class of an AST node.
+#' This function retrieves the class of an AST node or multimod object that
+#' represents a specific type of node in the abstract syntax tree.
 #'
-#' @param x An AST node object.
+#' @param x An `ast` or `multimod` object. In case of other classes, it will
+#' return `NULL`.
 #'
-#' @return A character string representing the class of the AST node.
+#' @return A character string representing the type of the node
+#' (e.g., `"expression"`, `"variable"`, `"parameter"`, `"sum"`, etc.).
 #' @export
-ast_type <- function(x) {
-  gsub("^ast_", "", class(x)[1])
+node_type <- function(x) {
+  if (!inherits(x, c("ast", "multimod"))) {
+    return(NULL)
+  }
+  class(x)[1]
 }
 

@@ -1,5 +1,3 @@
-
-
 #' Get a pair of brackets
 #'
 #' This function returns a pair of brackets based on the input character.
@@ -55,8 +53,8 @@ add_brackets <- function(x, brackets = NULL, ...) {
 
 # as.character ####
 #' @export
-#' @method as.character ast_expression
-as.character.ast_expression <- function(x, brackets = NULL, ...) {
+#' @method as.character expression
+as.character.expression <- function(x, brackets = NULL, ...) {
   out <- paste0(as.character(x$lhs), " ", x$op, " ", as.character(x$rhs))
   if (is_empty(brackets)) return(out)
   brackets <- brackets_pair(brackets)
@@ -65,12 +63,12 @@ as.character.ast_expression <- function(x, brackets = NULL, ...) {
 }
 
 #' @export
-as.character.ast_unary <- function(x, ...) {
+as.character.unary <- function(x, ...) {
   paste0(x$op, "(", as.character(x$rhs), ")")
 }
 
 #' @export
-as.character.ast_variable <- function(x, ...) {
+as.character.variable <- function(x, ...) {
   if (length(x$dims) > 0) {
     paste0(x$name, "[", paste(x$dims, collapse = ","), "]")
   } else {
@@ -79,7 +77,7 @@ as.character.ast_variable <- function(x, ...) {
 }
 
 #' @export
-as.character.ast_parameter <- function(x, ...) {
+as.character.parameter <- function(x, ...) {
   if (length(x$dims) > 0) {
     paste0(x$name, "[", paste(x$dims, collapse = ","), "]")
   } else {
@@ -89,26 +87,26 @@ as.character.ast_parameter <- function(x, ...) {
 
 
 #' @export
-#' @method as.character ast_symbol
-as.character.ast_symbol <- function(x, ...) {
+#' @method as.character symbol
+as.character.symbol <- function(x, ...) {
   x$value
 }
 
 #' @export
-#' @method as.character ast_constant
-as.character.ast_constant <- function(x, ...) {
+#' @method as.character constant
+as.character.constant <- function(x, ...) {
   as.character(x$value)
 }
 
 #' @export
-#' @method as.character ast_set
-as.character.ast_set <- function(x, ...) {
+#' @method as.character set
+as.character.set <- function(x, ...) {
   paste0("set: ", x$name)
 }
 
 #' @export
-#' @method as.character ast_dims
-as.character.ast_dims <- function(x, brackets = "[", ...) {
+#' @method as.character dims
+as.character.dims <- function(x, brackets = "[", ...) {
   # browser()
   if (length(x) == 0) return("")
   out <- paste(sapply(x, function(y) y$name), collapse = ",")
@@ -119,6 +117,6 @@ as.character.ast_dims <- function(x, brackets = "[", ...) {
 }
 
 #' @export
-as.character.ast_condition <- function(x, ...) {
+as.character.condition <- function(x, ...) {
   paste0("if (", as.character(x$condition), ") {", as.character(x$then), "}")
 }
