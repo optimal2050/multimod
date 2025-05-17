@@ -52,8 +52,14 @@ add_brackets <- function(x, brackets = NULL, ...) {
 # as.character ####
 #' @export
 #' @method as.character expression
-as.character.expression <- function(x, brackets = NULL, ...) {
-  out <- paste0(as.character(x$lhs), " ", x$op, " ", as.character(x$rhs))
+as.character.expression <- function(x, brackets = NULL, max_char = 50, ...) {
+  out <- paste0(as.character(x$lhs, max_char = NULL),
+                " ", x$op, " ",
+                as.character(x$rhs, max_char = NULL)
+                )
+  if (!is_empty(max_char) && nchar(out) > max_char) {
+    out <- paste0(substr(out, 1, max_char), "...")
+  }
   if (is_empty(brackets)) return(out)
   brackets <- brackets_pair(brackets)
   out <- paste0(brackets[1], out, brackets[2])
@@ -98,7 +104,6 @@ as.character.mapping <- function(x, ...) {
   }
 }
 
-
 #' @export
 #' @method as.character symbol
 as.character.symbol <- function(x, ...) {
@@ -134,3 +139,23 @@ as.character.dims <- function(x, brackets = "[", ...) {
 as.character.when <- function(x, ...) {
   paste0("if (", as.character(x$condition), ") {", as.character(x$then), "}")
 }
+
+#' @export
+#' @method as.character sum
+as.character.sum <- function(x, max_char = 50, ...) {
+  out <- paste0("sum(",
+                as.character(x$index, max_char = NULL),
+                as.character(x$value, max_char = NULL),
+                ")")
+  if (!is_empty(max_char) && nchar(out) > max_char) {
+    out <- paste0(substr(out, 1, max_char), "...")
+  }
+  return(out)
+}
+
+#' @export
+#' @method as.character prod
+as.character.prod <- function(x, ...) {
+  paste0("prod(", as.character(x$index), as.character(x$value), ")")
+}
+

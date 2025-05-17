@@ -4,7 +4,7 @@
 \alias{ast_constant}
 \title{Create a constant AST node}
 \usage{
-ast_constant(value)
+ast_constant(value, ...)
 }
 \arguments{
 \item{value}{A numeric or character constant.}

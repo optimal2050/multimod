@@ -4,7 +4,7 @@
 \alias{ast_when}
 \title{Construct a conditional expression node for multimod AST}
 \usage{
-ast_when(condition, then, otherwise = NULL)
+ast_when(condition, then, otherwise = NULL, ...)
 }
 \arguments{
 \item{condition}{The condition to check, must be an AST node.}
