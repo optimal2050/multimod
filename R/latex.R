@@ -223,9 +223,9 @@ as_latex.expression <- function(x, brackets = NULL, ...) {
 }
 
 #' @export
-#' @method as_latex condition
+#' @method as_latex when
 #' @rdname as_latex
-as_latex.condition <- function(x, brackets = NULL, ...) {
+as_latex.when <- function(x, brackets = NULL, ...) {
   # return(NULL)
   # browser()
   cond <- as_latex(x$condition, brackets = brackets, ...)
@@ -262,7 +262,7 @@ as_latex.prod <- function(x, brackets = NULL, ...) {
 #' @rdname as_latex
 #'
 #' @export
-as_latex.equation <- function(x,
+as_latex0.equation <- function(x,
                               math_env = "align*",
                               brackets_dims = NULL,
                               subscript_dims = is.null(brackets_dims),
@@ -341,8 +341,8 @@ as_latex.equation <- function(x,
 #' @export
 as_latex2.equation <- function(eqn,
                               simplify = TRUE,
-                              show_conditions = TRUE,
-                              show_mappings = TRUE,
+                              show_conditions = FALSE,
+                              show_mappings = FALSE,
                               math_env = "align*",
                               annotation_env = "flushleft",
                               bracket_dims = "[]") {
@@ -405,25 +405,112 @@ as_latex2.equation <- function(eqn,
   paste(latex, collapse = "\n")
 }
 
-# Helper: Extract condition expressions (e.g., dollar conditions or domain filters)
-extract_conditions <- function(expr) {
-  if (is.null(expr)) return(list())
-  if (inherits(expr, "condition")) {
-    return(c(list(expr$condition), extract_conditions(expr$then)))
+extract_and_replace_conditions <- function(ast, max_length = 80, types = c("sum", "when", "expression")) {
+  mapping <- list()
+  counter <- 1
+
+  simplify <- function(node) {
+    if (inherits(node, "ast")) {
+      type <- node_type(node)
+      if (type %in% types) {
+        latex_str <- as_latex(node)
+        if (nchar(latex_str) > max_length) {
+          alias <- paste0("set", counter)
+          counter <<- counter + 1
+          mapping[[alias]] <<- node
+          return(ast_symbol(alias))
+        }
+      }
+      # Recurse into fields of AST node
+      for (field in names(node)) {
+        node[[field]] <- simplify(node[[field]])
+      }
+    } else if (is.list(node)) {
+      node <- lapply(node, simplify)
+    }
+    node
   }
-  if (inherits(expr, "sum") || inherits(expr, "prod")) {
-    return(c(extract_conditions(expr$domain), extract_conditions(expr$value)))
-  }
-  if (inherits(expr, "expression")) {
-    return(c(extract_conditions(expr$lhs), extract_conditions(expr$rhs)))
-  }
-  return(list())
+
+  simplified_ast <- simplify(ast)
+  list(ast = simplified_ast, mapping = mapping)
 }
+
+#' @export
+#' @method as_latex equation
+as_latex.equation <- function(eq, ...) {
+  # Simplify RHS with optional aliasing of large subtrees
+  simpl <- extract_and_replace_conditions(eq$rhs, max_length = 100)
+  rhs_str <- as_latex(simpl$ast)
+  lhs_str <- as_latex(eq$lhs)
+
+  # Convert relation (e.g., "==" -> "=")
+  rel <- eq$relation
+  if (rel == "==") rel <- "="
+  rel <- latex_operators[[rel]] %||% rel  # fallback
+
+  # Format domain (optional)
+  domain_str <- if (!is.null(eq$domain)) {
+    paste0("\\text{Domain: }~$", as_latex(eq$domain), "$\\\\\n")
+  } else ""
+
+  # Format the index subscript of LHS (for equation header)
+  eq_index <- format_index(eq$lhs)
+
+  # Where section (optional mappings)
+  where_str <- ""
+  if (length(simpl$mapping) > 0) {
+    lines <- vapply(names(simpl$mapping), function(name) {
+      def <- as_latex(simpl$mapping[[name]])
+      paste0("\\texttt{", name, "} = ", def)
+    }, character(1))
+    where_str <- paste0("\\textbf{where:} \\\\\n", paste(lines, collapse = "\\\\\n"))
+  }
+
+  # Combine everything into a LaTeX block
+  paste0(
+    "\\begin{flushleft}\n",
+    "\\textbf{\\bf Equation:}~\\texttt{", eq$name, "}", eq_index,
+    " \\quad—\\textit{", eq$desc %||% "", "} \\\\\n",
+    domain_str,
+    "\\begin{align*}\n",
+    lhs_str, " ", rel, " ", rhs_str, "\n",
+    "\\end{align*}\n",
+    where_str, "\n",
+    "\\end{flushleft}"
+  )
+}
+
+format_index <- function(lhs) {
+  dims <- lhs$dims
+  if (is.null(dims) || length(dims) == 0) return("")
+
+  dims_str <- as_latex(dims)
+  paste0("_{", dims_str, "}")
+}
+
+
+
+
+
+# # Helper: Extract condition expressions (e.g., dollar conditions or domain filters)
+# extract_conditions <- function(expr) {
+#   if (is.null(expr)) return(list())
+#   if (inherits(expr, "when")) {
+#     return(c(list(expr$condition), extract_conditions(expr$then)))
+#   }
+#   if (inherits(expr, "sum") || inherits(expr, "prod")) {
+#     return(c(extract_conditions(expr$domain), extract_conditions(expr$value)))
+#   }
+#   if (inherits(expr, "expression")) {
+#     return(c(extract_conditions(expr$lhs), extract_conditions(expr$rhs)))
+#   }
+#   return(list())
+# }
 
 # Helper: Remove mappings and conditions from an expression
 # remove_mappings <- function(expr) {
 #   if (is.null(expr)) return(NULL)
-#   if (inherits(expr, "condition")) {
+#   if (inherits(expr, "when")) {
 #     return(remove_mappings(expr$then))
 #   }
 #   if (inherits(expr, "sum") || inherits(expr, "prod")) {
@@ -447,51 +534,51 @@ extract_conditions <- function(expr) {
 #' @param ast A multimod AST object
 #' @returns A cleaned AST object with mappings removed (NULL if fully removed)
 #' @export
-remove_mappings <- function(ast) {
-  if (is.null(ast)) return(NULL)
-
-  if (inherits(ast, "mapping")) {
-    return(NULL)
-  }
-
-  if (inherits(ast, "condition")) {
-    # Recursively remove mappings in the condition
-    then_clean <- remove_mappings(ast$then)
-    cond_clean <- remove_mappings(ast$condition)
-    if (is.null(then_clean)) return(NULL)
-    return(structure(list(type = "condition", then = then_clean, condition = cond_clean), class = class(ast)))
-  }
-
-  if (inherits(ast, "expression")) {
-    lhs <- remove_mappings(ast$lhs)
-    rhs <- remove_mappings(ast$rhs)
-
-    # Remove mapping children
-    if (inherits(lhs, "mapping")) lhs <- NULL
-    if (inherits(rhs, "mapping")) rhs <- NULL
-
-    # Handle removed branches
-    if (is.null(lhs) && is.null(rhs)) return(NULL)
-    if (is.null(lhs)) return(rhs)
-    if (is.null(rhs)) return(lhs)
-
-    return(structure(list(type = "expression", op = ast$op, lhs = lhs, rhs = rhs), class = class(ast)))
-  }
-
-  if (inherits(ast, c("sum", "prod"))) {
-    return(structure(
-      list(
-        type = ast$type,
-        index = ast$index,
-        domain = remove_mappings(ast$domain),
-        value = remove_mappings(ast$value)
-      ),
-      class = class(ast)
-    ))
-  }
-
-  return(ast)
-}
+# remove_mappings <- function(ast) {
+#   if (is.null(ast)) return(NULL)
+#
+#   if (inherits(ast, "mapping")) {
+#     return(NULL)
+#   }
+#
+#   if (inherits(ast, "when")) {
+#     # Recursively remove mappings in the condition
+#     then_clean <- remove_mappings(ast$then)
+#     cond_clean <- remove_mappings(ast$condition)
+#     if (is.null(then_clean)) return(NULL)
+#     return(structure(list(type = "when", then = then_clean, condition = cond_clean), class = class(ast)))
+#   }
+#
+#   if (inherits(ast, "expression")) {
+#     lhs <- remove_mappings(ast$lhs)
+#     rhs <- remove_mappings(ast$rhs)
+#
+#     # Remove mapping children
+#     if (inherits(lhs, "mapping")) lhs <- NULL
+#     if (inherits(rhs, "mapping")) rhs <- NULL
+#
+#     # Handle removed branches
+#     if (is.null(lhs) && is.null(rhs)) return(NULL)
+#     if (is.null(lhs)) return(rhs)
+#     if (is.null(rhs)) return(lhs)
+#
+#     return(structure(list(type = "expression", op = ast$op, lhs = lhs, rhs = rhs), class = class(ast)))
+#   }
+#
+#   if (inherits(ast, c("sum", "prod"))) {
+#     return(structure(
+#       list(
+#         type = ast$type,
+#         index = ast$index,
+#         domain = remove_mappings(ast$domain),
+#         value = remove_mappings(ast$value)
+#       ),
+#       class = class(ast)
+#     ))
+#   }
+#
+#   return(ast)
+# }
 
 
 

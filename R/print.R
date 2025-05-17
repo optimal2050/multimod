@@ -97,11 +97,12 @@ print.constant <- function(x, ...) {
 }
 
 #' @export
-#' @method print condition
-print.condition <- function(x, ...) {
-  cat("<AST condition> ", x$op, "\n", sep = "")
-  cat("  then :\n"); print(x$then)
+#' @method print when
+print.when <- function(x, ...) {
+  cat("<AST when> ", x$op, "\n", sep = "")
   cat("  condition:\n"); print(x$condition)
+  cat("  then :\n"); print(x$then)
+  cat("  otherwise :\n"); print(x$otherwise)
 }
 
 #' @export

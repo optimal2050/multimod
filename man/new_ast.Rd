@@ -32,5 +32,4 @@ Constructs a set object used as an index domain for other symbols
 }
 \examples{
 ast_set("b")                     # standalone set
-ast_set("b", domain = ast_set("a"))  # subset declaration b ⊆ a
 }

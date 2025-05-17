@@ -13,7 +13,7 @@
 \alias{as_latex.constant}
 \alias{as_latex.unary}
 \alias{as_latex.expression}
-\alias{as_latex.condition}
+\alias{as_latex.when}
 \alias{as_latex.sum}
 \alias{as_latex.prod}
 \alias{as_latex.equation}
@@ -25,15 +25,15 @@ as_latex(x, ...)
 
 \method{as_latex}{character}(x, math = FALSE, bold = FALSE, italic = FALSE)
 
-\method{as_latex}{set}(x, ...)
+\method{as_latex}{set}(x, math_env = "text", ...)
 
-\method{as_latex}{dims}(x, brackets = "[]", ...)
+\method{as_latex}{dims}(x, brackets = NULL, ...)
 
-\method{as_latex}{expression}(x, brackets = "[]", ...)
+\method{as_latex}{expression}(x, brackets = "[]", subscript_dims = is.null(brackets), ...)
 
-\method{as_latex}{parameter}(x, brackets = "[]", ...)
+\method{as_latex}{parameter}(x, brackets = "[]", subscript_dims = is.null(brackets), ...)
 
-\method{as_latex}{variable}(x, brackets = "[]", ...)
+\method{as_latex}{variable}(x, brackets = NULL, subscript_dims = TRUE, ...)
 
 \method{as_latex}{symbol}(x, ...)
 
@@ -43,13 +43,19 @@ as_latex(x, ...)
 
 \method{as_latex}{expression}(x, brackets = NULL, ...)
 
-\method{as_latex}{condition}(x, brackets = NULL, ...)
+\method{as_latex}{when}(x, brackets = NULL, ...)
 
 \method{as_latex}{sum}(x, brackets = NULL, ...)
 
 \method{as_latex}{prod}(x, brackets = NULL, ...)
 
-\method{as_latex}{equation}(x, math_env = "align*", ...)
+\method{as_latex}{equation}(
+  x,
+  math_env = "align*",
+  brackets_dims = NULL,
+  subscript_dims = is.null(brackets_dims),
+  ...
+)
 }
 \arguments{
 \item{x}{A character string (or vector of strings) to be converted to LaTeX.}

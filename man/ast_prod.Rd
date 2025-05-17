@@ -4,14 +4,10 @@
 \alias{ast_prod}
 \title{Create a product AST node}
 \usage{
-ast_prod(index, domain = NULL, value)
+ast_prod(index, value)
 }
 \arguments{
 \item{index}{Character. The index variable (e.g., \code{"t"}).}
-
-\item{domain}{An optional AST node (class \code{ast}) representing a domain condition.
-This can be a mapping, a logical condition (e.g., from a \code{$}-filter), or a parameter.
-Use \code{NULL} if there is no restriction.}
 
 \item{value}{An AST node representing the expression to be summed.}
 }
@@ -19,6 +15,7 @@ Use \code{NULL} if there is no restriction.}
 An object of class \code{ast} and \code{prod}.
 }
 \description{
-Constructs an abstract syntax tree (AST) node representing a product over an index,
-optionally restricted by a domain condition (such as a mapping, logical condition, or parameter).
+Constructs an abstract syntax tree (AST) node representing a product over an
+index. The index is typically a \code{set}, \code{dims} or \code{when} object if
+filtering is applied to the index.
 }

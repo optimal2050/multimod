@@ -41,7 +41,6 @@ brackets_pair <- function(x) {
 
 }
 
-
 #' @export
 add_brackets <- function(x, brackets = NULL, ...) {
   stopifnot(length(x) == 1)
@@ -49,7 +48,6 @@ add_brackets <- function(x, brackets = NULL, ...) {
   brackets <- brackets_pair(brackets)
   return(paste0(brackets[1], x, brackets[2]))
 }
-
 
 # as.character ####
 #' @export
@@ -63,11 +61,13 @@ as.character.expression <- function(x, brackets = NULL, ...) {
 }
 
 #' @export
+#' @method as.character unary
 as.character.unary <- function(x, ...) {
   paste0(x$op, "(", as.character(x$rhs), ")")
 }
 
 #' @export
+#' @method as.character variable
 as.character.variable <- function(x, ...) {
   if (length(x$dims) > 0) {
     paste0(x$name, "[", paste(x$dims, collapse = ","), "]")
@@ -77,9 +77,22 @@ as.character.variable <- function(x, ...) {
 }
 
 #' @export
+#' @method as.character parameter
 as.character.parameter <- function(x, ...) {
   if (length(x$dims) > 0) {
     paste0(x$name, "[", paste(x$dims, collapse = ","), "]")
+  } else {
+    x$name
+  }
+}
+
+#' @export
+#' @method as.character mapping
+as.character.mapping <- function(x, ...) {
+  if (length(x$dims) > 0) {
+    paste0(x$name, "[",
+           paste(sapply(x$dims, function(y) y$name), collapse = ","),
+           "]")
   } else {
     x$name
   }
@@ -117,6 +130,7 @@ as.character.dims <- function(x, brackets = "[", ...) {
 }
 
 #' @export
-as.character.condition <- function(x, ...) {
+#' @method as.character when
+as.character.when <- function(x, ...) {
   paste0("if (", as.character(x$condition), ") {", as.character(x$then), "}")
 }

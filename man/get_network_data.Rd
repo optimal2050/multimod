@@ -4,7 +4,7 @@
 \alias{get_network_data}
 \title{Get network data for a multimod equation}
 \usage{
-get_network_data(eq, alias_map = NULL, show_dims = FALSE)
+get_network_data(eq, alias_map = NULL, show_dims = TRUE)
 }
 \arguments{
 \item{eq}{A multimod equation object}

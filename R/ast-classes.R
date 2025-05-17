@@ -32,7 +32,6 @@ new_ast <- function(node_type, ..., inherits_class = NULL) {
 #' @rdname new_ast
 #' @examples
 #' ast_set("b")                     # standalone set
-#' ast_set("b", domain = ast_set("a"))  # subset declaration b ⊆ a
 ast_set <- function(name) {
   stopifnot(is.character(name), length(name) == 1)
   # if (!is.null(domain)) stopifnot(inherits(domain, "ast") && domain$type == "set")
@@ -40,6 +39,7 @@ ast_set <- function(name) {
 }
 # @param domain Optional. Another AST set node representing the parent set
 # (e.g., "a" in b(a)), indicating that this set is a subset of the parent set.
+# ast_set("b", domain = ast_set("a"))  # subset declaration b ⊆ a
 
 # Create an AST node for a list of index symbols
 #
@@ -211,65 +211,73 @@ ast_constant <- function(value) {
   new_ast("constant", value = value)
 }
 
-#' Construct a conditional (dollar) expression node for multimod AST
+#' Construct a conditional expression node for multimod AST
 #'
-#' This function constructs a conditional expression node of type `"condition"`,
-#' representing GAMS-style conditional terms using the `$` operator.
+#' This function constructs a conditional expression node of type `"when"`,
+#' representing GAMS-style conditional terms using the `$` operator,
+#' `if ... else ...` statements in Julia/JuMP,  `if ... in ...` in Python/Pyomo,
+#' etc.
 #'
-#' @param condition The condition to check (a.k.a. right-hand side of `$`
-#' in GAMS statements). Must be an AST node.
-#' @param then The expression to evaluate if the condition is true (usually the left-hand side).
+#' @param condition The condition to check, must be an AST node.
+#' @param then The expression to evaluate if the condition is true
+#' (usually the left-hand side).
+#' @param otherwise Optional expression to evaluate if the condition is false.
+#' This part is not available in GAMS `$` statements, but is useful for other
+#' languages.
 #'
-#' @return An object of class `ast` and subclass `condition`
+#' @return An object of class `ast` and subclass `when`.
 #' @export
 #'
 #' @examples
-#' ast_condition(
+#' ast_when(
 #'   condition = ast_symbol("i_active(i)"),
 #'   then = ast_variable("x", c("i"))
 #' )
-ast_condition <- function(condition, then) {
+ast_when <- function(condition, then, otherwise = NULL) {
   # browser()
   stopifnot(inherits(then, "ast") || is.null(then))
   stopifnot(inherits(condition, "ast"))
 
-  new_ast("condition", then = then, condition = condition)
+  new_ast("when", condition = condition, then = then, otherwise = otherwise)
 }
 
 #' Create a summation AST node
 #'
-#' Constructs an abstract syntax tree (AST) node representing a summation over an index,
-#' optionally restricted by a domain condition (such as a mapping, logical condition, or parameter).
+#' Constructs an abstract syntax tree (AST) node representing a summation over an
+#' index. The index is typically a `set`, `dims` or `when` object if
+#' filtering is applied to the index.
 #'
 #' @param index Character. The index variable (e.g., `"t"`).
-#' @param domain An optional AST node (class `ast`) representing a domain condition.
-#'   This can be a mapping, a logical condition (e.g., from a `$`-filter), or a parameter.
-#'   Use `NULL` if there is no restriction.
 #' @param value An AST node representing the expression to be summed.
 #'
 #' @return An object of class `ast` and `sum`.
 #' @export
-ast_sum <- function(index = ast_dims(), domain = NULL, value) {
-  stopifnot(inherits(index, "dims"))
-  stopifnot(inherits(domain, "ast") || is.null(domain))
+ast_sum <- function(index = ast_dims(), value) {
+  stopifnot(inherits(index, "ast"))
+  # stopifnot(inherits(domain, "ast") || is.null(domain))
   stopifnot(inherits(value, "ast"))
-  if (!is.null(domain)) stopifnot(inherits(domain, "ast"))
-  new_ast("sum", index = index, domain = domain, value = value)
+  # if (!is.null(domain)) stopifnot(inherits(domain, "ast"))
+  new_ast("sum", index = index, value = value)
 }
+# @param domain An optional AST node (class `ast`) representing a domain condition.
+#   This can be a mapping, a logical condition (e.g., from a `$`-filter), or a parameter.
+#   Use `NULL` if there is no restriction.
+
 
 #' Create a product AST node
 #'
-#' Constructs an abstract syntax tree (AST) node representing a product over an index,
-#' optionally restricted by a domain condition (such as a mapping, logical condition, or parameter).
+#' Constructs an abstract syntax tree (AST) node representing a product over an
+#' index. The index is typically a `set`, `dims` or `when` object if
+#' filtering is applied to the index.
 #'
 #' @inheritParams ast_sum
 #' @return An object of class `ast` and `prod`.
 #' @export
-ast_prod <- function(index, domain = NULL, value) {
+ast_prod <- function(index, value) {
   stopifnot(inherits(index, "ast"))
-  if (!is.null(domain)) stopifnot(inherits(domain, "ast"))
+  # if (!is.null(domain)) stopifnot(inherits(domain, "ast"))
   stopifnot(inherits(value, "ast"))
-  new_ast("prod", index = index, domain = domain, value = value)
+  new_ast("prod", index = index, value = value)
 }
 
 #' Create an expression AST node
@@ -283,9 +291,7 @@ ast_prod <- function(index, domain = NULL, value) {
 #' @return An `expression` S3 object (subclass of `ast`).
 #' @export
 ast_expression <- function(op, lhs, rhs) {
-  # browser()
   stopifnot(is.character(op), !is.null(lhs), !is.null(rhs))
-  # stopifnot(inherits(lhs, "ast"), inherits(rhs, "ast"))
   new_ast("expression", op = op, lhs = lhs, rhs = rhs)
 }
 
@@ -337,7 +343,6 @@ ast_unary <- function(op, rhs) {
 ast_equation <- function(lhs, rhs, relation = "==",
                          name = NULL, domain = NULL, desc = NULL) {
   stopifnot(relation %in% c("==", "<=", ">=", "<", ">"))
-  # if (!inherits(rhs, "expression")) browser()
   stopifnot(inherits(lhs, "ast"))
   stopifnot(inherits(rhs, "ast"))
   new_ast(

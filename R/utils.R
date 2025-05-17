@@ -198,13 +198,13 @@ split_line_on_pattern <- function(
 #' Recursively extract elements by name from a nested structure
 #'
 #' @param obj A nested list or S3 object (e.g., multimod or ast node)
-#' @param name Character string of the slot/element to extract (e.g., "condition")
+#' @param name Character string of the slot/element to extract (e.g., "when")
 #' @param recursive Logical, whether to search recursively through nested objects
 #' @returns A list of all matching elements
 #' @export
 #' @examples
-#' extract_elements_by_name(model, "condition")
-extract_elements_by_name <- function(obj, name, recursive = TRUE) {
+#' extract_elements_by_name(model, "when")
+extract_ast_elements <- function(obj, name, recursive = TRUE) {
   results <- list()
 
   walk <- function(x) {
@@ -220,5 +220,19 @@ extract_elements_by_name <- function(obj, name, recursive = TRUE) {
 
   walk(obj)
   results
+}
+
+replace_ast_elements <- function(obj, name, replacement) {
+  if (is.list(obj)) {
+    for (i in seq_along(obj)) {
+      if (is.list(obj[[i]])) {
+        obj[[i]] <- replace_ast_elements(obj[[i]], name, replacement)
+      }
+      if (names(obj)[i] == name) {
+        obj[[i]] <- replacement
+      }
+    }
+  }
+  obj
 }
 
