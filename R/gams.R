@@ -114,7 +114,7 @@ parse_gams_expr <- function(
   # top-level $ condition ####
   dollar_parts <- split_top_level_dollar(expr)
   if (!is.null(dollar_parts)) {
-    return(ast_condition(
+    return(ast_when(
       condition = parse_gams_expr(dollar_parts[2], symbols, known_funcs),
       then = parse_gams_expr(dollar_parts[1], symbols, known_funcs)
     ))
@@ -136,23 +136,25 @@ parse_gams_expr <- function(
     agg_type <- if (grepl("^sum\\(", expr)) "sum" else "prod"
     parts <- split_indexed_operator(expr)
     if (is.null(parts) || length(parts) != 2) stop("Malformed aggregate: cannot split arguments")
-
-    index_domain <- split_top_level_dollar(parts[1]) |> trimws()
-    index <- parse_gams_expr(index_domain[1], symbols = symbols)
-    domain <- if (length(index_domain) > 1) {
-      ast_condition(
-        condition = parse_gams_expr(index_domain[2], symbols),
-        then = NULL
-      )
-    } else {
-      NULL
-    }
+    index <- parse_gams_expr(parts[1], symbols, known_funcs)
+    # index_domain <- split_top_level_dollar(parts[1]) |> trimws()
+    # index <- parse_gams_expr(index_domain[1], symbols = symbols)
+    # domain <- if (length(index_domain) > 1) {
+    #   ast_when(
+    #     condition = parse_gams_expr(index_domain[2], symbols),
+    #     then = NULL
+    #   )
+    # } else {
+    #   NULL
+    # }
     value_expr <- parse_gams_expr(trimws(parts[2]), symbols, known_funcs)
 
     parsed_expr <- switch(
       agg_type,
-      "sum" = ast_sum(index, domain, value_expr),
-      "prod" = ast_prod(index, domain, value_expr)
+      "sum" = ast_sum(index, value_expr),
+      "prod" = ast_prod(index, value_expr)
+      # "sum" = ast_sum(index, domain, value_expr),
+      # "prod" = ast_prod(index, domain, value_expr)
     )
 
     return(parsed_expr)
@@ -1002,7 +1004,7 @@ as_gams.equation <- function(eqn) {
              body <- format_expr_gams(expr$value)
              paste0("prod(", index, domain, ", ", body, ")")
            },
-           "condition" = {
+           "when" = {
              then <- format_expr_gams(expr$then)
              cond <- format_expr_gams(expr$condition)
              paste0(then, "$", cond)
