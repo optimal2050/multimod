@@ -211,6 +211,33 @@ as_latex.unary <- function(x, brackets = NULL, ...) {
 #' @method as_latex expression
 #' @rdname as_latex
 as_latex.expression <- function(x, brackets = NULL, ...) {
+  lhs <- x$lhs
+  rhs <- x$rhs
+
+  if (!inherits(lhs, "ast")) {
+    warning("lhs in expression is not an AST: fallback to str()")
+    lhs <- paste(capture.output(str(lhs)), collapse = "")
+  } else {
+    lhs <- as_latex(lhs, ...)
+  }
+
+  if (!inherits(rhs, "ast")) {
+    warning("rhs in expression is not an AST: fallback to str()")
+    rhs <- paste(capture.output(str(rhs)), collapse = "")
+  } else {
+    rhs <- as_latex(rhs, ...)
+  }
+
+  op <- latex_operators[[x$op]]
+  if (is.null(op)) stop("Unknown operator: ", x$op)
+
+  out <- paste0(lhs, " ", op, " ", rhs)
+  latex_brackets(out, brackets)
+}
+
+
+
+as_latex0.expression <- function(x, brackets = NULL, ...) {
   lhs <- as_latex(x$lhs, brackets = NULL, ...)
   rhs <- as_latex(x$rhs, brackets = NULL, ...)
   op <- latex_operators[[x$op]]
@@ -257,70 +284,269 @@ as_latex.prod <- function(x, brackets = NULL, ...) {
   return(paste0("\\prod_{", index, domain, "} ", body))
 }
 
+# export
+# method as_latex where
+# as_latex.where <- function(x, inline_where = NULL, ...) {
+#   if (is.null(inline_where)) {
+#     inline_where <- getOption("multimod.render_where_inline", FALSE)
+#   }
+#
+#   # Defensive: ensure `x$name` is present
+#   if (inline_where || is.null(x$content)) {
+#     return(as_latex(x$content, inline_where = inline_where, ...))
+#   }
+#
+#   if (!is.null(x$name)) {
+#     return(paste0("\\texttt{", x$name, "}"))
+#   } else {
+#     warning("Missing `name` in ast_where object; falling back to hash.")
+#     return(paste0("\\texttt{", substr(x$hash, 1, 8), "}"))
+#   }
+# }
+
+#' @export
+#' @method as_latex where
+as_latex.where <- function(x, inline_where = NULL, ...) {
+  if (is.null(inline_where)) {
+    inline_where <- getOption("multimod.render_where_inline", FALSE)
+  }
+
+  if (inline_where || is.null(x$content)) {
+    return(as_latex(x$content, inline_where = inline_where, ...))
+  }
+
+  if (!is.null(x$name)) {
+    paste0("\\texttt{", x$name, "}")
+  } else {
+    paste0("\\texttt{", substr(x$hash, 1, 8), "}")
+  }
+}
+
+# extract_where_nodes <- function(ast) {
+#   result <- list()
+#
+#   walk <- function(x) {
+#     if (inherits(x, "where")) {
+#       if (!is.null(x$name) && !is.null(x$content)) {
+#         result[[x$name]] <<- x$content
+#       }
+#     }
+#     if (is.list(x) && !is.data.frame(x)) {
+#       lapply(x, walk)
+#     }
+#   }
+#
+#   walk(ast)
+#   result
+# }
+
+# as_latex.where <- function(x, inline_where = NULL, ...) {
+#   if (is.null(inline_where)) {
+#     inline_where <- getOption("multimod.render_where_inline", FALSE)
+#   }
+#
+#   if (inline_where || is.null(x$content)) {
+#     return(as_latex(x$content, inline_where = inline_where, ...))
+#   }
+#
+#   if (!is.null(x$name)) {
+#     paste0("\\texttt{", x$name, "}")
+#   } else {
+#     warning("Missing `name` in ast_where object; falling back to hash.")
+#     paste0("\\texttt{", substr(x$hash, 1, 8), "}")
+#   }
+# }
+
+
+# @export
+# @method as_latex equation
+# @rdname as_latex
+#
+# as_latex0.equation <- function(x,
+#                               # math_env = "align*",
+#                               math_env = "dmath",
+#                               brackets_dims = NULL,
+#                               subscript_dims = is.null(brackets_dims),
+#                               inline_where = NULL,
+#                               ...) {
+#   # browser()
+#   # fallback for inline_where
+#   if (is.null(inline_where)) {
+#     inline_where <- getOption("multimod.render_where_inline", FALSE)
+#   }
+#
+#   lhs <- as_latex(x$lhs,
+#                   brackets = brackets_dims,
+#                   subscript_dims = subscript_dims,
+#                   inline_where = inline_where,
+#                   ...)
+#   rhs <- as_latex(x$rhs,
+#                   brackets = brackets_dims,
+#                   subscript_dims = subscript_dims,
+#                   inline_where = inline_where,
+#                   ...)
+#   rel <- switch(x$relation, `==` = "=", `<=` = "\\le", `>=` = "\\ge", x$relation)
+#
+#   # Wrap relation line
+#   body <- paste0(lhs, " ", rel, " ", rhs)
+#
+#   # Optional: equation name and domain info
+#   # browser()
+#   preamble <- character()
+#   if (!is.null(x$name)) {
+#     preamble <- c(
+#       preamble,
+#       paste0("\\textbf{\\bf Equation:}~\\texttt{", x$name, "}",
+#              ifelse(subscript_dims,
+#                     paste0("$_{",
+#                            as_latex(x$dims, brackets = brackets_dims,
+#                                     subscript_dims = subscript_dims, ...),
+#                            "}$"),
+#                     "")))
+#   }
+#   if (!is.null(x$desc)) {
+#     preamble <- c(preamble, paste0("\\quad—\\textit{", as_latex(x$desc), "}"))
+#   }
+#   if (!is.null(x$domain)) {
+#     # domain_idx <- as_latex(x$domain, brackets = brackets_dims,
+#     #                        subscript_dims = subscript_dims, ...)
+#     preamble <- c(
+#       preamble,
+#       paste0("\\\\\n\\text{Domain: }~$",
+#              as_latex(x$domain, brackets = brackets_dims,
+#                       subscript_dims = subscript_dims, ...),
+#              # ifelse(subscript_dims, paste0("_{", domain_idx, "}"), domain_idx),
+#              "$"))
+#   }
+#
+#   # Format environments
+#   if (length(math_env) > 0 && nzchar(math_env[1])) {
+#     begin_env <- paste0("\\begin{", math_env[1], "}")
+#     end_env   <- paste0("\\end{", math_env[1], "}")
+#   } else {
+#     begin_env <- ""
+#     end_env <- ""
+#   }
+#
+#   # adding where lines
+#   # Gather "where" clauses
+#   where_map <- extract_where_nodes(x)
+#   where_lines <- character()
+#   if (!inline_where) {
+#     where_map <- extract_where_nodes(x)
+#     if (length(where_map) > 0) {
+#       where_lines <- c("\\textbf{where:} \\\\")
+#       # for (nm in names(where_map)) {
+#       #   def <- as_latex(where_map[[nm]], inline_where = inline_where, ...)
+#       #   where_lines <- c(where_lines, paste0("\\texttt{", nm, "} = ", def, "\\\\"))
+#       # }
+#       for (nm in names(where_map)) {
+#         def <- as_latex(where_map[[nm]], inline_where = TRUE, ...)
+#         where_lines <- c(where_lines, paste0("\\texttt{", nm, "} = ", def, "\\\\"))
+#       }
+#     }
+#   }
+#
+#
+#   # Combine
+#   # out <- c(
+#   #   "\\begin{flushleft}",
+#   #   paste(preamble, collapse = " "),
+#   #   begin_env,
+#   #   body,
+#   #   where_lines,
+#   #   end_env,
+#   #   "\\end{flushleft}"
+#   # )
+#
+#   out <- c(
+#     "\\begin{flushleft}",
+#     paste(preamble, collapse = " "),
+#     begin_env,
+#     body,
+#     end_env,
+#     where_lines,
+#     "\\end{flushleft}"
+#   )
+#
+#   paste(out, collapse = "\n")
+# }
+
 #' @export
 #' @method as_latex equation
-#' @rdname as_latex
-#'
-#' @export
-as_latex0.equation <- function(x,
-                              math_env = "align*",
+as_latex.equation <- function(x,
+                              math_env = "dmath",
                               brackets_dims = NULL,
                               subscript_dims = is.null(brackets_dims),
+                              inline_where = NULL,
                               ...) {
-  lhs <- as_latex(x$lhs, brackets = brackets_dims,
-                  subscript_dims = subscript_dims, ...)
-  rhs <- as_latex(x$rhs, brackets = brackets_dims,
-                  subscript_dims = subscript_dims, ...)
-  rel <- switch(x$relation, `==` = "=", `<=` = "\\le", `>=` = "\\ge", x$relation)
+  if (is.null(inline_where)) {
+    inline_where <- getOption("multimod.render_where_inline", FALSE)
+  }
 
-  # Wrap relation line
+  # Render LHS and RHS
+  lhs <- as_latex(x$lhs, brackets = brackets_dims,
+                  subscript_dims = subscript_dims,
+                  inline_where = inline_where, ...)
+
+  rhs <- as_latex(x$rhs, brackets = brackets_dims,
+                  subscript_dims = subscript_dims,
+                  inline_where = inline_where, ...)
+
+  rel <- switch(x$relation, `==` = "=", `<=` = "\\le", `>=` = "\\ge", x$relation)
   body <- paste0(lhs, " ", rel, " ", rhs)
 
-  # Optional: equation name and domain info
-  # browser()
+  # Equation name and descriptor
   preamble <- character()
   if (!is.null(x$name)) {
     preamble <- c(
       preamble,
       paste0("\\textbf{\\bf Equation:}~\\texttt{", x$name, "}",
-             ifelse(subscript_dims,
-                    paste0("$_{",
-                           as_latex(x$dims, brackets = brackets_dims,
-                                    subscript_dims = subscript_dims, ...),
-                           "}$"),
-                    "")))
+             if (subscript_dims && !is.null(x$dims)) {
+               paste0("$_{", as_latex(x$dims, brackets = brackets_dims,
+                                      subscript_dims = subscript_dims, ...), "}$")
+             } else "")
+    )
   }
   if (!is.null(x$desc)) {
     preamble <- c(preamble, paste0("\\quad—\\textit{", as_latex(x$desc), "}"))
   }
   if (!is.null(x$domain)) {
-    # domain_idx <- as_latex(x$domain, brackets = brackets_dims,
-    #                        subscript_dims = subscript_dims, ...)
     preamble <- c(
       preamble,
       paste0("\\\\\n\\text{Domain: }~$",
              as_latex(x$domain, brackets = brackets_dims,
-                      subscript_dims = subscript_dims, ...),
-             # ifelse(subscript_dims, paste0("_{", domain_idx, "}"), domain_idx),
-             "$"))
+                      subscript_dims = subscript_dims, ...), "$")
+    )
   }
 
-  # Format environments
-  if (length(math_env) > 0 && nzchar(math_env[1])) {
-    begin_env <- paste0("\\begin{", math_env[1], "}")
-    end_env   <- paste0("\\end{", math_env[1], "}")
-  } else {
-    begin_env <- ""
-    end_env <- ""
+  # Prepare where: block if needed
+  where_lines <- character()
+  if (!inline_where) {
+    where_map <- extract_where_nodes(x)
+    if (length(where_map) > 0) {
+      where_lines <- c("\\textbf{where:}", "\\begin{align*}")
+      for (nm in names(where_map)) {
+        def <- as_latex(where_map[[nm]], inline_where = TRUE, ...)
+        where_lines <- c(where_lines,
+                         paste0("\\texttt{", nm, "} &= ", def, " \\\\"))
+      }
+      where_lines <- c(where_lines, "\\end{align*}")
+    }
   }
 
-  # Combine
+  # Math environment
+  begin_env <- if (!is.null(math_env) && nzchar(math_env[1])) paste0("\\begin{", math_env[1], "}") else ""
+  end_env   <- if (!is.null(math_env) && nzchar(math_env[1])) paste0("\\end{", math_env[1], "}") else ""
+
+  # Final output
   out <- c(
     "\\begin{flushleft}",
     paste(preamble, collapse = " "),
     begin_env,
     body,
     end_env,
+    where_lines,
     "\\end{flushleft}"
   )
 
@@ -405,11 +631,15 @@ as_latex2.equation <- function(eqn,
   paste(latex, collapse = "\n")
 }
 
-extract_and_replace_conditions <- function(ast, max_length = 80, types = c("sum", "when", "expression")) {
+extract_and_replace_conditions <- function(ast, max_length = 80,
+                                           types = c("sum", "when", "expression")
+                                           ) {
+  browser()
   mapping <- list()
   counter <- 1
 
   simplify <- function(node) {
+    browser()
     if (inherits(node, "ast")) {
       type <- node_type(node)
       if (type %in% types) {
@@ -437,7 +667,7 @@ extract_and_replace_conditions <- function(ast, max_length = 80, types = c("sum"
 
 #' @export
 #' @method as_latex equation
-as_latex.equation <- function(eq, ...) {
+as_latex3.equation <- function(eq, ...) {
   # Simplify RHS with optional aliasing of large subtrees
   simpl <- extract_and_replace_conditions(eq$rhs, max_length = 100)
   rhs_str <- as_latex(simpl$ast)

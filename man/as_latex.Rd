@@ -16,7 +16,6 @@
 \alias{as_latex.when}
 \alias{as_latex.sum}
 \alias{as_latex.prod}
-\alias{as_latex.equation}
 \title{Convert objects to LaTeX format}
 \usage{
 as_latex(x, ...)
@@ -48,14 +47,6 @@ as_latex(x, ...)
 \method{as_latex}{sum}(x, brackets = NULL, ...)
 
 \method{as_latex}{prod}(x, brackets = NULL, ...)
-
-\method{as_latex}{equation}(
-  x,
-  math_env = "align*",
-  brackets_dims = NULL,
-  subscript_dims = is.null(brackets_dims),
-  ...
-)
 }
 \arguments{
 \item{x}{A character string (or vector of strings) to be converted to LaTeX.}

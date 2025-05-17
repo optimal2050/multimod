@@ -137,15 +137,11 @@ with_dims <- function(name, dims, brackets = c("[", "]"), collapse = ",",
 #' visNetwork or similar packages for visualization.
 #' @export
 #'
-#' @examples
-
-
 get_network_data <- function(eq, alias_map = NULL, show_dims = TRUE) {
   # browser()
   id_counter <- 0
   nodes <- list()
   edges <- list()
-
   # Recursive builder for expressions
   recurse_expr <- function(expr, parent_id = NULL, label_prx = NULL) {
     # browser()
@@ -207,6 +203,8 @@ get_network_data <- function(eq, alias_map = NULL, show_dims = TRUE) {
       label <- paste0("func: ", with_dims(expr$name, expr$dims, show_dims = show_dims))
     } else if (ntype == "set") {
       label <- paste0("", expr$name)
+    } else if (ntype == "where") {
+      label <- paste0("", expr$name)
     } else {
       label <- paste0("<", node_type(expr), ">")
     }
@@ -237,6 +235,8 @@ get_network_data <- function(eq, alias_map = NULL, show_dims = TRUE) {
       color <- "lightblue"
     } else if (node_type(expr) == "when") {
       color <- "lightcoral"
+    } else if (node_type(expr) == "where") {
+      color <- "yellow"
     } else {
       color <- "lightgray"
     }

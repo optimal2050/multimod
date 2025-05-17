@@ -20,7 +20,8 @@ Imports:
     data.table,
     visNetwork,
     rlang,
-    purrr
+    purrr,
+    digest
 Suggests: 
     knitr,
     lobstr,

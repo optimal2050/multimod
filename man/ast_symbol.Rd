@@ -4,7 +4,7 @@
 \alias{ast_symbol}
 \title{Create a symbol AST node (for unclassified identifiers)}
 \usage{
-ast_symbol(name)
+ast_symbol(name, ...)
 }
 \arguments{
 \item{name}{A character string representing the symbol.}

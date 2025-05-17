@@ -45,10 +45,10 @@ print.dims <- function(x, brackets = "[", ...) {
 
 #' @export
 #' @method print expression
-print.expression <- function(x, ...) {
+print.expression <- function(x, max_char = 50, ...) {
   cat("<AST expression> ", x$op, "\n", sep = "")
-  cat("  lhs :\n"); print(x$lhs)
-  cat("  rhs:\n"); print(x$rhs)
+  cat("  lhs :\n"); print(x$lhs, max_char = max_char, ...)
+  cat("  rhs:\n"); print(x$rhs, max_char = max_char, ...)
 }
 
 #' @export
@@ -83,7 +83,6 @@ print.mapping <- function(x, ...) {
   if (length(x$dims) > 0) cat("  dims: ", paste(x$dims, collapse = ", "), "\n")
 }
 
-
 #' @export
 #' @method print symbol
 print.symbol <- function(x, ...) {
@@ -106,6 +105,38 @@ print.when <- function(x, ...) {
 }
 
 #' @export
+#' @method print equation
+print.equation <- function(x, ...) {
+  cat("<AST equation> ", x$name, "\n", sep = "")
+  if (!is.null(x$domain)) {
+    cat("  domain: ", as.character(x$domain), "\n")
+  }
+  cat("  relation: ", x$relation, "\n")
+  cat("  lhs: ", as.character(x$lhs), "\n")
+  cat("  rhs: ", as.character(x$rhs), "\n")
+}
+
+#' @export
+#' @method print sum
+print.sum <- function(x, ...) {
+  cat("<AST sum> ", as.character(x$index), "\n", sep = "")
+  cat("  value: ", as.character(x$value), "\n")
+  if (!is.null(x$domain)) {
+    cat("  domain: ", as.character(x$domain), "\n")
+  }
+}
+
+#' @export
+#' @method print prod
+print.prod <- function(x, ...) {
+  cat("<AST prod> ", as.character(x$index), "\n", sep = "")
+  cat("  value: ", as.character(x$value), "\n")
+  if (!is.null(x$domain)) {
+    cat("  domain: ", as.character(x$domain), "\n")
+  }
+}
+
+#' @export
 #' @method print model_structure
 print.model_structure <- function(x, ...) {
   cat("Model Structure (", x$language, ")\n", sep = "")
@@ -118,3 +149,4 @@ print.model_structure <- function(x, ...) {
   cat("  Source:     ", x$source, "\n")
   cat("  Language:   ", x$language, "\n")
 }
+

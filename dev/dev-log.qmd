@@ -22,16 +22,18 @@ editor_options:
 # usethis::use_r("as_character")
 # usethis::use_r("as_multimod")
 # usethis::use_r("as_latex")
+# usethis::use_r("zzz")
 
 # AST classes and methods
 usethis::use_r("ast-classes")
-usethis::use_r("ast-methods")
+# usethis::use_r("ast-methods")
 
 # multimod classes and methods
 usethis::use_r("multimod-classes")
 
 # import
 usethis::use_package("rlang", type = "Imports")
+usethis::use_package("digest", type = "Imports")
 usethis::use_import_from("rlang", "is_empty")
 
 # recommended packages

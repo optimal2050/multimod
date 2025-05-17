@@ -1,3 +1,5 @@
+# classes ####
+
 #' Create a new multimod AST (Abstract Syntax Tree) node
 #'
 #' This is a generic constructor for all `ast` node types,
@@ -110,38 +112,6 @@ ast_dims <- function(...) {
   return(out)
 }
 
-#' Method for converting various objects to `dims`
-#'
-#' This function is a generic method for converting various objects
-#' to `dims` objects.
-#'
-#' @param x The object to be converted.
-as_dims <- function(x, ...) {
-  UseMethod("as_dims", ...)
-}
-
-#' @export
-as_dims.default <- function(x, ...) {
-  stop("No as_dims method for object of class: ", class(x))
-}
-
-#' @export
-#' @method as_dims character
-as_dims.character <- function(x, ...) {
-  # Convert character to symbol
-  args <- c(x, ...) |> unlist() |> as.character()
-  ast_dims(unlist(lapply(args, set)))
-}
-
-#' @export
-#' @method as_dims list
-as_dims.list <- function(x, ...) {
-
-  dims <- c(x, list(...)) |> lapply(x, as_dims)
-
-  return(ast_dims(unlist(dims)))
-}
-
 #' Create a mapping AST node
 #'
 #' Constructs a mapping node representing a mapping or set of indices.
@@ -195,9 +165,9 @@ ast_parameter <- function(name, dims = ast_dims()) {
 #'
 #' @return An `symbol` S3 object (subclass of `ast`).
 #' @export
-ast_symbol <- function(name) {
+ast_symbol <- function(name, ...) {
   stopifnot(is.character(name))
-  new_ast("symbol", name = name)
+  new_ast("symbol", name = name, ...)
 }
 
 #' Create a constant AST node
@@ -206,7 +176,7 @@ ast_symbol <- function(name) {
 #'
 #' @return An `constant` S3 object (subclass of `ast`).
 #' @export
-ast_constant <- function(value) {
+ast_constant <- function(value, ...) {
   stopifnot(is.numeric(value) || is.character(value))
   new_ast("constant", value = value)
 }
@@ -233,7 +203,7 @@ ast_constant <- function(value) {
 #'   condition = ast_symbol("i_active(i)"),
 #'   then = ast_variable("x", c("i"))
 #' )
-ast_when <- function(condition, then, otherwise = NULL) {
+ast_when <- function(condition, then, otherwise = NULL, ...) {
   # browser()
   stopifnot(inherits(then, "ast") || is.null(then))
   stopifnot(inherits(condition, "ast"))
@@ -356,6 +326,25 @@ ast_equation <- function(lhs, rhs, relation = "==",
   )
 }
 
+#' Create a "where" AST node
+#'
+#' Constructs a "where" node representing a reference to a specific
+#' location in the abstract syntax tree (AST).
+#'
+#' @param name A character string representing the name of the reference,
+#' matching the name of the symbol replacing AST node or a branch of the AST.
+#' @param ...
+#'
+#' @returns
+#' @export
+ast_where <- function(name, content, hash = node_hash(content), ...) {
+  stopifnot(is.character(name))
+  stopifnot(length(name) == 1)
+  stopifnot(is.null(content) || inherits(content, "ast"))
+  new_ast("where", name = name, content = content, hash = hash, ...)
+}
+
+# functions ####
 
 #' Get the type of an AST or multimod node
 #'
@@ -374,4 +363,41 @@ node_type <- function(x) {
   }
   class(x)[1]
 }
+
+#' Generate a stable hash for an AST or multimod object (excluding internal hash fields)
+#'
+#' @param node An `ast` object.
+#' @param algo Hashing algorithm. If NULL, uses `options("multimod.hash_algo")`.
+#'
+#' @return A character hash (e.g., "42fca0dd").
+#' @export
+#' @examples
+#' ast <- ast_expression("+", ast_variable("x"), ast_constant(5))
+#' hash <- node_hash(ast)
+node_hash <- function(node, algo = NULL) {
+
+  stopifnot(inherits(node, c("ast", "multimod")))
+
+  if (is.null(algo)) {
+    algo <- getOption("multimod.hash_algo", default = "crc32")
+  }
+
+  # Recursive copy of AST, dropping any `$hash` fields
+  strip_hash_field <- function(obj) {
+    if (inherits(obj, "ast")) {
+      obj$hash <- NULL
+      obj <- lapply(obj, strip_hash_field)
+      class(obj) <- class(node)
+    } else if (is.list(obj)) {
+      obj <- lapply(obj, strip_hash_field)
+    }
+    obj
+  }
+
+  ast_clean <- strip_hash_field(node)
+
+  # Generate digest
+  digest::digest(ast_clean, algo = algo)
+}
+
 
