@@ -46,9 +46,24 @@ visNetwork(eq_net$nodes, eq_net$edges) |>
 
 ```
 
+### LaTeX output
+```{r}
+eq_latex <- as_latex(eq)
+cat(eq_latex)
+
+```
+
+
 ## Example equation #2
 ```{r}
-eq <- example_model$multimod$equations$eqTechAInp
+# eq <- example_model$multimod$equations$eqTechAInp
+eq <- mm$equations$eqTechAInp
+eq <- mm$equations$eqTechCap
+eq <- mm$equations$eqCost
+eq <- mm$equations$eqTaxCost
+eq <- mm$equations$eqStorageEac
+eq <- mm$equations$eqTechSng2Sng
+eq <- alias_ast_names(eq, aliases = example_model$short_aliases)
 print(eq$name); print(eq$desc)
 ```
 
@@ -59,10 +74,25 @@ tree(eq, max_depth = 3)
 
 ### Network representation
 ```{r}
-eq_net <- get_network_data(eq)
+eq_net <- get_network_data(eq, show_dims = TRUE)
 visNetwork(eq_net$nodes, eq_net$edges) |>
   visOptions(highlightNearest = TRUE, nodesIdSelection = TRUE) |>
   visInteraction(navigationButtons = TRUE) |>
   visHierarchicalLayout(direction = "LR")
+```
+
+### LaTeX output
+```{r}
+eq_w <- remap_ast_elements(eq) 
+eq_latex <- as_latex(eq_w)
+# eq_latex <- 
+# eq_latex |> cat()
+
+write_latex(eq_w, file = "tmp/test.tex")
+write_latex(eq, file = "tmp/test.tex")
+
+write_latex(mm, file = "tmp/multimod-test.tex")
+
+
 ```
 
