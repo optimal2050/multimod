@@ -1,8 +1,8 @@
 
 latex_operators <- list(
   "*" = " \\cdot ",
-  "/" = " \\div ",
-  # "/" = " \\frac ",
+  # "/" = " \\div ",
+  "/" = " \\frac",
   "+" = " + ",
   "-" = " - ",
   "^" = " ^ ",
@@ -21,19 +21,71 @@ latex_operators <- list(
   "not" = " \\lnot "
 )
 
-latex_brackets <- function(x, brackets = NULL, ...) {
+latex_brackets <- function(x, brackets = NULL, autosize = TRUE, ...) {
   if (is.null(brackets)) return(x)
   if (is.null(x)) return(NULL)
   brackets <- brackets_pair(brackets)
   if (brackets[1] == "[") {
-    return(paste0("\\left[", x, "\\right]"))
+    if (autosize) {
+      out <- paste0("\\left[", x, "\\right]")
+    } else {
+      out <- paste0("[", x, "]")
+    }
   } else if (brackets[1] == "{") {
-    return(paste0("\\left\\{", x, "\\right\\}"))
+    if (autosize) {
+      out <- paste0("\\left\\{", x, "\\right\\}")
+    } else {
+      out <- paste0("{", x, "}")
+    }
   } else if (brackets[1] == "(") {
-    return(paste0("\\left(", x, "\\right)"))
+    if (autosize) {
+      out <- paste0("\\left(", x, "\\right)")
+    } else {
+      out <- paste0("(", x, ")")
+    }
   } else {
     stop("Unsupported bracket type: ", brackets[1])
   }
+  return(out)
+}
+
+#' Estimate bracket size for LaTeX based on context and expression content
+#'
+#' @param content A LaTeX string (the expression inside the brackets)
+#' @param context Optional context string (e.g., "sum", "prod", or NULL)
+#' @returns A LaTeX bracket size prefix (e.g., "", "\\big", "\\Big", etc.)
+
+latex_bracket_size <- function(content, context = NULL) {
+  # Strip LaTeX commands and brackets for rough length estimation
+  content_clean <- gsub("\\\\[a-zA-Z]+|\\{|\\}|\\s+", "", content)
+
+  # Count key heuristics
+  n_chars <- nchar(content_clean)
+  n_ops <- stringr::str_count(content, "\\+|\\-|\\\\cdot|\\\\sum|\\\\prod|\\\\frac")
+  n_lines <- stringr::str_count(content, "\\\\\\\\")
+
+  # Composite score
+  score <- n_chars + 5 * n_ops + 10 * n_lines
+
+  # Adjust based on context
+  if (!is.null(context)) {
+    if (context %in% c("sum", "prod")) score <- score + 10
+  }
+
+  # Choose bracket size
+  bracket <- dplyr::case_when(
+    score < 30 ~ "",           # normal
+    score < 60 ~ "\\big",
+    score < 90 ~ "\\Big",
+    score < 130 ~ "\\bigg",
+    TRUE ~ "\\Bigg"
+  )
+
+  return(bracket)
+}
+
+latex_bracket_pair <- function(size) {
+  list(open = paste0(size, "l["), close = paste0(size, "r]"))
 }
 
 
@@ -242,7 +294,18 @@ as_latex.expression <- function(x, brackets = NULL, ...) {
   op <- latex_operators[[x$op]]
   if (is.null(op)) stop("Unknown operator: ", x$op)
 
-  out <- paste0(lhs, " ", op, " ", rhs)
+  # Check if the operator requires {}
+  if (trimws(op) %in% c("^")) {
+    rhs <- latex_brackets(rhs, "{}", autosize = FALSE)
+    out <- paste0(lhs, " ", op, " ", rhs)
+  } else if (trimws(op) %in% "\\frac") {
+    lhs <- latex_brackets(lhs, "{}", autosize = FALSE)
+    rhs <- latex_brackets(rhs, "{}", autosize = FALSE)
+    out <- paste0(op, lhs, rhs)
+  } else {
+    out <- paste0(lhs, " ", op, " ", rhs)
+  }
+
   latex_brackets(out, brackets)
 }
 

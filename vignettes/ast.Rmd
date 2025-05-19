@@ -63,6 +63,8 @@ eq <- mm$equations$eqCost
 eq <- mm$equations$eqTaxCost
 eq <- mm$equations$eqStorageEac
 eq <- mm$equations$eqTechSng2Sng
+eq <- mm$equations$eqStorageStore
+eq <- mm$equations$eqImportIrCost
 eq <- alias_ast_names(eq, aliases = example_model$short_aliases)
 print(eq$name); print(eq$desc)
 ```
@@ -91,6 +93,9 @@ eq_latex <- as_latex(eq_w)
 write_latex(eq_w, file = "tmp/test.tex")
 write_latex(eq, file = "tmp/test.tex")
 
+
+mm$equations <- lapply(mm$equations, remap_ast_elements)
+mm$equations <- lapply(mm$equations, alias_ast_names, aliases = example_model$short_aliases)
 write_latex(mm, file = "tmp/multimod-test.tex")
 
 

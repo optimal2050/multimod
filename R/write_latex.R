@@ -86,6 +86,7 @@ write_latex.model <- function(x,
     x$equations,
     function(eq) {
       message(eq$name)
+      # eq <- remap_ast_elements(eq)
       eq_tex <- as_latex(eq, math_env = math_env, ...)
       eq_tex <- paste(eq_tex, "\n")
       },
