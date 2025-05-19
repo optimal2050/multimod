@@ -25,11 +25,12 @@ editor_options:
 # usethis::use_r("zzz")
 
 # AST classes and methods
-usethis::use_r("ast-classes")
+# usethis::use_r("ast-classes")
 # usethis::use_r("ast-methods")
 
 # multimod classes and methods
 usethis::use_r("multimod-classes")
+usethis::use_r("write_latex")
 
 # import
 usethis::use_package("rlang", type = "Imports")

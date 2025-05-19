@@ -315,6 +315,7 @@ extract_where_nodes <- function(ast) {
 #' @return Modified AST with aliases applied.
 #' @export
 alias_ast_names <- function(ast, aliases, classes = NULL) {
+  # browser()
   stopifnot(is.list(aliases))
 
   # reverse_aliases <- setNames(names(aliases), unname(aliases))  # e.g. region -> r
@@ -322,6 +323,7 @@ alias_ast_names <- function(ast, aliases, classes = NULL) {
 
   # Recursive rename function
   rename_walk <- function(x) {
+    # browser()
     if (inherits(x, "ast")) {
       node_cls <- node_type(x)
       if (is.null(classes) || node_cls %in% classes) {
@@ -342,7 +344,7 @@ alias_ast_names <- function(ast, aliases, classes = NULL) {
   rename_walk(ast)
 }
 
-set_short_names <- list(
+short_names_sets <- list(
   comm    = "c",  # commodity
   region  = "r",  # region
   year    = "y",  # year
