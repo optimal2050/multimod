@@ -260,9 +260,9 @@ ast_prod <- function(index, value) {
 #'
 #' @return An `expression` S3 object (subclass of `ast`).
 #' @export
-ast_expression <- function(op, lhs, rhs) {
+ast_expression <- function(op, lhs, rhs, brackets = NULL) {
   stopifnot(is.character(op), !is.null(lhs), !is.null(rhs))
-  new_ast("expression", op = op, lhs = lhs, rhs = rhs)
+  new_ast("expression", op = op, lhs = lhs, rhs = rhs, brackets = brackets)
 }
 
 #' Create a unary expression AST node

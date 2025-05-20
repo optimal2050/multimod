@@ -4,7 +4,7 @@
 \alias{ast_expression}
 \title{Create an expression AST node}
 \usage{
-ast_expression(op, lhs, rhs)
+ast_expression(op, lhs, rhs, brackets = NULL)
 }
 \arguments{
 \item{op}{A character string representing the operator (e.g., \code{+}, \code{*}, \code{/}).}

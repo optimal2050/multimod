@@ -51,8 +51,11 @@ parse_gams_expr <- function(
     expr,
     symbols = list(),
     known_funcs = c("log", "exp", "abs", "sqrt"),
-    depth = 0, max_depth = 20) {
+    depth = 0, max_depth = 20,
+    brackets = FALSE # whether to wrap in brackets, passed to ast_*
+    ) {
   # message(expr)
+  # if (brackets) browser()
   # browser()
   # if (expr == "mvTechInp(tech,comm,region,year,slice)") browser()
   if (depth > max_depth) stop("Maximum expression nesting depth exceeded")
@@ -91,7 +94,7 @@ parse_gams_expr <- function(
       lhs <- parse_gams_expr(tokens[[1]], symbols, known_funcs, depth + 1, max_depth)
       rhs <- parse_gams_expr(paste(tokens[-1], collapse = paste0(" ", op, " ")), symbols, known_funcs, depth + 1, max_depth)
       # return(list(type = "expression", op = tolower(op), lhs = lhs, rhs = rhs))
-      return(ast_expression(op, lhs = lhs, rhs = rhs))
+      return(ast_expression(op, lhs = lhs, rhs = rhs, brackets = brackets))
     } else if (length(tokens) == 1) {
       # Handle unary operators
       if (op %in% c("not", "-", "!")) {
@@ -123,10 +126,12 @@ parse_gams_expr <- function(
   # parentheses ####
   # !!! any other cases were parentheses should not be removed?
   if (startsWith(expr, "(") && endsWith(expr, ")")) {
+    # brackets <- TRUE
     return(parse_gams_expr(
       substr(expr, 2, nchar(expr) - 1),
       symbols, known_funcs,
-      depth + 1, max_depth
+      depth + 1, max_depth,
+      brackets = TRUE
     ))
   }
 
@@ -548,6 +553,57 @@ normalize_gams_lines <- function(lines) {
 }
 
 
+strip_gams_data_block <- function(lines) {
+  out <- character()
+  in_decl <- FALSE
+  in_block <- FALSE
+  block_lines <- character()
+
+  is_decl_start <- function(line) grepl("^\\s*(set|sets|parameter|parameters)\\b", line, ignore.case = TRUE)
+  is_block_start <- function(line) grepl("^\\s*/\\s*$", line)
+  is_block_end   <- function(line) grepl("^\\s*/\\s*[;,]?$", line)
+
+  flush_block <- function(block) {
+    # Replace all /.../ groups inside the block with a space
+    text <- paste(block, collapse = "\n")
+    gsub("(?s)/.*?/\\s*", " ", text, perl = TRUE)
+  }
+
+  for (line in lines) {
+    if (!in_decl && is_decl_start(line)) {
+      in_decl <- TRUE
+      block_lines <- c(line)
+      next
+    }
+
+    if (in_decl) {
+      block_lines <- c(block_lines, line)
+
+      # End of full declaration
+      if (grepl("/\\s*;", line)) {
+        cleaned <- flush_block(block_lines)
+        out <- c(out, unlist(strsplit(cleaned, "\n", fixed = TRUE)))
+        in_decl <- FALSE
+        block_lines <- character()
+      }
+
+      next
+    }
+
+    # not in declaration, pass line as-is
+    out <- c(out, line)
+  }
+
+  # Final fallback (unclosed blocks)
+  if (length(block_lines)) {
+    cleaned <- flush_block(block_lines)
+    out <- c(out, unlist(strsplit(cleaned, "\n", fixed = TRUE)))
+  }
+
+  return(out)
+}
+
+
 read_gams_model_structure <- function(
     file_or_text,
     include = TRUE,
@@ -562,17 +618,29 @@ read_gams_model_structure <- function(
     lines <- unlist(strsplit(file_or_text, "\n"))
   }
 
-  # Remove commented lines
-  lines <- lines[!grepl("^\\*", lines)]
-  lines <- remove_ontext_offtext(lines)
   if (include) {
     lines <- expand_gams_includes(lines, base_path = dirname(file_or_text))
   } else {
     lines <- lines[!grepl("^\\$include\\b", lines, ignore.case = TRUE)]
   }
 
+  # remove data
+  # strip_gams_data_block <- function(lines) {
+  #   text <- paste(lines, collapse = "\n")
+  #   # (?s) enables "dotall" so . matches newlines
+  #   cleaned <- gsub("(?s)/.*?/\\s*", " ", text, perl = TRUE)
+  #   strsplit(cleaned, "\n", fixed = TRUE)[[1]]
+  # }
+
+  # Remove commented lines
+  lines <- lines[!grepl("^\\*", lines)]
+  lines <- remove_ontext_offtext(lines)
+
+  # lines <- strip_gams_data_block(lines)
+
+
   lines <- normalize_gams_lines(lines)
-  # writeLines(lines, "tmp/no_comments.gms")
+  writeLines(lines, "tmp/no_comments.gms")
 
   # Concatenate lines between semicolons
   # lines <- gsub("\\s*;\\s*", ";", lines) # remove spaces around semicolon

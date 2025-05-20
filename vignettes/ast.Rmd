@@ -50,6 +50,7 @@ visNetwork(eq_net$nodes, eq_net$edges) |>
 ```{r}
 eq_latex <- as_latex(eq)
 cat(eq_latex)
+write_latex(eq, file = "tmp/test.tex")
 
 ```
 
@@ -65,6 +66,7 @@ eq <- mm$equations$eqStorageEac
 eq <- mm$equations$eqTechSng2Sng
 eq <- mm$equations$eqStorageStore
 eq <- mm$equations$eqImportIrCost
+eq <- mm$equations$eqStorageVarom
 eq <- alias_ast_names(eq, aliases = example_model$short_aliases)
 print(eq$name); print(eq$desc)
 ```
@@ -86,7 +88,7 @@ visNetwork(eq_net$nodes, eq_net$edges) |>
 ### LaTeX output
 ```{r}
 eq_w <- remap_ast_elements(eq) 
-eq_latex <- as_latex(eq_w)
+# eq_latex <- as_latex(eq_w)
 # eq_latex <- 
 # eq_latex |> cat()
 

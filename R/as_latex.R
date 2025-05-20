@@ -1,8 +1,9 @@
 
 latex_operators <- list(
   "*" = " \\cdot ",
-  # "/" = " \\div ",
-  "/" = " \\frac",
+  "/" = " \\div ",
+  # "/" = " \\frac",
+  # "/" = "/",
   "+" = " + ",
   "-" = " - ",
   "^" = " ^ ",
@@ -21,9 +22,29 @@ latex_operators <- list(
   "not" = " \\lnot "
 )
 
-latex_brackets <- function(x, brackets = NULL, autosize = TRUE, ...) {
-  if (is.null(brackets)) return(x)
+#' @export
+latex_wrap_brackets <- function(x,
+                                brackets = NULL,
+                                autosize = TRUE,
+                                math = FALSE, # [] only
+                                content = x,
+                                context = NULL,
+                                ...) {
   if (is.null(x)) return(NULL)
+  if (is.null(brackets) && !math) return(x) # no brackets
+
+  # math brackets with optional autosize
+  if (math) {
+    if (!is.null(brackets)) {
+      # warning("Brackets are ignored in math mode.")
+      brackets <- NULL
+    }
+    if (!autosize) {content <- NULL; context <- NULL} # reset for default
+    brackets <- latex_math_brakets(content, context)
+    out <- paste(brackets[1], x, brackets[2])
+    return(out)
+  }
+  # non-math brackets
   brackets <- brackets_pair(brackets)
   if (brackets[1] == "[") {
     if (autosize) {
@@ -54,7 +75,7 @@ latex_brackets <- function(x, brackets = NULL, autosize = TRUE, ...) {
 #' @param content A LaTeX string (the expression inside the brackets)
 #' @param context Optional context string (e.g., "sum", "prod", or NULL)
 #' @returns A LaTeX bracket size prefix (e.g., "", "\\big", "\\Big", etc.)
-
+#' @export
 latex_bracket_size <- function(content, context = NULL) {
   # Strip LaTeX commands and brackets for rough length estimation
   content_clean <- gsub("\\\\[a-zA-Z]+|\\{|\\}|\\s+", "", content)
@@ -84,8 +105,22 @@ latex_bracket_size <- function(content, context = NULL) {
   return(bracket)
 }
 
-latex_bracket_pair <- function(size) {
-  list(open = paste0(size, "l["), close = paste0(size, "r]"))
+#' Generate LaTeX brackets for math expressions
+#'
+#' @param content A LaTeX string (the expression inside the brackets)
+#' @param context Optional context string (e.g., "sum", "prod", or NULL)
+#' @param size Optional size prefix for the brackets to pass
+#' (e.g., `""`, `"\\big"`, `"\\Big"`, `"\\bigg"`, or `"\\Bigg"`)
+#'
+#' @returns A character vector with two elements: `open` and `close`
+#' @export
+latex_math_brakets <- function(content = NULL, context = NULL, size = NULL) {
+  if (is.null(content) && is.null(size)) {
+    size <- ""
+  } else if (is.null(size)) {
+    size <- latex_bracket_size(content, context)
+  }
+  c(open = paste0(size, "l["), close = paste0(size, "r]"))
 }
 
 
@@ -170,7 +205,7 @@ as_latex.dims <- function(x, brackets = NULL, ...) {
   # } else {
     # name <- x$name
   dims <- paste(sapply(x, function(y) as_latex(y, ...)), collapse = ",")
-  dims <- latex_brackets(dims, brackets, ...)
+  dims <- latex_wrap_brackets(dims, brackets, ...)
   # return(paste0("\\mathcal{", dims, "}"))
   # }
 }
@@ -185,13 +220,13 @@ as_latex.mapping <- function(x, brackets = NULL,
     return("\\emptyset")
   } else {
     name <- x$name
-    # dims <- paste(x$dims, collapse = ",") |> latex_brackets(brackets, ...)
+    # dims <- paste(x$dims, collapse = ",") |> latex_wrap_brackets(brackets, ...)
     dims <- as_latex(x$dims, brackets = brackets, sbscript_dims = subscript_dims, ...)
     if (subscript_dims) {
       dims <- paste0("_{", dims, "}")
     } else {
       # dims <- paste0("(", dims, ")")
-      dims <- latex_brackets(dims, brackets = brackets, ...)
+      dims <- latex_wrap_brackets(dims, brackets = brackets, ...)
     }
     return(paste0("\\mathsf{", name, "}", dims, ""))
   }
@@ -206,7 +241,7 @@ as_latex.parameter <- function(x, brackets = NULL,
     return("\\emptyset")
   } else {
     name <- x$name
-    # dims <- paste(x$dims, collapse = ",") |> latex_brackets(brackets)
+    # dims <- paste(x$dims, collapse = ",") |> latex_wrap_brackets(brackets)
     dims <- as_latex(x$dims, brackets = brackets,
                      subscript_dims = subscript_dims,
                      ...)
@@ -214,7 +249,7 @@ as_latex.parameter <- function(x, brackets = NULL,
       dims <- paste0("_{", dims, "}")
     } else {
       # dims <- paste0("(", dims, ")")
-      dims <- latex_brackets(dims, brackets = brackets)
+      dims <- latex_wrap_brackets(dims, brackets = brackets)
     }
     return(paste0("\\mathsf{", name, "}", dims, ""))
   }
@@ -228,13 +263,13 @@ as_latex.variable <- function(x, brackets = NULL, subscript_dims = TRUE, ...) {
     return("\\emptyset")
   } else {
     name <- x$name
-    # dims <- paste(x$dims, collapse = ",") |> latex_brackets(brackets)
+    # dims <- paste(x$dims, collapse = ",") |> latex_wrap_brackets(brackets)
     dims <- as_latex(x$dims, brackets = brackets, sbscript_dims = subscript_dims, ...)
     if (subscript_dims) {
       dims <- paste0("_{", dims, "}")
     } else {
       # dims <- paste0("(", dims, ")")
-      dims <- latex_brackets(dims, brackets = brackets)
+      dims <- latex_wrap_brackets(dims, brackets = brackets)
     }
     return(paste0("\\mathit{\\bf ", name, "}", dims, ""))
   }
@@ -280,7 +315,7 @@ as_latex.expression <- function(x, brackets = NULL, ...) {
     browser()
     lhs <- paste(capture.output(str(lhs)), collapse = "")
   } else {
-    lhs <- as_latex(lhs, ...)
+    lhs <- as_latex(lhs, brackets, ...)
   }
 
   if (!inherits(rhs, "ast")) {
@@ -288,7 +323,7 @@ as_latex.expression <- function(x, brackets = NULL, ...) {
     browser()
     rhs <- paste(capture.output(str(rhs)), collapse = "")
   } else {
-    rhs <- as_latex(rhs, ...)
+    rhs <- as_latex(rhs, brackets, ...)
   }
 
   op <- latex_operators[[x$op]]
@@ -296,32 +331,41 @@ as_latex.expression <- function(x, brackets = NULL, ...) {
 
   # Check if the operator requires {}
   if (trimws(op) %in% c("^")) {
-    rhs <- latex_brackets(rhs, "{}", autosize = FALSE)
+    rhs <- latex_wrap_brackets(rhs, "{}", math = FALSE, autosize = FALSE)
     out <- paste0(lhs, " ", op, " ", rhs)
   } else if (trimws(op) %in% "\\frac") {
-    lhs <- latex_brackets(lhs, "{}", autosize = FALSE)
-    rhs <- latex_brackets(rhs, "{}", autosize = FALSE)
+    lhs <- latex_wrap_brackets(lhs, "{}", math = FALSE, autosize = FALSE)
+    rhs <- latex_wrap_brackets(rhs, "{}", math = FALSE, autosize = FALSE)
     out <- paste0(op, lhs, rhs)
   } else {
     out <- paste0(lhs, " ", op, " ", rhs)
   }
 
-  latex_brackets(out, brackets)
-}
-
-
-
-as_latex0.expression <- function(x, brackets = NULL, ...) {
-  lhs <- as_latex(x$lhs, brackets = NULL, ...)
-  rhs <- as_latex(x$rhs, brackets = NULL, ...)
-  op <- latex_operators[[x$op]]
-  if (is.null(op)) {
-    stop("Unrecognized operator: ", x$op)
+  # browser()
+  if (isTRUE(x$brackets)) {
+    out <- latex_wrap_brackets(out, math = TRUE, autosize = TRUE,
+                               content = out, context = x$op)
+  } else if (!is_empty(brackets) && !isFALSE(brackets)) {
+    out <- latex_wrap_brackets(out, math = TRUE, autosize = TRUE,
+                               content = out, context = x$op)
   }
-  out <- paste0(lhs, " ", op, " ", rhs)
-  out <- latex_brackets(out, brackets)
+
   return(out)
+
 }
+
+
+# as_latex0.expression <- function(x, brackets = NULL, ...) {
+#   lhs <- as_latex(x$lhs, brackets = NULL, ...)
+#   rhs <- as_latex(x$rhs, brackets = NULL, ...)
+#   op <- latex_operators[[x$op]]
+#   if (is.null(op)) {
+#     stop("Unrecognized operator: ", x$op)
+#   }
+#   out <- paste0(lhs, " ", op, " ", rhs)
+#   out <- latex_wrap_brackets(out, brackets)
+#   return(out)
+# }
 
 
 #' @export
@@ -340,7 +384,10 @@ as_latex.when <- function(x,
 
   is_compound <- inherits(then, c("expression", "sum", "prod"))
   if (is_compound) {
-    then_latex <- latex_brackets(then_latex, brackets = NULL)
+    then_latex <- latex_wrap_brackets(then_latex, brackets = NULL,
+                                      math = TRUE, autosize = TRUE,
+                                      content = then_latex,
+                                      context = class(then)[1], ...)
   }
 
   # --- Option 1: Indicator notation ---
@@ -602,84 +649,7 @@ format_latex_equation_lines <- function(lhs, rel, rhs, max_line_length = 120) {
   return(lines)
 }
 
-extract_and_replace_conditions <- function(ast, max_length = 80,
-                                           types = c("sum", "when", "expression")
-                                           ) {
-  browser()
-  mapping <- list()
-  counter <- 1
 
-  simplify <- function(node) {
-    browser()
-    if (inherits(node, "ast")) {
-      type <- node_type(node)
-      if (type %in% types) {
-        latex_str <- as_latex(node)
-        if (nchar(latex_str) > max_length) {
-          alias <- paste0("set", counter)
-          counter <<- counter + 1
-          mapping[[alias]] <<- node
-          return(ast_symbol(alias))
-        }
-      }
-      # Recurse into fields of AST node
-      for (field in names(node)) {
-        node[[field]] <- simplify(node[[field]])
-      }
-    } else if (is.list(node)) {
-      node <- lapply(node, simplify)
-    }
-    node
-  }
-
-  simplified_ast <- simplify(ast)
-  list(ast = simplified_ast, mapping = mapping)
-}
-
-#' @export
-#' @method as_latex equation
-as_latex3.equation <- function(eq, ...) {
-  # Simplify RHS with optional aliasing of large subtrees
-  simpl <- extract_and_replace_conditions(eq$rhs, max_length = 100)
-  rhs_str <- as_latex(simpl$ast)
-  lhs_str <- as_latex(eq$lhs)
-
-  # Convert relation (e.g., "==" -> "=")
-  rel <- eq$relation
-  if (rel == "==") rel <- "="
-  rel <- latex_operators[[rel]] %||% rel  # fallback
-
-  # Format domain (optional)
-  domain_str <- if (!is.null(eq$domain)) {
-    paste0("\\text{Domain: }~$", as_latex(eq$domain), "$\\\\\n")
-  } else ""
-
-  # Format the index subscript of LHS (for equation header)
-  eq_index <- format_index(eq$lhs)
-
-  # Where section (optional mappings)
-  where_str <- ""
-  if (length(simpl$mapping) > 0) {
-    lines <- vapply(names(simpl$mapping), function(name) {
-      def <- as_latex(simpl$mapping[[name]])
-      paste0("\\texttt{", name, "} = ", def)
-    }, character(1))
-    where_str <- paste0("\\textbf{where:} \\\\\n", paste(lines, collapse = "\\\\\n"))
-  }
-
-  # Combine everything into a LaTeX block
-  paste0(
-    "\\begin{flushleft}\n",
-    "\\textbf{\\bf Equation:}~\\texttt{", eq$name, "}", eq_index,
-    " \\quad—\\textit{", eq$desc %||% "", "} \\\\\n",
-    domain_str,
-    "\\begin{align*}\n",
-    lhs_str, " ", rel, " ", rhs_str, "\n",
-    "\\end{align*}\n",
-    where_str, "\n",
-    "\\end{flushleft}"
-  )
-}
 
 format_index <- function(lhs) {
   dims <- lhs$dims
