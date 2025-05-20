@@ -67,6 +67,7 @@ eq <- mm$equations$eqTechSng2Sng
 eq <- mm$equations$eqStorageStore
 eq <- mm$equations$eqImportIrCost
 eq <- mm$equations$eqStorageVarom
+eq <- mm$equations$eqTechGrp2Sng
 eq <- alias_ast_names(eq, aliases = example_model$short_aliases)
 print(eq$name); print(eq$desc)
 ```
