@@ -447,4 +447,22 @@ resolve_full_name <- function(alias,
 }
 
 
+#' Recursively apply a function to all nodes of an AST
+#'
+#' @param node An AST node or list of nodes.
+#' @param func A function to apply to each node. It should return a scalar or structured value.
+#' @param include_class Logical: if TRUE, include class name as part of result tree.
+#' @returns A tree with the same structure but values replaced by func(node)
+map_ast <- function(node, func, include_class = TRUE) {
+  recurse <- function(n) {
+    if (inherits(n, "ast") || is.list(n)) {
+      mapped <- lapply(n, recurse)
+      name <- if (include_class && inherits(n, "ast")) node_type(n) else NULL
+      if (!is.null(name)) structure(mapped, class = name) else mapped
+    } else {
+      func(n)
+    }
+  }
+  recurse(node)
+}
 

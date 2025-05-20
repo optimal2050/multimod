@@ -35,14 +35,14 @@ brackets_pair <- function(x) {
       c(x, x) # return the same character twice
     )
   } else {
-    stop("x must have on or two characters, ",
+    stop("x must have one or two characters, ",
          "try using length of two for special cases.")
   }
 
 }
 
 #' @export
-add_brackets <- function(x, brackets = NULL, ...) {
+wrap_brackets <- function(x, brackets = NULL, ...) {
   stopifnot(length(x) == 1)
   if (is_empty(x)) return(x)
   brackets <- brackets_pair(brackets)
