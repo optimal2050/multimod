@@ -519,6 +519,7 @@ as_latex.equation <- function(x,
                               subscript_dims = is.null(brackets_dims),
                               inline_where = NULL,
                               ...) {
+  browser()
   if (is.null(inline_where)) {
     inline_where <- getOption("multimod.render_where_inline", FALSE)
   }
@@ -797,31 +798,140 @@ end_math_env <- function(envs) {
 #
 #
 #' @export
-format_latex_aligned <- function(lhs, rhs, rel = "=", max_len = 100) {
-  # Combine full equation and check if it's short enough
-  full_eq <- paste0(lhs, " ", rel, " ", rhs)
-  if (estimate_latex_length(full_eq) <= max_len) {
-    return(paste0("&", lhs, " ", rel, " ", rhs, " \\"))
+#' #' Format a LaTeX equation across multiple lines using aligned
+#'
+#' @param lhs LaTeX string of the left-hand side
+#' @param rhs LaTeX string of the right-hand side
+#' @param rel Relational operator (e.g., =, \le, \ge)
+#' @param max_len Maximum allowed line length before splitting
+#'
+#' @return Character string of the formatted LaTeX code
+#' @export
+format_latex_aligned <- function(lhs, rhs, rel = "=", max_len = 80) {
+  lhs_len <- estimate_latex_length(lhs)
+  rhs_len <- estimate_latex_length(rhs)
+  full_len <- lhs_len + nchar(rel) + rhs_len
+
+  if (full_len <= max_len) {
+    return(paste0("&", lhs, " ", rel, " ", rhs, " \\\n"))
   }
 
-  # Try splitting around relation operator first
-  if (estimate_latex_length(rhs) <= max_len) {
-    return(paste0("&", lhs, " ", rel, " ", rhs, " \\"))
+  # Case 1: LHS is short enough, only split RHS
+  if (lhs_len <= max_len / 2) {
+    rhs_parts <- split_at_top_level_operators(rhs, max_len = max_len - lhs_len - nchar(rel) - 4)
+    lines <- character()
+    lines[1] <- paste0("&", lhs, " ", rel, " ", rhs_parts[1], " \\")
+    if (length(rhs_parts) > 1) {
+      for (i in 2:length(rhs_parts)) {
+        lines[i] <- paste0("&\\quad + ", rhs_parts[i], " \\")
+      }
+    }
+    return(paste(lines, collapse = "\n"))
   }
 
-  # Otherwise, split RHS expression using prioritization
-  split_rhs <- split_latex_equation(rhs, max_len = max_len)
-
+  # Case 2: LHS is long, move RHS to new line
+  rhs_parts <- split_at_top_level_operators(rhs, max_len = max_len - 10)
   lines <- character()
-  lines[1] <- paste0("&", lhs, " ", rel, " ", split_rhs[1], " \\")
-
-  if (length(split_rhs) > 1) {
-    for (i in 2:length(split_rhs)) {
-      lines[i] <- paste0("&\\quad + ", split_rhs[i], " \\")
+  lines[1] <- paste0("&", lhs, " \\")
+  lines[2] <- paste0("&", rel, " ", rhs_parts[1], " \\")
+  if (length(rhs_parts) > 1) {
+    for (i in 2:length(rhs_parts)) {
+      lines <- c(lines, paste0("&\\quad + ", rhs_parts[i], " \\") )
     }
   }
+  return(paste(lines, collapse = "\n"))
+}
 
-  paste(lines, collapse = "\n")
+# format_latex_aligned <- function(lhs, rhs, rel = "=", max_len = 70) {
+#   # Combine full equation and check if it's short enough
+#   browser()
+#
+#   lhs_len <- estimate_latex_length(lhs)
+#   rhs_len <- estimate_latex_length(rhs)
+#
+#   # Check if the full equation fits within the max length
+#   if (lhs_len + rhs_len + nchar(rel) <= max_len) {
+#     # No need to split
+#     return(paste0(lhs, " ", rel, " ", rhs))
+#   }
+#   # Check if the LHS fits within the max length
+#   if (lhs_len <= max_len) {
+#     return(paste0("&", lhs, " ", rel, " ", rhs, " \\"))
+#   } else {
+#     # LHS is too long, split it
+#     lhs_split <- split_latex_equation(lhs, max_len = max_len)
+#     lines <- character()
+#     for (i in seq_along(lhs_split)) {
+#       if (i == 1) {
+#         lines[i] <- paste0("&", lhs_split[i], " ", rel, " ")
+#       } else {
+#         lines[i] <- paste0("&\\quad + ", lhs_split[i], " \\")
+#       }
+#     }
+#     return(paste(lines, collapse = "\n"))
+#
+#   }
+#
+#
+#
+#   full_eq <- paste0(lhs, " ", rel, " ", rhs)
+#   if (estimate_latex_length(full_eq) <= max_len) {
+#     return(paste0("&", lhs, " ", rel, " ", rhs, " \\"))
+#   }
+#
+#   # Try splitting around relation operator first
+#   if (estimate_latex_length(rhs) <= max_len) {
+#     return(paste0("&", lhs, " ", rel, " ", rhs, " \\"))
+#   }
+#
+#   # Otherwise, split RHS expression using prioritization
+#   split_rhs <- split_latex_equation(rhs, max_len = max_len)
+#
+#   lines <- character()
+#   lines[1] <- paste0("&", lhs, " ", rel, " ", split_rhs[1], " \\")
+#
+#   if (length(split_rhs) > 1) {
+#     for (i in 2:length(split_rhs)) {
+#       lines[i] <- paste0("&\\quad + ", split_rhs[i], " \\")
+#     }
+#   }
+#
+#   paste(lines, collapse = "\n")
+# }
+
+#' Split LaTeX math string at top-level operators
+#'
+#' @param latex_str A LaTeX math string
+#' @param operators Vector of operators to split at
+#'
+#' @return A character vector of expression chunks, including the operators
+#' @export
+split_at_top_level_operators <- function(
+    latex_str,
+    operators = c("+", "-", "\\\\cdot", "\\\\div", "="),
+    max_len = 80
+    ) {
+  op_locs <- find_top_level_operators(latex_str, operators)
+  if (nrow(op_locs) == 0) return(latex_str)
+
+  result <- c()
+  last_pos <- 1
+
+  for (i in seq_len(nrow(op_locs))) {
+    op_pos <- op_locs$pos[i]
+    op_len <- nchar(op_locs$op[i])
+    part <- substr(latex_str, last_pos, op_pos - 1)
+    result <- c(result, trimws(part))
+    result <- c(result, op_locs$op[i])
+    last_pos <- op_pos + op_len
+  }
+
+  # Append final chunk
+  if (last_pos <= nchar(latex_str)) {
+    result <- c(result, trimws(substr(latex_str, last_pos, nchar(latex_str))))
+  }
+
+  return(result)
 }
 
 

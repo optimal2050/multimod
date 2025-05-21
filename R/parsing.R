@@ -417,3 +417,110 @@ annotate_brackets <- function(expr, parent = NULL, side = NULL) {
 
   expr
 }
+
+
+
+#' Identify top-level LaTeX operators in an expression
+#'
+#' @param latex_str A LaTeX math string
+#' @param operators Vector of operators to detect at top level
+#'
+#' @return Data frame of matched operators and positions
+#' @export
+latex_top_level_operators <- function(latex_str,
+                                     operators = c("+", "-", "\\\\cdot", "\\\\div", "=")) {
+  chars <- strsplit(latex_str, "")[[1]]
+  positions <- list()
+  i <- 1
+  n <- length(chars)
+  depth <- 0
+  cmd_mode <- FALSE
+  env_stack <- character()
+
+  while (i <= n) {
+    ch <- chars[i]
+
+    # -- Handle LaTeX command --
+    if (ch == "\\") {
+      j <- i + 1
+      cmd <- ch
+      while (j <= n && grepl("[a-zA-Z*]", chars[j])) {
+        cmd <- paste0(cmd, chars[j])
+        j <- j + 1
+      }
+
+      if (cmd %in% c("\\left", "\\bigl", "\\Bigl", "\\biggl", "\\Biggl")) {
+        env_stack <- c(env_stack, cmd)
+      } else if (cmd %in% c("\\right", "\\bigr", "\\Bigr", "\\biggr", "\\Biggr")) {
+        if (length(env_stack)) env_stack <- head(env_stack, -1)
+      } else if (cmd %in% c("\\sum", "\\prod", "\\frac", "\\mathbb", "\\mathcal", "\\mathsf")) {
+        # skip over braces like \frac{a}{b}
+        i <- j
+        next
+      } else if (cmd %in% operators && depth == 0 && length(env_stack) == 0) {
+        positions[[length(positions) + 1]] <- list(op = cmd, pos = i)
+      }
+
+      i <- j
+      next
+    }
+
+    # -- Bracket depth tracking --
+    if (ch %in% c("{", "[", "(", "<")) {
+      depth <- depth + 1
+    } else if (ch %in% c("}", "]", ")", ">")) {
+      depth <- max(depth - 1, 0)
+    }
+
+    # -- Plain operators (+, -, =), allowed only at depth = 0
+    if (depth == 0 && length(env_stack) == 0 && ch %in% c("+", "-", "=") && ch %in% operators) {
+      positions[[length(positions) + 1]] <- list(op = ch, pos = i)
+    }
+
+    # -- Move next --
+    i <- i + 1
+  }
+
+  # Return as data.frame
+  if (length(positions)) {
+    data.frame(
+      op = sapply(positions, `[[`, "op"),
+      pos = sapply(positions, `[[`, "pos"),
+      stringsAsFactors = FALSE
+    )
+  } else {
+    data.frame(op = character(0), pos = integer(0))
+  }
+}
+
+#' Split LaTeX math string at top-level operators
+#'
+#' @param latex_str A LaTeX math string
+#' @param operators Vector of operators to split at
+#'
+#' @return A character vector of expression chunks, including the operators
+#' @export
+split_top_level_operators <- function(latex_str,
+                                         operators = c("+", "-", "\\\\cdot", "\\\\div", "=")) {
+  op_locs <- latex_top_level_operators(latex_str, operators)
+  if (nrow(op_locs) == 0) return(latex_str)
+
+  result <- c()
+  last_pos <- 1
+
+  for (i in seq_len(nrow(op_locs))) {
+    op_pos <- op_locs$pos[i]
+    op_len <- nchar(op_locs$op[i])
+    part <- substr(latex_str, last_pos, op_pos - 1)
+    result <- c(result, trimws(part))
+    result <- c(result, op_locs$op[i])
+    last_pos <- op_pos + op_len
+  }
+
+  # Append final chunk
+  if (last_pos <= nchar(latex_str)) {
+    result <- c(result, trimws(substr(latex_str, last_pos, nchar(latex_str))))
+  }
+
+  return(result)
+}
