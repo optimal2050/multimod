@@ -76,7 +76,7 @@ as.character.unary <- function(x, ...) {
 #' @method as.character variable
 as.character.variable <- function(x, ...) {
   if (length(x$dims) > 0) {
-    paste0(x$name, "[", paste(x$dims, collapse = ","), "]")
+    paste0(x$name, as.character(x$dims))
   } else {
     x$name
   }
@@ -86,7 +86,7 @@ as.character.variable <- function(x, ...) {
 #' @method as.character parameter
 as.character.parameter <- function(x, ...) {
   if (length(x$dims) > 0) {
-    paste0(x$name, "[", paste(x$dims, collapse = ","), "]")
+    paste0(x$name, as.character(x$dims))
   } else {
     x$name
   }
@@ -96,9 +96,7 @@ as.character.parameter <- function(x, ...) {
 #' @method as.character mapping
 as.character.mapping <- function(x, ...) {
   if (length(x$dims) > 0) {
-    paste0(x$name, "[",
-           paste(sapply(x$dims, function(y) y$name), collapse = ","),
-           "]")
+    paste0(x$name, as.character(x$dims))
   } else {
     x$name
   }
@@ -125,7 +123,6 @@ as.character.set <- function(x, ...) {
 #' @export
 #' @method as.character dims
 as.character.dims <- function(x, brackets = "[", ...) {
-  # browser()
   if (length(x) == 0) return("")
   out <- paste(sapply(x, function(y) y$name), collapse = ",")
   if (is.null(brackets) || all(brackets == "")) return(out)
