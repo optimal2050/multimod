@@ -22,6 +22,8 @@ editor_options:
 # usethis::use_r("as_character")
 # usethis::use_r("as_multimod")
 # usethis::use_r("as_latex")
+usethis::use_r("as_gams")
+usethis::use_r("write_gams")
 # usethis::use_r("zzz")
 
 # AST classes and methods
