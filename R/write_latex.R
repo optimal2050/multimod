@@ -10,6 +10,7 @@ write_latex.equation <- function(x,
                                  standalone = !append,
                                  preamble = NULL,
                                  ending = NULL,
+                                 subsection_number = FALSE,
                                  ...) {
   # Default LaTeX preamble and ending
   default_preamble <- c(
@@ -19,12 +20,14 @@ write_latex.equation <- function(x,
     "\\usepackage{breqn}",
     "\\usepackage{graphicx}",
     "\\usepackage{longtable}",
+    "\\usepackage{adjustbox}",
+    "\\usepackage{multicol}",
     "\\begin{document}"
   )
   default_ending <- "\\end{document}"
 
   # Generate LaTeX body
-  latex_code <- as_latex(x, ...)
+  latex_code <- as_latex(x, subsection_number = subsection_number, ...)
 
   # Assemble full content if standalone
   content <- character()
@@ -55,6 +58,7 @@ write_latex.model <- function(x,
                               preamble = NULL,
                               ending = NULL,
                               math_env = "equation",
+                              subsection_number = TRUE,
                               ...) {
   if (is.null(preamble)) {
     preamble <- c(
@@ -64,6 +68,8 @@ write_latex.model <- function(x,
       "\\usepackage{amssymb}",
       "\\usepackage{graphicx}",
       "\\usepackage{breqn}",
+      "\\usepackage{adjustbox}",
+      "\\usepackage{multicol}",
       "\\begin{document}"
     )
   }
@@ -87,7 +93,8 @@ write_latex.model <- function(x,
     function(eq) {
       message(eq$name)
       # eq <- remap_ast_elements(eq)
-      eq_tex <- as_latex(eq, math_env = math_env, ...)
+      eq_tex <- as_latex(eq, math_env = math_env,
+                         subsection_number = subsection_number, ...)
       eq_tex <- paste(eq_tex, "\n")
       },
     character(1)
