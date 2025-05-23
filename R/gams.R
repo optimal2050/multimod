@@ -1044,67 +1044,10 @@ coerce_gams_equation <- function(eqn_info, symbols) {
   return(parsed_eqn)
 }
 
-#' @title Convert equation to GAMS syntax
-#' @description Render a `equation` object as a GAMS equation string.
-#' @param eqn A `equation` object.
-#' @returns A character string with valid GAMS syntax.
-#' @export
-as_gams.equation <- function(eqn) {
-  stopifnot(inherits(eqn, "equation"))
 
-  format_expr_gams <- function(expr) {
-    if (is.null(expr)) return("")
-    switch(expr$type,
-           "expression" = {
-             lhs <- format_expr_gams(expr$lhs %||% expr$left)
-             rhs <- format_expr_gams(expr$rhs %||% expr$right)
-             paste0("(", lhs, " ", expr$op, " ", rhs, ")")
-           },
-           "sum" = {
-             index <- expr$index
-             domain <- if (!is.null(expr$domain)) paste0("$", format_expr_gams(expr$domain)) else ""
-             body <- format_expr_gams(expr$value)
-             paste0("sum(", index, domain, ", ", body, ")")
-           },
-           "prod" = {
-             index <- expr$index
-             domain <- if (!is.null(expr$domain)) paste0("$", format_expr_gams(expr$domain)) else ""
-             body <- format_expr_gams(expr$value)
-             paste0("prod(", index, domain, ", ", body, ")")
-           },
-           "when" = {
-             then <- format_expr_gams(expr$then)
-             cond <- format_expr_gams(expr$condition)
-             paste0(then, "$", cond)
-           },
-           "variable" = {
-             if (length(expr$dims)) paste0(expr$name, "(", paste(expr$dims, collapse = ","), ")") else expr$name
-           },
-           "parameter" = {
-             if (length(expr$dims)) paste0(expr$name, "(", paste(expr$dims, collapse = ","), ")") else expr$name
-           },
-           "mapping" = {
-             paste0(expr$name, "(", paste(expr$dims, collapse = ","), ")")
-           },
-           "symbol" = expr$value,
-           "constant" = as.character(expr$value),
-           paste0("<?>", expr$type)
-    )
-  }
 
-  dims <- paste(eqn$dims, collapse = ",")
-  dom <- if (!is.null(eqn$domain)) paste0("$", format_expr_gams(eqn$domain)) else ""
-  lhs <- format_expr_gams(eqn$lhs)
-  rhs <- format_expr_gams(eqn$rhs)
-  relation <- switch(eqn$relation,
-                     "==" = "=e=",
-                     "<=" = "=l=",
-                     ">=" = "=g=",
-                     eqn$relation
-  )
 
-  paste0(eqn$name, "(", dims, ")", dom, " .. ", lhs, " ", relation, " ", rhs, ";")
+write_gams.equation <- function(x, file = stdout(), ...) {
+
+
 }
-
-
-
