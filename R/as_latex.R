@@ -679,7 +679,7 @@ estimate_latex_length <- function(latex_str) {
 #'
 #' @param lhs LaTeX string of the left-hand side
 #' @param rhs LaTeX string of the right-hand side
-#' @param rel Relational operator (e.g., =, \le, \ge)
+#' @param rel Relational operator (e.g., `=`, `\le`, `\ge`)
 #' @param max_len Maximum allowed line length before splitting
 #'
 #' @return Character string of the formatted LaTeX code
