@@ -228,7 +228,7 @@ as_latex.mapping <- function(x, brackets = NULL,
       # dims <- paste0("(", dims, ")")
       dims <- latex_wrap_brackets(dims, brackets = brackets, ...)
     }
-    return(paste0("\\mathsf{", name, "}", dims, ""))
+    return(paste0("\\mathit{", name, "}", dims, ""))
   }
 }
 
@@ -271,7 +271,7 @@ as_latex.variable <- function(x, brackets = NULL, subscript_dims = TRUE, ...) {
       # dims <- paste0("(", dims, ")")
       dims <- latex_wrap_brackets(dims, brackets = brackets)
     }
-    return(paste0("\\mathit{\\bf ", name, "}", dims, ""))
+    return(paste0("\\bm{\\mathit{", name, "}}", dims, ""))
   }
 }
 
@@ -407,6 +407,10 @@ as_latex.when <- function(x,
 
   # Final format using: [ expr, {tuple} ∈ mapping ]
   if (!is.null(dims_tex) && !is.null(mapping_latex)) {
+    # browser()
+    if (length(cond$content$dims) > 1 || length(cond$dims) > 1) {
+      dims_tex <- latex_wrap_brackets(dims_tex, brackets = "{}")
+    }
     return(
       paste0(
       "\\left[", then_latex, "\\mid ",
@@ -430,11 +434,15 @@ as_latex.sum <- function(x, brackets = NULL, ...) {
 
   if (inherits(index_node, "dims")) {
     # Just index names (e.g., i, j, k)
-    index_latex <- paste0(vapply(index_node, as_latex, character(1)), collapse = ", ")
+    index_latex <- paste0(
+      vapply(index_node, as_latex, character(1)),
+      collapse = ", ")
 
   } else if (inherits(index_node, "when")) {
     cond <- index_node$condition
-    idx_latex <- paste0(vapply(index_node$then, as_latex, character(1)), collapse = ", ")
+    idx_latex <- paste0(
+      vapply(index_node$then, as_latex, character(1)),
+      collapse = ", ")
 
     if (inherits(cond, "where")) {
       # Named condition: i ∈ \mathsf{s4}
@@ -443,7 +451,7 @@ as_latex.sum <- function(x, brackets = NULL, ...) {
 
     } else if (inherits(cond, "mapping")) {
       dims <- cond$dims
-      dims_latex <- as_latex(dims, brackets = NULL, ...)
+      dims_latex <- as_latex(dims, ...)
       mapping_latex <- paste0("\\mathsf{", cond$name, "}_{", dims_latex, "}")
       index_latex <- paste0(idx_latex, " \\in ", mapping_latex)
 
@@ -523,6 +531,8 @@ as_latex.equation <- function(x,
   # Apply alignment formatting
   body <- format_latex_aligned(lhs = lhs, rel = rel, rhs = rhs)
 
+  body <- replace_mapping_placeholders(body)
+
   # Equation name and descriptor
   preamble <- character()
 
@@ -574,6 +584,7 @@ as_latex.equation <- function(x,
   where_lines <- character()
   wh_len <- integer(0)
   where_cols <- 1
+  # browser()
   if (!inline_where) {
     where_map <- extract_where_nodes(x)
     # max lenth of where_map
@@ -582,12 +593,18 @@ as_latex.equation <- function(x,
       where_lines <- character()
       for (nm in names(where_map)) {
         def <- as_latex(where_map[[nm]], inline_where = TRUE, ...)
-        wh_len[nm] <- estimate_latex_length(def)
-        where_lines <- c(where_lines,
-                         # paste0("\\hspace*{2em}$\\texttt{", nm, "} = ", def, "$ \\"))
-                         paste0("$\\texttt{", nm, "} = ", def, "$ \\\\"))
+        # browser()
+        # def <- replace_mapping_placeholders(def)
+        # nm_greek <- replace_mapping_placeholders(nm)
+        where_lines <- c(
+          where_lines,
+          # paste0("\\hspace*{2em}$\\texttt{", nm, "} = ", def, "$ \\"))
+          replace_mapping_placeholders(
+            paste0("$\\texttt{", nm, "} = ", def, "$ \\\\")
+          ))
       }
-      where_cols <- max(1, ceiling(70 / (max(wh_len) + 12)))
+      wh_len <- sapply(where_lines, function(x) estimate_latex_length(x))
+      where_cols <- max(1, round(90 / (max(wh_len) + 4)))
       where_cols <- min(where_cols, length(wh_len))
       if (where_cols > 1) {
         where_lines <- c(#"\\textbf{where:}",
@@ -598,7 +615,7 @@ as_latex.equation <- function(x,
                          # "\\end{flushleft}",
                          "\\end{multicols}")
       }
-      where_lines <- c("\\textbf{where:}", where_lines)
+      where_lines <- c("\\textbf{where:} \\\\", where_lines)
 
       # where_lines <- c("\\textbf{where:}",
       #                  # "\\begin{flushleft}",
@@ -674,7 +691,6 @@ estimate_latex_length <- function(latex_str) {
   nchar(s)
 }
 
-#
 #' Format a LaTeX equation across multiple lines using aligned
 #'
 #' @param lhs LaTeX string of the left-hand side
@@ -691,7 +707,7 @@ format_latex_aligned <- function(lhs, rhs, rel = "=", max_len = 80) {
   full_len <- lhs_len + nchar(rel) + rhs_len
 
   if (full_len <= max_len) {
-    return(paste0("&", lhs, " ", rel, " ", rhs, " \\\n"))
+    return(paste0("&", lhs, " ", rel, " ", rhs, " \\\\"))
   }
 
   lines <- paste0("&", lhs, " \\\\")
@@ -794,7 +810,30 @@ split_at_top_level_operators <- function(
       }
     }
   }
-
   return(latex_str)
-
 }
+
+#' Replace mapping placeholders like \texttt{s1} with styled math symbols
+#'
+#' @param latex_str A character vector of LaTeX lines.
+#' @param style One of "mathcal", "psi", "phi", or "custom".
+#' @param base Optional base symbol for style = "custom" (e.g., "M").
+#' @return Updated LaTeX character vector.
+replace_mapping_placeholders <- function(latex_str, style = "mathcal", base = NULL) {
+  # browser()
+  for (i in 1:99) {
+    # pattern <- paste0("\\mathsf\\{s", i, "\\}")
+    pattern <- paste0("\\\\(texttt|mathsf)\\{s", i, "\\}")
+    replacement <- switch(style,
+                          mathcal = paste0("\\\\mathcal{M}_{", i, "}"),
+                          psi     = paste0("\\\\psi_{", i, "}"),
+                          phi     = paste0("\\\\varphi_{", i, "}"),
+                          custom  = paste0("\\\\mathcal{", base %||% "X", "}_{", i, "}"),
+                          stop("Unsupported style")
+    )
+    latex_str <- gsub(pattern, replacement, latex_str, fixed = FALSE)
+  }
+  # browser()
+  latex_str
+}
+
