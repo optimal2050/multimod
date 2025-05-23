@@ -354,20 +354,6 @@ as_latex.expression <- function(x, brackets = NULL, ...) {
 
 }
 
-
-# as_latex0.expression <- function(x, brackets = NULL, ...) {
-#   lhs <- as_latex(x$lhs, brackets = NULL, ...)
-#   rhs <- as_latex(x$rhs, brackets = NULL, ...)
-#   op <- latex_operators[[x$op]]
-#   if (is.null(op)) {
-#     stop("Unrecognized operator: ", x$op)
-#   }
-#   out <- paste0(lhs, " ", op, " ", rhs)
-#   out <- latex_wrap_brackets(out, brackets)
-#   return(out)
-# }
-
-
 #' @export
 #' @method as_latex when
 #' @rdname as_latex
@@ -518,8 +504,9 @@ as_latex.equation <- function(x,
                               brackets_dims = NULL,
                               subscript_dims = is.null(brackets_dims),
                               inline_where = NULL,
+                              subsection_number = FALSE,
                               ...) {
-  browser()
+  # browser()
   if (is.null(inline_where)) {
     inline_where <- getOption("multimod.render_where_inline", FALSE)
   }
@@ -538,41 +525,90 @@ as_latex.equation <- function(x,
 
   # Equation name and descriptor
   preamble <- character()
-  if (!is.null(x$name)) {
-    preamble <- c(
-      preamble,
-      paste0("\\textbf{\\bf Equation:}~\\texttt{", x$name, "}",
-             if (subscript_dims && !is.null(x$dims)) {
-               paste0("$_{", as_latex(x$dims, brackets = brackets_dims,
-                                      subscript_dims = subscript_dims, ...), "}$")
-             } else "")
-    )
-  }
+
+  # browser()
+  # Construct preamble for equation output
+  dims_latex <- as_latex(x$dims, brackets = NULL, subscript_dims = TRUE, ...)
+  mapping_latex <- as_latex(x$domain, brackets = NULL, subscript_dims = TRUE, ...)
+
+  preamble <- character()
+  subsection <- if (subsection_number) "subsection" else "subsection*"
+
   if (!is.null(x$desc)) {
-    preamble <- c(preamble, paste0("—\\textit{", as_latex(x$desc), "} \\\\"))
-  }
-  if (!is.null(x$domain)) {
+    # Header: name + description
+    # preamble <- c(
+    #   # Header: name + description
+    #   paste0(
+    #     "\\subsection*{",
+    #     "\\textbf{", as_latex(x$name), "}"
+    #   ))
+    # + description
+    # preamble <- paste0(
+    #   preamble,
+    #   # "}"
+    #   "—",
+    #   "\\textit{", as_latex(x$desc), "}",
+    #   "}"
+    # )
+    # Description only
     preamble <- c(
       preamble,
-      paste0("\\\n\\text{Domain: }~$",
-             as_latex(x$domain, brackets = brackets_dims,
-                      subscript_dims = subscript_dims, ...), "$ \\\\")
+      paste0("\\", subsection, "{\\textit{", as_latex(x$desc), "}}")
     )
+  } else {
+    preamble <- c(
+      # Header: name + description
+      paste0(
+        "\\", subsection, "{",
+        "\\textbf{", as_latex(x$name), "}}"
+      ))
   }
+  # dims and mapping
+  preamble <- c(
+    preamble,
+    paste0("\\quad$\\textbf{", as_latex(x$name), "}_{", dims_latex, "}$"),
+    paste0("$\\mid\\left\\{", dims_latex,"\\right\\} \\in ", mapping_latex, "$ \\\\")
+  )
 
   # Prepare where: block if needed
   where_lines <- character()
+  wh_len <- integer(0)
+  where_cols <- 1
   if (!inline_where) {
     where_map <- extract_where_nodes(x)
+    # max lenth of where_map
+    # wh_len <- sapply(where_map, function(x) estimate_latex_length(as_latex(x, ...)))
     if (length(where_map) > 0) {
-      where_lines <- c("\\textbf{where:}", "\\begin{flushleft}")
+      where_lines <- character()
       for (nm in names(where_map)) {
         def <- as_latex(where_map[[nm]], inline_where = TRUE, ...)
+        wh_len[nm] <- estimate_latex_length(def)
         where_lines <- c(where_lines,
-                         paste0("\\hspace*{2em}$\\texttt{", nm, "} = ", def, "$ \\\\"))
+                         # paste0("\\hspace*{2em}$\\texttt{", nm, "} = ", def, "$ \\"))
+                         paste0("$\\texttt{", nm, "} = ", def, "$ \\\\"))
       }
-      where_lines <- c(where_lines, "\\end{flushleft}")
+      where_cols <- max(1, ceiling(70 / (max(wh_len) + 12)))
+      where_cols <- min(where_cols, length(wh_len))
+      if (where_cols > 1) {
+        where_lines <- c(#"\\textbf{where:}",
+                         # "\\begin{flushleft}",
+                         # "\\begin{multicols}{0}",
+                         paste0("\\begin{multicols}{", where_cols, "}"),
+                         where_lines,
+                         # "\\end{flushleft}",
+                         "\\end{multicols}")
+      }
+      where_lines <- c("\\textbf{where:}", where_lines)
+
+      # where_lines <- c("\\textbf{where:}",
+      #                  # "\\begin{flushleft}",
+      #                  # "\\begin{multicols}{0}",
+      #                  paste0("\\begin{multicols}{", where_cols, "}"),
+      #                  where_lines,
+      #                  # "\\end{flushleft}",
+      #                  "\\end{multicols}")
     }
+    # browser()
   }
 
   # Final output
@@ -580,75 +616,19 @@ as_latex.equation <- function(x,
     "\\begin{flushleft}",
     paste(preamble, collapse = " \n"),
     "\\begin{equation}",
-    "\\begin{aligned}",
+    "\\begin{adjustbox}{max width=\\textwidth}",
+    # paste0("\\begin{adjustbox}{", where_cols, "}"),
+    "$\\begin{aligned}",
     body,
-    "\\end{aligned}",
+    "\\end{aligned}$",
+    "\\end{adjustbox}",
     "\\end{equation}",
     where_lines,
+    "\\vspace{1em}",
     "\\end{flushleft}"
   )
 
   paste(out, collapse = "\n")
-}
-
-# format_latex_aligned <- function(lhs, rhs, rel = "=") {
-#   # Split RHS by top-level operators (currently only top-level "+")
-#   rhs_terms <- strsplit(rhs, "(?<!\\\\)\\+", perl = TRUE)[[1]]
-#   rhs_terms <- trimws(rhs_terms)
-#
-#   # First line: full equation
-#   lines <- character()
-#   first_line <- paste0("&", lhs, " ", rel, " ", rhs_terms[1], " \\\\")
-#   lines <- c(lines, first_line)
-#
-#   if (length(rhs_terms) > 1) {
-#     continuation <- paste0("&\\quad + ", rhs_terms[-1], " \\\\")
-#     lines <- c(lines, continuation)
-#   }
-#
-#   # Wrap in aligned + equation
-#   # body <- c("\\begin{equation}", "\\begin{aligned}", lines, "\\end{aligned}", "\\end{equation}")
-#   body <- c(lines)
-#   paste(body, collapse = "\n")
-# }
-
-
-#' Split a LaTeX equation body into multiple lines if it's too long
-#'
-#' @param body LaTeX string containing the full equation body (e.g., "lhs = rhs").
-#' @param max_line_length Approximate max number of characters per line.
-#'
-#' @return A character vector of lines for align or align* block.
-format_latex_equation_lines <- function(lhs, rel, rhs, max_line_length = 120) {
-  browser()
-  # Step 1: Break RHS into chunks by top-level +/-
-  rhs_parts <- strsplit(rhs, "(?<!\\\\)(?=\\+| -)", perl = TRUE)[[1]]
-
-  # Step 2: Accumulate chunks into lines
-  rhs_lines <- character()
-  current_line <- ""
-  for (part in rhs_parts) {
-    test_line <- if (nzchar(current_line)) paste0(current_line, " ", part) else part
-    if (nchar(test_line) > max_line_length) {
-      rhs_lines <- c(rhs_lines, current_line)
-      current_line <- part
-    } else {
-      current_line <- test_line
-    }
-  }
-  rhs_lines <- c(rhs_lines, current_line)
-
-  # Step 3: Format lines for align block
-  lines <- character()
-  for (i in seq_along(rhs_lines)) {
-    if (i == 1) {
-      lines[i] <- paste0(lhs, " ", rel, " ", rhs_lines[i])
-    } else {
-      lines[i] <- paste0("&+ ", rhs_lines[i])
-    }
-  }
-
-  return(lines)
 }
 
 
@@ -672,133 +652,30 @@ end_math_env <- function(envs) {
   paste(rev(paste0("\\end{", envs, "}")), collapse = "\n")
 }
 
-#' @export
-# estimate_latex_length <- function(latex_str) {
-#   if (is.null(latex_str) || !nzchar(latex_str)) return(0)
-#
-#   # Strip formatting wrappers
-#   s <- gsub("\\\\text(normal|bf|it)?\\{([^}]*)\\}", "\\2", latex_str)
-#   s <- gsub("\\\\math(it|bf|sf|cal)\\{([^}]*)\\}", "\\2", s)
-#
-#   # Approximate cost of math constructs
-#   s <- gsub("_\\{[^}]*\\}", "~~", s)  # subscripts
-#   s <- gsub("\\\\frac\\{[^}]*\\}\\{[^}]*\\}", "~~~~~~", s)  # fraction
-#   s <- gsub("\\\\sum(_\\{[^}]*\\})?", "~~~~~", s)  # sum with or without subscript
-#   s <- gsub("\\\\prod(_\\{[^}]*\\})?", "~~~~~", s)  # prod
-#
-#   # Remove other commands like \cdot, \left, \right, etc.
-#   s <- gsub("\\\\[a-zA-Z]+", "", s)
-#
-#   # Final approximation
-#   nchar(s)
-# }
+# @export
+estimate_latex_length <- function(latex_str) {
+  if (is.null(latex_str) || !nzchar(latex_str)) return(0)
+  # browser()
 
-#' @export
-# split_latex_equation <- function(latex_str, max_len = 80) {
-#   if (estimate_latex_length(latex_str) <= max_len) {
-#     return(list(latex_str))
-#   }
-#
-#   # Tokenize LaTeX into chars with bracket depth tracking
-#   chars <- strsplit(latex_str, "")[[1]]
-#   depth <- 0
-#   buffer <- ""
-#   lines <- list()
-#
-#   break_points <- c()
-#   safe_breaks <- c("+", "-", "\\\\cdot", "\\\\div")  # extend as needed
-#   inside_command <- FALSE
-#   command_buf <- ""
-#
-#   for (i in seq_along(chars)) {
-#     ch <- chars[i]
-#
-#     # Track bracket/brace depth
-#     if (ch %in% c("{", "[")) depth <- depth + 1
-#     if (ch %in% c("}", "]")) depth <- depth - 1
-#
-#     buffer <- paste0(buffer, ch)
-#
-#     # Detect LaTeX command boundaries
-#     if (ch == "\\" && !inside_command) {
-#       inside_command <- TRUE
-#       command_buf <- ch
-#       next
-#     }
-#
-#     if (inside_command) {
-#       if (grepl("^[a-zA-Z]+$", ch)) {
-#         command_buf <- paste0(command_buf, ch)
-#         next
-#       } else {
-#         inside_command <- FALSE
-#         # insert full command back into buffer
-#         buffer <- paste0(substr(buffer, 1, nchar(buffer) - nchar(command_buf)), command_buf, ch)
-#       }
-#     }
-#
-#     # Safe split if:
-#     # - current depth is 0 (not inside brackets/subscripts/etc.)
-#     # - current char matches a split symbol
-#     # - buffer is long enough
-#     if (depth == 0 && any(endsWith(buffer, safe_breaks))) {
-#       if (estimate_latex_length(buffer) >= max_len) {
-#         lines <- c(lines, substr(buffer, 1, nchar(buffer) - 1))
-#         buffer <- ch  # start new line with current char
-#       }
-#     }
-#   }
-#
-#   # Final flush
-#   if (nzchar(buffer)) {
-#     lines <- c(lines, buffer)
-#   }
-#
-#   return(lines)
-# }
-#
+  # Strip formatting wrappers
+  s <- gsub("\\\\text(normal|bf|it)?\\{([^}]*)\\}", "\\2", latex_str)
+  s <- gsub("\\\\math(it|bf|sf|cal)\\{([^}]*)\\}", "\\2", s)
 
-#' Format LaTeX equation for align* environment
-#'
-#' This function formats long LaTeX equations or expressions by inserting
-#' line breaks and indentations to improve readability in the \code{align*} environment.
-#'
-#' @param expr Full LaTeX expression string (optional).
-#' @param lhs Left-hand side of the equation (optional).
-#' @param rhs Right-hand side of the equation (optional).
-#' @param rel Relation string, such as '=', '<=', etc. Default is '='.
-#' @param max_width Approximate maximum character width before breaking line.
-#'
-#' @return A character vector of lines suitable for align* environment.
-#' @export
-# format_latex_align <- function(lhs, rel, rhs_string, max_line_length = 100) {
-#   # Split at unescaped + or -
-#   split_regex <- "(?<!\\\\)\\s*([+-])\\s*"
-#   parts <- strsplit(rhs_string, split_regex, perl = TRUE)[[1]]
-#   ops <- regmatches(rhs_string, gregexpr(split_regex, rhs_string, perl = TRUE))[[1]]
-#   ops <- gsub("\\s+", "", ops) # remove spaces
+  # Approximate cost of math constructs
+  s <- gsub("_\\{[^}]*\\}", "~~", s)  # subscripts
+  s <- gsub("\\\\frac\\{[^}]*\\}\\{[^}]*\\}", "~~~~~~", s)  # fraction
+  s <- gsub("\\\\sum(_\\{[^}]*\\})?", "~~~~~", s)  # sum with or without subscript
+  s <- gsub("\\\\prod(_\\{[^}]*\\})?", "~~~~~", s)  # prod
+
+  # Remove other commands like \cdot, \left, \right, etc.
+  s <- gsub("\\\\[a-zA-Z]+", "", s)
+
+  # Final approximation
+  nchar(s)
+}
+
 #
-#   if (length(ops) < length(parts)) {
-#     ops <- c("", ops)  # first line has no leading op
-#   }
-#
-#   # Trim and build lines
-#   lines <- character()
-#   for (i in seq_along(parts)) {
-#     chunk <- trimws(parts[i])
-#     if (i == 1) {
-#       lines[i] <- paste0(lhs, " ", rel, " ", chunk, " \\\\")
-#     } else {
-#       lines[i] <- paste0("&", ops[i], " ", chunk, " \\\\")
-#     }
-#   }
-#
-#   return(lines)
-# }
-#
-#
-#' @export
-#' #' Format a LaTeX equation across multiple lines using aligned
+#' Format a LaTeX equation across multiple lines using aligned
 #'
 #' @param lhs LaTeX string of the left-hand side
 #' @param rhs LaTeX string of the right-hand side
@@ -806,8 +683,9 @@ end_math_env <- function(envs) {
 #' @param max_len Maximum allowed line length before splitting
 #'
 #' @return Character string of the formatted LaTeX code
-#' @export
+# @export
 format_latex_aligned <- function(lhs, rhs, rel = "=", max_len = 80) {
+  # browser()
   lhs_len <- estimate_latex_length(lhs)
   rhs_len <- estimate_latex_length(rhs)
   full_len <- lhs_len + nchar(rel) + rhs_len
@@ -816,187 +694,107 @@ format_latex_aligned <- function(lhs, rhs, rel = "=", max_len = 80) {
     return(paste0("&", lhs, " ", rel, " ", rhs, " \\\n"))
   }
 
-  # Case 1: LHS is short enough, only split RHS
-  if (lhs_len <= max_len / 2) {
-    rhs_parts <- split_at_top_level_operators(rhs, max_len = max_len - lhs_len - nchar(rel) - 4)
-    lines <- character()
-    lines[1] <- paste0("&", lhs, " ", rel, " ", rhs_parts[1], " \\")
-    if (length(rhs_parts) > 1) {
-      for (i in 2:length(rhs_parts)) {
-        lines[i] <- paste0("&\\quad + ", rhs_parts[i], " \\")
+  lines <- paste0("&", lhs, " \\\\")
+  # LHS is too long, split it
+  if (lhs_len >= max_len) {
+    lhs_parts <- split_at_top_level_operators(lhs, max_len = max_len - 10)
+    # lines <- character()
+    # lines[1] <- paste0("&", lhs, " \\\\")
+    # lines[2] <- paste0("&\\quad", rel, " ", rhs_parts[1], " \\")
+    if (length(lhs_parts) > 1) {
+      lines <- paste0("&", lhs_parts[1], " \\\\")
+      for (i in 2:length(lhs_parts)) {
+        lines <- c(lines, paste0("&\\quad ", lhs_parts[i], " \\\\") )
       }
+    } else {
+      # unsuccessful split
+      lines <- paste0("&", lhs_parts[1], " \\\\")
     }
-    return(paste(lines, collapse = "\n"))
   }
 
-  # Case 2: LHS is long, move RHS to new line
-  rhs_parts <- split_at_top_level_operators(rhs, max_len = max_len - 10)
-  lines <- character()
-  lines[1] <- paste0("&", lhs, " \\")
-  lines[2] <- paste0("&", rel, " ", rhs_parts[1], " \\")
-  if (length(rhs_parts) > 1) {
-    for (i in 2:length(rhs_parts)) {
-      lines <- c(lines, paste0("&\\quad + ", rhs_parts[i], " \\") )
+  rhs_max_len <- max_len - nchar(rel) - 4
+  if (rhs_len >= rhs_max_len) {
+    rhs_parts <- split_at_top_level_operators(
+      rhs,
+      max_len = rhs_max_len
+    )
+    # lines[1] <- paste0("&", lhs, " ", rel, " ", rhs_parts[1], " \\")
+    if (length(rhs_parts) > 1) {
+      lines_rhs <- paste0("&\\quad ", rel, rhs_parts[1], " \\\\")
+      for (i in 2:length(rhs_parts)) {
+        lines_rhs[i] <- paste0("&\\quad ", rhs_parts[i], " \\\\")
+      }
+    } else {
+      # unsuccessful split
+      lines_rhs <- paste0("&\\quad ", rel, " ", rhs_parts[1], " \\\\")
     }
+  } else {
+    lines_rhs <- paste0("&\\quad ", rel, " ", rhs, " \\\\")
   }
-  return(paste(lines, collapse = "\n"))
+
+  # Combine LHS and RHS lines
+  return(paste(c(lines, lines_rhs), collapse = "\n"))
 }
 
-# format_latex_aligned <- function(lhs, rhs, rel = "=", max_len = 70) {
-#   # Combine full equation and check if it's short enough
-#   browser()
-#
-#   lhs_len <- estimate_latex_length(lhs)
-#   rhs_len <- estimate_latex_length(rhs)
-#
-#   # Check if the full equation fits within the max length
-#   if (lhs_len + rhs_len + nchar(rel) <= max_len) {
-#     # No need to split
-#     return(paste0(lhs, " ", rel, " ", rhs))
-#   }
-#   # Check if the LHS fits within the max length
-#   if (lhs_len <= max_len) {
-#     return(paste0("&", lhs, " ", rel, " ", rhs, " \\"))
-#   } else {
-#     # LHS is too long, split it
-#     lhs_split <- split_latex_equation(lhs, max_len = max_len)
-#     lines <- character()
-#     for (i in seq_along(lhs_split)) {
-#       if (i == 1) {
-#         lines[i] <- paste0("&", lhs_split[i], " ", rel, " ")
-#       } else {
-#         lines[i] <- paste0("&\\quad + ", lhs_split[i], " \\")
-#       }
-#     }
-#     return(paste(lines, collapse = "\n"))
-#
-#   }
-#
-#
-#
-#   full_eq <- paste0(lhs, " ", rel, " ", rhs)
-#   if (estimate_latex_length(full_eq) <= max_len) {
-#     return(paste0("&", lhs, " ", rel, " ", rhs, " \\"))
-#   }
-#
-#   # Try splitting around relation operator first
-#   if (estimate_latex_length(rhs) <= max_len) {
-#     return(paste0("&", lhs, " ", rel, " ", rhs, " \\"))
-#   }
-#
-#   # Otherwise, split RHS expression using prioritization
-#   split_rhs <- split_latex_equation(rhs, max_len = max_len)
-#
-#   lines <- character()
-#   lines[1] <- paste0("&", lhs, " ", rel, " ", split_rhs[1], " \\")
-#
-#   if (length(split_rhs) > 1) {
-#     for (i in 2:length(split_rhs)) {
-#       lines[i] <- paste0("&\\quad + ", split_rhs[i], " \\")
-#     }
-#   }
-#
-#   paste(lines, collapse = "\n")
-# }
-
 #' Split LaTeX math string at top-level operators
+#'
+#' This function splits a LaTeX math string at given types of top-level
+#' operators and the maximum length of each chunk. The splitting is
+#' done recursively with respect to the operator order.
 #'
 #' @param latex_str A LaTeX math string
 #' @param operators Vector of operators to split at
 #'
-#' @return A character vector of expression chunks, including the operators
+#' @return A character vector of expression chunks
 #' @export
 split_at_top_level_operators <- function(
     latex_str,
-    operators = c("+", "-", "\\\\cdot", "\\\\div", "="),
+    operators = c("+", "-", "\\cdot", "\\div", "="),
+    indent_str = character(0),
+    # indent_str = "&\\quad",
     max_len = 80
     ) {
-  op_locs <- find_top_level_operators(latex_str, operators)
-  if (nrow(op_locs) == 0) return(latex_str)
+  # browser()
+  if (is.null(latex_str) || !nzchar(latex_str)) return(NULL)
+  if (is.null(operators) || length(operators) == 0) return(latex_str)
+  if (estimate_latex_length(latex_str) <= max_len) return(latex_str)
 
-  result <- c()
-  last_pos <- 1
-
-  for (i in seq_len(nrow(op_locs))) {
-    op_pos <- op_locs$pos[i]
-    op_len <- nchar(op_locs$op[i])
-    part <- substr(latex_str, last_pos, op_pos - 1)
-    result <- c(result, trimws(part))
-    result <- c(result, op_locs$op[i])
-    last_pos <- op_pos + op_len
-  }
-
-  # Append final chunk
-  if (last_pos <= nchar(latex_str)) {
-    result <- c(result, trimws(substr(latex_str, last_pos, nchar(latex_str))))
-  }
-
-  return(result)
-}
-
-
-
-split_latex_equation <- function(latex_str, max_len = 80) {
-  browser()
-  if (estimate_latex_length(latex_str) <= max_len) {
-    return(list(latex_str))
-  }
-
-  chars <- strsplit(latex_str, "")[[1]]
-  depth <- 0
-  buffer <- ""
-  lines <- character()
-
-  safe_ops <- c("+", "-", "\\cdot", "\\div")
-  last_break_pos <- 0
-  i <- 1
-
-  while (i <= length(chars)) {
-    ch <- chars[i]
-
-    # Depth tracking
-    if (ch %in% c("{", "[")) depth <- depth + 1
-    if (ch %in% c("}", "]")) depth <- max(depth - 1, 0)
-
-    buffer <- paste0(buffer, ch)
-
-    # Check if buffer ends with safe op
-    for (op in safe_ops) {
-      op_len <- nchar(op)
-      if (i >= op_len && substr(buffer, nchar(buffer) - op_len + 1, nchar(buffer)) == op && depth == 0) {
-        # Safe split if length threshold reached
-        if (estimate_latex_length(buffer) > max_len) {
-          split_pos <- nchar(buffer) - op_len + 1
-          lines <- c(lines, substr(buffer, 1, split_pos - 1))
-          buffer <- substr(buffer, split_pos + 1, nchar(buffer))
-        }
-        break
+  for (op in operators) {
+    # Split at top-level operator
+    op_locs <- latex_top_level_operators(latex_str, op)
+    if (nrow(op_locs) > 0) {
+      # Split at the first operator location where <= max_len
+      op_locs$len <- sapply(
+        1:nrow(op_locs),
+        function(i) estimate_latex_length(substr(latex_str, 1, op_locs$pos[i]))
+        )
+      ii <- op_locs$len <= max_len
+      if (any(ii)) {
+        op_locs <- op_locs[1:nrow(op_locs) == which.max(op_locs$pos[ii]), ]
+      } else {
+        op_locs <- op_locs[1, ]
+      }
+      part1 <- substr(latex_str, 1, op_locs$pos[1] - 1)
+      part_op <- op_locs$op[1]
+      part2 <- substr(latex_str, op_locs$pos[1] + nchar(part_op), nchar(latex_str))
+      # Check if part2 is too long
+      if (estimate_latex_length(part2) <= max_len) {
+        out <- c(trimws(part1), paste(indent_str, part_op, part2))
+        return(out)
+      } else {
+        # Split part2 it recursively
+        part2 <- split_at_top_level_operators(
+          part2,
+          operators = op,
+          indent_str = indent_str,
+          max_len = max_len
+        )
+        out <- c(trimws(part1), paste(indent_str, part_op, part2[1]), part2[-1])
+        return(out)
       }
     }
-    i <- i + 1
   }
 
-  if (nzchar(buffer)) {
-    lines <- c(lines, buffer)
-  }
+  return(latex_str)
 
-  return(lines)
 }
-
-estimate_latex_length <- function(latex_str) {
-  browser()
-  if (is.null(latex_str) || !nzchar(latex_str)) return(0)
-
-  s <- gsub("\\\\text(normal|bf|it)?\\{([^}]*)\\}", "\\2", latex_str)
-  s <- gsub("\\\\math(it|bf|sf|cal)\\{([^}]*)\\}", "\\2", s)
-
-  s <- gsub("_\\{[^}]*\\}", "~~", s)
-  s <- gsub("\\\\frac\\{[^}]*\\}\\{[^}]*\\}", "~~~~~~", s)
-  s <- gsub("\\\\sum(_\\{[^}]*\\})?", "~~~~~", s)
-  s <- gsub("\\\\prod(_\\{[^}]*\\})?", "~~~~~", s)
-
-  s <- gsub("\\\\[a-zA-Z]+", "", s)
-
-  nchar(s)
-}
-
