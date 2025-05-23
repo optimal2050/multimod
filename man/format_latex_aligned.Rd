@@ -11,7 +11,7 @@ format_latex_aligned(lhs, rhs, rel = "=", max_len = 80)
 
 \item{rhs}{LaTeX string of the right-hand side}
 
-\item{rel}{Relational operator (e.g., =, \le, \ge)}
+\item{rel}{Relational operator (e.g., \code{=}, \verb{\\le}, \verb{\\ge})}
 
 \item{max_len}{Maximum allowed line length before splitting}
 }

@@ -23,7 +23,7 @@ library(visNetwork)
 ```
 
 ## Example equation #1
-```{r}
+```{r, eval=FALSE}
 mm <- example_model$model_info |> as_multimod()
 # eq <- example_model$multimod$equations$eqTechCapUp
 eq <- mm$equations$eqTechCapUp
@@ -32,13 +32,13 @@ names(eq)
 ```
 
 ### Full tree structure
-```{r}
+```{r, eval=FALSE}
 depth(eq)
 tree(eq, max_depth = 5)
 ```
 
 ### Network representation
-```{r}
+```{r, eval=FALSE}
 eq_net <- multimod::get_network_data(eq)
 visNetwork(eq_net$nodes, eq_net$edges) |>
   visOptions(highlightNearest = TRUE, nodesIdSelection = TRUE) |>
@@ -47,7 +47,7 @@ visNetwork(eq_net$nodes, eq_net$edges) |>
 ```
 
 ### LaTeX output
-```{r}
+```{r, eval=FALSE}
 eq_latex <- as_latex(eq)
 cat(eq_latex)
 write_latex(eq, file = "tmp/test.tex")
@@ -56,7 +56,7 @@ write_latex(eq, file = "tmp/test.tex")
 
 
 ## Example equation #2
-```{r}
+```{r, eval=FALSE}
 # eq <- example_model$multimod$equations$eqTechAInp
 eq <- mm$equations$eqTechAInp
 eq <- mm$equations$eqTechCap
@@ -76,12 +76,12 @@ print(eq$name); print(eq$desc)
 ```
 
 ### Partial tree structure
-```{r}
+```{r, eval=FALSE}
 tree(eq, max_depth = 3)
 ```
 
 ### Network representation
-```{r}
+```{r, eval=FALSE}
 eq_net <- get_network_data(eq, show_dims = TRUE)
 visNetwork(eq_net$nodes, eq_net$edges) |>
   visOptions(highlightNearest = TRUE, nodesIdSelection = TRUE) |>
@@ -90,7 +90,7 @@ visNetwork(eq_net$nodes, eq_net$edges) |>
 ```
 
 ### LaTeX output
-```{r}
+```{r, eval=FALSE}
 eq_w <- remap_ast_elements(eq) 
 # eq_latex <- as_latex(eq_w)
 # eq_latex <- 

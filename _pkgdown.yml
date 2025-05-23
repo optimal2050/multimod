@@ -19,7 +19,7 @@ reference:
   desc:  Classes to represent a model with sets, parameters, variables, equations, and data.
   contents:
   - starts_with("multimod_")
-  - starts_with("new_multimod_")
+  - starts_with("new_")
 
 - title: generic methods
   desc:  Generic methods for multimod classes.
@@ -28,6 +28,13 @@ reference:
   - starts_with("print.")
   - starts_with("plot.")
   - starts_with("summary.")
+
+- title: LaTeX functions
+  desc:  Functions to convert multimod objects to LaTeX.
+  contents:
+  - starts_with("latex_")
+  - starts_with("as_latex")
+  - starts_with("write_latex")
 
 - title: utility functions
   desc:  Utility functions for multimod.
@@ -40,6 +47,10 @@ reference:
   - starts_with("parse_")
   - starts_with("format_")
   - starts_with("extract_")
+  - starts_with("alias_")
+  - depth
+  - matches("brackets")
+  - matches("resolve|node|split|map_")
 
 - title: visualization
   desc:  Visualization functions for multimod.
