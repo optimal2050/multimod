@@ -10,17 +10,41 @@ latex_operators <- list(
   "**" = " ^ ",
   "=" = " = ",
   "<=" = " \\leq ",
+  "LE" = " \\leq ",
+  "le" = " \\leq ",
+  "LT" = " < ",
+  "lt" = " < ",
   ">=" = " \\geq ",
+  "GE" = " \\geq ",
+  "ge" = " \\geq ",
+  "GT" = " > ",
+  "gt" = " > ",
   "==" = " = ",
+  "eq" = " = ",
+  "EQ" = " = ",
   "!=" = " \\neq ",
   "<>" = " \\neq ",
+  "ne" = " \\neq ",
+  "NE" = " \\neq ",
   "<" = " < ",
   ">" = " > ",
   "and" = " \\land ",
+  "AND" = " \\land ",
   "or"  = " \\lor ",
+  "OR" = " \\lor ",
   "!" = " \\lnot ",
-  "not" = " \\lnot "
+  "not" = " \\lnot ",
+  "NOT" = " \\lnot "
 )
+
+escape_latex <- function(txt) {
+  # Escape common LaTeX special characters
+  txt <- gsub("\\\\", "\\\\textbackslash{}", txt)
+  txt <- gsub("([#$%&_{}])", "\\\\\\1", txt)
+  txt <- gsub("~", "\\\\textasciitilde{}", txt)
+  txt <- gsub("\\^", "\\\\textasciicircum{}", txt)
+  return(txt)
+}
 
 #' @export
 latex_wrap_brackets <- function(x,
@@ -32,6 +56,7 @@ latex_wrap_brackets <- function(x,
                                 ...) {
   if (is.null(x)) return(NULL)
   if (is.null(brackets) && !math) return(x) # no brackets
+  if (isFALSE(brackets)) return(x) # no brackets
 
   # math brackets with optional autosize
   if (math) {
@@ -123,6 +148,79 @@ latex_math_brakets <- function(content = NULL, context = NULL, size = NULL) {
   c(open = paste0(size, "l["), close = paste0(size, "r]"))
 }
 
+#' Identify top-level LaTeX operators in an expression
+#'
+#' @param latex_str A LaTeX math string
+#' @param operators Vector of operators to detect at top level
+#'
+#' @return Data frame of matched operators and positions
+#' @export
+latex_top_level_operators <- function(latex_str,
+                                      operators = c("+", "-", "\\\\cdot", "\\\\div", "=")) {
+  chars <- strsplit(latex_str, "")[[1]]
+  positions <- list()
+  i <- 1
+  n <- length(chars)
+  depth <- 0
+  cmd_mode <- FALSE
+  env_stack <- character()
+
+  while (i <= n) {
+    ch <- chars[i]
+
+    # -- Handle LaTeX command --
+    if (ch == "\\") {
+      j <- i + 1
+      cmd <- ch
+      while (j <= n && grepl("[a-zA-Z*]", chars[j])) {
+        cmd <- paste0(cmd, chars[j])
+        j <- j + 1
+      }
+
+      if (cmd %in% c("\\left", "\\bigl", "\\Bigl", "\\biggl", "\\Biggl")) {
+        env_stack <- c(env_stack, cmd)
+      } else if (cmd %in% c("\\right", "\\bigr", "\\Bigr", "\\biggr", "\\Biggr")) {
+        if (length(env_stack)) env_stack <- head(env_stack, -1)
+      } else if (cmd %in% c("\\sum", "\\prod", "\\frac", "\\mathbb", "\\mathcal", "\\mathsf")) {
+        # skip over braces like \frac{a}{b}
+        i <- j
+        next
+      } else if (cmd %in% operators && depth == 0 && length(env_stack) == 0) {
+        positions[[length(positions) + 1]] <- list(op = cmd, pos = i)
+      }
+
+      i <- j
+      next
+    }
+
+    # -- Bracket depth tracking --
+    if (ch %in% c("{", "[", "(", "<")) {
+      depth <- depth + 1
+    } else if (ch %in% c("}", "]", ")", ">")) {
+      depth <- max(depth - 1, 0)
+    }
+
+    # -- Plain operators (+, -, =), allowed only at depth = 0
+    if (depth == 0 && length(env_stack) == 0 && ch %in% c("+", "-", "=") && ch %in% operators) {
+      positions[[length(positions) + 1]] <- list(op = ch, pos = i)
+    }
+
+    # -- Move next --
+    i <- i + 1
+  }
+
+  # Return as data.frame
+  if (length(positions)) {
+    data.frame(
+      op = sapply(positions, `[[`, "op"),
+      pos = sapply(positions, `[[`, "pos"),
+      stringsAsFactors = FALSE
+    )
+  } else {
+    data.frame(op = character(0), pos = integer(0))
+  }
+}
+
 
 #' Convert objects to LaTeX format
 #'
@@ -160,23 +258,15 @@ as_latex.default <- function(x, ...) {
 as_latex.character <- function(x, math = FALSE, bold = FALSE, italic = FALSE) {
   if (!is.character(x)) stop("Input must be a character string.")
 
-  escape_latex <- function(txt) {
-    # Escape common LaTeX special characters
-    txt <- gsub("\\\\", "\\\\textbackslash{}", txt)
-    txt <- gsub("([#$%&_{}])", "\\\\\\1", txt)
-    txt <- gsub("~", "\\\\textasciitilde{}", txt)
-    txt <- gsub("\\^", "\\\\textasciicircum{}", txt)
-    return(txt)
-  }
-
-  format_decorations <- function(txt) {
+  latex_txt_style <- function(txt) {
+    txt <- escape_latex(txt)
     if (bold) txt <- paste0("\\textbf{", txt, "}")
     if (italic) txt <- paste0("\\textit{", txt, "}")
     if (math)  txt <- paste0("$", txt, "$")
     return(txt)
   }
 
-  sapply(x, function(s) format_decorations(escape_latex(s)), USE.NAMES = FALSE)
+  sapply(x, function(s) latex_txt_style(s), USE.NAMES = FALSE)
 }
 
 #' @export
@@ -199,15 +289,17 @@ as_latex.set <- function(x, math_env = "text", ...) {
 #' @rdname as_latex
 as_latex.dims <- function(x, brackets = NULL, ...) {
   # browser()
-  # if (is.null(x$name)) {
-  #   return(x)
-  #   # return("\\emptyset")
-  # } else {
-    # name <- x$name
+  if (is.null(x)) {
+    return(x)
+    # return("\\emptyset")
+  }
   dims <- paste(sapply(x, function(y) as_latex(y, ...)), collapse = ",")
   dims <- latex_wrap_brackets(dims, brackets, ...)
-  # return(paste0("\\mathcal{", dims, "}"))
-  # }
+  if (!is.null(brackets)) {
+    # enforce mathcal for dims
+    return(paste0("\\mathcal{", dims, "}"))
+  }
+  dims
 }
 
 #' @export
@@ -485,6 +577,25 @@ as_latex.prod <- function(x, brackets = NULL, ...) {
   return(paste0("\\prod_{", index, domain, "} ", body))
 }
 
+#' @export
+#' @method as_latex func
+#' @rdname as_latex
+as_latex.func <- function(x, brackets = NULL, subscript_dims = TRUE, ...) {
+  stopifnot(inherits(x, "func"))
+  fun_name <- x$name
+  value_latex <- as_latex(x$value, brackets = FALSE, subscript_dims = subscript_dims, ...)
+
+  # Format function name and argument in LaTeX
+  fun_latex <- paste0("\\mathrm{", fun_name, "}(", value_latex, ")")
+
+  # Optionally wrap in brackets
+  if (!is.null(brackets) && brackets) {
+    fun_latex <- latex_wrap_brackets(fun_latex, brackets)
+  }
+
+  return(fun_latex)
+}
+
 
 #' @export
 #' @method as_latex where
@@ -508,11 +619,12 @@ as_latex.where <- function(x, inline_where = NULL, ...) {
 #' @export
 #' @method as_latex equation
 as_latex.equation <- function(x,
-                              math_env = "equation",
+                              # math_env = "equation",
                               brackets_dims = NULL,
                               subscript_dims = is.null(brackets_dims),
                               inline_where = NULL,
                               subsection_number = FALSE,
+                              max_len = 100,
                               ...) {
   # browser()
   if (is.null(inline_where)) {
@@ -529,7 +641,8 @@ as_latex.equation <- function(x,
   rel <- switch(x$relation, `==` = "=", `<=` = "\\le", `>=` = "\\ge", x$relation)
 
   # Apply alignment formatting
-  body <- format_latex_aligned(lhs = lhs, rel = rel, rhs = rhs)
+  body <- format_latex_aligned(lhs = lhs, rel = rel, rhs = rhs,
+                               max_len = max_len)
 
   body <- replace_mapping_placeholders(body)
 
@@ -632,30 +745,22 @@ as_latex.equation <- function(x,
   out <- c(
     "\\begin{flushleft}",
     paste(preamble, collapse = " \n"),
-    "\\begin{equation}",
+    "\\begin{equation*}",
     "\\begin{adjustbox}{max width=\\textwidth}",
     # paste0("\\begin{adjustbox}{", where_cols, "}"),
     "$\\begin{aligned}",
+    # begin_math_env(math_env),
     body,
+    # end_math_env(math_env),
     "\\end{aligned}$",
     "\\end{adjustbox}",
-    "\\end{equation}",
+    "\\end{equation*}",
     where_lines,
     "\\vspace{1em}",
     "\\end{flushleft}"
   )
 
   paste(out, collapse = "\n")
-}
-
-
-
-format_index <- function(lhs) {
-  dims <- lhs$dims
-  if (is.null(dims) || length(dims) == 0) return("")
-
-  dims_str <- as_latex(dims)
-  paste0("_{", dims_str, "}")
 }
 
 # Helper: Collapse multiple LaTeX environments (string or character vector)
@@ -669,7 +774,10 @@ end_math_env <- function(envs) {
   paste(rev(paste0("\\end{", envs, "}")), collapse = "\n")
 }
 
-# @export
+# format functions ####
+
+#' Estimate the length of a LaTeX string
+#' @export
 estimate_latex_length <- function(latex_str) {
   if (is.null(latex_str) || !nzchar(latex_str)) return(0)
   # browser()
@@ -690,6 +798,15 @@ estimate_latex_length <- function(latex_str) {
   # Final approximation
   nchar(s)
 }
+
+format_index <- function(lhs) {
+  dims <- lhs$dims
+  if (is.null(dims) || length(dims) == 0) return("")
+
+  dims_str <- as_latex(dims)
+  paste0("_{", dims_str, "}")
+}
+
 
 #' Format a LaTeX equation across multiple lines using aligned
 #'
@@ -819,19 +936,31 @@ split_at_top_level_operators <- function(
 #' @param style One of "mathcal", "psi", "phi", or "custom".
 #' @param base Optional base symbol for style = "custom" (e.g., "M").
 #' @return Updated LaTeX character vector.
-replace_mapping_placeholders <- function(latex_str, style = "mathcal", base = NULL) {
+replace_mapping_placeholders <- function(latex_str,
+                                         mathcal = FALSE,
+                                         symbol = ifelse(mathcal, "M", "psi")
+                                         # style = "mathcal",
+                                         # base = NULL
+                                         ) {
+  repl_fun <- if (mathcal) {
+    function(i) paste0("\\\\mathcal{", symbol, "}_{", i, "}")
+  } else {
+    function(i) paste0("\\\\", symbol, "_{", i, "}")
+  }
+
+
   # browser()
   for (i in 1:99) {
     # pattern <- paste0("\\mathsf\\{s", i, "\\}")
     pattern <- paste0("\\\\(texttt|mathsf)\\{s", i, "\\}")
-    replacement <- switch(style,
-                          mathcal = paste0("\\\\mathcal{M}_{", i, "}"),
-                          psi     = paste0("\\\\psi_{", i, "}"),
-                          phi     = paste0("\\\\varphi_{", i, "}"),
-                          custom  = paste0("\\\\mathcal{", base %||% "X", "}_{", i, "}"),
-                          stop("Unsupported style")
-    )
-    latex_str <- gsub(pattern, replacement, latex_str, fixed = FALSE)
+    # replacement <- switch(style,
+    #                       mathcal = paste0("\\\\mathcal{M}_{", i, "}"),
+    #                       psi     = paste0("\\\\psi_{", i, "}"),
+    #                       phi     = paste0("\\\\varphi_{", i, "}"),
+    #                       custom  = paste0("\\\\mathcal{", base %||% "X", "}_{", i, "}"),
+    #                       stop("Unsupported style")
+    # )
+    latex_str <- gsub(pattern, repl_fun(i), latex_str, fixed = FALSE)
   }
   # browser()
   latex_str

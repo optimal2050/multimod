@@ -250,6 +250,19 @@ ast_prod <- function(index, value) {
   new_ast("prod", index = index, value = value)
 }
 
+#' Create a function AST node
+#'
+#' Constructs an abstract syntax tree (AST) node representing a function.
+#' @param name A character string representing the function name.
+#' @param value An AST node representing the function body or expression.
+#' @return An `ast` object of class `function`.
+#' @export
+ast_func <- function(name, value) {
+  stopifnot(is.character(name), length(name) == 1)
+  stopifnot(inherits(value, "ast"))
+  new_ast("func", name = name, value = value)
+}
+
 #' Create an expression AST node
 #'
 #' Constructs a binary operation node representing an expression such as addition, multiplication, etc.

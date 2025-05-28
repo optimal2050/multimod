@@ -72,7 +72,7 @@ write_latex.model <- function(x,
                               append = FALSE,
                               preamble = NULL,
                               ending = NULL,
-                              math_env = "equation",
+                              # math_env = "equation",
                               subsection_number = TRUE,
                               include_sets = TRUE,
                               include_aliases = TRUE,
@@ -138,7 +138,8 @@ write_latex.model <- function(x,
     function(eq) {
       message(eq$name)
       # eq <- remap_ast_elements(eq)
-      eq_tex <- as_latex(eq, math_env = math_env,
+      eq_tex <- as_latex(eq,
+                         # math_env = math_env,
                          subsection_number = subsection_number, ...)
       eq_tex <- paste(eq_tex, "\n")
       },

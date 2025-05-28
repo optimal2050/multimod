@@ -39,7 +39,7 @@ is_expression <- function(
   }
 
   # Check for top-level operators
-  top_ops <- top_level_operators(s, ops = ops)
+  top_ops <- find_top_level_operators(s, ops = ops)
   return(length(top_ops) > 0)
 }
 
@@ -278,8 +278,16 @@ remap_ast_elements <- function(obj,
         ob[[slot_name]] <- ast_where(name = map_name, content = ob[[slot_name]])
       }
     } else if (inherits(ob, c("ast", "multimod", "list"))) {
+      # browser()
       for (i in seq_along(ob)) {
-        ob[[i]] <- remap_fun(ob[[i]])
+        a <- try(remap_fun(ob[[i]]), silent = TRUE)
+        if (inherits(a, "try-error")) {
+          # browser()
+          warning("Error in remap_fun: ", class(ob)[1], " ",  ob$name, " ", i)
+          # ob[[i]] <- NULL  # or handle error as needed
+        } else {
+          ob[[i]] <- a
+        }
       }
     }
     ob

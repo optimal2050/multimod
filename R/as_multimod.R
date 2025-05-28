@@ -71,7 +71,7 @@ as_multimod.model_structure <- function(x, ...) {
     eqn_info <- x$equations[[eq_name]]
     eqn <- tryCatch(
       {
-        coerce_gams_equation(eqn_info, symbols)
+        parse_gams_equation(eqn_info, symbols)
       },
       error = function(e) {
         stop(sprintf("Failed to convert equation '%s': %s", eq_name, e$message))
@@ -94,3 +94,23 @@ as_multimod.model_structure <- function(x, ...) {
     equations = equations
   )
 }
+
+# coerce_param <- function(name, param_info) {
+#   new_parameter(
+#     name = name,
+#     dims = param_info$dims,
+#     data = param_info$data
+#   )
+# }
+#
+# coerce_variable <- function(name, var_info) {
+#   new_variable(
+#     name = name,
+#     dims = var_info$dims,
+#     data = var_info$data,
+#     domain = var_info$domain %||% "continuous"
+#   )
+# }
+
+
+

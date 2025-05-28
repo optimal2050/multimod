@@ -76,3 +76,129 @@ write_gams.multimod <- function(model, file = NULL, format_expr = TRUE, ...) {
     return(lines)
   }
 }
+
+
+# remove_redundant_parens <- function(gams_code) {
+#   lines <- unlist(strsplit(gams_code, "\n"))
+#
+#   open_sum_line <- grep("^\s*sum\\(", lines)
+#   close_paren_line <- grep("\)\s*;\s*$", lines)
+#
+#   if (length(open_sum_line) > 0 && length(close_paren_line) > 0) {
+#     first_line <- lines[open_sum_line[1]]
+#     last_line <- lines[close_paren_line[length(close_paren_line)]]
+#
+#     # Remove outer parentheses: "sum((...))" -> "sum(...)"
+#     lines[open_sum_line[1]] <- sub("sum\\(\\(", "sum(", first_line)
+#     lines[close_paren_line[length(close_paren_line)]] <- sub("\\)\\);", ");", last_line)
+#   }
+#
+#   paste(lines, collapse = "\n")
+# }
+
+
+format_gams_expression <- function(gams_lines, indent = 4) {
+  `%+%` <- function(a, b) paste0(a, b)
+  browser()
+
+  extract_sum_parts <- function(part) {
+    inside <- sub("^sum\\((.*)\\)$", "\\1", part)
+    chars <- strsplit(inside, "")[[1]]
+    depth <- 0; i <- 1
+    while (i <= length(chars)) {
+      ch <- chars[i]
+      if (ch %in% c("(", "[")) depth <- depth + 1
+      if (ch %in% c(")", "]")) depth <- depth - 1
+      if (ch == "," && depth == 0) break
+      i <- i + 1
+    }
+    list(
+      index = trimws(paste0(chars[1:(i - 1)], collapse = "")),
+      expr = trimws(paste0(chars[(i + 1):length(chars)], collapse = ""))
+    )
+  }
+
+  format_sum_expression <- function(expr, current_indent) {
+    parts <- extract_sum_parts(expr)
+    out <- c()
+    out <- c(out, strrep(" ", current_indent) %+% "sum(" %+% parts$index %+% ",")
+
+    out <- c(out, split_recursive(parts$expr, current_indent + indent))
+    out[length(out)] <- out[length(out)] %+% ")"
+    out
+  }
+
+  split_recursive <- function(expr, current_indent) {
+    browser()
+    chars <- strsplit(expr, "")[[1]]
+    depth <- 0; buffer <- ""; parts <- character(); i <- 1
+    while (i <= length(chars)) {
+      ch <- chars[i]
+      if (ch %in% c("(", "[")) depth <- depth + 1
+      if (ch %in% c(")", "]")) depth <- depth - 1
+      if (depth == 0 && ch == "+") {
+        parts <- c(parts, trimws(buffer)); buffer <- ""
+      } else buffer <- paste0(buffer, ch)
+      i <- i + 1
+    }
+    if (nzchar(trimws(buffer))) parts <- c(parts, trimws(buffer))
+
+    result <- character()
+    for (j in seq_along(parts)) {
+      term <- trimws(parts[j])
+
+      if (grepl("^sum\\(.*\\)$", term)) {
+        nested <- format_sum_expression(term, current_indent + indent)
+        nested[1] <- strrep(" ", current_indent) %+% "    " %+% trimws(nested[1])  # indent first line
+        result <- c(result, nested)
+      } else {
+        # split on * and /
+        chars <- strsplit(term, "")[[1]]
+        depth <- 0; buffer <- ""; subparts <- character(); i <- 1
+        while (i <= length(chars)) {
+          ch <- chars[i]
+          if (ch %in% c("(", "[")) depth <- depth + 1
+          if (ch %in% c(")", "]")) depth <- depth - 1
+          if (depth == 0 && chars[i] %in% c("*", "/")) {
+            subparts <- c(subparts, trimws(buffer), chars[i])
+            buffer <- ""
+          } else buffer <- paste0(buffer, ch)
+          i <- i + 1
+        }
+        if (nzchar(trimws(buffer))) subparts <- c(subparts, trimws(buffer))
+
+        if (length(subparts)) {
+          result <- c(result, strrep(" ", current_indent) %+% subparts[1])
+        }
+        if (length(subparts) > 1) {
+          for (k in seq(2, length(subparts), by = 2)) {
+            result <- c(result, strrep(" ", current_indent) %+% subparts[k] %+% " " %+% subparts[k + 1])
+          }
+        }
+      }
+
+      if (j < length(parts)) result <- c(result, strrep(" ", current_indent) %+% "+")
+    }
+    result
+  }
+
+  # --- Main logic ---
+  if (is.character(gams_lines) && length(gams_lines) == 1) {
+    gams_lines <- strsplit(gams_lines, "\n")[[1]]
+  }
+  stopifnot(length(gams_lines) >= 3)
+
+  eq_header <- gams_lines[1]
+  lhs_line  <- gams_lines[2]
+  rhs_expr  <- sub(";$", "", gams_lines[3])
+
+  formatted <- c(
+    eq_header,
+    strrep(" ", indent) %+% trimws(lhs_line),
+    split_recursive(rhs_expr, indent),
+    ");"
+  )
+
+  return(formatted)
+}
+

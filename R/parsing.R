@@ -57,7 +57,7 @@ get_operator_precedence <- function(op, precedence = operator_precedence) {
 }
 
 # Identify nested expression levels in an expression
-expression_level <- function(
+get_expression_level <- function(
     expr,
     inc_parens = FALSE,
     as_data_frame = FALSE) {
@@ -88,7 +88,7 @@ expression_level <- function(
 }
 
 # Find and return the top-level operators in an expression
-top_level_operators <- function(
+find_top_level_operators <- function(
     expr,
     # ops = c("+", "-", "*", "/", "<", "<=", ">=", "=", "==", "and", "or", "not")
     ops = gams_ops,
@@ -105,7 +105,7 @@ top_level_operators <- function(
   # expr_chars <- strsplit(expr, "")[[1]]
   # word_buffer <- ""
   if (is.null(expr_lev)) {
-    expr_lev <- expression_level(expr, as_data_frame = TRUE)
+    expr_lev <- get_expression_level(expr, as_data_frame = TRUE)
   } else {
     stopifnot(is.data.frame(expr_lev))
     stopifnot(all(c("index", "char", "level") %in% names(expr_lev)))
@@ -131,7 +131,8 @@ top_level_operators <- function(
     } else {
       stop("Invalid/Unrecognized operator: ", op)
     }
-    op_nn <- gregexpr(op_sp, expr, fixed = fixed)[[1]]
+    # browser()
+    op_nn <- gregexpr(op_sp, expr, fixed = fixed, ignore.case = !fixed)[[1]]
     if (op_nn[1] == -1) next
     expr_lev$op[op_nn] <- op
     expr_lev$pos[op_nn] <- op_nn
@@ -142,7 +143,7 @@ top_level_operators <- function(
     # }
 
     # replace matched positions in expr with white space
-    expr <- gsub(op_sp, " ", expr, fixed = fixed)
+    expr <- gsub(op_sp, " ", expr, fixed = fixed, ignore.case = !fixed)
 
     # if (!is.null(precedence[[op]])) {
     #   expr_lev$prec[op_nn] <- precedence[[op]]
@@ -172,7 +173,7 @@ split_top_level <- function(
     as_list = FALSE) {
   # browser()
   if (is.null(expr_lev)) {
-    expr_lev <- expression_level(expr, as_data_frame = TRUE)
+    expr_lev <- get_expression_level(expr, as_data_frame = TRUE)
   } else {
     stopifnot(is.data.frame(expr_lev))
     stopifnot(all(c("index", "char", "level") %in% names(expr_lev)))
@@ -193,7 +194,7 @@ split_top_level <- function(
     if (is_special(op)) {
       fixed <- TRUE
       op_sp <- op
-    } else if (grepl("^[a-zA-Z]+$", op)) {
+    } else if (grepl("^[a-zA-Z]+$", op, ignore.case = TRUE)) {
       fixed <- FALSE
       # add white space around the op
       op_sp <- paste0("\\b", op, "\\b")
@@ -202,7 +203,7 @@ split_top_level <- function(
     }
 
     # check if op is in the expression
-    op_nn <- gregexpr(op_sp, expr, fixed = fixed)[[1]]
+    op_nn <- gregexpr(op_sp, expr, fixed = fixed, ignore.case = !fixed)[[1]]
     if (op_nn[1] == -1) next
     # browser()
     for (i in seq_along(op_nn)) {
@@ -215,6 +216,7 @@ split_top_level <- function(
 
   tokens <- list()
   ntoken <- 0
+  # browser()
   for (i in seq_along(expr_lev$char)) {
     if (expr_lev$split[i]) {
       # browser()
@@ -241,15 +243,27 @@ split_top_level <- function(
       }
       next
     } else { # body
-      if (i == 1 || expr_lev$split[i - 1]) { # start of new token
+      if (i == 1) { # start of new token
+        ntoken <- ntoken + 1
+        token_start <- i
+      } else if (expr_lev$split[i - 1] && i < length(expr_lev$char)) {
+        # start of new token after an operator/split
+        # stopifnot(ntoken > 0)
         ntoken <- ntoken + 1
         token_start <- i
       } else if (i == length(expr_lev$char)) { # end of last token
         stopifnot(ntoken > 0)
+        if (expr_lev$split[i - 1]) { # new one
+          ntoken <- ntoken + 1
+          token_start <- i
+        }
         tokens[[ntoken]] <- paste0(
           expr_lev$char[token_start:i],
           collapse = ""
         )
+      } else {
+        # continue building the current token
+        next
       }
     }
   }
@@ -288,109 +302,3 @@ annotate_brackets <- function(expr, parent = NULL, side = NULL) {
   expr
 }
 
-
-
-#' Identify top-level LaTeX operators in an expression
-#'
-#' @param latex_str A LaTeX math string
-#' @param operators Vector of operators to detect at top level
-#'
-#' @return Data frame of matched operators and positions
-#' @export
-latex_top_level_operators <- function(latex_str,
-                                     operators = c("+", "-", "\\\\cdot", "\\\\div", "=")) {
-  chars <- strsplit(latex_str, "")[[1]]
-  positions <- list()
-  i <- 1
-  n <- length(chars)
-  depth <- 0
-  cmd_mode <- FALSE
-  env_stack <- character()
-
-  while (i <= n) {
-    ch <- chars[i]
-
-    # -- Handle LaTeX command --
-    if (ch == "\\") {
-      j <- i + 1
-      cmd <- ch
-      while (j <= n && grepl("[a-zA-Z*]", chars[j])) {
-        cmd <- paste0(cmd, chars[j])
-        j <- j + 1
-      }
-
-      if (cmd %in% c("\\left", "\\bigl", "\\Bigl", "\\biggl", "\\Biggl")) {
-        env_stack <- c(env_stack, cmd)
-      } else if (cmd %in% c("\\right", "\\bigr", "\\Bigr", "\\biggr", "\\Biggr")) {
-        if (length(env_stack)) env_stack <- head(env_stack, -1)
-      } else if (cmd %in% c("\\sum", "\\prod", "\\frac", "\\mathbb", "\\mathcal", "\\mathsf")) {
-        # skip over braces like \frac{a}{b}
-        i <- j
-        next
-      } else if (cmd %in% operators && depth == 0 && length(env_stack) == 0) {
-        positions[[length(positions) + 1]] <- list(op = cmd, pos = i)
-      }
-
-      i <- j
-      next
-    }
-
-    # -- Bracket depth tracking --
-    if (ch %in% c("{", "[", "(", "<")) {
-      depth <- depth + 1
-    } else if (ch %in% c("}", "]", ")", ">")) {
-      depth <- max(depth - 1, 0)
-    }
-
-    # -- Plain operators (+, -, =), allowed only at depth = 0
-    if (depth == 0 && length(env_stack) == 0 && ch %in% c("+", "-", "=") && ch %in% operators) {
-      positions[[length(positions) + 1]] <- list(op = ch, pos = i)
-    }
-
-    # -- Move next --
-    i <- i + 1
-  }
-
-  # Return as data.frame
-  if (length(positions)) {
-    data.frame(
-      op = sapply(positions, `[[`, "op"),
-      pos = sapply(positions, `[[`, "pos"),
-      stringsAsFactors = FALSE
-    )
-  } else {
-    data.frame(op = character(0), pos = integer(0))
-  }
-}
-
-#' Split LaTeX math string at top-level operators
-#'
-#' @param latex_str A LaTeX math string
-#' @param operators Vector of operators to split at
-#'
-#' @return A character vector of expression chunks, including the operators
-#' @export
-split_top_level_operators <- function(latex_str,
-                                         operators = c("+", "-", "\\\\cdot", "\\\\div", "=")) {
-  op_locs <- latex_top_level_operators(latex_str, operators)
-  if (nrow(op_locs) == 0) return(latex_str)
-
-  result <- c()
-  last_pos <- 1
-
-  for (i in seq_len(nrow(op_locs))) {
-    op_pos <- op_locs$pos[i]
-    op_len <- nchar(op_locs$op[i])
-    part <- substr(latex_str, last_pos, op_pos - 1)
-    result <- c(result, trimws(part))
-    result <- c(result, op_locs$op[i])
-    last_pos <- op_pos + op_len
-  }
-
-  # Append final chunk
-  if (last_pos <= nchar(latex_str)) {
-    result <- c(result, trimws(substr(latex_str, last_pos, nchar(latex_str))))
-  }
-
-  return(result)
-}
