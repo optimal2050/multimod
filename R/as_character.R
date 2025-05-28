@@ -10,7 +10,7 @@
 #'
 #' @export
 brackets_pair <- function(x) {
-  if (is_empty(x) | isTRUE(x == "")) {
+  if (is_empty(x) || isTRUE(x == "") || isFALSE(x)) {
     return(NULL)
   } else if (length(x) > 2) {
     stop("x must be of length 1 or 2")
@@ -53,11 +53,16 @@ wrap_brackets <- function(x, brackets = NULL, ...) {
 #' @export
 #' @method as.character expression
 as.character.expression <- function(x, brackets = NULL, max_char = 50, ...) {
+  # browser()
   out <- paste0(as.character(x$lhs, max_char = NULL),
                 " ", x$op, " ",
                 as.character(x$rhs, max_char = NULL)
                 )
-  if (!is_empty(max_char) && nchar(out) > max_char) {
+  if (length(out) > 1) {
+    # roughly - use the first element
+    out <- out[1]
+  }
+  if (!is_empty(max_char) && sum(nchar(out)) > max_char) {
     out <- paste0(substr(out, 1, max_char), "...")
   }
   if (is_empty(brackets)) return(out)
@@ -144,7 +149,7 @@ as.character.sum <- function(x, max_char = 50, ...) {
                 as.character(x$index, max_char = NULL),
                 as.character(x$value, max_char = NULL),
                 ")")
-  if (!is_empty(max_char) && nchar(out) > max_char) {
+  if (!is_empty(max_char) && sum(nchar(out)) > max_char) {
     out <- paste0(substr(out, 1, max_char), "...")
   }
   return(out)

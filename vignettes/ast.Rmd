@@ -25,6 +25,7 @@ library(visNetwork)
 ## Example equation #1
 ```{r, eval=FALSE}
 mm <- example_model$model_info |> as_multimod()
+mm <- as_multimod(model_info)
 # eq <- example_model$multimod$equations$eqTechCapUp
 eq <- mm$equations$eqTechCapUp
 print(eq$name); print(eq$desc)
@@ -101,12 +102,15 @@ eq_w <- remap_ast_elements(eq)
 
 write_latex(eq_w, file = "tmp/test.tex")
 write_latex(eq, file = "tmp/test.tex")
+write_latex(ast_node, file = "tmp/test.tex")
 
 
 m <- mm
-m$equations <- lapply(mm$equations, remap_ast_elements)
-m$equations <- lapply(m$equations, alias_ast_names, aliases = example_model$short_aliases)
+m$equations <- mm$equations |>
+  lapply(remap_ast_elements) |>
+  lapply(alias_ast_names, aliases = example_model$short_aliases)
 write_latex(m, file = "tmp/multimod-test.tex")
+
 
 
 ```

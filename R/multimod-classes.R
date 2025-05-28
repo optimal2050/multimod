@@ -174,6 +174,7 @@ new_equation <- function(
     rhs,
     relation = "==",
     domain = NULL) {
+  # browser()
   stopifnot(relation %in% c("==", "<=", ">="))
   # if (!inherits(rhs, "expression")) browser()
   stopifnot(inherits(lhs, "ast"), inherits(rhs, "ast"))

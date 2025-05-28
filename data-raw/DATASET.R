@@ -45,7 +45,7 @@ if (F) {
   library(here)
   devtools::load_all()
   gams_file <- here("tmp/energyRt.gms")
-  model_info <- read_gams_model_structure(gams_file, include = FALSE)
+  model_info <- read_gams_model(gams_file, include = FALSE)
 
   symbols <- build_symbols_list(model_info)
   mmod <- as_multimod(model_info)
