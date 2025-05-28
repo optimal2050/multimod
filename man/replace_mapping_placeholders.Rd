@@ -2,7 +2,7 @@
 % Please edit documentation in R/as_latex.R
 \name{replace_mapping_placeholders}
 \alias{replace_mapping_placeholders}
-\title{Replace mapping placeholders like \texttt{s1} with styled math symbols}
+\title{Replace mapping placeholders like \texttt{m1} with styled math symbols}
 \usage{
 replace_mapping_placeholders(
   latex_str,
@@ -21,5 +21,5 @@ replace_mapping_placeholders(
 Updated LaTeX character vector.
 }
 \description{
-Replace mapping placeholders like \texttt{s1} with styled math symbols
+Replace mapping placeholders like \texttt{m1} with styled math symbols
 }

@@ -12,7 +12,8 @@ new_model(
   mappings = list(),
   parameters = list(),
   variables = list(),
-  equations = list()
+  equations = list(),
+  ...
 )
 }
 \arguments{

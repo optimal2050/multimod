@@ -1,3 +1,18 @@
+
+#' Write a GAMS model file from a multimod object
+#'
+#' @param model A `multimod` model object
+#' @param file Output file path (optional)
+#' @param format_expr logical; whether to format expressions with line breaks
+#' @param ... Additional arguments passed to formatting functions
+#'
+#' @return Character vector or writes file if `file` is given
+#' @export
+write_gams <- function(model, file = NULL, format_expr = TRUE, ...) {
+  UseMethod("write_gams")
+}
+
+
 #' Write a full GAMS model file from a multimod object
 #'
 #' @param model A `multimod` model object
@@ -6,7 +21,10 @@
 #' @param ... Additional arguments passed to formatting functions
 #'
 #' @return Character vector or writes file if `file` is given
-write_gams.multimod <- function(model, file = NULL, format_expr = TRUE, ...) {
+#' @method write_gams model
+#' @export
+write_gams.model <- function(model, file = NULL, format_expr = TRUE, ...) {
+  # browser()
   stopifnot(inherits(model, "model"))
 
   lines <- character()
@@ -21,9 +39,11 @@ write_gams.multimod <- function(model, file = NULL, format_expr = TRUE, ...) {
   lines <- c(lines, "")
 
   # Sets
+  lines <- c(lines, "sets")
   for (s in model$sets) {
-    lines <- c(lines, as_gams(s))
+    lines <- c(lines, as_gams(s, desc = TRUE))
   }
+  lines <- c(lines, ";")
 
   # Aliases
   if (!is.null(model$aliases) && length(model$aliases) > 0) {
@@ -35,33 +55,39 @@ write_gams.multimod <- function(model, file = NULL, format_expr = TRUE, ...) {
   }
 
   lines <- c(lines, "")
-
+  lines <- c(lines, "sets")
   # Mappings
   for (m in model$mappings) {
-    lines <- c(lines, as_gams(m))
+    lines <- c(lines, as_gams(m, desc = TRUE))
   }
-  lines <- c(lines, "")
+  lines <- c(lines, ";")
 
+  lines <- c(lines, "")
+  lines <- c(lines, "parameters")
   # Parameters
   for (p in model$parameters) {
-    lines <- c(lines, as_gams(p))
+    lines <- c(lines, as_gams(p, desc = TRUE))
   }
-  lines <- c(lines, "")
+  lines <- c(lines, ";")
 
+  lines <- c(lines, "")
+  lines <- c(lines, "variables")
   # Variables
   for (v in model$variables) {
-    lines <- c(lines, as_gams(v))
+    lines <- c(lines, as_gams(v, desc = TRUE))
   }
+  lines <- c(lines, ";")
   lines <- c(lines, "")
 
   # Equations (declarations)
-  for (eq in model$equations) {
-    lines <- c(lines, paste0("equation ", eq$name, ";"))
-  }
-  lines <- c(lines, "")
+  # for (eq in model$equations) {
+  #   lines <- c(lines, paste0("equation ", eq$name, ";"))
+  # }
+  # lines <- c(lines, "")
 
   # Equations (definitions)
   for (eq in model$equations) {
+    lines <- c(lines, paste0("equation ", eq$name, "   ", eq$desc, ";"))
     gams_eq <- as_gams(eq)
     if (format_expr) {
       gams_eq <- format_gams_expression(gams_eq, ...)
@@ -99,7 +125,7 @@ write_gams.multimod <- function(model, file = NULL, format_expr = TRUE, ...) {
 
 format_gams_expression <- function(gams_lines, indent = 4) {
   `%+%` <- function(a, b) paste0(a, b)
-  browser()
+  # browser()
 
   extract_sum_parts <- function(part) {
     inside <- sub("^sum\\((.*)\\)$", "\\1", part)
@@ -129,7 +155,7 @@ format_gams_expression <- function(gams_lines, indent = 4) {
   }
 
   split_recursive <- function(expr, current_indent) {
-    browser()
+    # browser()
     chars <- strsplit(expr, "")[[1]]
     depth <- 0; buffer <- ""; parts <- character(); i <- 1
     while (i <= length(chars)) {
@@ -196,7 +222,7 @@ format_gams_expression <- function(gams_lines, indent = 4) {
     eq_header,
     strrep(" ", indent) %+% trimws(lhs_line),
     split_recursive(rhs_expr, indent),
-    ");"
+    ";"
   )
 
   return(formatted)

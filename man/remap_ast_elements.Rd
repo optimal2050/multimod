@@ -7,7 +7,7 @@
 remap_ast_elements(
   obj,
   ast_type = list(when = "condition"),
-  name_prefix = "s",
+  name_prefix = "m",
   n = 0L
 )
 }
@@ -18,7 +18,7 @@ remap_ast_elements(
 (e.g., "when", "mapping").}
 
 \item{name_prefix}{A character string prefix for the new names of the
-replaced elements. Defaults to "s".}
+replaced elements. Defaults to "m".}
 }
 \description{
 This function replaces elements of a given AST object with "ast_where" nodes.
