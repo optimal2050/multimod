@@ -4,7 +4,7 @@
 \alias{ast_parameter}
 \title{Create a parameter AST node}
 \usage{
-ast_parameter(name, dims = ast_dims())
+ast_parameter(name, dims = ast_dims(), ...)
 }
 \arguments{
 \item{name}{Name of the parameter.}

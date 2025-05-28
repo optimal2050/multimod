@@ -142,9 +142,9 @@ ast_mapping <- function(name, dims = ast_dims(), ...) {
 #'
 #' @return An `variable` S3 object (subclass of `ast`).
 #' @export
-ast_variable <- function(name, dims = ast_dims()) {
+ast_variable <- function(name, dims = ast_dims(), ...) {
   stopifnot(is.character(name))
-  new_ast("variable", name = name, dims = dims)
+  new_ast("variable", name = name, dims = dims, ...)
 }
 
 #' Create a parameter AST node
@@ -154,9 +154,9 @@ ast_variable <- function(name, dims = ast_dims()) {
 #'
 #' @return An `parameter` S3 object (subclass of `ast`).
 #' @export
-ast_parameter <- function(name, dims = ast_dims()) {
+ast_parameter <- function(name, dims = ast_dims(), ...) {
   stopifnot(is.character(name))
-  new_ast("parameter", name = name, dims = dims)
+  new_ast("parameter", name = name, dims = dims, ...)
 }
 
 #' Create a symbol AST node (for unclassified identifiers)
@@ -178,7 +178,7 @@ ast_symbol <- function(name, ...) {
 #' @export
 ast_constant <- function(value, ...) {
   stopifnot(is.numeric(value) || is.character(value))
-  new_ast("constant", value = value)
+  new_ast("constant", value = value, ...)
 }
 
 #' Construct a conditional expression node for multimod AST
@@ -208,7 +208,8 @@ ast_when <- function(condition, then, otherwise = NULL, ...) {
   stopifnot(inherits(then, "ast") || is.null(then))
   stopifnot(inherits(condition, "ast"))
 
-  new_ast("when", condition = condition, then = then, otherwise = otherwise)
+  new_ast("when", condition = condition, then = then,
+          otherwise = otherwise, ...)
 }
 
 #' Create a summation AST node

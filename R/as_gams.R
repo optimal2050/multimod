@@ -9,15 +9,25 @@ as_gams <- function(x, ...) {
   UseMethod("as_gams", x)
 }
 
+#' @export
+as_gams.default <- function(x, ...) {
+  if (is.null(x)) return(x)
+  if (numeric(x) & length(x) == 1) {
+    return(format(x, scientific = FALSE))
+  }
+  warning("No as_gams method for object of class: ", class(x))
+  x
+}
+
 
 #' @export
 #' @method as_gams set
 as_gams.set <- function(x, declaration = FALSE, desc = declaration, ...) {
   stopifnot(inherits(x, "set"))
   if (declaration) {
-    paste0("set ", x$name, ifelse(desc, paste0(" ", x$desc), ""),";")
+    paste0("set ", x$name, ifelse(desc, paste0("  ", x$desc), ""),";")
   } else {
-    paste0(x$name, ifelse(desc, x$desc, ""))
+    paste0(x$name, "", ifelse(desc, x$desc, ""))
   }
 }
 
@@ -26,9 +36,9 @@ as_gams.set <- function(x, declaration = FALSE, desc = declaration, ...) {
 as_gams.mapping <- function(x, declaration = FALSE, desc = declaration, ...) {
   stopifnot(inherits(x, "mapping"))
   if (declaration) {
-    paste0("set ", as.character(x), ifelse(desc, paste0(" ", x$desc), ""), ";")
+    paste0("set ", as.character(x), ifelse(desc, paste0("  ", x$desc), ""), ";")
   } else {
-    paste0(as.character(x), ifelse(desc, paste0(" ", x$desc), ""))
+    paste0(as.character(x), ifelse(desc, paste0("  ", x$desc), ""))
   }
 }
 
@@ -44,9 +54,9 @@ as_gams.dims <- function(x, ...) {
 as_gams.parameter <- function(x, declaration = FALSE, desc = declaration, ...) {
   stopifnot(inherits(x, "parameter"))
   if (declaration) {
-    paste0("parameter ", as.character(x), ifelse(desc, paste0(" ", x$desc), ""), ";")
+    paste0("parameter ", as.character(x), ifelse(desc, paste0("  ", x$desc), ""), ";")
   } else {
-    paste0(as.character(x), ifelse(desc, paste0(" ", x$desc), ""))
+    paste0(as.character(x), ifelse(desc, paste0("  ", x$desc), ""))
   }
 }
 
@@ -56,9 +66,9 @@ as_gams.variable <- function(x, declaration = FALSE, desc = declaration, ...) {
   stopifnot(inherits(x, "variable"))
   if (declaration) {
     paste0("variable ", as.character(x),
-                  ifelse(desc, paste0(" ", x$desc), ""), ";")
+                  ifelse(desc, paste0("  ", x$desc), ""), ";")
   } else {
-    paste0(as.character(x), ifelse(desc, paste0(" ", x$desc), ""))
+    paste0(as.character(x), ifelse(desc, paste0("  ", x$desc), ""))
   }
 }
 
@@ -137,6 +147,22 @@ as_gams.expression <- function(x, ...) {
 
   paste(lhs, op, rhs)
 }
+
+#' @export
+#' @method as_gams unary
+as_gams.unary <- function(x, ...) {
+  # browser()
+  stopifnot(inherits(x, "unary"))
+  op <- x$op
+  if (op == "-") {
+    paste0("-", as_gams(x$expr, ...))
+  } else if (op == "not") {
+    paste0("not ", as_gams(x$expr, ...))
+  } else {
+    stop("Unrecognized unary operator for GAMS export: ", op)
+  }
+}
+
 
 #' @export
 #' @method as_gams equation
