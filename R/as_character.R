@@ -110,7 +110,7 @@ as.character.mapping <- function(x, ...) {
 #' @export
 #' @method as.character symbol
 as.character.symbol <- function(x, ...) {
-  x$value
+  x$name
 }
 
 #' @export

@@ -32,6 +32,8 @@ write_latex.equation <- function(x,
                                  subsection_number = FALSE,
                                  ...) {
 
+  # browser()
+
   if (is.null(preamble)) {
     # Default LaTeX preamble
     preamble <- default_preamble
@@ -72,6 +74,10 @@ write_latex.model <- function(x,
                               append = FALSE,
                               preamble = NULL,
                               ending = NULL,
+                              title = paste0("Model: ", x$name),
+                              subtitle = x$desc,
+                              author = x$authors,
+                              show_date = TRUE,
                               # math_env = "equation",
                               subsection_number = TRUE,
                               include_sets = TRUE,
@@ -80,6 +86,7 @@ write_latex.model <- function(x,
                               include_variables = TRUE,
                               include_equations = TRUE,
                               ...) {
+  # browser()
   model <- x
   if (is.null(preamble)) {
     # Default LaTeX preamble
@@ -93,12 +100,24 @@ write_latex.model <- function(x,
 
   # Header with model name/description
   meta_block <- character()
-  if (!is.null(x$name)) {
-    meta_block <- c(meta_block, paste0("\\section{Model: ", x$name, "}"))
+  if (!is.null(title)) {
+    meta_block <- c(
+      meta_block,
+      paste0("\\title{",
+             title,
+             paste0("\\\\\\large ", as_latex(subtitle), "}"))
+      # "\\author{see: www.energyRt.org}",
+      # "\\date{\\today}",
+      # "\\maketitle"
+    )
   }
-  if (!is.null(x$desc)) {
-    meta_block <- c(meta_block, paste0("\\textit{", x$desc, "}"))
+  if (!is.null(author)) {
+    meta_block <- c(meta_block, paste0("\\author{", author, "}"))
   }
+  if (show_date) {
+    meta_block <- c(meta_block, "\\date{\\today}")
+  }
+  meta_block <- c(meta_block, "\\maketitle")
 
   lines <- character()
   if (include_sets && !is.null(model$sets)) {
@@ -108,6 +127,25 @@ write_latex.model <- function(x,
                                as_latex(s$desc), "\\\\"))
     }
   }
+
+  if (include_aliases && !is.null(model$aliases)) {
+    lines <- c(lines, "", "\\section{Aliases}\\", "\\begin{flushleft}")
+    # browser()
+    for (a in model$aliases) {
+      if (is.character(a)) {
+        b <- paste0("\\texttt{", a, "}", collapse = ", ")
+        # b <- latex_wrap_brackets(b, brackets = "{}")
+        b <- paste0("\\{", b, "\\}")
+      } else if (inherits(a, "ast")) {
+        b <- as_latex(a, subsection_number = subsection_number, ...)
+      } else {
+        b <- as.character(a)
+      }
+      lines <- c(lines, paste0(b, "\\\\"))
+    }
+    lines <- c(lines, "\\end{flushleft}")
+  }
+
 
   if (include_parameters && !is.null(model$parameters)) {
     lines <- c(lines, "", "\\section{Parameters}")
@@ -132,20 +170,23 @@ write_latex.model <- function(x,
     }
   }
 
-  # Render all equations using as_latex()
-  eq_blocks <- vapply(
-    x$equations,
-    function(eq) {
-      message(eq$name)
-      # eq <- remap_ast_elements(eq)
-      eq_tex <- as_latex(eq,
-                         # math_env = math_env,
-                         subsection_number = subsection_number, ...)
-      eq_tex <- paste(eq_tex, "\n")
-      },
-    character(1)
-  )
-  lines <- c(lines, eq_blocks)
+  if (include_equations && !is.null(model$equations)) {
+    lines <- c(lines, "", "\\section{Equations}\\")
+    # Render all equations using as_latex()
+    eq_blocks <- vapply(
+      x$equations,
+      function(eq) {
+        # message(eq$name)
+        # eq <- remap_ast_elements(eq)
+        eq_tex <- as_latex(eq,
+                           # math_env = math_env,
+                           subsection_number = subsection_number, ...)
+        eq_tex <- paste(eq_tex, "\n")
+        },
+      character(1)
+    )
+    lines <- c(lines, eq_blocks)
+  }
 
   # Assemble full LaTeX content
   body <- c(meta_block, lines)
