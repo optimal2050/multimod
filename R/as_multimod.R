@@ -19,11 +19,19 @@ as_multimod.default <- function(x, ...) {
 #' @export
 as_multimod.model_structure <- function(x, ...) {
   stopifnot(inherits(x, "model_structure"))
-
+  browser()
   args <- list(...)
 
-  name <- args$name %||% x$name
-  desc <- args$desc %||% x$desc
+  if (!is.null(args$name)) {
+    name <- args$name; args$name <- NULL
+  } else {
+    name <- x$name
+  }
+  if (!is.null(args$desc)) {
+    desc <- args$desc; args$desc <- NULL
+  } else {
+    desc <- x$desc
+  }
 
   # Build symbol list for expression parsing
   symbols <- build_symbols_list(x)
@@ -83,7 +91,7 @@ as_multimod.model_structure <- function(x, ...) {
     }
   }
 
-  new_model(
+  args <- c(list(
     name = name,
     desc = desc,
     sets = sets,
@@ -92,7 +100,34 @@ as_multimod.model_structure <- function(x, ...) {
     parameters = parameters,
     variables = variables,
     equations = equations
-  )
+  ), args)
+
+  do.call(new_model, args)
+  #   list(
+  #     name = name,
+  #     desc = desc,
+  #     sets = sets,
+  #     aliases = aliases,
+  #     mappings = mappings,
+  #     parameters = parameters,
+  #     variables = variables,
+  #     equations = equations,
+  #     args
+  #   )
+  # )
+
+
+  # new_model(
+  #   name = name,
+  #   desc = desc,
+  #   sets = sets,
+  #   aliases = aliases,
+  #   mappings = mappings,
+  #   parameters = parameters,
+  #   variables = variables,
+  #   equations = equations,
+  #   args
+  # )
 }
 
 # coerce_param <- function(name, param_info) {

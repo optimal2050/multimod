@@ -198,7 +198,7 @@ get_network_data <- function(eq, alias_map = NULL, show_dims = TRUE) {
     } else if (ntype == "constant") {
       label <- as.character(expr$value)
     } else if (ntype == "symbol") {
-      label <- expr$value
+      label <- expr$name
     } else if (ntype == "func") {
       label <- paste0("func: ", with_dims(expr$name, expr$dims, show_dims = show_dims))
     } else if (ntype == "set") {
@@ -276,6 +276,7 @@ get_network_data <- function(eq, alias_map = NULL, show_dims = TRUE) {
         recurse_expr(expr$condition, my_id, label_prx = "cond: ")
       }
       if (!is.null(expr$then)) {
+        # browser()
         recurse_expr(expr$then, my_id, label_prx = "then: ")
       }
       if (!is.null(expr$index)) {

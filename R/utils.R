@@ -254,31 +254,43 @@ if (F) {
 #' @param ast_type A character vector of AST types to be replaced
 #' (e.g., "when", "mapping").
 #' @param name_prefix A character string prefix for the new names of the
-#' replaced elements. Defaults to "s".
+#' replaced elements. Defaults to "m".
 #'
 #' @returns
 #' @export
 #'
 remap_ast_elements <- function(obj,
                                ast_type = list("when" = "condition"),
-                               name_prefix = "s",
+                               name_prefix = "m",
                                n = 0L
                                ) {
 
   if (is_empty(ast_type) || is_empty(obj)) return(obj)
 
+  tmp_name <- "s"
+
   remap_fun <- function(ob) {
+    # if (inherits(ob, c("sum", "when"))) browser()
     if (inherits(ob, names(ast_type))) {
       slot_names <- names(ob)
-      slot_names <- slot_names[slot_names %in% ast_type[[node_type(ob)]]]
-      if (length(slot_names) == 0) return(ob)
+      # slot_names <- slot_names[slot_names %in% ast_type[[node_type(ob)]]]
+      # if (length(slot_names) == 0) return(ob)
       for (slot_name in slot_names) {
-        if (is.null(ob[[slot_name]])) next
-        n <<- n + 1L; map_name <- paste0(name_prefix, n)
-        ob[[slot_name]] <- ast_where(name = map_name, content = ob[[slot_name]])
+        # cat("remap: ", class(ob)[1], " ", ob$name, " ", slot_name, "\n")
+        if (slot_name %in% ast_type[[node_type(ob)]])  {
+          # if (is.null(ob[[slot_name]])) next
+          n <<- n + 1L; map_name <- paste0(tmp_name, n)
+          ob[[slot_name]] <- ast_where(name = map_name, content = ob[[slot_name]])
+        } else {
+          a <- try(remap_fun(ob[[slot_name]]), silent = TRUE)
+          if (inherits(a, "try-error")) {
+            warning("Error in remap_fun: ", class(ob)[1], " ",  ob$name, " ", slot_name)
+          } else {
+            ob[[slot_name]] <- a
+          }
+        }
       }
     } else if (inherits(ob, c("ast", "multimod", "list"))) {
-      # browser()
       for (i in seq_along(ob)) {
         a <- try(remap_fun(ob[[i]]), silent = TRUE)
         if (inherits(a, "try-error")) {
@@ -293,17 +305,26 @@ remap_ast_elements <- function(obj,
     ob
   }
   obj <- remap_fun(obj)
+  # remove duplicates by equations
+  # browser()
+  if (inherits(obj, "multimod") && !is.null(obj$equations)) {
+    obj$equations <- lapply(obj$equations, replace_where_duplicates)
+  } else if (inherits(obj, "equation")) {
+    obj <- replace_where_duplicates(obj)
+  }
+
+  # obj <- replace_where_duplicates(obj)  # ensure no duplicates
   # browser()
   obj
 }
 
-
+#' Extract "where" nodes from an AST
 extract_where_nodes <- function(ast) {
   result <- list()
 
   walk <- function(x) {
     if (inherits(x, "where")) {
-      result[[x$name]] <<- x$content
+      result[[x$name]] <<- x #$content
     }
     if (is.list(x) && !is.data.frame(x)) {
       lapply(x, walk)
@@ -313,6 +334,51 @@ extract_where_nodes <- function(ast) {
   walk(ast)
   result
 }
+
+replace_where_duplicates <- function(obj) {
+  # browser()
+  w <- extract_where_nodes(obj)
+  if (length(w) == 0) return(obj)  # no "where" nodes to process
+  h <- sapply(w, extract_ast_elements, name = "hash")
+  d <- data.frame(
+    name = names(w),
+    hash = unlist(h),
+    stringsAsFactors = FALSE
+  )
+  d$duplicates <- duplicated(d$hash)
+  # browser()
+  if (nrow(d) == 0) return(obj)  # no duplicates, nothing to do
+  d$new_name <- NA_character_
+  d$new_name[!d$duplicates] <- paste0("m", seq_len(sum(!d$duplicates)))
+  for (i in seq_len(nrow(d))) {
+    if (d$duplicates[i]) {
+      j <- which(d$hash == d$hash[i] & !d$duplicates)
+      d$new_name[i] <- d$new_name[j]
+    }
+  }
+  # d
+  # replace names in obj with d$new_name
+  rename_fun <- function(x) {
+    if (inherits(x, "where") && x$name %in% d$name) {
+      # browser()
+      new_name <- d$new_name[d$name == x$name][1]
+      x$name <- new_name
+      # Recurse into subfields
+      for (i in seq_along(x)) {
+        x[[i]] <- rename_fun(x[[i]])
+      }
+    } else if (is.list(x) && !is.data.frame(x)) {
+      # x <- lapply(x, rename_fun)
+      for (i in seq_along(x)) {
+        x[[i]] <- rename_fun(x[[i]])
+      }
+    }
+    x
+  }
+  obj <- rename_fun(obj)
+  return(obj)
+}
+
 
 #' Apply name aliases to AST nodes
 #'

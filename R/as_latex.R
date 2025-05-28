@@ -258,16 +258,64 @@ as_latex.default <- function(x, ...) {
 as_latex.character <- function(x, math = FALSE, bold = FALSE, italic = FALSE) {
   if (!is.character(x)) stop("Input must be a character string.")
 
-  latex_txt_style <- function(txt) {
-    txt <- escape_latex(txt)
-    if (bold) txt <- paste0("\\textbf{", txt, "}")
-    if (italic) txt <- paste0("\\textit{", txt, "}")
-    if (math)  txt <- paste0("$", txt, "$")
-    return(txt)
+  escape_latex <- function(txt) {
+    txt <- gsub("\\\\", "\\\\textbackslash{}", txt)
+    txt <- gsub("([#%&$_{}])", "\\\\\\1", txt)
+    txt
   }
 
-  sapply(x, function(s) latex_txt_style(s), USE.NAMES = FALSE)
+  format_with_style <- function(txt) {
+    if (bold) txt <- paste0("\\textbf{", txt, "}")
+    if (italic) txt <- paste0("\\textit{", txt, "}")
+    txt
+  }
+
+  sapply(x, function(s) {
+    rel_pattern <- "(<=|>=|==)"
+    match <- regexpr(rel_pattern, s, perl = TRUE)
+
+    if (match[1] > 0) {
+      op <- regmatches(s, match)
+      parts <- strsplit(s, rel_pattern, perl = TRUE)[[1]]
+
+      if (length(parts) == 2) {
+        left  <- format_with_style(escape_latex(trimws(parts[1])))
+        right <- format_with_style(escape_latex(trimws(parts[2])))
+        latex_op <- switch(op,
+                           "<=" = "\\le",
+                           ">=" = "\\ge",
+                           "==" = "=")
+
+        if (math) {
+          paste0("$", left, " ", latex_op, " ", right, "$")
+        } else {
+          paste0(left, " $", latex_op, "$ ", right)
+        }
+      } else {
+        txt <- format_with_style(escape_latex(s))
+        if (math) paste0("$", txt, "$") else txt
+      }
+    } else {
+      txt <- format_with_style(escape_latex(s))
+      if (math) paste0("$", txt, "$") else txt
+    }
+  }, USE.NAMES = FALSE)
 }
+
+
+# as_latex.character <- function(x, math = FALSE, bold = FALSE, italic = FALSE) {
+#   if (!is.character(x)) stop("Input must be a character string.")
+#
+#   latex_txt_style <- function(txt) {
+#     txt <- escape_latex(txt)
+#     if (bold) txt <- paste0("\\textbf{", txt, "}")
+#     if (italic) txt <- paste0("\\textit{", txt, "}")
+#     if (math)  txt <- paste0("$", txt, "$")
+#     return(txt)
+#   }
+#
+#   sapply(x, function(s) latex_txt_style(s), USE.NAMES = FALSE)
+# }
 
 #' @export
 #' @method as_latex set
@@ -537,7 +585,7 @@ as_latex.sum <- function(x, brackets = NULL, ...) {
       collapse = ", ")
 
     if (inherits(cond, "where")) {
-      # Named condition: i ∈ \mathsf{s4}
+      # Named condition: i ∈ \mathsf{m4}
       set_name <- paste0("\\mathsf{", cond$name, "}")
       index_latex <- paste0(idx_latex, " \\in ", set_name)
 
@@ -687,11 +735,23 @@ as_latex.equation <- function(x,
       ))
   }
   # dims and mapping
-  preamble <- c(
-    preamble,
-    paste0("\\quad$\\textbf{", as_latex(x$name), "}_{", dims_latex, "}$"),
-    paste0("$\\mid\\left\\{", dims_latex,"\\right\\} \\in ", mapping_latex, "$ \\\\")
-  )
+  # preamble <- c(
+    # preamble,
+    # paste0("\\quad$\\textbf{", as_latex(x$name), "}_{", dims_latex, "}$"),
+    # paste0("$\\mid\\left\\{", dims_latex,"\\right\\} \\in ", mapping_latex, "$ \\\\")
+  # )
+  preamble <- c(preamble, paste0("\\quad$\\textbf{", as_latex(x$name), "}"))
+  if (nchar(dims_latex) > 0) {
+    preamble <- c(preamble, paste0("_{", dims_latex, "}$"))
+  } else {
+    preamble[length(preamble)] <- paste0(preamble[length(preamble)], "$")
+  }
+  if (!is.null(mapping_latex)) {
+    preamble <- c(
+      preamble,
+      paste0("$\\mid\\left\\{", dims_latex,"\\right\\} \\in ",
+             mapping_latex, "$ \\\\"))
+  }
 
   # Prepare where: block if needed
   where_lines <- character()
@@ -705,7 +765,7 @@ as_latex.equation <- function(x,
     if (length(where_map) > 0) {
       where_lines <- character()
       for (nm in names(where_map)) {
-        def <- as_latex(where_map[[nm]], inline_where = TRUE, ...)
+        def <- as_latex(where_map[[nm]]$content, inline_where = TRUE, ...)
         # browser()
         # def <- replace_mapping_placeholders(def)
         # nm_greek <- replace_mapping_placeholders(nm)
@@ -728,7 +788,7 @@ as_latex.equation <- function(x,
                          # "\\end{flushleft}",
                          "\\end{multicols}")
       }
-      where_lines <- c("\\textbf{where:} \\\\", where_lines)
+      where_lines <- c("\\texttt{where:} \\\\", where_lines)
 
       # where_lines <- c("\\textbf{where:}",
       #                  # "\\begin{flushleft}",
@@ -827,17 +887,23 @@ format_latex_aligned <- function(lhs, rhs, rel = "=", max_len = 80) {
     return(paste0("&", lhs, " ", rel, " ", rhs, " \\\\"))
   }
 
+  if (lhs_len < max_len / 2) {
+    lhs <- paste0(lhs, " ", rel)
+    rel <- ""
+  }
+
+
   lines <- paste0("&", lhs, " \\\\")
   # LHS is too long, split it
   if (lhs_len >= max_len) {
     lhs_parts <- split_at_top_level_operators(lhs, max_len = max_len - 10)
     # lines <- character()
     # lines[1] <- paste0("&", lhs, " \\\\")
-    # lines[2] <- paste0("&\\quad", rel, " ", rhs_parts[1], " \\")
+    # lines[2] <- paste0("&\\qquad", rel, " ", rhs_parts[1], " \\")
     if (length(lhs_parts) > 1) {
       lines <- paste0("&", lhs_parts[1], " \\\\")
       for (i in 2:length(lhs_parts)) {
-        lines <- c(lines, paste0("&\\quad ", lhs_parts[i], " \\\\") )
+        lines <- c(lines, paste0("&\\qquad\\qquad ", lhs_parts[i], " \\\\") )
       }
     } else {
       # unsuccessful split
@@ -853,16 +919,16 @@ format_latex_aligned <- function(lhs, rhs, rel = "=", max_len = 80) {
     )
     # lines[1] <- paste0("&", lhs, " ", rel, " ", rhs_parts[1], " \\")
     if (length(rhs_parts) > 1) {
-      lines_rhs <- paste0("&\\quad ", rel, rhs_parts[1], " \\\\")
+      lines_rhs <- paste0("&\\qquad\\qquad ", rel, rhs_parts[1], " \\\\")
       for (i in 2:length(rhs_parts)) {
-        lines_rhs[i] <- paste0("&\\quad ", rhs_parts[i], " \\\\")
+        lines_rhs[i] <- paste0("&\\qquad\\qquad ", rhs_parts[i], " \\\\")
       }
     } else {
       # unsuccessful split
-      lines_rhs <- paste0("&\\quad ", rel, " ", rhs_parts[1], " \\\\")
+      lines_rhs <- paste0("&\\qquad\\qquad ", rel, " ", rhs_parts[1], " \\\\")
     }
   } else {
-    lines_rhs <- paste0("&\\quad ", rel, " ", rhs, " \\\\")
+    lines_rhs <- paste0("&\\qquad\\qquad ", rel, " ", rhs, " \\\\")
   }
 
   # Combine LHS and RHS lines
@@ -930,7 +996,7 @@ split_at_top_level_operators <- function(
   return(latex_str)
 }
 
-#' Replace mapping placeholders like \texttt{s1} with styled math symbols
+#' Replace mapping placeholders like \texttt{m1} with styled math symbols
 #'
 #' @param latex_str A character vector of LaTeX lines.
 #' @param style One of "mathcal", "psi", "phi", or "custom".
@@ -951,8 +1017,8 @@ replace_mapping_placeholders <- function(latex_str,
 
   # browser()
   for (i in 1:99) {
-    # pattern <- paste0("\\mathsf\\{s", i, "\\}")
-    pattern <- paste0("\\\\(texttt|mathsf)\\{s", i, "\\}")
+    # pattern <- paste0("\\mathsf\\{m", i, "\\}")
+    pattern <- paste0("\\\\(texttt|mathsf)\\{m", i, "\\}")
     # replacement <- switch(style,
     #                       mathcal = paste0("\\\\mathcal{M}_{", i, "}"),
     #                       psi     = paste0("\\\\psi_{", i, "}"),

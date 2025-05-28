@@ -247,7 +247,8 @@ new_model <- function(
     mappings = list(),
     parameters = list(),
     variables = list(),
-    equations = list()
+    equations = list(),
+    ...
 ) {
   structure(
     list(
@@ -258,7 +259,8 @@ new_model <- function(
       mappings = mappings, # Named list of mapping sets
       parameters = parameters, # Named list of parameter
       variables = variables, # Named list of variable
-      equations = equations # Named list of equation
+      equations = equations, # Named list of equation
+      ...
     ),
     class = c("model", "multimod")
   )
