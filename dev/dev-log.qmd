@@ -86,7 +86,16 @@ usethis::use_data_raw()
 # usethis::use_pkgdown_github_pages()
 # usethis::use_logo("tmp/multimod.png", retina = TRUE)
 # pkgdown::build_favicons(overwrite = TRUE)
-usethis::use_news_md()
+# usethis::use_news_md()
+usethis::use_version()
+?usethis::use_badge()
+usethis::use_lifecycle_badge("experimental")
+usethis::use_cran_badge()
+usethis::use_code_of_conduct("supportopensource@optmialsolution.dev")
+usethis::use_badge()
+# [![CRAN status](https://www.r-pkg.org/badges/version/usethis)](https://CRAN.R-project.org/package=usethis)
+# [![Codecov test coverage](https://codecov.io/gh/r-lib/usethis/graph/badge.svg)](https://app.codecov.io/gh/r-lib/usethis)
+
 
 # render `README.Rmd` regularly, to keep `README.md` up-to-date.
 devtools::build_readme()

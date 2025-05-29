@@ -29,7 +29,7 @@
 
     <a class="navbar-brand me-2" href="index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.0.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.0.1.9001</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -65,7 +65,7 @@
 </h1>
 </div>
 <!-- badges: start -->
-<!-- badges: end -->
+
 <p>The <code>multimod</code> R package defines a domain-specific language (DSL) and internal representation for mathematical programming models. It enables parsing, manipulation, and export of equations and constraints across multiple modeling languages including GAMS, Pyomo, JuMP, and LaTeX.</p>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
@@ -131,30 +131,47 @@
 </h2>
 <p>Load a GAMS model and parse</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">model_info</span> <span class="op">&lt;-</span> <span class="fu">read_gams</span><span class="op">(</span><span class="st">"my_model.gms"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">class</a></span><span class="op">(</span><span class="va">model_info</span><span class="op">)</span> <span class="co"># "model_structure"</span></span>
-<span></span>
-<span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/as_multimod.html">as_multimod</a></span><span class="op">(</span><span class="va">model_info</span>, name <span class="op">=</span> <span class="st">"My model in multimod format"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">class</a></span><span class="op">(</span><span class="va">mod</span><span class="op">)</span> <span class="co"># "multimod" "ast"</span></span></code></pre></div>
-<p>Render a specific equation to Julia/JuMP</p>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://optimal2050.github.io/multimod">multimod</a></span><span class="op">)</span></span>
+<span><span class="va">model_info</span> <span class="op">&lt;-</span> <span class="fu">read_gams</span><span class="op">(</span><span class="st">"my_model.gms"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">class</a></span><span class="op">(</span><span class="va">model_info</span><span class="op">)</span> <span class="co"># "model_structure"</span></span></code></pre></div>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="op">{</span><span class="fu"><a href="reference/as_jump.html">as_jump</a></span><span class="op">(</span><span class="va">mod</span><span class="op">$</span><span class="va">equations</span><span class="op">[[</span><span class="st">"eqObjective"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">}</span></span></code></pre></div>
-<p>Visualize equation tree</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://datastorm-open.github.io/visNetwork/" class="external-link">visNetwork</a></span><span class="op">)</span></span>
-<span><span class="fu"><a href="reference/as_visNetwork.html">as_visNetwork</a></span><span class="op">(</span><span class="va">mod</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqObjective</span><span class="op">)</span></span></code></pre></div>
-<p>Convert to LaTeX</p>
+<code class="sourceCode R"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/as_multimod.html">as_multimod</a></span><span class="op">(</span><span class="va">model_info</span>, name <span class="op">=</span> <span class="st">"My model in multimod format"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">class</a></span><span class="op">(</span><span class="va">mod</span><span class="op">)</span> <span class="co"># "model"    "multimod"</span></span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="co">#&gt; [1] "model"    "multimod"</span></span></code></pre></div>
+<p>AST elements: an example equation</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="reference/as_latex.html">as_latex</a></span><span class="op">(</span><span class="va">mod</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqObjective</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p>Write the entire model to LaTeX</p>
+<code class="sourceCode R"><span><span class="va">eq</span> <span class="op">&lt;-</span> <span class="va">mod</span><span class="op">$</span><span class="va">equations</span><span class="op">[[</span><span class="st">"eqObjective"</span><span class="op">]</span><span class="op">]</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">eq</span><span class="op">)</span></span>
+<span><span class="co">#&gt; &lt;AST equation&gt; eqObjective</span></span>
+<span><span class="co">#&gt;   relation:  == </span></span>
+<span><span class="co">#&gt;   lhs:  vObjective </span></span>
+<span><span class="co">#&gt;   rhs:  sum(if (mvTotalCost[region,year]) {[region,year]}v...</span></span></code></pre></div>
+<p>Render an equation to LaTeX</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/as_latex.html">as_latex</a></span><span class="op">(</span><span class="va">eq</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mtext mathvariant="italic">𝑣𝑂𝑏𝑗𝑒𝑐𝑡𝑖𝑣𝑒</mtext><mo>=</mo><munder><mo>∑</mo><mrow><mrow><mi>r</mi><mo>,</mo><mi>y</mi></mrow><mo>∈</mo><msub><mtext mathvariant="sans-serif">𝗆𝗏𝖳𝗈𝗍𝖺𝗅𝖢𝗈𝗌𝗍</mtext><mrow><mi>r</mi><mo>,</mo><mi>y</mi></mrow></msub></mrow></munder><mrow><msub><mtext mathvariant="italic">𝑣𝑇𝑜𝑡𝑎𝑙𝐶𝑜𝑠𝑡</mtext><mrow><mi>r</mi><mo>,</mo><mi>y</mi></mrow></msub><mo>⋅</mo><msub><mtext mathvariant="sans-serif">𝗉𝖯𝖾𝗋𝗂𝗈𝖽𝖫𝖾𝗇</mtext><mi>y</mi></msub><mo>⋅</mo><msub><mtext mathvariant="sans-serif">𝗉𝖣𝗂𝗌𝖼𝗈𝗎𝗇𝗍𝖥𝖺𝖼𝗍𝗈𝗋</mtext><mrow><mi>r</mi><mo>,</mo><mi>y</mi></mrow></msub></mrow></mrow><annotation encoding="application/x-tex">
+\textit{vObjective} = \sum_{{r,y} \in \textsf{mvTotalCost}_{r,y}} {\textit{vTotalCost}_{r,y}  \cdot  \textsf{pPeriodLen}_{y}  \cdot  \textsf{pDiscountFactor}_{r,y}}
+</annotation></semantics></math></p>
+<p>Render a specific equation to GAMS or Julia/JuMP</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/as_gams.html">as_gams</a></span><span class="op">(</span><span class="va">eq</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; eqObjective..</span></span>
+<span><span class="co">#&gt;   vObjective =e=</span></span>
+<span><span class="co">#&gt;   sum(([region,year])$mvTotalCost[region,year], vTotalCost[region,year] * pPeriodLen[year] * pDiscountFactor[region,year]);</span></span>
+<span><span class="co"># {as_jump(mod$equations[["eqObjective"]])}</span></span></code></pre></div>
+<p>Visualize equation tree</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://datastorm-open.github.io/visNetwork/" class="external-link">visNetwork</a></span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/as_visNetwork.html">as_visNetwork</a></span><span class="op">(</span><span class="va">eq</span><span class="op">)</span></span></code></pre></div>
+<p>Write the entire model to LaTeX</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">write_latex</span><span class="op">(</span><span class="va">mod</span>, </span>
 <span>            file <span class="op">=</span> <span class="st">"my_multimod_model.tex"</span>,</span>
 <span>            title <span class="op">=</span> <span class="st">"My multimod model equations"</span>,</span>
 <span>            subtitle <span class="op">=</span> <span class="st">"Generated by multimod package"</span><span class="op">)</span></span>
 <span><span class="fu">tinytex</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/tinytex/man/latexmk.html" class="external-link">pdflatex</a></span><span class="op">(</span><span class="st">"my_multimod_model.tex"</span><span class="op">)</span></span></code></pre></div>
 <p>Save to GAMS</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/write_gams.html">write_gams</a></span><span class="op">(</span><span class="va">mod</span>, file <span class="op">=</span> <span class="st">"my_multimod_model.gms"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
@@ -176,6 +193,12 @@
 </ul>
 </div>
 
+<div class="community">
+<h2 data-toc-skip>Community</h2>
+<ul class="list-unstyled">
+<li><a href="CODE_OF_CONDUCT.html">Code of conduct</a></li>
+</ul>
+</div>
 
 <div class="citation">
 <h2 data-toc-skip>Citation</h2>
@@ -191,7 +214,14 @@
 </ul>
 </div>
 
-
+<div class="dev-status">
+<h2 data-toc-skip>Dev status</h2>
+<ul class="list-unstyled">
+<li><a href="https://lifecycle.r-lib.org/articles/stages.html#experimental" class="external-link"><img src="https://img.shields.io/badge/lifecycle-experimental-orange.svg" alt="Lifecycle: experimental"></a></li>
+<li><a href="https://CRAN.R-project.org/package=multimod" class="external-link"><img src="https://www.r-pkg.org/badges/version/multimod" alt="CRAN status"></a></li>
+<li><a href="code_of_conduct.html"><img src="https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg" alt="Contributor Covenant"></a></li>
+</ul>
+</div>
 
   </aside>
 </div>

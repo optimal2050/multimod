@@ -5,6 +5,12 @@
 
 <!-- badges: start -->
 
+[![Lifecycle:
+experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+[![CRAN
+status](https://www.r-pkg.org/badges/version/multimod)](https://CRAN.R-project.org/package=multimod)
+[![Contributor
+Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](code_of_conduct.md)
 <!-- badges: end -->
 
 The `multimod` R package defines a domain-specific language (DSL) and
@@ -76,30 +82,54 @@ braces `{{}}` are potential extensions.
 Load a GAMS model and parse
 
 ``` r
+library(multimod)
 model_info <- read_gams("my_model.gms")
 class(model_info) # "model_structure"
-
-mod <- as_multimod(model_info, name = "My model in multimod format")
-class(mod) # "multimod" "ast"
 ```
 
-Render a specific equation to Julia/JuMP
+``` r
+mod <- as_multimod(model_info, name = "My model in multimod format")
+class(mod) # "model"    "multimod"
+```
+
+    #> [1] "model"    "multimod"
+
+AST elements: an example equation
 
 ``` r
-{as_jump(mod$equations[["eqObjective"]])}
+eq <- mod$equations[["eqObjective"]]
+print(eq)
+#> <AST equation> eqObjective
+#>   relation:  == 
+#>   lhs:  vObjective 
+#>   rhs:  sum(if (mvTotalCost[region,year]) {[region,year]}v...
+```
+
+Render an equation to LaTeX
+
+``` r
+as_latex(eq) |> cat()
+```
+
+$$
+\textit{vObjective} = \sum_{{r,y} \in \textsf{mvTotalCost}_{r,y}} {\textit{vTotalCost}_{r,y}  \cdot  \textsf{pPeriodLen}_{y}  \cdot  \textsf{pDiscountFactor}_{r,y}}
+$$
+
+Render a specific equation to GAMS or Julia/JuMP
+
+``` r
+as_gams(eq) |> cat()
+#> eqObjective..
+#>   vObjective =e=
+#>   sum(([region,year])$mvTotalCost[region,year], vTotalCost[region,year] * pPeriodLen[year] * pDiscountFactor[region,year]);
+# {as_jump(mod$equations[["eqObjective"]])}
 ```
 
 Visualize equation tree
 
 ``` r
 library(visNetwork)
-as_visNetwork(mod$equations$eqObjective)
-```
-
-Convert to LaTeX
-
-``` r
-as_latex(mod$equations$eqObjective) |> cat()
+as_visNetwork(eq)
 ```
 
 Write the entire model to LaTeX
