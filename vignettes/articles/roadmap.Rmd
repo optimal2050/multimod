@@ -1,5 +1,5 @@
 ---
-title: "devstatus"
+title: "Development Status and Roadmap"
 ---
 
 ```{r, include = FALSE}
@@ -10,7 +10,7 @@ knitr::opts_chunk$set(
 ```
 
 
-# Development Status: `multimod`
+<!-- # Development Status and Roadmap -->
 
 The `multimod` package is under active but experimental development. This document outlines current capabilities, design scope, limitations, and roadmap for future enhancements.
 
@@ -97,7 +97,7 @@ Ways to help:
 - Share use cases or example models
 - Sponsor development of specific features (e.g., Pyomo exporter)
 
-For contributions, visit: [https://github.com/optimal2050/multimod](https://github.com/optimal2050/multimod)
+For contributions, visit: [https://github.com/optimal2050/multimod](https://github.com/optimal2050/multimod)  
 Contact: supportopensource@optimalsolution.dev 
 
 
