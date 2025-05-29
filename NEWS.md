@@ -1,3 +1,3 @@
 # multimod (development version)
 
-* Initial CRAN submission.
+* Initial GitHub release.
