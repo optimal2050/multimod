@@ -435,14 +435,14 @@ parse_gams_expr <- function(
   return(ast_symbol(expr))
 }
 
-read_gams_model <- function(
+read_gams <- function(
     file_or_text,
     include = TRUE,
     interim_file = NULL,
     strict = TRUE,
     verbose = FALSE,
     ...) {
-  # browser()
+  browser()
   if (file.exists(file_or_text)) {
     lines <- readLines(file_or_text, encoding = "UTF-8")
   } else {
@@ -661,7 +661,7 @@ read_gams_model <- function(
 
     if (verbose) cat(i, line, "\n")
 
-    ## Mode-based parsing
+    ## Mode-based parsing ####
     if (!is.null(mode) && mode == "sets") {
       # drop data - everything after the first "/"
       line <- sub("/.*$", "", line)
@@ -766,8 +766,12 @@ read_gams_model <- function(
     }
 
     # browser()
-    ## Outside declarations: detect equation body
+    ## Outside declarations: detect equation body ####
     eq_header <- parse_equation_header(line)
+    if (!is.null(eq_header) &&
+        grepl("S7_StorageLevelYearFinish", eq_header$name, ignore.case = TRUE)) {
+      browser() # debug
+    }
     if (!is.null(eq_header)) {
       eq_name <- eq_header$name
       body_accum <- character(0)
@@ -824,7 +828,7 @@ read_gams_model <- function(
 }
 
 parse_equation_header <- function(line) {
-  # browser()
+  browser()
   pattern_step1 <- "^\\s*(.*?)\\s*\\.\\.\\s*$"
   # if (!grepl(pattern_step1, line)) stop("Invalid GAMS equation header")
   if (!grepl(pattern_step1, line)) return(NULL) # not an equation header

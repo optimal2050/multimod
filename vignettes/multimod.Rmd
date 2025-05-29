@@ -9,78 +9,82 @@ editor_options:
   chunk_output_type: console
 ---
 
-```{r, include = FALSE, message = FALSE, warning = FALSE, eval=FALSE}
+```{r, include = FALSE, message = FALSE, warning = FALSE, eval=TRUE}
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
   eval = FALSE
 )
 library(here)
-gams_file <- here("../energyRt/gams/energyRt.gms")
-# gams_file <- "https://github.com/optimal2050/energyRt/blob/master/gams/energyRt.gms"
-gams_file <- "https://raw.githubusercontent.com/optimal2050/energyRt/refs/heads/master/gams/energyRt.gms"
-
-# gams_file <-
-# url("https://raw.githubusercontent.com/optimal2050/energyRt/refs/heads/master/gams/energyRt.gms")
-
-# download.file(
-#   gams_file,
-#   destfile = "tmp/energyRt.gms",
-#   method = "curl"
-# )
-gams_file <- here("tmp/energyRt.gms")
-
-
-file.exists(gams_file)
-
 ```
 
 ```{r setup}
-# library(multimod)
-# require(visNetwork, quietly = TRUE)
+library(multimod)
+library(lobstr)
+require(visNetwork, quietly = TRUE)
 ```
 
+## Download example model
+```{r}
+gams_source <- file.path(tempdir(), "energyRt.gms")
+
+# Download "energyRt.gms" GAMS model source file from GitHub
+download.file(
+  url = file.path("https://raw.githubusercontent.com/optimal2050/energyRt",
+                  "refs/heads/master/gams/energyRt.gms"),
+  destfile = gams_source,
+  method = "curl"
+)
+
+file.exists(gams_source)
+```
+
+```{r, echo=FALSE, eval=TRUE}
+gams_source <- here("tmp/energyRt.gms")
+```
 
 ## Import GAMS model structure
+Model structure is a list of symbols, sets, parameters, variables, equations, and other model components. No model data or operations is imported from the GAMS source file. This is an interim step before converting to multimod model. The object of class `model_structure` contains the imported model elements (sets, equations, etc.) in text format. 
 ```{r, eval=FALSE}
-model_info <- read_gams_model(gams_file, include = T, verbose = F)
-class(model_info)
-str(model_info, max.level = 1)
-print.model_structure(model_info)
-# Collect all symbols
-symbols <- build_symbols_list(model_info)
-str(symbols, max.level = 1)
-# lobstr::tree(symbols, max_length = 10, max_depth = 3)
-# analyze an equation
-ast_node <- parse_gams_equation(model_info$equations[[1]], symbols)
-# ast_node <- coerce_gams_equation(model_info$equations$eqTechCapUp, symbols)
-# ast_node <- coerce_gams_equation(model_info$equations$eqTechSng2Sng, symbols)
-map_ast(ast_node, function(x) {if (is.list(x)) x$brackets}) |> tree()
+mod_str <- read_gams(gams_source, include = FALSE, verbose = FALSE)
+print(mod_str)
+```
 
-model_info$equations$eqTechCapUp
+## Convert to multimod model
+
+```{r, eval=TRUE}
+# Collect all symbols
+symbols <- build_symbols_list(mod_str)
+# analyze an equation
+ast_node <- parse_gams_equation(mod_str$equations[[1]], symbols)
+# ast_node <- coerce_gams_equation(mod_str$equations$eqTechCapUp, symbols)
+# ast_node <- coerce_gams_equation(mod_str$equations$eqTechSng2Sng, symbols)
+# map_ast(ast_node, function(x) {if (is.list(x)) x$brackets}) |> tree()
+
+mod_str$equations$eqTechCapUp
 
 # str(ast_node, max.level = 5)
 lobstr::tree(ast_node, max_length = 100, max_depth = 5)
 
-plot.multimod_ast(ast_node)
+as_visNetwork(ast_node)
 
-multimod <- as_multimod(model_info)
+multimod <- as_multimod(mod_str)
 
 eq_obj <- parse_gams_equation(
-  model_info$equations$eqTechSng2Sng,
-  # model_info$equations[[2]],
-  # model_info$equations$eqTechCap,
-  # model_info$equations$eqTechCapUp,
-  # model_info$equations$eqTechAInp,
-  # model_info$equations$eqExportRowCost,
-  # model_info$equations$eqTechGrp2Sng,
-  # model_info$equations$eqTechSng2Grp,
-  # model_info$equations$eqEmsFuelTot,
-  # model_info$equations$eqStorageStore,
-  # model_info$equations$eqOutTot,
+  mod_str$equations$eqTechSng2Sng,
+  # mod_str$equations[[2]],
+  # mod_str$equations$eqTechCap,
+  # mod_str$equations$eqTechCapUp,
+  # mod_str$equations$eqTechAInp,
+  # mod_str$equations$eqExportRowCost,
+  # mod_str$equations$eqTechGrp2Sng,
+  # mod_str$equations$eqTechSng2Grp,
+  # mod_str$equations$eqEmsFuelTot,
+  # mod_str$equations$eqStorageStore,
+  # mod_str$equations$eqOutTot,
   symbols
 )
-# gams_to_multimod(model_info$equations$eqTechCapUp$gams, symbols)
+# gams_to_multimod(mod_str$equations$eqTechCapUp$gams, symbols)
 
 eq_obj$name
 class(eq_obj)
@@ -118,7 +122,7 @@ if (F) {
   expr <- "mTechNew(t,r,yp) and ordYear(y) >= ordYear(yp) or mTechOlifeInf(t,r)"
   top_level_operators(expr, descending = TRUE)
   ast <- parse_gams_expr(expr)
-  # ast <- parse_gams_expr(model_info$equations$eqTechCapUp, symbols)
+  # ast <- parse_gams_expr(mod_str$equations$eqTechCapUp, symbols)
   # "mTechNew(t,r,yp) and ordYear(y) >= ordYear(yp) or mTechOlifeInf(t,r)"
   class(ast)
   # as.character(ast) |> cat()
@@ -135,7 +139,7 @@ if (F) {
 eq_obj <- multimod$equations$eqTechGrp2Grp
 eq_obj <- multimod$equations$eqTechAfLo
 # eq_obj <- multimod$equations$eqTechAfsLo
-# eq_string <- model_info$equations$eqTechGrp2Grp$gams
+# eq_string <- mod_str$equations$eqTechGrp2Grp$gams
 lobstr::tree(eq_obj)
 as_visNetwork(eq_obj)
 # eq <- normalize_linear_eqn(eq_obj, lhs_var_name = "vTechAct")
@@ -149,8 +153,8 @@ as_visNetwork(multimod$equations$eqExportRowCost)
 
 ## LaTeX
 ```{r, eval=FALSE}
-model_info <- read_gams_model(gams_file, include = FALSE)
-multimod <- as_multimod(model_info)
+mod_str <- read_gams(gams_file, include = FALSE)
+multimod <- as_multimod(mod_str)
 eq_obj <- multimod$equations$eqTechAfsLo
 eq_obj <- multimod$equations$eqTechCap
 
