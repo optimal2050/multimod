@@ -11,7 +11,7 @@ development:
 navbar:
   # bg: light
   structure:
-    left:  [intro, reference, roadmap, articles, news]
+    left:  [home, multimod, reference, roadmap, articles, news]
     right: [search, github, lightswitch]
   components:
     news:
@@ -22,9 +22,9 @@ navbar:
       menu:
       - text: AST
         # href: articles/install.html
-    devstatus:
-      text: Development Status
-      href: articles/devstatus.html
+    roadmap:
+      text: "{devstatus}"
+      href: articles/roadmap.html
 
 
 reference:

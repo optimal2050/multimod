@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>devstatus • multimod</title>
+<title>Development Status and Roadmap • multimod</title>
 <!-- favicons --><link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="icon" type="image/png" sizes="32x32" href="../favicon-32x32.png">
 <link rel="apple-touch-icon" type="image/png" sizes="180x180" href="../apple-touch-icon.png">
@@ -16,7 +16,7 @@
 <link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="devstatus">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Development Status and Roadmap">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -36,7 +36,7 @@
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="active nav-item"><a class="nav-link" href="../articles/devstatus.html">Development Status</a></li>
+<li class="active nav-item"><a class="nav-link" href="../articles/roadmap.html">{devstatus}</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-tutorials" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Tutorials</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials">
@@ -61,25 +61,23 @@
 
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
-      <img src="../logo.png" class="logo" alt=""><h1>devstatus</h1>
+      <img src="../logo.png" class="logo" alt=""><h1>Development Status and Roadmap</h1>
             
       
 
-      <div class="d-none name"><code>devstatus.Rmd</code></div>
+      <div class="d-none name"><code>roadmap.Rmd</code></div>
     </div>
 
     
     
-<div class="section level2">
-<h2 id="development-status-multimod">Development Status: <code>multimod</code><a class="anchor" aria-label="anchor" href="#development-status-multimod"></a>
-</h2>
+<!-- # Development Status and Roadmap -->
 <p>The <code>multimod</code> package is under active but experimental
 development. This document outlines current capabilities, design scope,
 limitations, and roadmap for future enhancements.</p>
 <hr>
-<div class="section level3">
-<h3 id="whats-implemented">✔️ What’s Implemented<a class="anchor" aria-label="anchor" href="#whats-implemented"></a>
-</h3>
+<div class="section level2">
+<h2 id="whats-implemented">✔️ What’s Implemented<a class="anchor" aria-label="anchor" href="#whats-implemented"></a>
+</h2>
 <ul>
 <li>GAMS-style equation parsing into symbolic abstract syntax trees
 (AST)</li>
@@ -106,9 +104,9 @@ limitations, and roadmap for future enhancements.</p>
 </ul>
 <hr>
 </div>
-<div class="section level3">
-<h3 id="current-limitations">🔒 Current Limitations<a class="anchor" aria-label="anchor" href="#current-limitations"></a>
-</h3>
+<div class="section level2">
+<h2 id="current-limitations">🔒 Current Limitations<a class="anchor" aria-label="anchor" href="#current-limitations"></a>
+</h2>
 <ul>
 <li>Limited to <strong>linear programming (LP)</strong> models only</li>
 <li>Designed closely around the <code>energyRt</code> models
@@ -122,9 +120,9 @@ definitions</li>
 </ul>
 <hr>
 </div>
-<div class="section level3">
-<h3 id="project-philosophy">🎯 Project Philosophy<a class="anchor" aria-label="anchor" href="#project-philosophy"></a>
-</h3>
+<div class="section level2">
+<h2 id="project-philosophy">🎯 Project Philosophy<a class="anchor" aria-label="anchor" href="#project-philosophy"></a>
+</h2>
 <p>The goal of <code>multimod</code> is <strong>not</strong> to automate
 full model translation or parsing. Instead, it aims to:</p>
 <ul>
@@ -138,9 +136,9 @@ for multi-language export</li>
 hand, especially during development, testing, or educational use.</p>
 <hr>
 </div>
-<div class="section level3">
-<h3 id="potential-use-cases">🧭 Potential Use Cases<a class="anchor" aria-label="anchor" href="#potential-use-cases"></a>
-</h3>
+<div class="section level2">
+<h2 id="potential-use-cases">🧭 Potential Use Cases<a class="anchor" aria-label="anchor" href="#potential-use-cases"></a>
+</h2>
 <ul>
 <li>Model prototyping and equation editing</li>
 <li>Generation of readable documentation (e.g., LaTeX equation
@@ -152,9 +150,9 @@ listings)</li>
 </ul>
 <hr>
 </div>
-<div class="section level3">
-<h3 id="planned-features">🔜 Planned Features<a class="anchor" aria-label="anchor" href="#planned-features"></a>
-</h3>
+<div class="section level2">
+<h2 id="planned-features">🔜 Planned Features<a class="anchor" aria-label="anchor" href="#planned-features"></a>
+</h2>
 <ul>
 <li>Input parsing support for:
 <ul>
@@ -182,9 +180,9 @@ listings)</li>
 </ul>
 <hr>
 </div>
-<div class="section level3">
-<h3 id="contributing-sponsorship">🤝 Contributing &amp; Sponsorship<a class="anchor" aria-label="anchor" href="#contributing-sponsorship"></a>
-</h3>
+<div class="section level2">
+<h2 id="contributing-sponsorship">🤝 Contributing &amp; Sponsorship<a class="anchor" aria-label="anchor" href="#contributing-sponsorship"></a>
+</h2>
 <p>The package is under active development. Contributions are
 welcome!</p>
 <p>Ways to help:</p>
@@ -194,9 +192,8 @@ welcome!</p>
 <li>Share use cases or example models</li>
 <li>Sponsor development of specific features (e.g., Pyomo exporter)</li>
 </ul>
-<p>For contributions, visit: <a href="https://github.com/optimal2050/multimod" class="external-link">https://github.com/optimal2050/multimod</a>
+<p>For contributions, visit: <a href="https://github.com/optimal2050/multimod" class="external-link">https://github.com/optimal2050/multimod</a><br>
 Contact: <a href="mailto:supportopensource@optimalsolution.dev" class="email">supportopensource@optimalsolution.dev</a></p>
-</div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
