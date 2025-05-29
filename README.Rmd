@@ -101,7 +101,7 @@ as_visNetwork(mod$equations$eqObjective)
 ```
 
 Convert to LaTeX
-```r
+```{r, eval=FALSE}
 as_latex(mod$equations$eqObjective) |> cat()
 ```
 
