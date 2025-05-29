@@ -16,7 +16,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r setup}
+```{r setup, eval=FALSE}
 library(multimod)
 library(lobstr)
 library(visNetwork)
@@ -121,7 +121,7 @@ write_latex(m$equations$eqObjective, file = "tmp/eqObjective.tex")
 ```
 
 ### GAMS output
-```{r}
+```{reval=FALSE}
 write_gams(mm, file = "tmp/multimod-test.gms", format_expr = TRUE)
 
 ```

@@ -1,0 +1,229 @@
+---
+title: "multimod"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{multimod}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, include = FALSE, message = FALSE, warning = FALSE, eval=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE
+)
+library(here)
+gams_file <- here("../energyRt/gams/energyRt.gms")
+# gams_file <- "https://github.com/optimal2050/energyRt/blob/master/gams/energyRt.gms"
+gams_file <- "https://raw.githubusercontent.com/optimal2050/energyRt/refs/heads/master/gams/energyRt.gms"
+
+# gams_file <-
+# url("https://raw.githubusercontent.com/optimal2050/energyRt/refs/heads/master/gams/energyRt.gms")
+
+# download.file(
+#   gams_file,
+#   destfile = "tmp/energyRt.gms",
+#   method = "curl"
+# )
+gams_file <- here("tmp/energyRt.gms")
+
+
+file.exists(gams_file)
+
+```
+
+```{r setup}
+# library(multimod)
+# require(visNetwork, quietly = TRUE)
+```
+
+
+## Import GAMS model structure
+```{r, eval=FALSE}
+model_info <- read_gams_model(gams_file, include = T, verbose = F)
+class(model_info)
+str(model_info, max.level = 1)
+print.model_structure(model_info)
+# Collect all symbols
+symbols <- build_symbols_list(model_info)
+str(symbols, max.level = 1)
+# lobstr::tree(symbols, max_length = 10, max_depth = 3)
+# analyze an equation
+ast_node <- parse_gams_equation(model_info$equations[[1]], symbols)
+# ast_node <- coerce_gams_equation(model_info$equations$eqTechCapUp, symbols)
+# ast_node <- coerce_gams_equation(model_info$equations$eqTechSng2Sng, symbols)
+map_ast(ast_node, function(x) {if (is.list(x)) x$brackets}) |> tree()
+
+model_info$equations$eqTechCapUp
+
+# str(ast_node, max.level = 5)
+lobstr::tree(ast_node, max_length = 100, max_depth = 5)
+
+plot.multimod_ast(ast_node)
+
+multimod <- as_multimod(model_info)
+
+eq_obj <- parse_gams_equation(
+  model_info$equations$eqTechSng2Sng,
+  # model_info$equations[[2]],
+  # model_info$equations$eqTechCap,
+  # model_info$equations$eqTechCapUp,
+  # model_info$equations$eqTechAInp,
+  # model_info$equations$eqExportRowCost,
+  # model_info$equations$eqTechGrp2Sng,
+  # model_info$equations$eqTechSng2Grp,
+  # model_info$equations$eqEmsFuelTot,
+  # model_info$equations$eqStorageStore,
+  # model_info$equations$eqOutTot,
+  symbols
+)
+# gams_to_multimod(model_info$equations$eqTechCapUp$gams, symbols)
+
+eq_obj$name
+class(eq_obj)
+print(eq_obj)
+class(eq_obj)
+str(eq_obj, max.level = 2)
+lobstr::tree(eq_obj, max_length = 100, max_depth = 10)
+eq_obj$lhs
+eq_obj$relation
+eq_obj$rhs
+eq_obj$rhs |> lobstr::tree(max_length = 100, max_depth = 10)
+
+as_latex(eq_obj) |> cat()
+
+eq_viz <- get_network_data(eq_obj)
+str(eq_viz, max.level = 10)
+eq_viz |> lobstr::tree(max_length = 100, max_depth = 10)
+
+a <- visNetwork::visNetwork(eq_viz$nodes, eq_viz$edges)
+class(a)
+a
+
+# library(visNetwork)
+visNetwork::visNetwork(eq_viz$nodes, eq_viz$edges) |>
+  visNetwork::visNodes(shape = "box", font = list(size = 20)) |>
+  visNetwork::visEdges(arrows = "to") |>
+  visNetwork::visOptions(highlightNearest = TRUE, nodesIdSelection = TRUE) |>
+  visNetwork::visHierarchicalLayout(direction = "LR")
+
+as_visNetwork.multimod_equation(eq_obj, title = eq_obj$name)
+
+if (F) {
+  # parse_gams_expr("mTechNew(t,r,yp) and ordYear(y) >= ordYear(yp) or mTechOlifeInf(t,r)")
+  # ((mTechNew[t,r,yp] and (ordYear[y] >= ordYear[yp])) or mTechOlifeInf[t,r])
+  expr <- "mTechNew(t,r,yp) and ordYear(y) >= ordYear(yp) or mTechOlifeInf(t,r)"
+  top_level_operators(expr, descending = TRUE)
+  ast <- parse_gams_expr(expr)
+  # ast <- parse_gams_expr(model_info$equations$eqTechCapUp, symbols)
+  # "mTechNew(t,r,yp) and ordYear(y) >= ordYear(yp) or mTechOlifeInf(t,r)"
+  class(ast)
+  # as.character(ast) |> cat()
+  lobstr::tree(ast)
+  plot.multimod_ast(ast)
+  plot_d.multimod_ast(ast)
+}
+
+# shiny::runApp(system.file("shiny", package = "visNetwork"))
+# plot_multimod_equation_visnetwork(eq_obj, title = "eqTechCapUp")
+
+# plot(eq_obj$a)
+
+eq_obj <- multimod$equations$eqTechGrp2Grp
+eq_obj <- multimod$equations$eqTechAfLo
+# eq_obj <- multimod$equations$eqTechAfsLo
+# eq_string <- model_info$equations$eqTechGrp2Grp$gams
+lobstr::tree(eq_obj)
+as_visNetwork(eq_obj)
+# eq <- normalize_linear_eqn(eq_obj, lhs_var_name = "vTechAct")
+# as_visNetwork.multimod_equation(eq, )
+
+as_visNetwork(multimod$equations$eqTechAInp)
+
+as_visNetwork(multimod$equations$eqExportRowCost)
+
+```
+
+## LaTeX
+```{r, eval=FALSE}
+model_info <- read_gams_model(gams_file, include = FALSE)
+multimod <- as_multimod(model_info)
+eq_obj <- multimod$equations$eqTechAfsLo
+eq_obj <- multimod$equations$eqTechCap
+
+as_visNetwork.multimod_equation(eq_obj)
+
+as_latex(eq_obj)
+as_latex(eq_obj$lhs)
+
+eq <- remap_ast_elements(eq_obj)
+tree(eq)
+
+as_visNetwork.multimod_equation(eq)
+as_latex(eq) |> cat()
+
+
+write_latex(multimod, 
+            # file = "tmp/multimod.tex"
+            # include_sets = FALSE,
+            # include_aliases = FALSE,
+            # include_parameters = FALSE,
+            # include_variables = FALSE, 
+            # include_equations = FALSE
+            )
+            
+as_latex(eq_obj$lhs)
+
+
+eq_obj$lhs |> tree()
+
+eq <- alias_ast_names(eq_obj, aliases = set_short_names)
+
+eq$lhs |> tree()
+
+as_latex(eq$lhs)
+as_latex(eq) |> cat()
+
+
+
+as_visNetwork.multimod_equation(eq)
+
+
+
+
+# Set
+expr <- multimod$equations$eqTechSng2Sng$lhs$lhs$dims
+class(expr)
+print(expr)
+
+as_latex(
+
+
+```
+
+
+### Parse GAMS expression
+```{r, eval=FALSE, inlude=FALSE}
+expr <- {"
+- sum((comm, slice)$mExportRow(expp, comm, region, year, slice),
+      pExportRowPrice(expp, region, year, slice) * pSliceWeight(year, slice)
+      * vExportRow(expp, comm, region, year, slice)
+  )"}
+
+ast <- parse_gams_expr(expr)
+tree(ast, max_length = 100, max_depth = 10)
+
+plot_d.multimod_ast(ast)
+
+```
+
+
+```{r}
+
+
+
+```
+

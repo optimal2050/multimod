@@ -59,6 +59,7 @@ usethis::use_import_from("rlang", "is_empty")
 
 usethis::use_vignette("multimod")
 usethis::use_vignette("ast")
+usethis::use_article("devstatus")
 
 usethis::use_data_raw()
 
@@ -85,6 +86,7 @@ usethis::use_data_raw()
 # usethis::use_pkgdown_github_pages()
 # usethis::use_logo("tmp/multimod.png", retina = TRUE)
 # pkgdown::build_favicons(overwrite = TRUE)
+usethis::use_news_md()
 
 # render `README.Rmd` regularly, to keep `README.md` up-to-date.
 devtools::build_readme()
@@ -94,6 +96,7 @@ pkgdown::build_home()
 pkgdown::build_home_index()
 pkgdown::build_articles()
 pkgdown::build_reference()
+pkgdown::build_news()
 
 
 # build the whole pkgdown site

@@ -1002,6 +1002,7 @@ split_at_top_level_operators <- function(
 #' @param style One of "mathcal", "psi", "phi", or "custom".
 #' @param base Optional base symbol for style = "custom" (e.g., "M").
 #' @return Updated LaTeX character vector.
+#' @noRd
 replace_mapping_placeholders <- function(latex_str,
                                          mathcal = FALSE,
                                          symbol = ifelse(mathcal, "M", "psi")
