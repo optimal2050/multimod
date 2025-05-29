@@ -1,11 +1,11 @@
 #' Plot a multimod AST using visNetwork
 #'
-#' @param x A multimod_ast object
+#' @param x A ast object
 #' @param ... Additional arguments (currently unused)
 #'
 #' @return A visNetwork plot
 #' @export
-plot.multimod_ast <- function(x, ...) {
+plot.ast <- function(x, ...) {
   nodes <- list()
   edges <- list()
   node_id <- 0
@@ -76,7 +76,7 @@ plot.multimod_ast <- function(x, ...) {
 
 
 # Plot method for AST
-plot_d.multimod_ast <- function(x, ...) {
+plot_d.ast <- function(x, ...) {
   if (!requireNamespace("DiagrammeR", quietly = TRUE)) {
     stop("DiagrammeR package is required to plot AST.")
   }
@@ -420,8 +420,8 @@ as_visNetwork <- function(expr) {
 
 #' @export
 #' @rdname as_visNetwork
-#' @method as_visNetwork multimod_equation
-as_visNetwork.multimod_equation <- function(eq,
+#' @method as_visNetwork equation
+as_visNetwork.equation <- function(eq,
                                             title = NULL,
                                   alias_map = NULL,
                                   show_dims = FALSE) {

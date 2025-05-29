@@ -8,6 +8,25 @@ development:
   mode: unreleased
   version_label: danger
 
+navbar:
+  # bg: light
+  structure:
+    left:  [intro, reference, roadmap, articles, news]
+    right: [search, github, lightswitch]
+  components:
+    news:
+      text: News
+      href: news/index.html
+    articles:
+      text: Tutorials
+      menu:
+      - text: AST
+        # href: articles/install.html
+    devstatus:
+      text: Development Status
+      href: articles/devstatus.html
+
+
 reference:
 - title: Abstract Syntax Tree (AST) classes
   desc:  Data structures to represent mathematical expressions.
@@ -32,9 +51,17 @@ reference:
 - title: LaTeX functions
   desc:  Functions to convert multimod objects to LaTeX.
   contents:
-  - starts_with("latex_")
   - starts_with("as_latex")
   - starts_with("write_latex")
+  - matches("latex")
+
+- title: GAMS-related functions
+  desc:  Functions to read GAMS models and convert multimod objects to GAMS code.
+  contents:
+  - starts_with("read_gams")
+  - starts_with("as_gams")
+  - starts_with("write_gams")
+  - matches("gams")
 
 - title: utility functions
   desc:  Utility functions for multimod.

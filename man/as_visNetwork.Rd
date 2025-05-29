@@ -2,12 +2,12 @@
 % Please edit documentation in R/plot.R
 \name{as_visNetwork}
 \alias{as_visNetwork}
-\alias{as_visNetwork.multimod_equation}
+\alias{as_visNetwork.equation}
 \title{Convert a multimod ast or equation to a visNetwork object}
 \usage{
 as_visNetwork(expr)
 
-\method{as_visNetwork}{multimod_equation}(eq, title = NULL, alias_map = NULL, show_dims = FALSE)
+\method{as_visNetwork}{equation}(eq, title = NULL, alias_map = NULL, show_dims = FALSE)
 }
 \arguments{
 \item{expr}{A multimod object}

@@ -1,0 +1,103 @@
+---
+title: "devstatus"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+
+# Development Status: `multimod`
+
+The `multimod` package is under active but experimental development. This document outlines current capabilities, design scope, limitations, and roadmap for future enhancements.
+
+---
+
+## ✔️ What’s Implemented
+
+- GAMS-style equation parsing into symbolic abstract syntax trees (AST)
+- Structured representation of:
+  - Sets
+  - Parameters
+  - Variables
+  - Mappings
+  - Equations and constraints
+- Rendering of equations to:
+  - GAMS
+  - LaTeX
+  - Julia/JuMP (in progress)
+- Expression tree visualization with **visNetwork**
+- Basic symbolic simplification
+- Integration with `energyRt` data structures
+
+---
+
+## 🔒 Current Limitations
+
+- Limited to **linear programming (LP)** models only
+- Designed closely around the `energyRt` models structure
+- Only GAMS input is currently supported
+- No general-purpose parsing of other languages like JuMP, Pyomo, or AMPL
+- Not intended to convert arbitrary code or full model definitions
+- No direct support for model data input/output formats
+
+---
+
+## 🎯 Project Philosophy
+
+The goal of `multimod` is **not** to automate full model translation or parsing. Instead, it aims to:
+
+- Facilitate development and symbolic restructuring of optimization models
+- Act as a **transparent intermediate representation** for multi-language export
+- Assist with documentation and visualization of models
+
+The symbolic structure enables users to adapt and refine models by hand, especially during development, testing, or educational use.
+
+---
+
+## 🧭 Potential Use Cases
+
+- Model prototyping and equation editing
+- Generation of readable documentation (e.g., LaTeX equation listings)
+- Translating symbolic equations across modeling languages (e.g., GAMS ⇄ JuMP ⇄ Pyomo)
+- Structural visualization for debugging or collaboration
+- Teaching optimization model structure and indexing concepts
+
+---
+
+## 🔜 Planned Features
+
+- Input parsing support for:
+  - `read_jump()`
+  - `read_pyomo()`
+  - `read_gmpl()`
+- Output rendering to:
+  - Pyomo, AMPL, GMPL
+  - Equation simplification and data-driven dimensions reduction ("folding")
+- (Potential) support for:
+  - MPS, CPLEX, Gurobi, other formats
+  - Nonlinear expressions
+  - Integer/binary variables
+  - Equation grouping, tagging, and metadata
+- Enhanced IDE or browser-based visualizations
+
+---
+
+## 🤝 Contributing & Sponsorship
+
+The package is under active development. Contributions are welcome!
+
+Ways to help:
+
+- Open issues for bugs, feature requests, or improvements
+- Propose support for new modeling targets
+- Share use cases or example models
+- Sponsor development of specific features (e.g., Pyomo exporter)
+
+For contributions, visit: [https://github.com/optimal2050/multimod](https://github.com/optimal2050/multimod)
+Contact: supportopensource@optimalsolution.dev 
+
+

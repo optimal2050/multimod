@@ -2,12 +2,12 @@
 # Title: Print Methods for AST and Multimod Classes
 # Description: S3 print methods to display human-readable summaries of multimod and AST objects.
 # Purpose: Improve interpretability and debugging of parsed modeling components.
-# Dependencies: Assumes multimod_ast and multimod_symbol classes are defined.
+# Dependencies: Assumes ast and symbol classes are defined.
 # ---
 
 # This file defines S3 print methods for:
 # - Abstract syntax tree (AST) nodes: expr, var, param, sum, cond, etc.
-# - Multimod domain-specific objects: multimod_equation, multimod_model, etc.
+# - Multimod domain-specific objects: equation, model, etc.
 #
 # Guidelines:
 # * Keep output concise and aligned with class structure
@@ -19,14 +19,14 @@
 # > print(ast_variable("x", dims = c("region", "year")))
 # Variable: x(region, year)
 
-# S3 generic dispatch for print(x) where class(x) is e.g. expr, multimod_equation, etc.
+# S3 generic dispatch for print(x) where class(x) is e.g. expr, equation, etc.
 
 #' @title Print methods for AST classes
 
 #' @export
-#' @method print multimod_ast
-print.multimod_ast <- function(x, ...) {
-  cat("<multimod_ast>", "\n")
+#' @method print ast
+print.ast <- function(x, ...) {
+  cat("<ast>", "\n")
   print(as.character(x), ...)
 }
 

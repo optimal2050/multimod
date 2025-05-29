@@ -1,6 +1,6 @@
 Package: multimod
 Title: Define and Render Mathematical Models Across Multiple Optimization Languages.
-Version: 0.0.0.9000
+Version: 0.0.1.9000
 Authors@R: 
   c(person(given = "Oleg", 
           family = "Lugovoy", 
@@ -28,3 +28,4 @@ Suggests:
     rmarkdown
 VignetteBuilder: knitr
 LazyData: true
+Config/Needs/website: rmarkdown
