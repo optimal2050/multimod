@@ -110,7 +110,11 @@ as.character.mapping <- function(x, ...) {
 #' @export
 #' @method as.character symbol
 as.character.symbol <- function(x, ...) {
-  x$name
+  out <- x$name
+  if (!is_empty(x$dims)) {
+    out <- paste0(out, as.character(x$dims))
+  }
+  out
 }
 
 #' @export
@@ -159,5 +163,24 @@ as.character.sum <- function(x, max_char = 50, ...) {
 #' @method as.character prod
 as.character.prod <- function(x, ...) {
   paste0("prod(", as.character(x$index), as.character(x$value), ")")
+}
+
+#' @export
+#' @method as.character func
+#' @rdname as.character
+as.character.func <- function(x, ...) {
+  val <- if (is.list(x$value)) {
+    sapply(x$value, as.character, ...)
+  } else {
+    as.character(x$value, ...)
+  }
+  val_str <- paste(val, collapse = ", ")
+
+  if (!is.null(x$index)) {
+    idx <- as.character(x$index, ...)
+    return(paste0(x$name, "(", idx, ", ", val_str, ")"))
+  } else {
+    return(paste0(x$name, "(", val_str, ")"))
+  }
 }
 

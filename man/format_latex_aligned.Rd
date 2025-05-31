@@ -4,7 +4,7 @@
 \alias{format_latex_aligned}
 \title{Format a LaTeX equation across multiple lines using aligned}
 \usage{
-format_latex_aligned(lhs, rhs, rel = "=", max_len = 80)
+format_latex_aligned(lhs, rhs, rel = "=", max_len = 90)
 }
 \arguments{
 \item{lhs}{LaTeX string of the left-hand side}
