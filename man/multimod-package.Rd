@@ -14,6 +14,7 @@ Multimod provides a domain-specific language (DSL) for defining algebraic equati
 Useful links:
 \itemize{
   \item \url{https://optimal2050.github.io/multimod}
+  \item \url{https://github.com/optimal2050/multimod}
 }
 
 }

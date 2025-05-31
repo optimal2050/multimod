@@ -33,7 +33,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.0.1.9002</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.0.1.9003</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -86,7 +86,7 @@
 <h2 id="example-equation-1">Example equation #1<a class="anchor" aria-label="anchor" href="#example-equation-1"></a>
 </h2>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">mm</span> <span class="op">&lt;-</span> <span class="va">example_model</span><span class="op">$</span><span class="va">model_info</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/as_multimod.html">as_multimod</a></span><span class="op">(</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">model_info</span> <span class="op">&lt;-</span> <span class="va">example_model</span><span class="op">$</span><span class="va">model_info</span> <span class="co">#|&gt; as_multimod()</span></span>
 <span><span class="va">mm</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/as_multimod.html">as_multimod</a></span><span class="op">(</span></span>
 <span>  x <span class="op">=</span> <span class="va">model_info</span>, </span>
 <span>  name <span class="op">=</span> <span class="st">"Base energyRt model"</span>,</span>
@@ -160,11 +160,16 @@
 <span>  <span class="fu"><a href="https://rdrr.io/pkg/visNetwork/man/visOptions.html" class="external-link">visOptions</a></span><span class="op">(</span>highlightNearest <span class="op">=</span> <span class="cn">TRUE</span>, nodesIdSelection <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/pkg/visNetwork/man/visInteraction.html" class="external-link">visInteraction</a></span><span class="op">(</span>navigationButtons <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/pkg/visNetwork/man/visHierarchicalLayout.html" class="external-link">visHierarchicalLayout</a></span><span class="op">(</span>direction <span class="op">=</span> <span class="st">"LR"</span><span class="op">)</span></span></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/as_visNetwork.html">as_visNetwork</a></span><span class="op">(</span><span class="va">eq</span><span class="op">$</span><span class="va">lhs</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/pkg/visNetwork/man/visOptions.html" class="external-link">visOptions</a></span><span class="op">(</span>highlightNearest <span class="op">=</span> <span class="cn">TRUE</span>, nodesIdSelection <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/pkg/visNetwork/man/visInteraction.html" class="external-link">visInteraction</a></span><span class="op">(</span>navigationButtons <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/pkg/visNetwork/man/visHierarchicalLayout.html" class="external-link">visHierarchicalLayout</a></span><span class="op">(</span>direction <span class="op">=</span> <span class="st">"LR"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="latex-output-1">LaTeX output<a class="anchor" aria-label="anchor" href="#latex-output-1"></a>
 </h3>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">eq_w</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/remap_ast_elements.html">remap_ast_elements</a></span><span class="op">(</span><span class="va">eq</span><span class="op">)</span> </span>
 <span><span class="co"># eq_latex &lt;- as_latex(eq_w)</span></span>
 <span><span class="co"># eq_latex &lt;- </span></span>
