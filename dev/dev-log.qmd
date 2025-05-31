@@ -30,6 +30,7 @@ usethis::use_r("write_pyomo")
 usethis::use_r("as_gmpl")
 usethis::use_r("write_gmpl")
 usethis::use_r("as_rfunction")
+usethis::use_r("as_vizNetwork")
 # usethis::use_r("zzz")
 
 # AST classes and methods

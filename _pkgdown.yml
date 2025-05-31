@@ -97,3 +97,5 @@ reference:
   - starts_with("ggplot_")
   - starts_with("draw_")
   - starts_with("render_")
+  - starts_with("as_viz")
+  - starts_with("as_diagram")

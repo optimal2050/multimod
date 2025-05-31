@@ -24,7 +24,7 @@ library(visNetwork)
 
 ## Example equation #1
 ```{r, eval=FALSE}
-mm <- example_model$model_info |> as_multimod()
+model_info <- example_model$model_info #|> as_multimod()
 mm <- as_multimod(
   x = model_info, 
   name = "Base energyRt model",
@@ -97,6 +97,14 @@ visNetwork(eq_net$nodes, eq_net$edges) |>
   visInteraction(navigationButtons = TRUE) |>
   visHierarchicalLayout(direction = "LR")
 ```
+
+```{r, eval=FALSE}
+as_visNetwork(eq$lhs) |>
+  visOptions(highlightNearest = TRUE, nodesIdSelection = TRUE) |>
+  visInteraction(navigationButtons = TRUE) |>
+  visHierarchicalLayout(direction = "LR")
+```
+
 
 ### LaTeX output
 ```{r, eval=FALSE}

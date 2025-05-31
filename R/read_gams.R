@@ -484,7 +484,7 @@ read_gams <- function(
     strict = TRUE,
     verbose = FALSE,
     ...) {
-  browser()
+  # browser()
   if (file.exists(file_or_text)) {
     lines <- readLines(file_or_text, encoding = "UTF-8")
   } else {
