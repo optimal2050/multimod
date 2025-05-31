@@ -2,9 +2,12 @@
 % Please edit documentation in R/as_gams.R
 \name{as_gams}
 \alias{as_gams}
+\alias{as_gams.func}
 \title{Convert multimod object to GAMS syntax}
 \usage{
 as_gams(x, ...)
+
+\method{as_gams}{func}(x, ...)
 }
 \arguments{
 \item{x}{A \code{multimod} object.}

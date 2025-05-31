@@ -6,10 +6,10 @@
 #' @export
 #'
 #' @examples
-#' is_expression("x + y") # TRUE
-#' is_expression("x") # FALSE
+#' is_gams_expression("x + y") # TRUE
+#' is_gams_expression("x") # FALSE
 #'
-is_expression <- function(
+is_gams_expression <- function(
     s,
     ops = c(
       "+", "-", "*", "/", "^",
@@ -17,6 +17,7 @@ is_expression <- function(
       "=e=", "=l=", "=g=", "=le=", "=ge=",
       "and", "or", "not"
     )) {
+  # browser()
   if (!is.character(s) || length(s) != 1) {
     return(FALSE)
   }
@@ -39,8 +40,8 @@ is_expression <- function(
   }
 
   # Check for top-level operators
-  top_ops <- find_top_level_operators(s, ops = ops)
-  return(length(top_ops) > 0)
+  top_ops <- find_top_level_operators(s, ops = ops, precedence = NULL)
+  return(nrow(top_ops) > 0)
 }
 
 #' Get the depth of a nested list structure (AST, multimod, and other objects)
@@ -262,54 +263,70 @@ if (F) {
 remap_ast_elements <- function(obj,
                                ast_type = list("when" = "condition"),
                                name_prefix = "m",
-                               n = 0L
+                               n = 0L,
+                               latex_max = 10,
+                               ...
                                ) {
-
+  # browser()
   if (is_empty(ast_type) || is_empty(obj)) return(obj)
 
   tmp_name <- "s"
 
   remap_fun <- function(ob) {
-    # if (inherits(ob, c("sum", "when"))) browser()
+    # browser()
+    # if (inherits(ob, c("sum", "func", "when"))) browser()
     if (inherits(ob, names(ast_type))) {
+      # browser()
       slot_names <- names(ob)
       # slot_names <- slot_names[slot_names %in% ast_type[[node_type(ob)]]]
       # if (length(slot_names) == 0) return(ob)
       for (slot_name in slot_names) {
+        # browser()
         # cat("remap: ", class(ob)[1], " ", ob$name, " ", slot_name, "\n")
         if (slot_name %in% ast_type[[node_type(ob)]])  {
+          tex_str <- as_latex(ob[[slot_name]])
+          if (estimate_latex_length(tex_str) < latex_max) next
           # if (is.null(ob[[slot_name]])) next
           n <<- n + 1L; map_name <- paste0(tmp_name, n)
           ob[[slot_name]] <- ast_where(name = map_name, content = ob[[slot_name]])
         } else {
-          a <- try(remap_fun(ob[[slot_name]]), silent = TRUE)
-          if (inherits(a, "try-error")) {
-            warning("Error in remap_fun: ", class(ob)[1], " ",  ob$name, " ", slot_name)
-          } else {
-            ob[[slot_name]] <- a
-          }
+          ob[[slot_name]] <- remap_fun(ob[[slot_name]])
+          # a <- try(remap_fun(ob[[slot_name]]), silent = TRUE)
+          # if (inherits(a, "try-error")) {
+          #   warning("Error in remap_fun: ", class(ob)[1], " ",  ob$name, " ", slot_name)
+          # } else {
+          #   ob[[slot_name]] <- a
+          # }
         }
       }
-    } else if (inherits(ob, c("ast", "multimod", "list"))) {
-      for (i in seq_along(ob)) {
-        a <- try(remap_fun(ob[[i]]), silent = TRUE)
-        if (inherits(a, "try-error")) {
+    } else if (inherits(ob, c("ast", "multimod"))) {
+      j <- 1
+      for (j in names(ob)) {
+        ob[[j]] <- remap_fun(ob[[j]])
+      # for (j in seq_along(ob)) {
+        # if (j > length(ob)) next # overlapping nests error?
+        # a <- try(remap_fun(ob[[j]]), silent = TRUE)
+        # a <- remap_fun(ob[[j]])
+        # if (inherits(a, "try-error")) {
           # browser()
-          warning("Error in remap_fun: ", class(ob)[1], " ",  ob$name, " ", i)
-          # ob[[i]] <- NULL  # or handle error as needed
-        } else {
-          ob[[i]] <- a
-        }
+          # warning("Error in remap_fun: ", class(ob)[1], " ",  ob$name, " ", j)
+          # ob[[j]] <- NULL  # or handle error as needed
+        # } else {
+          # ob[[j]] <- a
+        # }
       }
+    } else if (is.list(ob) && !is.data.frame(ob)) {
+      ob <- lapply(ob, remap_fun)
     }
     ob
   }
+  # browser()
   obj <- remap_fun(obj)
   # remove duplicates by equations
   # browser()
-  if (inherits(obj, "multimod") && !is.null(obj$equations)) {
+  if (n > 0 && inherits(obj, "multimod") && !is.null(obj$equations)) {
     obj$equations <- lapply(obj$equations, replace_where_duplicates)
-  } else if (inherits(obj, "equation")) {
+  } else if (n > 0 && inherits(obj, "equation")) {
     obj <- replace_where_duplicates(obj)
   }
 
@@ -359,18 +376,28 @@ replace_where_duplicates <- function(obj) {
   # d
   # replace names in obj with d$new_name
   rename_fun <- function(x) {
-    if (inherits(x, "where") && x$name %in% d$name) {
+    # browser()
+    if (is_empty(x)) return(x)
+    # message(as.character(x))
+    if (inherits(x, "where") && isTRUE(x$name %in% d$name)) {
       # browser()
       new_name <- d$new_name[d$name == x$name][1]
       x$name <- new_name
       # Recurse into subfields
-      for (i in seq_along(x)) {
+      # for (i in seq_along(x)) {
+      i <- 1
+      while (i <= length(x)) {
+        # if (inherits(try(x[[i]]), "try-error")) browser()
         x[[i]] <- rename_fun(x[[i]])
+        i <- i + 1
       }
     } else if (is.list(x) && !is.data.frame(x)) {
       # x <- lapply(x, rename_fun)
-      for (i in seq_along(x)) {
+      i <- 1
+      while (i <= length(x)) {
+        # if(inherits(try(x[[i]]), "try-error")) browser()
         x[[i]] <- rename_fun(x[[i]])
+        i <- i + 1
       }
     }
     x
@@ -391,6 +418,7 @@ replace_where_duplicates <- function(obj) {
 alias_ast_names <- function(ast, aliases, classes = NULL) {
   # browser()
   stopifnot(is.list(aliases))
+  # message(ast$name)
 
   # reverse_aliases <- setNames(names(aliases), unname(aliases))  # e.g. region -> r
   reverse_aliases <- aliases
@@ -407,8 +435,11 @@ alias_ast_names <- function(ast, aliases, classes = NULL) {
       }
       # Recurse into subfields
       for (i in seq_along(x)) {
-        x[[i]] <- rename_walk(x[[i]])
+        try(x[[i]] <- rename_walk(x[[i]]))
       }
+      # for (nm in names(x)) {
+      #   x[[nm]] <- rename_walk(x[[nm]])
+      # }
     } else if (is.list(x) && !is.data.frame(x)) {
       x <- lapply(x, rename_walk)
     }

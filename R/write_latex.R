@@ -30,9 +30,20 @@ write_latex.equation <- function(x,
                                  preamble = NULL,
                                  ending = NULL,
                                  subsection_number = FALSE,
+                                 eq_substitute = list("when" = "condition",
+                                                      "func" = "index",
+                                                      "sum" = "index",
+                                                      "prod" = "index"),
+                                 verbose = FALSE,
                                  ...) {
 
   # browser()
+  if (!is_empty(eq_substitute)) {
+    # Substitute elements in the AST
+    x <- remap_ast_elements(x,
+                            ast_type = eq_substitute,
+                            verbose = verbose, ...)
+  }
 
   if (is.null(preamble)) {
     # Default LaTeX preamble
@@ -85,8 +96,20 @@ write_latex.model <- function(x,
                               include_parameters = TRUE,
                               include_variables = TRUE,
                               include_equations = TRUE,
+                              eq_substitute = list("when" = "condition",
+                                                   "func" = "index",
+                                                   "sum" = "index",
+                                                   "prod" = "index"),
+                              verbose = FALSE,
                               ...) {
   # browser()
+  if (!is_empty(eq_substitute)) {
+    # Substitute elements in the AST
+    x$equations <- lapply(x$equations, remap_ast_elements,
+                            ast_type = eq_substitute,
+                            verbose = verbose, ...)
+  }
+
   model <- x
   if (is.null(preamble)) {
     # Default LaTeX preamble
@@ -106,9 +129,6 @@ write_latex.model <- function(x,
       paste0("\\title{",
              title,
              paste0("\\\\\\large ", as_latex(subtitle), "}"))
-      # "\\author{see: www.energyRt.org}",
-      # "\\date{\\today}",
-      # "\\maketitle"
     )
   }
   if (!is.null(author)) {
@@ -120,11 +140,16 @@ write_latex.model <- function(x,
   meta_block <- c(meta_block, "\\maketitle")
 
   lines <- character()
+
+  ## Sets ####
   if (include_sets && !is.null(model$sets)) {
     lines <- c(lines, "", "\\section{Sets}")
     for (s in model$sets) {
-      lines <- c(lines, paste0("\\texttt{", s$name, "} -- ",
-                               as_latex(s$desc), "\\\\"))
+      set_lx <- paste0("\\texttt{", s$name, "}")
+      if (!is_empty(s$desc)) {
+        set_lx <- paste0(set_lx, " -- ", as_latex(s$desc))
+      }
+      lines <- c(lines,  set_lx, "\\\\")
     }
   }
 
@@ -153,8 +178,11 @@ write_latex.model <- function(x,
       # lines <- c(lines, paste0("\\texttt{", p$name, "}(",
       #                          paste(p$dims, collapse = ","), ") -- ",
       #                          as_latex(p$desc), "\\\\"))
-      lines <- c(lines, paste0("$", as_latex(p), "$ -- ",
-                               as_latex(p$desc), "\\\\"))
+      p_tex <- paste0("$", as_latex(p), "$")
+      if (!is_empty(p$desc) && nzchar(p$desc) > 0) {
+        p_tex <- paste0(p_tex, " -- ", as_latex(p$desc))
+      }
+      lines <- c(lines, paste0(p_tex, "\\\\"))
     }
   }
 
@@ -166,7 +194,12 @@ write_latex.model <- function(x,
     #                            as_latex(v$desc), "\\\\"))
     # }
     for (v in model$variables) {
-      lines <- c(lines, paste0("$", as_latex(v), "$ -- ", as_latex(v$desc), "\\\\"))
+      v_tex <- paste0("$", as_latex(v), "$")
+      if (!is_empty(v$desc) && nzchar(v$desc) > 0) {
+        v_tex <- paste0(v_tex, " -- ", as_latex(v$desc))
+      }
+      lines <- c(lines, v_tex, "\\\\")
+      # lines <- c(lines, paste0("$", as_latex(v), "$ -- ", as_latex(v$desc), "\\\\"))
     }
   }
 
@@ -176,7 +209,7 @@ write_latex.model <- function(x,
     eq_blocks <- vapply(
       x$equations,
       function(eq) {
-        # message(eq$name)
+        if (verbose) message(eq$name)
         # eq <- remap_ast_elements(eq)
         eq_tex <- as_latex(eq,
                            # math_env = math_env,

@@ -8,7 +8,9 @@ remap_ast_elements(
   obj,
   ast_type = list(when = "condition"),
   name_prefix = "m",
-  n = 0L
+  n = 0L,
+  latex_max = 10,
+  ...
 )
 }
 \arguments{
