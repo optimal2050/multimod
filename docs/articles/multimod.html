@@ -6,12 +6,11 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>multimod • multimod</title>
-<!-- favicons --><link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
-<link rel="icon" type="image/png" sizes="32x32" href="../favicon-32x32.png">
-<link rel="apple-touch-icon" type="image/png" sizes="180x180" href="../apple-touch-icon.png">
-<link rel="apple-touch-icon" type="image/png" sizes="120x120" href="../apple-touch-icon-120x120.png">
-<link rel="apple-touch-icon" type="image/png" sizes="76x76" href="../apple-touch-icon-76x76.png">
-<link rel="apple-touch-icon" type="image/png" sizes="60x60" href="../apple-touch-icon-60x60.png">
+<!-- favicons --><link rel="icon" type="image/png" sizes="96x96" href="../favicon-96x96.png">
+<link rel="icon" type="”image/svg+xml”" href="../favicon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
+<link rel="icon" sizes="any" href="../favicon.ico">
+<link rel="manifest" href="../site.webmanifest">
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
@@ -71,50 +70,74 @@
     
     
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># library(multimod)</span></span>
-<span><span class="co"># require(visNetwork, quietly = TRUE)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://optimal2050.github.io/multimod">multimod</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://lobstr.r-lib.org/" class="external-link">lobstr</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">require</a></span><span class="op">(</span><span class="va"><a href="https://datastorm-open.github.io/visNetwork/" class="external-link">visNetwork</a></span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<div class="section level2">
+<h2 id="download-example-model">Download example model<a class="anchor" aria-label="anchor" href="#download-example-model"></a>
+</h2>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">gams_source</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"energyRt.gms"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Download "energyRt.gms" GAMS model source file from GitHub</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/download.file.html" class="external-link">download.file</a></span><span class="op">(</span></span>
+<span>  url <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="st">"https://raw.githubusercontent.com/optimal2050/energyRt"</span>,</span>
+<span>                  <span class="st">"refs/heads/master/gams/energyRt.gms"</span><span class="op">)</span>,</span>
+<span>  destfile <span class="op">=</span> <span class="va">gams_source</span>,</span>
+<span>  method <span class="op">=</span> <span class="st">"curl"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.exists</a></span><span class="op">(</span><span class="va">gams_source</span><span class="op">)</span></span></code></pre></div>
+</div>
 <div class="section level2">
 <h2 id="import-gams-model-structure">Import GAMS model structure<a class="anchor" aria-label="anchor" href="#import-gams-model-structure"></a>
 </h2>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">model_info</span> <span class="op">&lt;-</span> <span class="fu">read_gams</span><span class="op">(</span><span class="va">gams_file</span>, include <span class="op">=</span> <span class="cn">T</span>, verbose <span class="op">=</span> <span class="cn">F</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">class</a></span><span class="op">(</span><span class="va">model_info</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">model_info</span>, max.level <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
-<span><span class="fu">print.model_structure</span><span class="op">(</span><span class="va">model_info</span><span class="op">)</span></span>
-<span><span class="co"># Collect all symbols</span></span>
-<span><span class="va">symbols</span> <span class="op">&lt;-</span> <span class="fu">build_symbols_list</span><span class="op">(</span><span class="va">model_info</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">symbols</span>, max.level <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
-<span><span class="co"># lobstr::tree(symbols, max_length = 10, max_depth = 3)</span></span>
+<p>Model structure is a list of symbols, sets, parameters, variables,
+equations, and other model components. No model data or operations is
+imported from the GAMS source file. This is an interim step before
+converting to multimod model. The object of class
+<code>model_structure</code> contains the imported model elements (sets,
+equations, etc.) in text format.</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">mod_str</span> <span class="op">&lt;-</span> <span class="fu">read_gams</span><span class="op">(</span><span class="va">gams_source</span>, include <span class="op">=</span> <span class="cn">FALSE</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">mod_str</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="convert-to-multimod-model">Convert to multimod model<a class="anchor" aria-label="anchor" href="#convert-to-multimod-model"></a>
+</h2>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Collect all symbols</span></span>
+<span><span class="va">symbols</span> <span class="op">&lt;-</span> <span class="fu">build_symbols_list</span><span class="op">(</span><span class="va">mod_str</span><span class="op">)</span></span>
 <span><span class="co"># analyze an equation</span></span>
-<span><span class="va">ast_node</span> <span class="op">&lt;-</span> <span class="fu">parse_gams_equation</span><span class="op">(</span><span class="va">model_info</span><span class="op">$</span><span class="va">equations</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span>, <span class="va">symbols</span><span class="op">)</span></span>
-<span><span class="co"># ast_node &lt;- coerce_gams_equation(model_info$equations$eqTechCapUp, symbols)</span></span>
-<span><span class="co"># ast_node &lt;- coerce_gams_equation(model_info$equations$eqTechSng2Sng, symbols)</span></span>
-<span><span class="fu"><a href="../reference/map_ast.html">map_ast</a></span><span class="op">(</span><span class="va">ast_node</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="op">{</span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">is.list</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">)</span> <span class="va">x</span><span class="op">$</span><span class="va">brackets</span><span class="op">}</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://lobstr.r-lib.org/reference/tree.html" class="external-link">tree</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">ast_node</span> <span class="op">&lt;-</span> <span class="fu">parse_gams_equation</span><span class="op">(</span><span class="va">mod_str</span><span class="op">$</span><span class="va">equations</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span>, <span class="va">symbols</span><span class="op">)</span></span>
+<span><span class="co"># ast_node &lt;- coerce_gams_equation(mod_str$equations$eqTechCapUp, symbols)</span></span>
+<span><span class="co"># ast_node &lt;- coerce_gams_equation(mod_str$equations$eqTechSng2Sng, symbols)</span></span>
+<span><span class="co"># map_ast(ast_node, function(x) {if (is.list(x)) x$brackets}) |&gt; tree()</span></span>
 <span></span>
-<span><span class="va">model_info</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqTechCapUp</span></span>
+<span><span class="va">mod_str</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqTechCapUp</span></span>
 <span></span>
 <span><span class="co"># str(ast_node, max.level = 5)</span></span>
 <span><span class="fu">lobstr</span><span class="fu">::</span><span class="fu"><a href="https://lobstr.r-lib.org/reference/tree.html" class="external-link">tree</a></span><span class="op">(</span><span class="va">ast_node</span>, max_length <span class="op">=</span> <span class="fl">100</span>, max_depth <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">plot.multimod_ast</span><span class="op">(</span><span class="va">ast_node</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/as_visNetwork.html">as_visNetwork</a></span><span class="op">(</span><span class="va">ast_node</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">multimod</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/as_multimod.html">as_multimod</a></span><span class="op">(</span><span class="va">model_info</span><span class="op">)</span></span>
+<span><span class="va">multimod</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/as_multimod.html">as_multimod</a></span><span class="op">(</span><span class="va">mod_str</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">eq_obj</span> <span class="op">&lt;-</span> <span class="fu">parse_gams_equation</span><span class="op">(</span></span>
-<span>  <span class="va">model_info</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqTechSng2Sng</span>,</span>
-<span>  <span class="co"># model_info$equations[[2]],</span></span>
-<span>  <span class="co"># model_info$equations$eqTechCap,</span></span>
-<span>  <span class="co"># model_info$equations$eqTechCapUp,</span></span>
-<span>  <span class="co"># model_info$equations$eqTechAInp,</span></span>
-<span>  <span class="co"># model_info$equations$eqExportRowCost,</span></span>
-<span>  <span class="co"># model_info$equations$eqTechGrp2Sng,</span></span>
-<span>  <span class="co"># model_info$equations$eqTechSng2Grp,</span></span>
-<span>  <span class="co"># model_info$equations$eqEmsFuelTot,</span></span>
-<span>  <span class="co"># model_info$equations$eqStorageStore,</span></span>
-<span>  <span class="co"># model_info$equations$eqOutTot,</span></span>
+<span>  <span class="va">mod_str</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqTechSng2Sng</span>,</span>
+<span>  <span class="co"># mod_str$equations[[2]],</span></span>
+<span>  <span class="co"># mod_str$equations$eqTechCap,</span></span>
+<span>  <span class="co"># mod_str$equations$eqTechCapUp,</span></span>
+<span>  <span class="co"># mod_str$equations$eqTechAInp,</span></span>
+<span>  <span class="co"># mod_str$equations$eqExportRowCost,</span></span>
+<span>  <span class="co"># mod_str$equations$eqTechGrp2Sng,</span></span>
+<span>  <span class="co"># mod_str$equations$eqTechSng2Grp,</span></span>
+<span>  <span class="co"># mod_str$equations$eqEmsFuelTot,</span></span>
+<span>  <span class="co"># mod_str$equations$eqStorageStore,</span></span>
+<span>  <span class="co"># mod_str$equations$eqOutTot,</span></span>
 <span>  <span class="va">symbols</span></span>
 <span><span class="op">)</span></span>
-<span><span class="co"># gams_to_multimod(model_info$equations$eqTechCapUp$gams, symbols)</span></span>
+<span><span class="co"># gams_to_multimod(mod_str$equations$eqTechCapUp$gams, symbols)</span></span>
 <span></span>
 <span><span class="va">eq_obj</span><span class="op">$</span><span class="va">name</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">class</a></span><span class="op">(</span><span class="va">eq_obj</span><span class="op">)</span></span>
@@ -152,7 +175,7 @@
 <span>  <span class="va">expr</span> <span class="op">&lt;-</span> <span class="st">"mTechNew(t,r,yp) and ordYear(y) &gt;= ordYear(yp) or mTechOlifeInf(t,r)"</span></span>
 <span>  <span class="fu">top_level_operators</span><span class="op">(</span><span class="va">expr</span>, descending <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span>  <span class="va">ast</span> <span class="op">&lt;-</span> <span class="fu">parse_gams_expr</span><span class="op">(</span><span class="va">expr</span><span class="op">)</span></span>
-<span>  <span class="co"># ast &lt;- parse_gams_expr(model_info$equations$eqTechCapUp, symbols)</span></span>
+<span>  <span class="co"># ast &lt;- parse_gams_expr(mod_str$equations$eqTechCapUp, symbols)</span></span>
 <span>  <span class="co"># "mTechNew(t,r,yp) and ordYear(y) &gt;= ordYear(yp) or mTechOlifeInf(t,r)"</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">class</a></span><span class="op">(</span><span class="va">ast</span><span class="op">)</span></span>
 <span>  <span class="co"># as.character(ast) |&gt; cat()</span></span>
@@ -169,7 +192,7 @@
 <span><span class="va">eq_obj</span> <span class="op">&lt;-</span> <span class="va">multimod</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqTechGrp2Grp</span></span>
 <span><span class="va">eq_obj</span> <span class="op">&lt;-</span> <span class="va">multimod</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqTechAfLo</span></span>
 <span><span class="co"># eq_obj &lt;- multimod$equations$eqTechAfsLo</span></span>
-<span><span class="co"># eq_string &lt;- model_info$equations$eqTechGrp2Grp$gams</span></span>
+<span><span class="co"># eq_string &lt;- mod_str$equations$eqTechGrp2Grp$gams</span></span>
 <span><span class="fu">lobstr</span><span class="fu">::</span><span class="fu"><a href="https://lobstr.r-lib.org/reference/tree.html" class="external-link">tree</a></span><span class="op">(</span><span class="va">eq_obj</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/as_visNetwork.html">as_visNetwork</a></span><span class="op">(</span><span class="va">eq_obj</span><span class="op">)</span></span>
 <span><span class="co"># eq &lt;- normalize_linear_eqn(eq_obj, lhs_var_name = "vTechAct")</span></span>
@@ -182,61 +205,61 @@
 <div class="section level2">
 <h2 id="latex">LaTeX<a class="anchor" aria-label="anchor" href="#latex"></a>
 </h2>
-<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>model_info <span class="ot">&lt;-</span> <span class="fu">read_gams</span>(gams_file, <span class="at">include =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>multimod <span class="ot">&lt;-</span> <span class="fu">as_multimod</span>(model_info)</span>
-<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>eq_obj <span class="ot">&lt;-</span> multimod<span class="sc">$</span>equations<span class="sc">$</span>eqTechAfsLo</span>
-<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>eq_obj <span class="ot">&lt;-</span> multimod<span class="sc">$</span>equations<span class="sc">$</span>eqTechCap</span>
-<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a></span>
-<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="fu">as_visNetwork.multimod_equation</span>(eq_obj)</span>
-<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a></span>
-<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="fu">as_latex</span>(eq_obj)</span>
-<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="fu">as_latex</span>(eq_obj<span class="sc">$</span>lhs)</span>
-<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a></span>
-<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a>eq <span class="ot">&lt;-</span> <span class="fu">remap_ast_elements</span>(eq_obj)</span>
-<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a><span class="fu">tree</span>(eq)</span>
-<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a></span>
-<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a><span class="fu">as_visNetwork.multimod_equation</span>(eq)</span>
-<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a><span class="fu">as_latex</span>(eq) <span class="sc">|&gt;</span> <span class="fu">cat</span>()</span>
-<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a></span>
-<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a></span>
-<span id="cb3-18"><a href="#cb3-18" tabindex="-1"></a><span class="fu">write_latex</span>(multimod, </span>
-<span id="cb3-19"><a href="#cb3-19" tabindex="-1"></a>            <span class="co"># file = "tmp/multimod.tex"</span></span>
-<span id="cb3-20"><a href="#cb3-20" tabindex="-1"></a>            <span class="co"># include_sets = FALSE,</span></span>
-<span id="cb3-21"><a href="#cb3-21" tabindex="-1"></a>            <span class="co"># include_aliases = FALSE,</span></span>
-<span id="cb3-22"><a href="#cb3-22" tabindex="-1"></a>            <span class="co"># include_parameters = FALSE,</span></span>
-<span id="cb3-23"><a href="#cb3-23" tabindex="-1"></a>            <span class="co"># include_variables = FALSE, </span></span>
-<span id="cb3-24"><a href="#cb3-24" tabindex="-1"></a>            <span class="co"># include_equations = FALSE</span></span>
-<span id="cb3-25"><a href="#cb3-25" tabindex="-1"></a>            )</span>
-<span id="cb3-26"><a href="#cb3-26" tabindex="-1"></a>            </span>
-<span id="cb3-27"><a href="#cb3-27" tabindex="-1"></a><span class="fu">as_latex</span>(eq_obj<span class="sc">$</span>lhs)</span>
-<span id="cb3-28"><a href="#cb3-28" tabindex="-1"></a></span>
-<span id="cb3-29"><a href="#cb3-29" tabindex="-1"></a></span>
-<span id="cb3-30"><a href="#cb3-30" tabindex="-1"></a>eq_obj<span class="sc">$</span>lhs <span class="sc">|&gt;</span> <span class="fu">tree</span>()</span>
-<span id="cb3-31"><a href="#cb3-31" tabindex="-1"></a></span>
-<span id="cb3-32"><a href="#cb3-32" tabindex="-1"></a>eq <span class="ot">&lt;-</span> <span class="fu">alias_ast_names</span>(eq_obj, <span class="at">aliases =</span> set_short_names)</span>
-<span id="cb3-33"><a href="#cb3-33" tabindex="-1"></a></span>
-<span id="cb3-34"><a href="#cb3-34" tabindex="-1"></a>eq<span class="sc">$</span>lhs <span class="sc">|&gt;</span> <span class="fu">tree</span>()</span>
-<span id="cb3-35"><a href="#cb3-35" tabindex="-1"></a></span>
-<span id="cb3-36"><a href="#cb3-36" tabindex="-1"></a><span class="fu">as_latex</span>(eq<span class="sc">$</span>lhs)</span>
-<span id="cb3-37"><a href="#cb3-37" tabindex="-1"></a><span class="fu">as_latex</span>(eq) <span class="sc">|&gt;</span> <span class="fu">cat</span>()</span>
-<span id="cb3-38"><a href="#cb3-38" tabindex="-1"></a></span>
-<span id="cb3-39"><a href="#cb3-39" tabindex="-1"></a></span>
-<span id="cb3-40"><a href="#cb3-40" tabindex="-1"></a></span>
-<span id="cb3-41"><a href="#cb3-41" tabindex="-1"></a><span class="fu">as_visNetwork.multimod_equation</span>(eq)</span>
-<span id="cb3-42"><a href="#cb3-42" tabindex="-1"></a></span>
-<span id="cb3-43"><a href="#cb3-43" tabindex="-1"></a></span>
-<span id="cb3-44"><a href="#cb3-44" tabindex="-1"></a></span>
-<span id="cb3-45"><a href="#cb3-45" tabindex="-1"></a></span>
-<span id="cb3-46"><a href="#cb3-46" tabindex="-1"></a><span class="co"># Set</span></span>
-<span id="cb3-47"><a href="#cb3-47" tabindex="-1"></a>expr <span class="ot">&lt;-</span> multimod<span class="sc">$</span>equations<span class="sc">$</span>eqTechSng2Sng<span class="sc">$</span>lhs<span class="sc">$</span>lhs<span class="sc">$</span>dims</span>
-<span id="cb3-48"><a href="#cb3-48" tabindex="-1"></a><span class="fu">class</span>(expr)</span>
-<span id="cb3-49"><a href="#cb3-49" tabindex="-1"></a><span class="fu">print</span>(expr)</span>
-<span id="cb3-50"><a href="#cb3-50" tabindex="-1"></a></span>
-<span id="cb3-51"><a href="#cb3-51" tabindex="-1"></a><span class="fu">as_latex</span>(</span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>mod_str <span class="ot">&lt;-</span> <span class="fu">read_gams</span>(gams_file, <span class="at">include =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>multimod <span class="ot">&lt;-</span> <span class="fu">as_multimod</span>(mod_str)</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>eq_obj <span class="ot">&lt;-</span> multimod<span class="sc">$</span>equations<span class="sc">$</span>eqTechAfsLo</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>eq_obj <span class="ot">&lt;-</span> multimod<span class="sc">$</span>equations<span class="sc">$</span>eqTechCap</span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a></span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="fu">as_visNetwork.multimod_equation</span>(eq_obj)</span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="fu">as_latex</span>(eq_obj)</span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a><span class="fu">as_latex</span>(eq_obj<span class="sc">$</span>lhs)</span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a></span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a>eq <span class="ot">&lt;-</span> <span class="fu">remap_ast_elements</span>(eq_obj)</span>
+<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a><span class="fu">tree</span>(eq)</span>
+<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a></span>
+<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a><span class="fu">as_visNetwork.multimod_equation</span>(eq)</span>
+<span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a><span class="fu">as_latex</span>(eq) <span class="sc">|&gt;</span> <span class="fu">cat</span>()</span>
+<span id="cb5-16"><a href="#cb5-16" tabindex="-1"></a></span>
+<span id="cb5-17"><a href="#cb5-17" tabindex="-1"></a></span>
+<span id="cb5-18"><a href="#cb5-18" tabindex="-1"></a><span class="fu">write_latex</span>(multimod, </span>
+<span id="cb5-19"><a href="#cb5-19" tabindex="-1"></a>            <span class="co"># file = "tmp/multimod.tex"</span></span>
+<span id="cb5-20"><a href="#cb5-20" tabindex="-1"></a>            <span class="co"># include_sets = FALSE,</span></span>
+<span id="cb5-21"><a href="#cb5-21" tabindex="-1"></a>            <span class="co"># include_aliases = FALSE,</span></span>
+<span id="cb5-22"><a href="#cb5-22" tabindex="-1"></a>            <span class="co"># include_parameters = FALSE,</span></span>
+<span id="cb5-23"><a href="#cb5-23" tabindex="-1"></a>            <span class="co"># include_variables = FALSE, </span></span>
+<span id="cb5-24"><a href="#cb5-24" tabindex="-1"></a>            <span class="co"># include_equations = FALSE</span></span>
+<span id="cb5-25"><a href="#cb5-25" tabindex="-1"></a>            )</span>
+<span id="cb5-26"><a href="#cb5-26" tabindex="-1"></a>            </span>
+<span id="cb5-27"><a href="#cb5-27" tabindex="-1"></a><span class="fu">as_latex</span>(eq_obj<span class="sc">$</span>lhs)</span>
+<span id="cb5-28"><a href="#cb5-28" tabindex="-1"></a></span>
+<span id="cb5-29"><a href="#cb5-29" tabindex="-1"></a></span>
+<span id="cb5-30"><a href="#cb5-30" tabindex="-1"></a>eq_obj<span class="sc">$</span>lhs <span class="sc">|&gt;</span> <span class="fu">tree</span>()</span>
+<span id="cb5-31"><a href="#cb5-31" tabindex="-1"></a></span>
+<span id="cb5-32"><a href="#cb5-32" tabindex="-1"></a>eq <span class="ot">&lt;-</span> <span class="fu">alias_ast_names</span>(eq_obj, <span class="at">aliases =</span> set_short_names)</span>
+<span id="cb5-33"><a href="#cb5-33" tabindex="-1"></a></span>
+<span id="cb5-34"><a href="#cb5-34" tabindex="-1"></a>eq<span class="sc">$</span>lhs <span class="sc">|&gt;</span> <span class="fu">tree</span>()</span>
+<span id="cb5-35"><a href="#cb5-35" tabindex="-1"></a></span>
+<span id="cb5-36"><a href="#cb5-36" tabindex="-1"></a><span class="fu">as_latex</span>(eq<span class="sc">$</span>lhs)</span>
+<span id="cb5-37"><a href="#cb5-37" tabindex="-1"></a><span class="fu">as_latex</span>(eq) <span class="sc">|&gt;</span> <span class="fu">cat</span>()</span>
+<span id="cb5-38"><a href="#cb5-38" tabindex="-1"></a></span>
+<span id="cb5-39"><a href="#cb5-39" tabindex="-1"></a></span>
+<span id="cb5-40"><a href="#cb5-40" tabindex="-1"></a></span>
+<span id="cb5-41"><a href="#cb5-41" tabindex="-1"></a><span class="fu">as_visNetwork.multimod_equation</span>(eq)</span>
+<span id="cb5-42"><a href="#cb5-42" tabindex="-1"></a></span>
+<span id="cb5-43"><a href="#cb5-43" tabindex="-1"></a></span>
+<span id="cb5-44"><a href="#cb5-44" tabindex="-1"></a></span>
+<span id="cb5-45"><a href="#cb5-45" tabindex="-1"></a></span>
+<span id="cb5-46"><a href="#cb5-46" tabindex="-1"></a><span class="co"># Set</span></span>
+<span id="cb5-47"><a href="#cb5-47" tabindex="-1"></a>expr <span class="ot">&lt;-</span> multimod<span class="sc">$</span>equations<span class="sc">$</span>eqTechSng2Sng<span class="sc">$</span>lhs<span class="sc">$</span>lhs<span class="sc">$</span>dims</span>
+<span id="cb5-48"><a href="#cb5-48" tabindex="-1"></a><span class="fu">class</span>(expr)</span>
+<span id="cb5-49"><a href="#cb5-49" tabindex="-1"></a><span class="fu">print</span>(expr)</span>
+<span id="cb5-50"><a href="#cb5-50" tabindex="-1"></a></span>
+<span id="cb5-51"><a href="#cb5-51" tabindex="-1"></a><span class="fu">as_latex</span>(</span></code></pre></div>
 <div class="section level3">
 <h3 id="parse-gams-expression">Parse GAMS expression<a class="anchor" aria-label="anchor" href="#parse-gams-expression"></a>
 </h3>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">expr</span> <span class="op">&lt;-</span> <span class="op">{</span><span class="st">"</span></span>
 <span><span class="st">- sum((comm, slice)$mExportRow(expp, comm, region, year, slice),</span></span>
 <span><span class="st">      pExportRowPrice(expp, region, year, slice) * pSliceWeight(year, slice)</span></span>
@@ -260,7 +283,7 @@
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.1.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.3.</p>
 </div>
 
     </footer>

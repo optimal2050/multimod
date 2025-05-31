@@ -236,9 +236,32 @@ strip_gams_data_block <- function(lines) {
   return(out)
 }
 
-split_indexed_operator <- function(expr_str) {
-  # Remove leading aggregate name
-  expr_str <- sub("^(sum|prod)\\(", "", expr_str)
+# split_indexed_operator <- function(expr_str) {
+#   # Remove leading aggregate name
+#   expr_str <- sub("^(sum|prod)\\(", "", expr_str)
+#   expr_str <- sub("\\)$", "", expr_str)
+#
+#   chars <- strsplit(expr_str, "")[[1]]
+#   level <- 0
+#   for (i in seq_along(chars)) {
+#     ch <- chars[i]
+#     if (ch == "(") {
+#       level <- level + 1
+#     } else if (ch == ")") {
+#       level <- level - 1
+#     } else if (ch == "," && level == 0) {
+#       # browser()
+#       index <- substring(expr_str, 1, i - 1)
+#       value_expr <- substring(expr_str, i + 1)
+#       return(c(trimws(index), trimws(value_expr)))
+#     }
+#   }
+#   return(NULL) # malformed or no split point
+# }
+split_indexed_operator <- function(expr_str, func_name) {
+  # Escape function name in case it contains special regex characters
+  func_pattern <- paste0("^", func_name, "\\(")
+  expr_str <- sub(func_pattern, "", expr_str)
   expr_str <- sub("\\)$", "", expr_str)
 
   chars <- strsplit(expr_str, "")[[1]]
@@ -250,7 +273,6 @@ split_indexed_operator <- function(expr_str) {
     } else if (ch == ")") {
       level <- level - 1
     } else if (ch == "," && level == 0) {
-      # browser()
       index <- substring(expr_str, 1, i - 1)
       value_expr <- substring(expr_str, i + 1)
       return(c(trimws(index), trimws(value_expr)))
@@ -259,12 +281,19 @@ split_indexed_operator <- function(expr_str) {
   return(NULL) # malformed or no split point
 }
 
+
+
+# Known indexed GAMS functions
+known_funcs_indexed <- c("sum", "prod", "smin", "smax", "sand", "sor")
+
 parse_gams_expr <- function(
     expr,
     symbols = list(),
     known_funcs = c("log", "exp", "abs", "sqrt", "ord", "card"),
+    # known_funcs_indexed = known_funcs_indexed,
     depth = 0, max_depth = 20,
-    brackets = FALSE # whether to wrap in brackets, passed to ast_*
+    brackets = FALSE, # whether to wrap in brackets, passed to ast_*
+    ...
     ) {
   # message(expr)
   # if (brackets) browser()
@@ -347,9 +376,22 @@ parse_gams_expr <- function(
     ))
   }
 
-  # sum(...), prod(...) ####
-  if (grepl("^(sum|prod)\\(", expr)) {
+  # known functions ####
+  # browser()
+  if (grepl("^[a-zA-Z0-9_]+\\(", expr)) {
+    result <- parse_function_expr(expr,
+                                  symbols = symbols,
+                                  known_funcs = known_funcs,
+                                  known_funcs_indexed = known_funcs_indexed,
+                                  depth = depth + 1,
+                                  max_depth = max_depth)
     # browser()
+    if (!is.null(result)) return(result)
+  }
+
+  # sum(...), prod(...)
+  if (grepl("^(sum|prod)\\(", expr)) {
+    browser() # should not be here!
     agg_type <- if (grepl("^sum\\(", expr)) "sum" else "prod"
     parts <- split_indexed_operator(expr)
     if (is.null(parts) || length(parts) != 2) stop("Malformed aggregate: cannot split arguments")
@@ -390,7 +432,7 @@ parse_gams_expr <- function(
     dims <- trimws(strsplit(dims, ",")[[1]])
     symbol_type <- detect_symbol_type(name, symbols, known_funcs)
     # browser()
-    dims <- ast_dims(dims)
+    dims <- ast_dims(dims, symbols = symbols)
     return(do.call(paste0("ast_", symbol_type), list(name, dims)))
   }
 
@@ -457,6 +499,10 @@ read_gams <- function(
     lines <- lines[!grepl("^\\$include\\b", lines, ignore.case = TRUE)]
   }
 
+  # Remove commented lines
+  lines <- lines[!grepl("^\\*", lines)]
+  lines <- remove_ontext_offtext(lines)
+
   # remove data
   # strip_gams_data_block <- function(lines) {
   #   text <- paste(lines, collapse = "\n")
@@ -464,10 +510,6 @@ read_gams <- function(
   #   cleaned <- gsub("(?s)/.*?/\\s*", " ", text, perl = TRUE)
   #   strsplit(cleaned, "\n", fixed = TRUE)[[1]]
   # }
-
-  # Remove commented lines
-  lines <- lines[!grepl("^\\*", lines)]
-  lines <- remove_ontext_offtext(lines)
 
   # lines <- strip_gams_data_block(lines)
   lines <- normalize_gams_lines(lines)
@@ -696,7 +738,7 @@ read_gams <- function(
           pair_str <- substr(line, start, end)
           pair_str <- gsub("[()]", "", pair_str)
           vars <- trimws(unlist(strsplit(pair_str, ",")))
-          if (length(vars) == 2) {
+          if (length(vars) >= 2) {
             aliases[[length(aliases) + 1]] <- vars
           }
         }
@@ -828,29 +870,46 @@ read_gams <- function(
 }
 
 parse_equation_header <- function(line) {
-  browser()
+  # browser()
   pattern_step1 <- "^\\s*(.*?)\\s*\\.\\.\\s*$"
   # if (!grepl(pattern_step1, line)) stop("Invalid GAMS equation header")
   if (!grepl(pattern_step1, line)) return(NULL) # not an equation header
 
   header <- sub(pattern_step1, "\\1", line)
 
-  if (grepl("\\$.", header)) {
-    # pattern_step2 <- "^(.*?)\\$\\((.*)\\)$"
-    # pattern_step2 <- "^([^(\\$]+\\([^)]*\\))\\$[({]([^)}]+)[)}]$"
-    # pattern_step2 <- "^([^$]+)\\$\\(?\\{?([^)}]+)\\)?\\}?$"
-    pattern_step2 <- "^([a-zA-Z0-9_]+(?:\\([^)]*\\))?)\\s*(?:\\$\\(?([^\\)]*\\)?[^)]*)\\)?)?$"
+  header_parts <- split_top_level_dollar(header)
 
-    name_and_dims <- sub(pattern_step2, "\\1", header)
-    condition     <- sub(pattern_step2, "\\2", header)
-  } else {
+  if (!is.null(header_parts) && length(header_parts) == 2) {
+    # browser()
+    name_and_dims <- header_parts[[1]]
+    condition = header_parts[[2]]
+    # condition <- parse_gams_expr(hparts[[2]], symbols = symbols)
+    # if (is.null(condition)) condition <- NULL
+  } else if (is.null(header_parts)) {
     name_and_dims <- header
     condition     <- NULL
+  } else {
+    browser()
+    stop("Unrecognized equation header format: ", line)
   }
 
-  if (grepl("^([a-zA-Z0-9_]+)\\(([^)]*)\\)$", name_and_dims)) {
-    eq_name <- sub("^([a-zA-Z0-9_]+)\\(([^)]*)\\)$", "\\1", name_and_dims)
-    dims_raw <- sub("^([a-zA-Z0-9_]+)\\(([^)]*)\\)$", "\\2", name_and_dims)
+  # if (grepl("\\$.", header)) {
+  #   # pattern_step2 <- "^(.*?)\\$\\((.*)\\)$"
+  #   # pattern_step2 <- "^([^(\\$]+\\([^)]*\\))\\$[({]([^)}]+)[)}]$"
+  #   # pattern_step2 <- "^([^$]+)\\$\\(?\\{?([^)}]+)\\)?\\}?$"
+  #   pattern_step2 <- "^([a-zA-Z0-9_]+(?:\\([^)]*\\))?)\\s*(?:\\$\\(?([^\\)]*\\)?[^)]*)\\)?)?$"
+  #
+  #   name_and_dims <- sub(pattern_step2, "\\1", header)
+  #   condition     <- sub(pattern_step2, "\\2", header)
+  # } else {
+  #   name_and_dims <- header
+  #   condition     <- NULL
+  # }
+
+  name_dims_pattern <- "^([a-zA-Z0-9_]+)\\(([^)]*)\\)$"
+  if (grepl(name_dims_pattern, name_and_dims)) {
+    eq_name <- sub(name_dims_pattern, "\\1", name_and_dims)
+    dims_raw <- sub(name_dims_pattern, "\\2", name_and_dims)
     dims <- strsplit(dims_raw, ",\\s*")[[1]]
   } else {
     eq_name <- name_and_dims

@@ -1,11 +1,11 @@
 pandoc: '3.4'
-pkgdown: 2.1.1
+pkgdown: 2.1.3
 pkgdown_sha: ~
 articles:
   ast: ast.html
   multimod: multimod.html
   articles/roadmap: roadmap.html
-last_built: 2025-05-29T14:13Z
+last_built: 2025-05-31T03:43Z
 urls:
   reference: https://optimal2050.github.io/multimod/reference
   article: https://optimal2050.github.io/multimod/articles

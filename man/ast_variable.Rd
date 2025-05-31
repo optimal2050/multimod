@@ -4,7 +4,7 @@
 \alias{ast_variable}
 \title{Create a variable AST node}
 \usage{
-ast_variable(name, dims = ast_dims(), ...)
+ast_variable(name, dims = ast_dims(), vtype = NULL, bounds = NULL, ...)
 }
 \arguments{
 \item{name}{Name of the variable.}

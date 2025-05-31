@@ -83,14 +83,22 @@ ast_set <- function(name) {
 #' ast_dims(ast_symbol("t"))
 ast_dims <- function(...) {
   # browser()
-  dims <- list(...)
+  args <- list(...)
+  if (!is.null(args$symbols)) {
+    symb_list <- args$symbols
+    args$symbols <- NULL
+  } else {
+    symb_list <- NULL
+  }
+  dims <- args
+
   if (length(dims) == 0 || (length(dims) == 1 && is_empty(dims[[1]]))) {
     # empty
     return(new_ast("dims"))
   }
   # check if ... is an unnamed list of objects
-  if (length(dims) == 1 && is.null(names(dims)) &&
-      !inherits(dims, "ast") &&
+  if (length(dims) == 1 && !inherits(dims, "ast") &&
+      #is.null(names(dims)) &&
       (is.list(dims[[1]]) || is.vector(dims[[1]]))
       ) {
     dims <- dims[[1]]
@@ -98,15 +106,24 @@ ast_dims <- function(...) {
 
   cls <- sapply(dims, function(x) class(x)[1])
 
-  if (all(cls %in% c("set", "symbol"))) {
-    # pass
-  } else if (all(cls %in% "character")) {
-    # Convert character to set
-    dims <- lapply(dims, ast_set)
-  } else {
-    stop("Invalid input for `dims`: ",
-         "must be set, symbol, or characters.")
-  }
+  dims <- lapply(dims, function(x) {
+    # browser()
+    if (inherits(x, "ast")) {
+      return(x)
+    } else {
+      return(parse_gams_expr(x, symbols = symb_list))
+    }
+  })
+
+  # if (all(cls %in% c("set", "symbol"))) {
+  #   # pass
+  # } else if (all(cls %in% "character")) {
+  #   # Convert character to set
+  #   dims <- lapply(dims, ast_set)
+  # } else {
+  #   stop("Invalid input for `dims`: ",
+  #        "must be set, symbol, or characters.")
+  # }
   if (!is.list(dims)) browser()
   out <- do.call(new_ast, c("dims", dims))
   return(out)
@@ -142,9 +159,9 @@ ast_mapping <- function(name, dims = ast_dims(), ...) {
 #'
 #' @return An `variable` S3 object (subclass of `ast`).
 #' @export
-ast_variable <- function(name, dims = ast_dims(), ...) {
+ast_variable <- function(name, dims = ast_dims(), vtype = NULL, bounds = NULL, ...) {
   stopifnot(is.character(name))
-  new_ast("variable", name = name, dims = dims, ...)
+  new_ast("variable", name = name, dims = dims, vtype, bounds, ...)
 }
 
 #' Create a parameter AST node
@@ -256,13 +273,46 @@ ast_prod <- function(index, value) {
 #' Constructs an abstract syntax tree (AST) node representing a function.
 #' @param name A character string representing the function name.
 #' @param value An AST node representing the function body or expression.
+#' @param index An AST node (typically dims or when) defining the index set.
 #' @return An `ast` object of class `function`.
 #' @export
-ast_func <- function(name, value) {
+ast_func <- function(name, value, index = NULL, ...) {
+  # browser()
   stopifnot(is.character(name), length(name) == 1)
-  stopifnot(inherits(value, "ast"))
-  new_ast("func", name = name, value = value)
+
+  # index must be NULL or a single ast (like ast_dims or ast_when)
+  if (!is.null(index) && !inherits(index, "ast")) {
+    stop("`index` must be NULL or an ast object (e.g., ast_dims or ast_when).")
+  }
+
+  # value can be a single ast or a list of asts (for multi-arg functions)
+  if (!(inherits(value, "ast") || (is.list(value) && all(sapply(value, inherits, "ast"))))) {
+    stop("`value` must be an ast object or a list of ast objects.")
+  }
+
+  new_ast("func", name = name, index = index, value = value, ...)
 }
+
+
+
+# ast_func <- function(name, index = NULL, ...) {
+#   stopifnot(is.character(name), length(name) == 1)
+#   stopifnot(is.null(index) || inherits(index, "ast"))
+#   stopifnot(inherits(value, "ast"))
+#   new_ast("func", name = name, index = index, value = value)
+# }
+
+# ast_func_indexed <- function(fun, index, value) {
+#   stopifnot(is.character(fun), length(fun) == 1)
+#   stopifnot(inherits(index, "ast"))
+#   stopifnot(inherits(value, "ast"))
+#   structure(
+#     list(fun = fun, index = index, value = value),
+#     class = c("func_indexed", "ast")
+#   )
+# }
+
+
 
 #' Create an expression AST node
 #'
@@ -276,6 +326,10 @@ ast_func <- function(name, value) {
 #' @export
 ast_expression <- function(op, lhs, rhs, brackets = NULL) {
   stopifnot(is.character(op), !is.null(lhs), !is.null(rhs))
+  stopifnot(inherits(lhs, "ast"), inherits(rhs, "ast"))
+  stopifnot(length(op) == 1)
+  if (length(brackets) > 1) browser()
+  stopifnot(length(brackets) <= 1)
   new_ast("expression", op = op, lhs = lhs, rhs = rhs, brackets = brackets)
 }
 
@@ -356,6 +410,22 @@ ast_where <- function(name, content, hash = node_hash(content), ...) {
   stopifnot(length(name) == 1)
   stopifnot(is.null(content) || inherits(content, "ast"))
   new_ast("where", name = name, content = content, hash = hash, ...)
+}
+
+# coercion functions ####
+ast_func_to_sum <- function(x) {
+  # Convert a function node to a sum node
+  stopifnot(inherits(x, c("ast", "func")))
+  stopifnot(x$name == "sum")
+  ast_sum(index = x$index, value = x$value)
+}
+
+
+ast_func_to_prod <- function(x) {
+  # Convert a function node to a product node
+  stopifnot(inherits(x, c("ast", "func")))
+  stopifnot(x$name == "prod")
+  ast_prod(index = x$index, value = x$value)
 }
 
 # functions ####
