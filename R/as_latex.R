@@ -145,6 +145,9 @@ latex_math_brakets <- function(content = NULL, context = NULL, size = NULL) {
   } else if (is.null(size)) {
     size <- latex_bracket_size(content, context)
   }
+  if (is.null(size) || size == "") {
+    return(c(open = "[", close = "]"))
+  }
   c(open = paste0(size, "l["), close = paste0(size, "r]"))
 }
 
@@ -236,7 +239,8 @@ as_latex <- function(x, ...) {
 as_latex.default <- function(x, ...) {
   if (is.null(x)) {return(NULL)}
   browser()
-  stop("as_latex not implemented for this class.")
+  stop("as_latex not implemented for class '", class(x)[1], "', ",
+       "value: ", as.character(x), call. = FALSE)
 }
 
 #' Convert a character string to LaTeX-safe format
@@ -255,7 +259,7 @@ as_latex.default <- function(x, ...) {
 #' as_latex("alpha & beta_1 = 0.5%")
 #' as_latex("theta", math = TRUE)
 #' as_latex("Note:", bold = TRUE, italic = TRUE)
-as_latex.character <- function(x, math = FALSE, bold = FALSE, italic = FALSE) {
+as_latex.character <- function(x, math = FALSE, bold = FALSE, italic = FALSE, ...) {
   if (!is.character(x)) stop("Input must be a character string.")
 
   escape_latex <- function(txt) {
@@ -629,20 +633,57 @@ as_latex.prod <- function(x, brackets = NULL, ...) {
 #' @method as_latex func
 #' @rdname as_latex
 as_latex.func <- function(x, brackets = NULL, subscript_dims = TRUE, ...) {
-  stopifnot(inherits(x, "func"))
-  fun_name <- x$name
-  value_latex <- as_latex(x$value, brackets = FALSE, subscript_dims = subscript_dims, ...)
-
-  # Format function name and argument in LaTeX
-  fun_latex <- paste0("\\mathrm{", fun_name, "}(", value_latex, ")")
-
-  # Optionally wrap in brackets
-  if (!is.null(brackets) && brackets) {
-    fun_latex <- latex_wrap_brackets(fun_latex, brackets)
+  if (isTRUE(x$name == "sum")) {
+    x <- ast_func_to_sum(x)
+    return(as_latex.sum(x, brackets = brackets, ...))
+  } else if (isTRUE(x$name == "prod")) {
+    x <- ast_func_to_prod(x)
+    return(as_latex.prod(x, brackets = brackets, ...))
   }
 
-  return(fun_latex)
+  # browser()
+  value_latex <- if (inherits(x$value, c("ast"))) {
+      as_latex(x$value, brackets = brackets, subscript_dims = subscript_dims, ...)
+    } else if (is.list(x$value)) {
+      sapply(x$value, function(v) {
+        if (inherits(v, "ast")) {
+          as_latex(v, brackets = brackets, subscript_dims = subscript_dims, ...)
+        } else {
+          # Fallback to character conversion
+          as.character(v)
+          # NULL
+        }
+      })
+    } else {
+      # Single value, not a list
+      as.character(x$value)
+    }
+  value_latex <- paste(value_latex, collapse = ", ")
+
+  if (!is.null(x$index)) {
+    index_latex <- as_latex(x$index, brackets = brackets, subscript_dims = subscript_dims, ...)
+    return(paste0(x$name, "(", index_latex, ", ", value_latex, ")"))
+  } else {
+    return(paste0(x$name, "(", value_latex, ")"))
+  }
 }
+
+
+# as_latex.func <- function(x, brackets = NULL, subscript_dims = TRUE, ...) {
+#   stopifnot(inherits(x, "func"))
+#   fun_name <- x$name
+#   value_latex <- as_latex(x$value, brackets = FALSE, subscript_dims = subscript_dims, ...)
+#
+#   # Format function name and argument in LaTeX
+#   fun_latex <- paste0("\\mathrm{", fun_name, "}(", value_latex, ")")
+#
+#   # Optionally wrap in brackets
+#   if (!is.null(brackets) && brackets) {
+#     fun_latex <- latex_wrap_brackets(fun_latex, brackets)
+#   }
+#
+#   return(fun_latex)
+# }
 
 
 #' @export
@@ -877,7 +918,7 @@ format_index <- function(lhs) {
 #'
 #' @return Character string of the formatted LaTeX code
 # @export
-format_latex_aligned <- function(lhs, rhs, rel = "=", max_len = 80) {
+format_latex_aligned <- function(lhs, rhs, rel = "=", max_len = 90) {
   # browser()
   lhs_len <- estimate_latex_length(lhs)
   rhs_len <- estimate_latex_length(rhs)
@@ -919,7 +960,7 @@ format_latex_aligned <- function(lhs, rhs, rel = "=", max_len = 80) {
     )
     # lines[1] <- paste0("&", lhs, " ", rel, " ", rhs_parts[1], " \\")
     if (length(rhs_parts) > 1) {
-      lines_rhs <- paste0("&\\qquad\\qquad ", rel, rhs_parts[1], " \\\\")
+      lines_rhs <- paste0("&\\qquad\\qquad ", rel, " ", rhs_parts[1], " \\\\")
       for (i in 2:length(rhs_parts)) {
         lines_rhs[i] <- paste0("&\\qquad\\qquad ", rhs_parts[i], " \\\\")
       }

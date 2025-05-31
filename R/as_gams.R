@@ -104,6 +104,27 @@ as_gams.prod <- function(x, ...) {
 }
 
 #' @export
+#' @method as_gams func
+#' @rdname as_gams
+as_gams.func <- function(x, ...) {
+  val <- if (is.list(x$value)) {
+    sapply(x$value, as_gams, ...)
+  } else {
+    as_gams(x$value, ...)
+  }
+  val_str <- paste(val, collapse = ", ")
+
+  if (!is.null(x$index)) {
+    idx <- as_gams(x$index, ...)
+    return(paste0(x$name, "(", idx, ", ", val_str, ")"))
+  } else {
+    return(paste0(x$name, "(", val_str, ")"))
+  }
+}
+
+
+
+#' @export
 #' @method as_gams when
 as_gams.when <- function(x, ...) {
   then <- as_gams(x$then, ...)

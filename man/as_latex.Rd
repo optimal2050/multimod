@@ -23,7 +23,7 @@ as_latex(x, ...)
 
 \method{as_latex}{default}(x, ...)
 
-\method{as_latex}{character}(x, math = FALSE, bold = FALSE, italic = FALSE)
+\method{as_latex}{character}(x, math = FALSE, bold = FALSE, italic = FALSE, ...)
 
 \method{as_latex}{set}(x, math_env = "text", ...)
 

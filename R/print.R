@@ -86,7 +86,10 @@ print.mapping <- function(x, ...) {
 #' @export
 #' @method print symbol
 print.symbol <- function(x, ...) {
-  cat("<AST symbol> ", x$value, "\n", sep = "")
+  cat("<AST symbol> ", x$name, "\n", sep = "")
+  if (length(x$dims) > 0) {
+    cat(" ", as.character(x$dims), "\n")
+  }
 }
 
 #' @export
@@ -143,6 +146,33 @@ print.prod <- function(x, ...) {
     cat("  domain: ", as.character(x$domain), "\n")
   }
 }
+
+# print.func <- function(x, ...) {
+#   cat("<AST function> ", x$name, "\n", sep = "")
+#   if (!is.null(x$index)) {
+#     cat("  index: ", as.character(x$index), "\n")
+#   }
+#   cat("  value: ", as.character(x$value), "\n")
+# }
+
+#' @export
+#' @method print func
+#' @rdname print
+print.func <- function(x, ...) {
+  cat("<func>\n")
+  cat("  name:   ", x$name, "\n")
+  if (!is.null(x$index)) {
+    cat("  index:  "); print(x$index)
+  }
+  cat("  value:  ")
+  if (is.list(x$value)) {
+    lapply(x$value, print)
+  } else {
+    print(x$value)
+  }
+  invisible(x)
+}
+
 
 #' @export
 #' @method print model_structure

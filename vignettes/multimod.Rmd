@@ -25,7 +25,7 @@ require(visNetwork, quietly = TRUE)
 ```
 
 ## Download example model
-```{r}
+```{r, eval=FALSE}
 gams_source <- file.path(tempdir(), "energyRt.gms")
 
 # Download "energyRt.gms" GAMS model source file from GitHub
@@ -52,7 +52,7 @@ print(mod_str)
 
 ## Convert to multimod model
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 # Collect all symbols
 symbols <- build_symbols_list(mod_str)
 # analyze an equation

@@ -7,9 +7,9 @@ operator_precedence <- c(
   "*" = 2, "/" = 2,
   "+" = 3, "-" = 3,
   "==" = 4, "!=" = 4, "<>" = 4, "<=" = 4, ">=" = 4, "=" = 4, "<" = 4, ">" = 4,
-  "and" = 5, "&" = 5,
+  "and" = 7, "&" = 7,
   "or"  = 6, "|" = 6,
-  "not" = 8, "!" = 8
+  "not" = 5, "!" = 5
 )
 # "$" = 9 # !!! double check
 
@@ -129,7 +129,9 @@ find_top_level_operators <- function(
       # add white space around the op
       op_sp <- paste0("\\b", op, "\\b")
     } else {
-      stop("Invalid/Unrecognized operator: ", op)
+      # warning("Unrecognized operator: ", op)
+      fixed <- TRUE
+      op_sp <- op
     }
     # browser()
     op_nn <- gregexpr(op_sp, expr, fixed = fixed, ignore.case = !fixed)[[1]]
@@ -301,4 +303,116 @@ annotate_brackets <- function(expr, parent = NULL, side = NULL) {
 
   expr
 }
+
+
+# Generic function parser
+parse_function_expr <- function(expr, symbols,
+                                known_funcs, known_funcs_indexed, ...) {
+  # browser()
+  # Extract function name (before first parenthesis)
+  fn_name <- sub("\\(.*", "", expr)
+  fn_name_lower <- tolower(fn_name)
+
+  # Determine function type
+  is_indexed <- fn_name_lower %in% tolower(known_funcs_indexed)
+  is_known <- fn_name_lower %in% tolower(known_funcs)
+
+  if (!(is_indexed || is_known)) return(NULL)
+
+  if (is_indexed) {
+    # Indexed function: func(index, value)
+    # browser()
+    parts <- split_indexed_operator(expr, func_name = fn_name)
+    if (is.null(parts) || length(parts) != 2) return(NULL)
+
+    index <- parse_gams_expr(parts[[1]], symbols = symbols,
+                             # known_funcs = known_funcs,
+                             # known_funcs_indexed =known_funcs_indexed,
+                             ...)
+    if (!inherits(index, "ast")) index <- ast_dims(index)
+
+    value_expr <- parse_gams_expr(parts[[2]], symbols = symbols,
+                                  # known_funcs = known_funcs,
+                                  # known_funcs_indexed = known_funcs_indexed,
+                                  ...)
+    # browser()
+    return(ast_func(fn_name, index = index, value = value_expr))
+
+  } else {
+    # browser()
+    # Scalar function: func(arg1, arg2, ...)
+    # Extract string inside the outermost parentheses
+    args_str <- sub("^[^(]*\\((.*)\\)$", "\\1", expr)
+    args_raw <- split_top_level_args(args_str)
+    parsed_args <- lapply(args_raw, function(a) parse_gams_expr(a, symbols, known_funcs, ...))
+    return(ast_func(fn_name, value = parsed_args))
+
+    # args_raw <- split_top_level_args(expr)
+    # args_parsed <- lapply(args_raw, function(a) parse_gams_expr(a, symbols, known_funcs, known_funcs_indexed, ...))
+    # return(ast_func(fn_name, value = args_parsed))
+  }
+}
+
+#' Split function arguments at the top level
+#'
+#' This function splits an argument string like `"x, y+z, f(a,b), g(i)$c(i)"` into
+#' individual arguments while respecting nested parentheses.
+#'
+#' @param expr_str A string containing comma-separated expressions
+#' @return A character vector of top-level arguments
+split_top_level_args <- function(expr_str) {
+  # browser()
+  chars <- strsplit(expr_str, "")[[1]]
+  level <- 0
+  start <- 1
+  args <- c()
+  for (i in seq_along(chars)) {
+    ch <- chars[i]
+    if (ch == "(") {
+      level <- level + 1
+    } else if (ch == ")") {
+      level <- level - 1
+    } else if (ch == "," && level == 0) {
+      arg <- substring(expr_str, start, i - 1)
+      args <- c(args, trimws(arg))
+      start <- i + 1
+    }
+  }
+  # Add the last argument
+  if (start <= length(chars)) {
+    arg <- substring(expr_str, start)
+    args <- c(args, trimws(arg))
+  }
+  return(args)
+}
+
+
+# # Generic function parser logic
+# parse_function_expr <- function(expr, symbols, known_funcs, known_funcs_indexed, ...) {
+#   # Extract function name
+#   fn_name <- sub("\\(.*", "", expr)
+#
+#   # If not a known function, exit
+#   if (!(tolower(fn_name) %in% c(tolower(known_funcs), tolower(known_funcs_indexed)))) {
+#     return(NULL)
+#   }
+#
+#   # Split arguments (with support for indexed form: func(index, value))
+#   parts <- split_indexed_operator(expr)
+#   if (is.null(parts)) {
+#     # Scalar function fallback: func(arg1, arg2, ...)
+#     args <- split_top_level_args(expr)
+#     parsed_args <- lapply(args, function(a) parse_gams_expr(a, symbols, known_funcs, ...))
+#     return(ast_func(fn_name, parsed_args))
+#   }
+#
+#   # Indexed function: func(index, value)
+#   index <- parse_gams_expr(parts[1], symbols, known_funcs, ...)
+#   if (!inherits(index, "ast")) {
+#     index <- ast_dims(index)
+#   }
+#   value_expr <- parse_gams_expr(trimws(parts[2]), symbols, known_funcs, ...)
+#
+#   return(ast_func(fn_name, index = index, value = value_expr))
+# }
 
