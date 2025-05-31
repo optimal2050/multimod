@@ -8,7 +8,7 @@ Authors@R:
           role = c("aut", "cre"), 
           comment = c(ORCID = "0000-0001-5546-9875")))
 Description: Multimod provides a domain-specific language (DSL) for defining algebraic equations and constraints in R, and rendering them to multiple mathematical programming languages, including GAMS, AMPL, Pyomo, and JuMP. It supports structured storage of equations, parameters, sets, and mappings, and aims to simplify the development of complex optimization models across platforms.
-URL: https://optimal2050.github.io/multimod
+URL: https://optimal2050.github.io/multimod, https://github.com/optimal2050/multimod 
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

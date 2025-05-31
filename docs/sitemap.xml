@@ -1,5 +1,8 @@
 <urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
 <url><loc>https://optimal2050.github.io/multimod/404.html</loc></url>
+<url><loc>https://optimal2050.github.io/multimod/CODE_OF_CONDUCT.html</loc></url>
+<url><loc>https://optimal2050.github.io/multimod/LICENSE-text.html</loc></url>
+<url><loc>https://optimal2050.github.io/multimod/LICENSE.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/articles/articles/devstatus.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/articles/ast.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/articles/devstatus.html</loc></url>
@@ -7,13 +10,19 @@
 <url><loc>https://optimal2050.github.io/multimod/articles/multimod.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/articles/roadmap.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/authors.html</loc></url>
-<url><loc>https://optimal2050.github.io/multimod/CODE_OF_CONDUCT.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/index.html</loc></url>
-<url><loc>https://optimal2050.github.io/multimod/LICENSE-text.html</loc></url>
-<url><loc>https://optimal2050.github.io/multimod/LICENSE.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/news/index.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/alias_ast_names.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/annotate_brackets.html</loc></url>
+<url><loc>https://optimal2050.github.io/multimod/reference/as_gams.equation.html</loc></url>
+<url><loc>https://optimal2050.github.io/multimod/reference/as_gams.html</loc></url>
+<url><loc>https://optimal2050.github.io/multimod/reference/as_jump.html</loc></url>
+<url><loc>https://optimal2050.github.io/multimod/reference/as_latex.html</loc></url>
+<url><loc>https://optimal2050.github.io/multimod/reference/as_latex.multimod_equation.html</loc></url>
+<url><loc>https://optimal2050.github.io/multimod/reference/as_multimod.html</loc></url>
+<url><loc>https://optimal2050.github.io/multimod/reference/as_rexpression.html</loc></url>
+<url><loc>https://optimal2050.github.io/multimod/reference/as_visNetwork.html</loc></url>
+<url><loc>https://optimal2050.github.io/multimod/reference/as_visNetwork.multimod_equation.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/ast_cond.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/ast_condition.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/ast_const.html</loc></url>
@@ -34,15 +43,6 @@
 <url><loc>https://optimal2050.github.io/multimod/reference/ast_variable.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/ast_when.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/ast_where.html</loc></url>
-<url><loc>https://optimal2050.github.io/multimod/reference/as_gams.equation.html</loc></url>
-<url><loc>https://optimal2050.github.io/multimod/reference/as_gams.html</loc></url>
-<url><loc>https://optimal2050.github.io/multimod/reference/as_jump.html</loc></url>
-<url><loc>https://optimal2050.github.io/multimod/reference/as_latex.html</loc></url>
-<url><loc>https://optimal2050.github.io/multimod/reference/as_latex.multimod_equation.html</loc></url>
-<url><loc>https://optimal2050.github.io/multimod/reference/as_multimod.html</loc></url>
-<url><loc>https://optimal2050.github.io/multimod/reference/as_rexpression.html</loc></url>
-<url><loc>https://optimal2050.github.io/multimod/reference/as_visNetwork.html</loc></url>
-<url><loc>https://optimal2050.github.io/multimod/reference/as_visNetwork.multimod_equation.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/brackets_pair.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/depth.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/estimate_latex_length.html</loc></url>
