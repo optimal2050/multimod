@@ -158,3 +158,26 @@ print.model_structure <- function(x, ...) {
   cat("  Language:   ", x$language, "\n")
 }
 
+#' @export
+#' @method print model
+print.model <- function(x, ...) {
+  cat("Model: ", x$name, "\n", sep = "")
+  if (!is.null(x$desc)) {
+    cat("Description: ", x$desc, "\n", sep = "")
+  }
+  if (!is.null(x$authors)) {
+    cat("Authors: ", paste(x$authors, collapse = ", "), "\n")
+  }
+  if (!is.null(x$source)) {
+    cat("Source: ", x$source, "\n")
+  }
+  if (!is.null(x$language)) {
+    cat("Language: ", x$language, "\n")
+  }
+  cat("Sets: ", length(x$sets), "\n")
+  cat("Mappings: ", length(x$mappings), "\n")
+  cat("Aliases: ", length(x$aliases), "\n")
+  cat("Parameters: ", length(x$parameters), "\n")
+  cat("Variables: ", length(x$variables), "\n")
+  cat("Equations: ", length(x$equations), "\n")
+}
