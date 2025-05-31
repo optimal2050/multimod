@@ -1,7 +1,7 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# multimod <img src="man/figures/logo.png" align="right" height="130"/>
+# multimod [<img src="man/figures/logo.png" align="right" height="130"/>](https://optimal2050.github.io/multimod/)
 
 <!-- badges: start -->
 
