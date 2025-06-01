@@ -12,13 +12,25 @@ as_gams <- function(x, ...) {
 #' @export
 as_gams.default <- function(x, ...) {
   if (is.null(x)) return(x)
-  if (numeric(x) & length(x) == 1) {
+  if (length(x) == 1 && is.numeric(x)) {
     return(format(x, scientific = FALSE))
+  } else if (length(x) == 1 && is.character(x)) {
+    return(x)
   }
+  browser()
   warning("No as_gams method for object of class: ", class(x))
   x
 }
 
+#' @export
+as_gams.character <- function(x, ...) {
+  # If x is a character vector, return it as is
+  if (is.character(x)) {
+    return(x)
+  }
+  # Otherwise, call the default method
+  UseMethod("as_gams", x)
+}
 
 #' @export
 #' @method as_gams set
@@ -27,7 +39,7 @@ as_gams.set <- function(x, declaration = FALSE, desc = declaration, ...) {
   if (declaration) {
     paste0("set ", x$name, ifelse(desc, paste0("  ", x$desc), ""),";")
   } else {
-    paste0(x$name, "", ifelse(desc, x$desc, ""))
+    paste(x$name, ifelse(desc, x$desc, ""), sep = "  ")
   }
 }
 
@@ -107,10 +119,13 @@ as_gams.prod <- function(x, ...) {
 #' @method as_gams func
 #' @rdname as_gams
 as_gams.func <- function(x, ...) {
-  val <- if (is.list(x$value)) {
+  val <- if (inherits(x$value, c("ast", "multimod"))) {
+    as_gams(x$value, ...)
+  } else if (is.list(x$value) && !is.data.frame(x$value)) {
     sapply(x$value, as_gams, ...)
   } else {
-    as_gams(x$value, ...)
+    browser()
+    stop("Unsupported value type for func: ", class(x$value))
   }
   val_str <- paste(val, collapse = ", ")
 

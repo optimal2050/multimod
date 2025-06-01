@@ -7,7 +7,13 @@
 \usage{
 as_visNetwork(x, ...)
 
-\method{as_visNetwork}{ast}(x, title = NULL, alias_map = NULL, show_dims = TRUE)
+\method{as_visNetwork}{ast}(
+  x,
+  main = x$name,
+  submain = x$desc,
+  alias_map = NULL,
+  show_dims = TRUE
+)
 }
 \arguments{
 \item{x}{A multimod object}

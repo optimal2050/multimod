@@ -13,24 +13,29 @@ status](https://www.r-pkg.org/badges/version/multimod)](https://CRAN.R-project.o
 Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](code_of_conduct.md)
 <!-- badges: end -->
 
-The `multimod` R package defines a domain-specific language (DSL) and
-internal representation for mathematical programming models. It enables
-parsing, manipulation, and export of equations and constraints across
-multiple modeling languages including GAMS, Pyomo, JuMP, and LaTeX.
+The `multimod` R package is an effort to bridge alternative mathematical
+modeling frameworks and languages, particularly those used in energy
+system modeling. It defines a domain-specific language (DSL) for
+representing mathematical programming models in a unified, abstract
+format.
 
-## Installation
+`multimod` supports partial parsing of models written in GAMS (General
+Algebraic Modeling System), and is being extended to support more GAMS
+language features, as well as JuMP (Julia), Pyomo (Python), and GMPL
+(GNU Math Programming Language). Parsed models can be converted into the
+`multimod` format for analysis, manipulation, visualization, or
+rendering to LaTeX and other modeling languages.
 
-``` r
-# install.packages("pak")
-pak::pak("optimal2050/multimod")
-```
+The package is designed to facilitate the exchange of mathematical
+models across different languages and solver frameworks, with the goal
+of simplifying the development, comparison, and reuse of complex
+optimization models in energy systems and beyond.
 
-## Core Features
+## Development Status
 
-- Parse GAMS-style equations into symbolic tree structure
-- Represent variables, parameters, and mappings as structured R objects
-- Render equations to multiple target formats: GAMS, Pyomo, JuMP, LaTeX
-- Visualize equations as graphs (visNetwork or DiagrammeR)
+The package is under active development. Contributions, bug reports, and
+feature requests are welcome! See details in
+[{devstatus}](articles/roadmap.html).
 
 ## Workflow Diagram
 
@@ -77,9 +82,14 @@ braces `{{}}` are potential extensions.
    → {{...}}
 ```
 
-## Example Workflow
+## Installation and Example Workflow
 
-Load a GAMS model and parse
+``` r
+# install.packages("pak")
+pak::pak("optimal2050/multimod")
+```
+
+### Load a GAMS model and parse
 
 ``` r
 library(multimod)
@@ -94,7 +104,7 @@ class(mod) # "model"    "multimod"
 
     #> [1] "model"    "multimod"
 
-AST elements: an example equation
+#### AST elements: an example equation
 
 ``` r
 eq <- mod$equations[["eqObjective"]]
@@ -102,10 +112,10 @@ print(eq)
 #> <AST equation> eqObjective
 #>   relation:  == 
 #>   lhs:  vObjective 
-#>   rhs:  sum(if (mvTotalCost[region,year]) {[region,year]}v...
+#>   rhs:  sum(if (mvTotalCost[region,year]) {[region,year]}, *, vTotalCost[region,year], pPeriodLen[year] * pDiscountFactor[region,year], FALSE)
 ```
 
-Render an equation to LaTeX
+#### Render an equation to LaTeX
 
 ``` r
 as_latex(eq) |> cat()
@@ -115,7 +125,7 @@ $$
 \textit{vObjective} = \sum_{{r,y} \in \textsf{mvTotalCost}_{r,y}} {\textit{vTotalCost}_{r,y}  \cdot  \textsf{pPeriodLen}_{y}  \cdot  \textsf{pDiscountFactor}_{r,y}}
 $$
 
-Render a specific equation to GAMS or Julia/JuMP
+#### Render a specific equation to GAMS or Julia/JuMP
 
 ``` r
 as_gams(eq) |> cat()
@@ -125,14 +135,14 @@ as_gams(eq) |> cat()
 # {as_jump(mod$equations[["eqObjective"]])}
 ```
 
-Visualize equation tree
+#### Visualize equation tree
 
 ``` r
 library(visNetwork)
 as_visNetwork(eq)
 ```
 
-Write the entire model to LaTeX
+#### Write the entire model to LaTeX
 
 ``` r
 write_latex(mod, 
@@ -142,7 +152,7 @@ write_latex(mod,
 tinytex::pdflatex("my_multimod_model.tex")
 ```
 
-Save to GAMS
+#### Write GAMS model
 
 ``` r
 write_gams(mod, file = "my_multimod_model.gms")
@@ -151,9 +161,3 @@ write_gams(mod, file = "my_multimod_model.gms")
 ## License
 
 MIT License
-
-## Development Status
-
-The package is under active development. Contributions, bug reports, and
-feature requests are welcome! See details in
-[{devstatus}](articles/roadmap.html).

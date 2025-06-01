@@ -13,18 +13,30 @@ editor_options:
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  eval = FALSE
+  eval = TRUE
 )
 library(here)
 ```
 
-```{r setup}
-library(multimod)
-library(lobstr)
-require(visNetwork, quietly = TRUE)
+This vignette provides an overview of the current functionality of the `multimod` package, which is designed to parse GAMS models and convert them into a structured format for further analysis, visualization, rendering to LaTeX, and other mathematical programming languages. 
+
+## Installation  
+The development version of the package is available for installation from GitHub using the `pak` package. The package is not yet available on CRAN.
+```{r, eval=FALSE}
+# install.packages("pak")
+pak::pkg_install("optimal2050/multimod", dependencies = TRUE)
 ```
 
-## Download example model
+## Setup
+```{r setup}
+library(lobstr)
+library(visNetwork, quietly = TRUE)
+library(multimod)
+```
+
+## Example model
+
+Download example model  
 ```{r, eval=FALSE}
 gams_source <- file.path(tempdir(), "energyRt.gms")
 
@@ -39,195 +51,171 @@ download.file(
 file.exists(gams_source)
 ```
 
-```{r, echo=FALSE, eval=TRUE}
-gams_source <- here("tmp/energyRt.gms")
+```{r, echo=FALSE, eval=TRUE, iclude=FALSE}
+gams_source <- here("tmp/energyRt.gms") |> fs::path_rel(start = getwd())
 ```
 
-## Import GAMS model structure
-Model structure is a list of symbols, sets, parameters, variables, equations, and other model components. No model data or operations is imported from the GAMS source file. This is an interim step before converting to multimod model. The object of class `model_structure` contains the imported model elements (sets, equations, etc.) in text format. 
-```{r, eval=FALSE}
+## Parse model structure
+Model structure is a named list of the model symbols: sets, parameters, variables, equations, and other components. The parser reads declarations to further identify the model elements used in equations/constraints. Data and operations on data are not imported--the parser focuses on the model structure, which is stored in an object of class `model_structure`.
+
+```{r, eval=TRUE}
 mod_str <- read_gams(gams_source, include = FALSE, verbose = FALSE)
 print(mod_str)
 ```
 
-## Convert to multimod model
-
-```{r, eval=FALSE}
-# Collect all symbols
+## Convert to multimod
+The `model_structure` object can be converted to a `multimod`, either equation by equation or all at once. The multimod's `model` class is a structured representation of the model using the Abstract Syntax Tree (AST) format. Every element of a model, including operators, variables, sets and parameters, is represented as an AST node. 
+```{r, eval=TRUE}
+# (Optional) Collect all symbols
 symbols <- build_symbols_list(mod_str)
 # analyze an equation
-ast_node <- parse_gams_equation(mod_str$equations[[1]], symbols)
-# ast_node <- coerce_gams_equation(mod_str$equations$eqTechCapUp, symbols)
-# ast_node <- coerce_gams_equation(mod_str$equations$eqTechSng2Sng, symbols)
-# map_ast(ast_node, function(x) {if (is.list(x)) x$brackets}) |> tree()
+ast_node <- parse_gams_equation(mod_str$equations[["eqObjective"]], symbols)
+ast_node
+```
 
-mod_str$equations$eqTechCapUp
+### Abstract Syntax Tree (AST)
+AST nodes are the building blocks of multimod equations, creating a nested structures.
+```{r, eval=TRUE}
+lobstr::tree(ast_node, max_length = 25, max_depth = 5)
+```
 
-# str(ast_node, max.level = 5)
-lobstr::tree(ast_node, max_length = 100, max_depth = 5)
-
+### Visualization
+They can be visualized as a tree structure, which is useful for understanding the relationships between different elements in the model.
+```{r, eval=TRUE}
 as_visNetwork(ast_node)
-
-multimod <- as_multimod(mod_str)
-
-eq_obj <- parse_gams_equation(
-  mod_str$equations$eqTechSng2Sng,
-  # mod_str$equations[[2]],
-  # mod_str$equations$eqTechCap,
-  # mod_str$equations$eqTechCapUp,
-  # mod_str$equations$eqTechAInp,
-  # mod_str$equations$eqExportRowCost,
-  # mod_str$equations$eqTechGrp2Sng,
-  # mod_str$equations$eqTechSng2Grp,
-  # mod_str$equations$eqEmsFuelTot,
-  # mod_str$equations$eqStorageStore,
-  # mod_str$equations$eqOutTot,
-  symbols
-)
-# gams_to_multimod(mod_str$equations$eqTechCapUp$gams, symbols)
-
-eq_obj$name
-class(eq_obj)
-print(eq_obj)
-class(eq_obj)
-str(eq_obj, max.level = 2)
-lobstr::tree(eq_obj, max_length = 100, max_depth = 10)
-eq_obj$lhs
-eq_obj$relation
-eq_obj$rhs
-eq_obj$rhs |> lobstr::tree(max_length = 100, max_depth = 10)
-
-as_latex(eq_obj) |> cat()
-
-eq_viz <- get_network_data(eq_obj)
-str(eq_viz, max.level = 10)
-eq_viz |> lobstr::tree(max_length = 100, max_depth = 10)
-
-a <- visNetwork::visNetwork(eq_viz$nodes, eq_viz$edges)
-class(a)
-a
-
-# library(visNetwork)
-visNetwork::visNetwork(eq_viz$nodes, eq_viz$edges) |>
-  visNetwork::visNodes(shape = "box", font = list(size = 20)) |>
-  visNetwork::visEdges(arrows = "to") |>
-  visNetwork::visOptions(highlightNearest = TRUE, nodesIdSelection = TRUE) |>
-  visNetwork::visHierarchicalLayout(direction = "LR")
-
-as_visNetwork.multimod_equation(eq_obj, title = eq_obj$name)
-
-if (F) {
-  # parse_gams_expr("mTechNew(t,r,yp) and ordYear(y) >= ordYear(yp) or mTechOlifeInf(t,r)")
-  # ((mTechNew[t,r,yp] and (ordYear[y] >= ordYear[yp])) or mTechOlifeInf[t,r])
-  expr <- "mTechNew(t,r,yp) and ordYear(y) >= ordYear(yp) or mTechOlifeInf(t,r)"
-  top_level_operators(expr, descending = TRUE)
-  ast <- parse_gams_expr(expr)
-  # ast <- parse_gams_expr(mod_str$equations$eqTechCapUp, symbols)
-  # "mTechNew(t,r,yp) and ordYear(y) >= ordYear(yp) or mTechOlifeInf(t,r)"
-  class(ast)
-  # as.character(ast) |> cat()
-  lobstr::tree(ast)
-  plot.multimod_ast(ast)
-  plot_d.multimod_ast(ast)
-}
-
-# shiny::runApp(system.file("shiny", package = "visNetwork"))
-# plot_multimod_equation_visnetwork(eq_obj, title = "eqTechCapUp")
-
-# plot(eq_obj$a)
-
-eq_obj <- multimod$equations$eqTechGrp2Grp
-eq_obj <- multimod$equations$eqTechAfLo
-# eq_obj <- multimod$equations$eqTechAfsLo
-# eq_string <- mod_str$equations$eqTechGrp2Grp$gams
-lobstr::tree(eq_obj)
-as_visNetwork(eq_obj)
-# eq <- normalize_linear_eqn(eq_obj, lhs_var_name = "vTechAct")
-# as_visNetwork.multimod_equation(eq, )
-
-as_visNetwork(multimod$equations$eqTechAInp)
-
-as_visNetwork(multimod$equations$eqExportRowCost)
-
 ```
 
-## LaTeX
+## Convert to multimod `model` object
+The `as_multimod` method applied converts the entire model into a multimod object, which contains lists of sets, parameters, variables, equations, represented via AST nodes.
+```{r, eval=TRUE}
+mod <- as_multimod(mod_str)
+print(mod)
+```
+
+Equations are stored in `$equations` list, and can be accessed by their names. Each equation is an object of class `equation`, which contains the left-hand side (LHS) and right-hand side (RHS) expressions and relation operator.
+
+```{r, eval=TRUE}
+eq <- mod$equations$eqTechCap
+print(eq)
+as_visNetwork(eq)
+```
+
+
+## LaTeX rendering  
+The `as_latex` function converts the multimod equation or AST node into LaTeX format. The LaTeX output is a string that can be printed or saved to a file.
+```{r, eval=TRUE}
+eq$lhs # LHS of the equation - a variable
+```
+
+Convert to character
+```{r, eval=TRUE}
+as.character(eq$lhs)
+```
+
+Convert to LaTeX string
+```{r, eval=TRUE}
+as_latex(eq$lhs) |> cat()
+```
+
+Render the entire equation
+```{r, eval=TRUE}
+as_latex(eq) |> cat()
+```
+
+Saving an equation to a tex file can be done using the `write_latex` method. This method can be applied to the entire multimod object, or to a specific equation.
 ```{r, eval=FALSE}
-mod_str <- read_gams(gams_file, include = FALSE)
-multimod <- as_multimod(mod_str)
-eq_obj <- multimod$equations$eqTechAfsLo
-eq_obj <- multimod$equations$eqTechCap
-
-as_visNetwork.multimod_equation(eq_obj)
-
-as_latex(eq_obj)
-as_latex(eq_obj$lhs)
-
-eq <- remap_ast_elements(eq_obj)
-tree(eq)
-
-as_visNetwork.multimod_equation(eq)
-as_latex(eq) |> cat()
-
-
-write_latex(multimod, 
-            # file = "tmp/multimod.tex"
-            # include_sets = FALSE,
-            # include_aliases = FALSE,
-            # include_parameters = FALSE,
-            # include_variables = FALSE, 
-            # include_equations = FALSE
-            )
-            
-as_latex(eq_obj$lhs)
-
-
-eq_obj$lhs |> tree()
-
-eq <- alias_ast_names(eq_obj, aliases = set_short_names)
-
-eq$lhs |> tree()
-
-as_latex(eq$lhs)
-as_latex(eq) |> cat()
-
-
-
-as_visNetwork.multimod_equation(eq)
-
-
-
-
-# Set
-expr <- multimod$equations$eqTechSng2Sng$lhs$lhs$dims
-class(expr)
-print(expr)
-
-as_latex(
-
-
+eq <- mod$equations$eqTechCapUp
+eq_tex_file <- paste0("tmp/", eq$name, ".tex")
+write_latex(eq, file = eq_tex_file)
+tinytex::pdflatex(eq_tex_file)
 ```
 
-
-### Parse GAMS expression
-```{r, eval=FALSE, inlude=FALSE}
-expr <- {"
-- sum((comm, slice)$mExportRow(expp, comm, region, year, slice),
-      pExportRowPrice(expp, region, year, slice) * pSliceWeight(year, slice)
-      * vExportRow(expp, comm, region, year, slice)
-  )"}
-
-ast <- parse_gams_expr(expr)
-tree(ast, max_length = 100, max_depth = 10)
-
-plot_d.multimod_ast(ast)
-
+The `as_latex` and `write_latex` methods for equations are aiming for formatting the latex output to fit the equation to the page width and improve readability. Long equations are broken into multiple lines, and long conditional expressions are remapped with AST `where` class and display the replacement under the equation under `where` header.
+```{r, eval=FALSE}
+eq <- mod$equations$eqTechVarom
+eq_tex_file <- paste0("tmp/", eq$name, ".tex")
+write_latex(eq, file = eq_tex_file)
+tinytex::pdflatex(eq_tex_file)
 ```
 
-
-```{r}
-
-
-
+```{r, eval=FALSE, echo=FALSE, include=FALSE}
+# Use to reproduce the png file
+pdf_file <- sub("\\.tex$", ".pdf", eq_tex_file)
+png_file <- sub("\\.tex$", ".png", eq_tex_file)
+img <- image_read_pdf(pdf_file, density = 300)
+image_write(img, png_file)
+# edit further to reduce size if needed 
+# and save as "eqTechVarom-full-names.png"
 ```
 
+```{r, eval=TRUE, echo=FALSE}
+knitr::include_graphics("images/eqTechVarom-full-names.png")
+```
+
+### Replacing long names with aliases
+There is also an option to replace long names of any simbols with shorter aliases by using `alias_map` argument in `as_latex` or `write_latex` methods. The aliases are defined as a named list, where the names are the original symbols and the values are the shorter aliases.
+```{r, eval=FALSE}
+# Example of using aliases in LaTeX rendering
+alias_map <- list(
+  region = "r", 
+  comm = "c", 
+  commp = "cp", 
+  tech = "t", 
+  year = "y", 
+  slice = "s"
+)
+# eq <- mod$equations$eqTechVarom # the same equation as above
+eq_tex_file <- paste0("tmp/", eq$name, "_short.tex")
+write_latex(eq, file = eq_tex_file, alias_map = alias_map)
+tinytex::pdflatex(eq_tex_file)
+```
+
+```{r, eval=FALSE, echo=FALSE}
+# Use to reproduce the png file
+pdf_file <- sub("\\.tex$", ".pdf", eq_tex_file)
+png_file <- sub("\\.tex$", ".png", eq_tex_file)
+img <- image_read_pdf(pdf_file, density = 300)
+image_write(img, png_file)
+# edit further to reduce size if needed
+# and save as "eqTechVarom-short-names.png"
+```
+
+```{r, eval=TRUE, echo=FALSE}
+knitr::include_graphics("images/eqTechVarom-short-names.png")
+```
+
+### Render full model to LaTeX
+The `write_latex` method can be applied to the multimod `model` object to export the entire model to LaTeX format. This will create a LaTeX file with all equations, sets, aliases, parameters, and variables.
+```{r, eval=FALSE}
+write_latex(mod, file = "tmp/example_model.tex", 
+            title = "Base energyRt model",
+            subtitle = "Imported from GAMS and rendered to LaTeX by multimod",
+            author = "energyRt authors",
+            alias_map = multimod::example_model$short_aliases)
+tinytex::pdflatex("tmp/example_model.tex")
+```
+
+```{r, eval=FALSE, include=FALSE, echo=FALSE}
+library(tikzDevice)
+library(magick)
+library(knitr)
+img <- image_read_pdf("tmp/example_model.pdf", density = 300)
+image_write(img, here("vignettes", "images", "example_model.png"))
+```
+
+```{r, eval=TRUE, echo=FALSE}
+knitr::include_graphics("images/example_model.png")
+```
+
+## Rendering back to GAMS 
+The idea of the `multimod` package is to provide a way to convert the model structure back to GAMS, Julia/JuMP, Python/Pyomo, or other mathematical programming languages. The current version has a drafted implementation of the `as_gams` method, which converts the multimod object back to GAMS code. This feature does not create a fully functional GAMS model yet, it exports declarations only. Connections with data is planned for future releases.
+```{r, eval=TRUE}
+as_gams(mod$equations$eqTechCapUp) |> cat()
+```
+Render full model.
+```{r, eval=FALSE}
+write_gams(mod, file = "tmp/example_model.gms")
+```
+
+## Summary
+This vignette provides an overview of the current functionality of the `multimod` package, which allows for parsing certain GAMS models, converting them into a structured format, rendering to LaTeX, and converting back to GAMS code. The package is still under development, not all styles of GAMS models and syntax are supported, more features will be added in the future. See the [{dev-status}](roadmap.html) article for details.

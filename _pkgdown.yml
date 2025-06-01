@@ -1,6 +1,7 @@
 url: https://optimal2050.github.io/multimod/
 template:
   bootstrap: 5
+  light-switch: true
   includes:
     in_header: |
       <!-- Google tag (gtag.js) -->
@@ -22,7 +23,7 @@ development:
 navbar:
   # bg: light
   structure:
-    left:  [home, multimod, reference, roadmap, articles, news]
+    left:  [intro, reference, roadmap, articles, news]
     right: [search, github, lightswitch]
   components:
     news:
@@ -34,9 +35,8 @@ navbar:
       - text: AST
         # href: articles/install.html
     roadmap:
-      text: "{devstatus}"
+      text: "{dev-status}"
       href: articles/roadmap.html
-
 
 reference:
 - title: Abstract Syntax Tree (AST) classes
@@ -50,14 +50,17 @@ reference:
   contents:
   - starts_with("multimod_")
   - starts_with("new_")
+  - starts_with("as_multimod")
 
-- title: generic methods
+- title: Generic methods
   desc:  Generic methods for multimod classes.
   contents:
-  - starts_with("as_")
-  - starts_with("print.")
-  - starts_with("plot.")
-  - starts_with("summary.")
+  # - starts_with("as_")
+  - starts_with("print")
+  - starts_with("plot")
+  - starts_with("summary")
+  - starts_with("show")
+  - matches("as.character")
 
 - title: LaTeX functions
   desc:  Functions to convert multimod objects to LaTeX.
@@ -74,6 +77,14 @@ reference:
   - starts_with("write_gams")
   - matches("gams")
 
+- title: JuMP/Julia-related functions
+  desc:  Functions to read JuMP models and convert multimod objects to JuMP code.
+  contents:
+  - starts_with("read_jump")
+  - starts_with("as_jump")
+  - starts_with("write_jump")
+  - matches("jump")
+
 - title: utility functions
   desc:  Utility functions for multimod.
   contents:
@@ -89,10 +100,15 @@ reference:
   - depth
   - matches("brackets")
   - matches("resolve|node|split|map_")
+  - matches("build_symbols_list")
 
 - title: visualization
   desc:  Visualization functions for multimod.
   contents:
+  - matches("get_network_data")
+  - matches("as_visNetwork")
+  - matches("plot")
+  - matches("draw")
   - starts_with("plot_")
   - starts_with("ggplot_")
   - starts_with("draw_")
