@@ -4,12 +4,12 @@
 \alias{alias_ast_names}
 \title{Apply name aliases to AST nodes}
 \usage{
-alias_ast_names(ast, aliases, classes = NULL)
+alias_ast_names(ast, alias_map, classes = NULL, ...)
 }
 \arguments{
 \item{ast}{An AST object or list.}
 
-\item{aliases}{A named list or character vector. Keys are aliases, values are original names.}
+\item{alias_map}{A named list or character vector. Keys are aliases, values are original names.}
 
 \item{classes}{Character vector of AST classes to filter (optional).}
 }

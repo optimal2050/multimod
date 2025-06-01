@@ -16,11 +16,30 @@ default_preamble <- c(
 )
 default_ending <- "\\end{document}"
 
-
+#' Write LaTeX representation of an equation or model
+#'
+#' @param x An object of class `equation` or `model`.
+#'
+#' @param file Path to the output LaTeX file. If `NULL`, returns the LaTeX code as a character string.
+#' @param ... Additional arguments passed to the specific method.
+#'
 #' @export
 write_latex <- function(x, file, ...) {
   UseMethod("write_latex")
 }
+
+#' Write LaTeX representation of an equation
+#'
+#' @param append Logical; if `TRUE`, appends to the file instead of overwriting.
+#' @param standalone Logical; if `TRUE`, writes a complete LaTeX document with preamble and ending.
+#' @param preamble Character vector; LaTeX preamble to use. If `NULL`, uses the default preamble.
+#' @param ending Character vector; LaTeX ending to use. If `NULL`, uses the default ending.
+#' @param subsection_number Logical; if `TRUE`, includes subsection numbering in the LaTeX output.
+#' @param eq_substitute Named list; substitutions for specific AST elements in the equation
+#' with `ast_where` object to display conditions, indices, etc. below the equation.
+#' @param verbose Logical; if `TRUE`, prints additional information during processing.
+#' @param ... Additional arguments passed to the `as_latex` function for rendering the equation.
+#'
 #' @export
 #' @method write_latex equation
 write_latex.equation <- function(x,
@@ -30,10 +49,11 @@ write_latex.equation <- function(x,
                                  preamble = NULL,
                                  ending = NULL,
                                  subsection_number = FALSE,
-                                 eq_substitute = list("when" = "condition",
-                                                      "func" = "index",
-                                                      "sum" = "index",
-                                                      "prod" = "index"),
+                                 eq_substitute = list("when" = "condition"),
+                                                      # "func" = "index",
+                                                      # "sum" = "index",
+                                                      # "prod" = "index"),
+                                 alias_map = NULL,
                                  verbose = FALSE,
                                  ...) {
 
@@ -43,6 +63,11 @@ write_latex.equation <- function(x,
     x <- remap_ast_elements(x,
                             ast_type = eq_substitute,
                             verbose = verbose, ...)
+  }
+
+  # Apply alias mapping if provided
+  if (!is.null(alias_map)) {
+    x <- alias_ast_names(x, alias_map, verbose = verbose, ...)
   }
 
   if (is.null(preamble)) {
@@ -78,6 +103,10 @@ write_latex.equation <- function(x,
   invisible(file)
 }
 
+#' Write LaTeX representation of a model
+#'
+#' @inherit write_latex.equation
+#'
 #' @export
 #' @method write_latex model
 write_latex.model <- function(x,
@@ -96,10 +125,12 @@ write_latex.model <- function(x,
                               include_parameters = TRUE,
                               include_variables = TRUE,
                               include_equations = TRUE,
-                              eq_substitute = list("when" = "condition",
-                                                   "func" = "index",
-                                                   "sum" = "index",
-                                                   "prod" = "index"),
+                              eq_substitute = list("when" = "condition"
+                                                   # "func" = "index",
+                                                   # "sum" = "index",
+                                                   # "prod" = "index"
+                                                   ),
+                              alias_map = NULL,
                               verbose = FALSE,
                               ...) {
   # browser()
@@ -108,6 +139,14 @@ write_latex.model <- function(x,
     x$equations <- lapply(x$equations, remap_ast_elements,
                             ast_type = eq_substitute,
                             verbose = verbose, ...)
+  }
+
+  # Apply alias mapping if provided
+  if (!is.null(alias_map)) {
+    # !!! ToDo: apply to other model components and add to aliases
+    # !!! if TRUE then use shortest alias name
+    x$equations <- lapply(x$equations, alias_ast_names, alias_map = alias_map,
+                          verbose = verbose, ...)
   }
 
   model <- x

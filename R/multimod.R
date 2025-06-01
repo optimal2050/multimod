@@ -1,6 +1,13 @@
 
 # internal functions ####
 
+#' Build a list of symbols from model_info
+#'
+#' @param model_info model_structure object (as returned by `read_gams()`)
+#'
+#' @returns A list containing sets, mappings, parameters, and variables.
+#' @export
+#'
 build_symbols_list <- function(model_info) {
   list(
     sets = names(model_info$sets), # !!! Add aliases

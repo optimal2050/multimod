@@ -477,6 +477,19 @@ parse_gams_expr <- function(
   return(ast_symbol(expr))
 }
 
+#' Read GAMS model file and parse its core structure.
+#'
+#' This function reads a GAMS model file or text, expands any included files, removes comments, and parses the core structure into sets, parameters, variables, equations, and aliases, returning a `model_structure` object.
+#'
+#' @param file_or_text A path to a GAMS file or a character vector containing GAMS code.
+#' @param include Logical indicating whether to expand included files (default is `TRUE`).
+#' @param interim_file Optional path to an interim file where the processed GAMS code prepended for parsing will be saved. If `NULL`, no interim file is created.
+#' @param strict Logical indicating whether to enforce strict parsing rules (default is `TRUE`). If `FALSE`, some undeclared equations may be added to the model structure.
+#' @param verbose Logical indicating whether to print verbose output during parsing (default is `FALSE`).
+#' @param ... Additional arguments passed to other functions, currently unused.
+#'
+#' @returns A `model_structure` object containing the parsed GAMS model structure, including sets, mappings, aliases, parameters, variables, and equations.
+#' @export
 read_gams <- function(
     file_or_text,
     include = TRUE,
@@ -923,6 +936,13 @@ parse_equation_header <- function(line) {
   )
 }
 
+#' Parse a GAMS equation into an AST object.
+#'
+#' @param eqn_info A GAMS-code snippet containing the equation information, including its name, GAMS body, domain, and description.
+#' @param symbols A list of symbols (sets, parameters, variables) used in the GAMS model, which will be used to resolve dimensions and expressions.
+#'
+#' @returns An `equation` object containing the parsed equation structure, including its name, dimensions, left-hand side (LHS), right-hand side (RHS), relation, domain, and description.
+#' @export
 parse_gams_equation <- function(eqn_info, symbols) {
   # browser()
   name <- trimws(eqn_info$name)

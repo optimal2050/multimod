@@ -60,11 +60,11 @@ get_network_data <- function(x, alias_map = NULL, show_dims = TRUE) {
     my_id <- id_counter
 
     if (grepl("<.+>", label)) browser()
-    if (label == "sum" || label == "prod") {
-      if (node_type(expr$index) == "dims") {
-        label <- paste0(label, with_dims(expr$name, expr$index, show_dims = show_dims))
-      }
-    }
+    # if (label == "sum" || label == "prod") {
+    #   if (node_type(expr$index) == "dims") {
+    #     label <- paste0(label, with_dims(expr$name, expr$index, show_dims = show_dims))
+    #   }
+    # }
 
     label <- if (!is.null(label_prx)) paste0(label_prx, label) else label
 
@@ -105,7 +105,7 @@ get_network_data <- function(x, alias_map = NULL, show_dims = TRUE) {
       walk_ast(expr$rhs, my_id)
     } else if (node_type(expr) == "unary") {
       walk_ast(expr$rhs, my_id)
-    } else if (node_type(expr) %in% c("sum", "prod", "when", "logic", "compare")) {
+    } else if (node_type(expr) %in% c("func", "sum", "prod", "when", "logic", "compare")) {
       # browser()
       if (!is.null(expr$domain)) {
         walk_ast(expr$domain, my_id)
@@ -191,7 +191,8 @@ as_visNetwork <- function(x, ...) {
 #' @rdname as_visNetwork
 #' @method as_visNetwork ast
 as_visNetwork.ast <- function(x,
-                              title = NULL,
+                              main = x$name,
+                              submain = x$desc,
                               alias_map = NULL,
                               show_dims = TRUE) {
 
@@ -199,20 +200,11 @@ as_visNetwork.ast <- function(x,
     stop("Please install 'visNetwork' package.")
   }
   eq <- x
-  # Title
-  plot_title <- if (!is.null(title)) {
-    title
-  } else if (!is.null(eq$name)) {
-    eq$name
-  } else {
-    NULL
-  }
   # Get network data
   nd <- get_network_data(eq, alias_map = alias_map, show_dims = show_dims)
 
   # Render
-  # visNetwork::visNetwork(nodes_df, edges_df, main = plot_title) |>
-  visNetwork::visNetwork(nd$nodes, nd$edges, main = plot_title) |>
+  visNetwork::visNetwork(nd$nodes, nd$edges, main = main, submain = submain) |>
     # visNetwork::visNodes(shape = "box", font = list(size = 20)) |>
     # visNetwork::visEdges(arrows = "to") |>
     visNetwork::visOptions(highlightNearest = TRUE, nodesIdSelection = TRUE) |>
