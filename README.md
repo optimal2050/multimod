@@ -34,8 +34,9 @@ optimization models in energy systems and beyond.
 ## Development Status
 
 The package is under active development. Contributions, bug reports, and
-feature requests are welcome! See details in
-[{devstatus}](articles/roadmap.html).
+feature requests are welcome! See [Get started](articles/multimod.html)
+for an overview of the current functionality and
+[{devstatus}](articles/roadmap.html) for the roadmap.
 
 ## Workflow Diagram
 

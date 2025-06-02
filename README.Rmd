@@ -37,7 +37,7 @@ The `multimod` R package is an effort to bridge alternative mathematical modelin
 The package is designed to facilitate the exchange of mathematical models across different languages and solver frameworks, with the goal of simplifying the development, comparison, and reuse of complex optimization models in energy systems and beyond.
 
 ## Development Status
-The package is under active development. Contributions, bug reports, and feature requests are welcome! See details in [{devstatus}](articles/roadmap.html).
+The package is under active development. Contributions, bug reports, and feature requests are welcome! See [Get started](articles/multimod.html) for an overview of the current functionality and [{devstatus}](articles/roadmap.html) for the roadmap.
 
 ## Workflow Diagram
 Items in curly braces `{}` are planned for implementation, 
