@@ -14,7 +14,7 @@ knitr::opts_chunk$set(
 
 The `multimod` package is under active but experimental development. This document outlines current capabilities, design scope, limitations, and roadmap for future enhancements.
 
-## 🚀 Target Releases
+## Target Releases
 
 v0.1: GAMS reader and writer, basic AST, LaTeX exporter (internal use)
 
@@ -32,7 +32,7 @@ Expected timeline: 6-12 months for v1.0 (starting from June 2025), with incremen
 
 ---
 
-## ✔️ What’s Implemented
+## What’s Implemented
 
 - GAMS-style equation parsing into symbolic abstract syntax trees (AST)
 - Structured representation of:
@@ -51,7 +51,7 @@ Expected timeline: 6-12 months for v1.0 (starting from June 2025), with incremen
 
 ---
 
-## 🔒 Current Limitations
+## Current Limitations
 
 - Limited to **linear programming (LP)** models only
 - Designed closely around the `energyRt` models structure
@@ -62,7 +62,7 @@ Expected timeline: 6-12 months for v1.0 (starting from June 2025), with incremen
 
 ---
 
-## 🎯 Project Philosophy
+## Project Philosophy
 
 The goal of `multimod` is **not** to automate full model translation or parsing. Instead, it aims to:
 
@@ -74,7 +74,7 @@ The symbolic structure enables users to adapt and refine models by hand, especia
 
 ---
 
-## 🧭 Potential Use Cases
+## Potential Use Cases
 
 - Model prototyping and equation editing
 - Generation of readable documentation (e.g., LaTeX equation listings)
@@ -84,7 +84,7 @@ The symbolic structure enables users to adapt and refine models by hand, especia
 
 ---
 
-## 🔜 Planned Features
+## Planned Features
 
 - Input parsing support for:
   - `read_jump()`
@@ -102,7 +102,7 @@ The symbolic structure enables users to adapt and refine models by hand, especia
 
 ---
 
-## 🤝 Contributing & Sponsorship
+## Contributing & Sponsorship
 
 The package is under active development. Contributions are welcome!
 
