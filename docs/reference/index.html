@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.0.1.9005</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.0.9007</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -23,10 +23,25 @@
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/multimod.html">Get started</a></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">{dev-status}</a></li>
+<li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Development Status</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-tutorials" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Tutorials</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials"><li><h6 class="dropdown-header" data-toc-skip>AST</h6></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials"><li><h6 class="dropdown-header" data-toc-skip>Getting Started</h6></li>
+    <li><a class="dropdown-item" href="../articles/multimod.html">Overview</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Code Generation</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>JuMP Integration</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>GMPL Integration</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Pyomo Integration</h6></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Model Management</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Configuration System</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Model Workspace</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>LaTeX Generation</h6></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Advanced</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Model Optimization (Folding &amp; Trimming)</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Abstract Syntax Tree (AST)</h6></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
@@ -53,8 +68,7 @@
 
       <div class="section-desc"><p>Data structures to represent mathematical expressions.</p></div>
 
-
-    </div><div class="section level2">
+      <dl></dl></div><div class="section level2">
 
 
 
@@ -65,85 +79,127 @@
 
         </dt>
         <dd>Create a new multimod AST (Abstract Syntax Tree) node</dd>
-      </dl><dl><dt>
+
+        <dt>
+
+          <code><a href="ast_call.html">ast_call()</a></code>
+
+        </dt>
+        <dd>Create a function call AST node</dd>
+
+        <dt>
 
           <code><a href="ast_constant.html">ast_constant()</a></code>
 
         </dt>
         <dd>Create a constant AST node</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="ast_dims.html">ast_dims()</a></code>
 
         </dt>
         <dd>Create an AST node for dimensions (dims) of a symbol</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="ast_equation.html">ast_equation()</a></code>
 
         </dt>
         <dd>Create an equation AST node</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="ast_expression.html">ast_expression()</a></code>
 
         </dt>
         <dd>Create an expression AST node</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="ast_func.html">ast_func()</a></code>
 
         </dt>
         <dd>Create a function AST node</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="ast_mapping.html">ast_mapping()</a></code>
 
         </dt>
         <dd>Create a mapping AST node</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="ast_parameter.html">ast_parameter()</a></code>
 
         </dt>
         <dd>Create a parameter AST node</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="ast_prod.html">ast_prod()</a></code>
 
         </dt>
         <dd>Create a product AST node</dd>
-      </dl><dl><dt>
+
+        <dt>
+
+          <code><a href="ast_setmax.html">ast_setmax()</a></code>
+
+        </dt>
+        <dd>Create a set maximum AST node</dd>
+
+        <dt>
+
+          <code><a href="ast_setmin.html">ast_setmin()</a></code>
+
+        </dt>
+        <dd>Create a set minimum AST node</dd>
+
+        <dt>
+
+          <code><a href="ast_shift.html">ast_shift()</a></code>
+
+        </dt>
+        <dd>Create an index shift AST node for ordered set references</dd>
+
+        <dt>
 
           <code><a href="ast_sum.html">ast_sum()</a></code>
 
         </dt>
         <dd>Create a summation AST node</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="ast_symbol.html">ast_symbol()</a></code>
 
         </dt>
         <dd>Create a symbol AST node (for unclassified identifiers)</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="ast_unary.html">ast_unary()</a></code>
 
         </dt>
         <dd>Create a unary expression AST node</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="ast_variable.html">ast_variable()</a></code>
 
         </dt>
         <dd>Create a variable AST node</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="ast_when.html">ast_when()</a></code>
 
         </dt>
         <dd>Construct a conditional expression node for multimod AST</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="ast_where.html">ast_where()</a></code>
 
@@ -154,55 +210,68 @@
 
       <div class="section-desc"><p>Classes to represent a model with sets, parameters, variables, equations, and data.</p></div>
 
-
-    </div><div class="section level2">
+      <dl></dl></div><div class="section level2">
 
 
 
 
       <dl><dt>
 
+          <code><a href="multimod-config.html">set_multimod_python()</a></code> <code><a href="multimod-config.html">get_multimod_python()</a></code> <code><a href="multimod-config.html">set_multimod_julia()</a></code> <code><a href="multimod-config.html">get_multimod_julia()</a></code> <code><a href="multimod-config.html">set_multimod_glpsol()</a></code> <code><a href="multimod-config.html">get_multimod_glpsol()</a></code> <code><a href="multimod-config.html">set_multimod_solver()</a></code> <code><a href="multimod-config.html">get_multimod_solver()</a></code> <code><a href="multimod-config.html">multimod_config_write()</a></code> <code><a href="multimod-config.html">multimod_config_read()</a></code> <code><a href="multimod-config.html">multimod_config_path()</a></code> <code><a href="multimod-config.html">multimod_config_show()</a></code>
+
+        </dt>
+        <dd>Configuration management for multimod solver paths</dd>
+
+        <dt>
+
           <code><a href="new_ast.html">new_ast()</a></code> <code><a href="new_ast.html">ast_set()</a></code>
 
         </dt>
         <dd>Create a new multimod AST (Abstract Syntax Tree) node</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="new_equation.html">new_equation()</a></code>
 
         </dt>
         <dd>Create a multimod equation object</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="new_mapping.html">new_mapping()</a></code>
 
         </dt>
         <dd>Create a multimod mapping object</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="new_model.html">new_model()</a></code>
 
         </dt>
         <dd>Create a multimod model object</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="new_parameter.html">new_parameter()</a></code>
 
         </dt>
         <dd>Create a multimod parameter</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="new_set.html">new_set()</a></code>
 
         </dt>
         <dd>Create a new set object</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="new_variable.html">new_variable()</a></code>
 
         </dt>
         <dd>Create a multimod variable</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="as_multimod.html">as_multimod()</a></code>
 
@@ -213,25 +282,72 @@
 
       <div class="section-desc"><p>Generic methods for multimod classes.</p></div>
 
-
-    </div><div class="section level2">
+      <dl></dl></div><div class="section level2">
 
 
 
 
       <dl><dt>
 
-          <code><a href="print.ast.html">print(<i>&lt;ast&gt;</i>)</a></code>
+          <code><a href="print.ast_comparison.html">print(<i>&lt;ast_comparison&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Print comparison results in a readable format</dd>
+
+        <dt>
+
+          <code><a href="print.ast_function.html">print(<i>&lt;ast_function&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Print method for functions created from AST</dd>
+
+        <dt>
+
+          <code><a href="print.model_validation.html">print(<i>&lt;model_validation&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Print method for model validation results</dd>
+
+        <dt>
+
+          <code><a href="print.html">print(<i>&lt;ast&gt;</i>)</a></code> <code><a href="print.html">print(<i>&lt;func&gt;</i>)</a></code>
 
         </dt>
         <dd>Print methods for AST classes</dd>
+
+        <dt>
+
+          <code><a href="print.variable_comparison.html">print(<i>&lt;variable_comparison&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Print method for variable comparison results</dd>
+
+        <dt>
+
+          <code><a href="show_bounds_mapping.html">show_bounds_mapping()</a></code>
+
+        </dt>
+        <dd>Show bounds parameter mapping</dd>
+
+        <dt>
+
+          <code><a href="show_unmatched.html">show_unmatched()</a></code>
+
+        </dt>
+        <dd>Show unmatched elements</dd>
+
+        <dt>
+
+          <code><a href="as.character.expression.html">as.character(<i>&lt;expression&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Convert AST expression to character</dd>
       </dl></div><div class="section level2">
       <h2 id="latex-functions">LaTeX functions<a class="anchor" aria-label="anchor" href="#latex-functions"></a></h2>
 
       <div class="section-desc"><p>Functions to convert multimod objects to LaTeX.</p></div>
 
-
-    </div><div class="section level2">
+      <dl></dl></div><div class="section level2">
 
 
 
@@ -242,49 +358,50 @@
 
         </dt>
         <dd>Convert objects to LaTeX format</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="write_latex.equation.html">write_latex(<i>&lt;equation&gt;</i>)</a></code>
 
         </dt>
         <dd>Write LaTeX representation of an equation</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="write_latex.model.html">write_latex(<i>&lt;model&gt;</i>)</a></code>
 
         </dt>
         <dd>Write LaTeX representation of a model</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="write_latex.html">write_latex()</a></code>
 
         </dt>
         <dd>Write LaTeX representation of an equation or model</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="estimate_latex_length.html">estimate_latex_length()</a></code>
 
         </dt>
         <dd>Estimate the length of a LaTeX string</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="format_latex_aligned.html">format_latex_aligned()</a></code>
 
         </dt>
         <dd>Format a LaTeX equation across multiple lines using aligned</dd>
-      </dl><dl><dt>
 
-          <code><a href="latex_bracket_size.html">latex_bracket_size()</a></code>
-
-        </dt>
-        <dd>Estimate bracket size for LaTeX based on context and expression content</dd>
-      </dl><dl><dt>
+        <dt>
 
           <code><a href="latex_math_brakets.html">latex_math_brakets()</a></code>
 
         </dt>
         <dd>Generate LaTeX brackets for math expressions</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="latex_top_level_operators.html">latex_top_level_operators()</a></code>
 
@@ -295,8 +412,7 @@
 
       <div class="section-desc"><p>Functions to read GAMS models and convert multimod objects to GAMS code.</p></div>
 
-
-    </div><div class="section level2">
+      <dl></dl></div><div class="section level2">
 
 
 
@@ -307,43 +423,133 @@
 
         </dt>
         <dd>Read GAMS model file and parse its core structure.</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="as_gams.html">as_gams()</a></code>
 
         </dt>
         <dd>Convert multimod object to GAMS syntax</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="write_gams.model.html">write_gams(<i>&lt;model&gt;</i>)</a></code>
 
         </dt>
         <dd>Write a full GAMS model file from a multimod object</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="write_gams.html">write_gams()</a></code>
 
         </dt>
         <dd>Write a GAMS model file from a multimod object</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="is_gams_expression.html">is_gams_expression()</a></code>
 
         </dt>
         <dd>Check if a string is a compound expression</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="parse_gams_equation.html">parse_gams_equation()</a></code>
 
         </dt>
         <dd>Parse a GAMS equation into an AST object.</dd>
       </dl></div><div class="section level2">
+      <h2 id="gmpl-related-functions">GMPL-related functions<a class="anchor" aria-label="anchor" href="#gmpl-related-functions"></a></h2>
+
+      <div class="section-desc"><p>Functions to read GMPL models and convert multimod objects to GMPL code.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="read_gmpl.html">read_gmpl()</a></code>
+
+        </dt>
+        <dd>Read GMPL model file</dd>
+
+        <dt>
+
+          <code><a href="read_gmpl_data.html">read_gmpl_data()</a></code>
+
+        </dt>
+        <dd>Read GMPL data file and parse its contents</dd>
+
+        <dt>
+
+          <code><a href="read_gmpl_declarations.html">read_gmpl_declarations()</a></code>
+
+        </dt>
+        <dd>Read GMPL declarations sequentially</dd>
+
+        <dt>
+
+          <code><a href="as_gmpl.html">as_gmpl()</a></code>
+
+        </dt>
+        <dd>Convert multimod object to GMPL/MathProg syntax</dd>
+
+        <dt>
+
+          <code><a href="write_gmpl.model.html">write_gmpl(<i>&lt;model&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Write a full GMPL model file from a multimod object</dd>
+
+        <dt>
+
+          <code><a href="write_gmpl.html">write_gmpl()</a></code>
+
+        </dt>
+        <dd>Write a GMPL/MathProg model file from a multimod object</dd>
+
+        <dt>
+
+          <code><a href="write_gmpl_data.html">write_gmpl_data()</a></code>
+
+        </dt>
+        <dd>Write GMPL data file from multimod model</dd>
+
+        <dt>
+
+          <code><a href="export_glpk_model.html">export_glpk_model()</a></code>
+
+        </dt>
+        <dd>Export GLPK model to MPS or CPLEX LP format</dd>
+
+        <dt>
+
+          <code><a href="export_data_gmpl.html">export_data_gmpl()</a></code>
+
+        </dt>
+        <dd>Generate GMPL code to export all sets and parameters to CSV files</dd>
+
+        <dt>
+
+          <code><a href="import_gmpl_data.html">import_gmpl_data()</a></code>
+
+        </dt>
+        <dd>Import GMPL Data to Model</dd>
+
+        <dt>
+
+          <code><a href="solve_gmpl.html">solve_gmpl()</a></code>
+
+        </dt>
+        <dd>Solve GMPL model using glpsol command line tool</dd>
+      </dl></div><div class="section level2">
       <h2 id="jump-julia-related-functions">JuMP/Julia-related functions<a class="anchor" aria-label="anchor" href="#jump-julia-related-functions"></a></h2>
 
       <div class="section-desc"><p>Functions to read JuMP models and convert multimod objects to JuMP code.</p></div>
 
-
-    </div><div class="section level2">
+      <dl></dl></div><div class="section level2">
 
 
 
@@ -354,150 +560,1011 @@
 
         </dt>
         <dd>Convert multimod object to Julia/JuMP syntax</dd>
+
+        <dt>
+
+          <code><a href="write_jump.html">write_jump()</a></code>
+
+        </dt>
+        <dd>Write a Julia/JuMP model file from a multimod object</dd>
+
+        <dt>
+
+          <code><a href="write_jump_solution_code.html">write_jump_solution_code()</a></code>
+
+        </dt>
+        <dd>Write JuMP solution values to disk</dd>
+
+        <dt>
+
+          <code><a href="compare_jump_stats.html">compare_jump_stats()</a></code>
+
+        </dt>
+        <dd>Compare JuMP model constraint statistics between two model directories</dd>
+
+        <dt>
+
+          <code><a href="solve_jump.html">solve_jump()</a></code>
+
+        </dt>
+        <dd>Solve a JuMP Model</dd>
       </dl></div><div class="section level2">
-      <h2 id="utility-functions">utility functions<a class="anchor" aria-label="anchor" href="#utility-functions"></a></h2>
+      <h2 id="pyomo-python-related-functions">Pyomo/Python-related functions<a class="anchor" aria-label="anchor" href="#pyomo-python-related-functions"></a></h2>
 
-      <div class="section-desc"><p>Utility functions for multimod.</p></div>
+      <div class="section-desc"><p>Functions to convert multimod objects to Pyomo code.</p></div>
 
-
-    </div><div class="section level2">
+      <dl></dl></div><div class="section level2">
 
 
 
 
       <dl><dt>
 
+          <code><a href="as_pyomo.html">as_pyomo()</a></code>
+
+        </dt>
+        <dd>Convert a multimod AST node to Pyomo syntax</dd>
+
+        <dt>
+
+          <code><a href="write_pyomo.html">write_pyomo()</a></code>
+
+        </dt>
+        <dd>Write Pyomo model artifacts</dd>
+
+        <dt>
+
+          <code><a href="solve_pyomo.html">solve_pyomo()</a></code>
+
+        </dt>
+        <dd>Solve a Pyomo model exported by <code>multimod</code></dd>
+      </dl></div><div class="section level2">
+      <h2 id="configuration-and-environment">Configuration and Environment<a class="anchor" aria-label="anchor" href="#configuration-and-environment"></a></h2>
+
+      <div class="section-desc"><p>Functions for configuring solver paths and Python/Julia environments.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="multimod-config.html">set_multimod_python()</a></code> <code><a href="multimod-config.html">get_multimod_python()</a></code> <code><a href="multimod-config.html">set_multimod_julia()</a></code> <code><a href="multimod-config.html">get_multimod_julia()</a></code> <code><a href="multimod-config.html">set_multimod_glpsol()</a></code> <code><a href="multimod-config.html">get_multimod_glpsol()</a></code> <code><a href="multimod-config.html">set_multimod_solver()</a></code> <code><a href="multimod-config.html">get_multimod_solver()</a></code> <code><a href="multimod-config.html">multimod_config_write()</a></code> <code><a href="multimod-config.html">multimod_config_read()</a></code> <code><a href="multimod-config.html">multimod_config_path()</a></code> <code><a href="multimod-config.html">multimod_config_show()</a></code>
+
+        </dt>
+        <dd>Configuration management for multimod solver paths</dd>
+
+        <dt>
+
+          <code><a href="setup_python_environment.html">setup_python_environment()</a></code> <code><a href="setup_python_environment.html">setup_multimod_python()</a></code>
+
+        </dt>
+        <dd>Configure a Python environment for multimod</dd>
+      </dl></div><div class="section level2">
+      <h2 id="folding-functions">Folding functions<a class="anchor" aria-label="anchor" href="#folding-functions"></a></h2>
+
+      <div class="section-desc"><p>Functions for parameter folding to reduce model size by eliminating redundant dimensions.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="create_fold_spec.html">create_fold_spec()</a></code>
+
+        </dt>
+        <dd>Create fold specification for parameters (generic interface)</dd>
+
+        <dt>
+
+          <code><a href="create_fold_spec_energyRt.html">create_fold_spec_energyRt()</a></code>
+
+        </dt>
+        <dd>Create fold specification for energyRt models (convenience wrapper)</dd>
+
+        <dt>
+
+          <code><a href="analyze_parameter_redundancy.html">analyze_parameter_redundancy()</a></code>
+
+        </dt>
+        <dd>Analyze parameter redundancy in model</dd>
+
+        <dt>
+
+          <code><a href="analyze_dimension_redundancy.html">analyze_dimension_redundancy()</a></code>
+
+        </dt>
+        <dd>Analyze if a dimension can be safely folded</dd>
+
+        <dt>
+
+          <code><a href="get_fold_summary.html">get_fold_summary()</a></code>
+
+        </dt>
+        <dd>Get folding statistics summary</dd>
+
+        <dt>
+
+          <code><a href="is_folded.html">is_folded()</a></code>
+
+        </dt>
+        <dd>Check if a parameter or model is folded</dd>
+
+        <dt>
+
+          <code><a href="get_active_dims.html">get_active_dims()</a></code>
+
+        </dt>
+        <dd>Get active dimensions from a parameter</dd>
+
+        <dt>
+
+          <code><a href="unfold_model.html">unfold_model()</a></code>
+
+        </dt>
+        <dd>Unfold model to restore original dimensions</dd>
+      </dl></div><div class="section level2">
+      <h2 id="trimming-functions">Trimming functions<a class="anchor" aria-label="anchor" href="#trimming-functions"></a></h2>
+
+      <div class="section-desc"><p>Functions for model trimming to remove unused elements (empty data, unused variables, dead branches).</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="untrim_model.html">untrim_model()</a></code>
+
+        </dt>
+        <dd>Untrim model or specific elements</dd>
+
+        <dt>
+
+          <code><a href="get_trim_summary.html">get_trim_summary()</a></code>
+
+        </dt>
+        <dd>Get trim summary statistics</dd>
+
+        <dt>
+
+          <code><a href="is_trimmed.html">is_trimmed()</a></code>
+
+        </dt>
+        <dd>Check if model or object is trimmed</dd>
+      </dl></div><div class="section level2">
+      <h2 id="model-workspace-and-data-management">Model workspace and data management<a class="anchor" aria-label="anchor" href="#model-workspace-and-data-management"></a></h2>
+
+      <div class="section-desc"><p>Functions for saving/loading models and managing model workspaces with multiple data formats.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="save_model.html">save_model()</a></code>
+
+        </dt>
+        <dd>Save model data on disk</dd>
+
+        <dt>
+
+          <code><a href="load_model.html">load_model()</a></code>
+
+        </dt>
+        <dd>Load multimod model from disk</dd>
+
+        <dt>
+
+          <code><a href="get_data.html">get_data()</a></code>
+
+        </dt>
+        <dd>Get data from model (with optional lazy loading)</dd>
+
+        <dt>
+
+          <code><a href="update_parameter.html">update_parameter()</a></code>
+
+        </dt>
+        <dd>Update parameter data</dd>
+
+        <dt>
+
+          <code><a href="update_mapping.html">update_mapping()</a></code>
+
+        </dt>
+        <dd>Update mapping data</dd>
+
+        <dt>
+
+          <code><a href="save_parameter.html">save_parameter()</a></code>
+
+        </dt>
+        <dd>Save parameter data to disk and free memory</dd>
+
+        <dt>
+
+          <code><a href="import_energyRt_data.html">import_energyRt_data()</a></code>
+
+        </dt>
+        <dd>Import energyRt scenario data into a multimod model</dd>
+
+        <dt>
+
+          <code><a href="populate_sets_from_scenario.html">populate_sets_from_scenario()</a></code>
+
+        </dt>
+        <dd>Populate sets from energyRt scenario</dd>
+
+        <dt>
+
+          <code><a href="link_scenario_data.html">link_scenario_data()</a></code>
+
+        </dt>
+        <dd>Link energyRt scenario data to model</dd>
+
+        <dt>
+
+          <code><a href="import_osemosys_data.html">import_osemosys_data()</a></code>
+
+        </dt>
+        <dd>Import OSeMOSYS data into multimod model</dd>
+
+        <dt>
+
+          <code><a href="export_osemosys_to_csv.html">export_osemosys_to_csv()</a></code>
+
+        </dt>
+        <dd>Export OSeMOSYS data to CSV files</dd>
+
+        <dt>
+
+          <code><a href="export_model_source.html">export_model_source()</a></code>
+
+        </dt>
+        <dd>Export Model Source Files</dd>
+
+        <dt>
+
+          <code><a href="add_set_data.html">add_set_data()</a></code>
+
+        </dt>
+        <dd>Add data to a set</dd>
+
+        <dt>
+
+          <code><a href="export_import_log_from_model.html">export_import_log_from_model()</a></code>
+
+        </dt>
+        <dd>Export import log to CSV</dd>
+      </dl></div><div class="section level2">
+      <h2 id="solver-integration">Solver integration<a class="anchor" aria-label="anchor" href="#solver-integration"></a></h2>
+
+      <div class="section-desc"><p>Functions for solving models and loading solutions.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="solve_jump.html">solve_jump()</a></code>
+
+        </dt>
+        <dd>Solve a JuMP Model</dd>
+
+        <dt>
+
+          <code><a href="solve_pyomo.html">solve_pyomo()</a></code>
+
+        </dt>
+        <dd>Solve a Pyomo model exported by <code>multimod</code></dd>
+
+        <dt>
+
+          <code><a href="solve_glpk.html">solve_glpk()</a></code>
+
+        </dt>
+        <dd>Solve GLPK model using glpsol command line tool</dd>
+
+        <dt>
+
+          <code><a href="execute_glpkAPI.html">execute_glpkAPI()</a></code>
+
+        </dt>
+        <dd>Solve GLPK model using glpkAPI</dd>
+      </dl></div><div class="section level2">
+      <h2 id="model-comparison-and-debugging">Model comparison and debugging<a class="anchor" aria-label="anchor" href="#model-comparison-and-debugging"></a></h2>
+
+      <div class="section-desc"><p>Functions for comparing models, solutions, and debugging model generation.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="compare_ast.html">compare_ast()</a></code>
+
+        </dt>
+        <dd>Compare two AST objects and report differences</dd>
+
+        <dt>
+
+          <code><a href="compare_ast_simple.html">compare_ast_simple()</a></code>
+
+        </dt>
+        <dd>Compare AST objects using compare package with custom handling</dd>
+
+        <dt>
+
+          <code><a href="compare_csv_files.html">compare_csv_files()</a></code>
+
+        </dt>
+        <dd>Compare CSV files in two directories</dd>
+
+        <dt>
+
+          <code><a href="compare_dataframes.html">compare_dataframes()</a></code>
+
+        </dt>
+        <dd>Compare two dataframes and identify differences</dd>
+
+        <dt>
+
+          <code><a href="compare_jump_stats.html">compare_jump_stats()</a></code>
+
+        </dt>
+        <dd>Compare JuMP model constraint statistics between two model directories</dd>
+
+        <dt>
+
+          <code><a href="compare_lp.html">compare_lp()</a></code>
+
+        </dt>
+        <dd>Compare two LP files and report differences</dd>
+
+        <dt>
+
+          <code><a href="compare_mps.html">compare_mps()</a></code>
+
+        </dt>
+        <dd>Compare two MPS files and report differences</dd>
+
+        <dt>
+
+          <code><a href="compare_solution.html">compare_solution()</a></code>
+
+        </dt>
+        <dd>Compare solutions from different solver outputs</dd>
+
+        <dt>
+
+          <code><a href="compare_variables.html">compare_variables()</a></code>
+
+        </dt>
+        <dd>Compare variable solutions between two models</dd>
+      </dl></div><div class="section level2">
+      <h2 id="index-aliases-and-mapping">Index aliases and mapping<a class="anchor" aria-label="anchor" href="#index-aliases-and-mapping"></a></h2>
+
+      <div class="section-desc"><p>Functions for managing index aliases and domain extraction.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="generate_index_alias.html">generate_index_alias()</a></code>
+
+        </dt>
+        <dd>Generate dummy variable name from set name</dd>
+
+        <dt>
+
+          <code><a href="generate_index_aliases.html">generate_index_aliases()</a></code>
+
+        </dt>
+        <dd>Generate dummy variable names for a list of sets</dd>
+
+        <dt>
+
+          <code><a href="add_index_aliases.html">add_index_aliases()</a></code>
+
+        </dt>
+        <dd>Add index aliases to a multimod model</dd>
+
+        <dt>
+
+          <code><a href="has_index_aliases.html">has_index_aliases()</a></code>
+
+        </dt>
+        <dd>Check if model has index aliases</dd>
+
+        <dt>
+
+          <code><a href="en_extract_domains_from_comments.html">en_extract_domains_from_comments()</a></code>
+
+        </dt>
+        <dd>Extract energyRt domain mappings from GAMS file comments</dd>
+      </dl></div><div class="section level2">
+      <h2 id="parameter-evaluation-and-analysis">Parameter evaluation and analysis<a class="anchor" aria-label="anchor" href="#parameter-evaluation-and-analysis"></a></h2>
+
+      <div class="section-desc"><p>Functions for evaluating parameters and analyzing folding opportunities.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="evaluate_parameters.html">evaluate_parameters()</a></code>
+
+        </dt>
+        <dd>Evaluate Parameter Formulas and Defaults</dd>
+
+        <dt>
+
+          <code><a href="analyze_fold_opportunities.html">analyze_fold_opportunities()</a></code>
+
+        </dt>
+        <dd>Analyze fold opportunities without applying</dd>
+
+        <dt>
+
+          <code><a href="has_ast_formulas.html">has_ast_formulas()</a></code>
+
+        </dt>
+        <dd>Check if model has unevaluated AST formulas or defaults</dd>
+      </dl></div><div class="section level2">
+      <h2 id="ast-conversion-to-r">AST conversion to R<a class="anchor" aria-label="anchor" href="#ast-conversion-to-r"></a></h2>
+
+      <div class="section-desc"><p>Functions for converting AST to R code.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="as_r.html">as_r()</a></code>
+
+        </dt>
+        <dd>Convert AST to R Code</dd>
+
+        <dt>
+
+          <code><a href="as_r.ast_formula.html">as_r(<i>&lt;ast_formula&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Convert ast_formula to R Code</dd>
+
+        <dt>
+
+          <code><a href="as_rfunction.html">as_rfunction()</a></code>
+
+        </dt>
+        <dd>Convert AST to R Function</dd>
+
+        <dt>
+
+          <code><a href="collect_ast_classes.html">collect_ast_classes()</a></code>
+
+        </dt>
+        <dd>Collect all AST node classes from model or AST</dd>
+      </dl></div><div class="section level2">
+      <h2 id="data-and-examples">Data and examples<a class="anchor" aria-label="anchor" href="#data-and-examples"></a></h2>
+
+      <div class="section-desc"><p>Example datasets and models.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="example_models.html">example_models</a></code>
+
+        </dt>
+        <dd>Example Models in Multiple Formats</dd>
+      </dl></div><div class="section level2">
+      <h2 id="utility-functions">Utility functions<a class="anchor" aria-label="anchor" href="#utility-functions"></a></h2>
+
+      <div class="section-desc"><p>Utility functions for multimod.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="validate.html">validate()</a></code>
+
+        </dt>
+        <dd>Validate multimod or AST objects</dd>
+
+        <dt>
+
+          <code><a href="get_active_dims.html">get_active_dims()</a></code>
+
+        </dt>
+        <dd>Get active dimensions from a parameter</dd>
+
+        <dt>
+
+          <code><a href="get_data.html">get_data()</a></code>
+
+        </dt>
+        <dd>Get data from model (with optional lazy loading)</dd>
+
+        <dt>
+
+          <code><a href="get_data_path.html">get_data_path()</a></code>
+
+        </dt>
+        <dd>Get data path for a parameter or mapping</dd>
+
+        <dt>
+
+          <code><a href="get_energyrt_defvals.html">get_energyrt_defvals()</a></code>
+
+        </dt>
+        <dd>Get default values from energyRt modInp</dd>
+
+        <dt>
+
+          <code><a href="get_fold_summary.html">get_fold_summary()</a></code>
+
+        </dt>
+        <dd>Get folding statistics summary</dd>
+
+        <dt>
+
+          <code><a href="get_glpk_model_stats.html">get_glpk_model_stats()</a></code>
+
+        </dt>
+        <dd>Get GLPK model statistics without solving</dd>
+
+        <dt>
+
+          <code><a href="get_import_log.html">get_import_log()</a></code>
+
+        </dt>
+        <dd>Get data import log from model</dd>
+
+        <dt>
+
+          <code><a href="get_index_alias.html">get_index_alias()</a></code>
+
+        </dt>
+        <dd>Get index alias for a set</dd>
+
+        <dt>
+
+          <code><a href="get_lazy_data.html">get_lazy_data()</a></code>
+
+        </dt>
+        <dd>Get lazy data with automatic loading</dd>
+
+        <dt>
+
           <code><a href="get_network_data.html">get_network_data()</a></code>
 
         </dt>
         <dd>Get network data for a multimod equation</dd>
-      </dl><dl><dt>
+
+        <dt>
+
+          <code><a href="get_trim_summary.html">get_trim_summary()</a></code>
+
+        </dt>
+        <dd>Get trim summary statistics</dd>
+
+        <dt>
+
+          <code><a href="multimod-config.html">set_multimod_python()</a></code> <code><a href="multimod-config.html">get_multimod_python()</a></code> <code><a href="multimod-config.html">set_multimod_julia()</a></code> <code><a href="multimod-config.html">get_multimod_julia()</a></code> <code><a href="multimod-config.html">set_multimod_glpsol()</a></code> <code><a href="multimod-config.html">get_multimod_glpsol()</a></code> <code><a href="multimod-config.html">set_multimod_solver()</a></code> <code><a href="multimod-config.html">get_multimod_solver()</a></code> <code><a href="multimod-config.html">multimod_config_write()</a></code> <code><a href="multimod-config.html">multimod_config_read()</a></code> <code><a href="multimod-config.html">multimod_config_path()</a></code> <code><a href="multimod-config.html">multimod_config_show()</a></code>
+
+        </dt>
+        <dd>Configuration management for multimod solver paths</dd>
+
+        <dt>
+
+          <code><a href="set_data_path.html">set_data_path()</a></code>
+
+        </dt>
+        <dd>Set data path for a parameter or mapping</dd>
+
+        <dt>
+
+          <code><a href="is_folded.html">is_folded()</a></code>
+
+        </dt>
+        <dd>Check if a parameter or model is folded</dd>
+
+        <dt>
 
           <code><a href="is_gams_expression.html">is_gams_expression()</a></code>
 
         </dt>
         <dd>Check if a string is a compound expression</dd>
-      </dl><dl><dt>
+
+        <dt>
+
+          <code><a href="is_in_memory.html">is_in_memory()</a></code>
+
+        </dt>
+        <dd>Data management utilities for multimod models</dd>
+
+        <dt>
 
           <code><a href="is_special.html">is_special()</a></code>
 
         </dt>
         <dd>Check if a character is a special character</dd>
-      </dl><dl><dt>
+
+        <dt>
+
+          <code><a href="is_trimmed.html">is_trimmed()</a></code>
+
+        </dt>
+        <dd>Check if model or object is trimmed</dd>
+
+        <dt>
+
+          <code><a href="is_trimmed_any.html">is_trimmed_any()</a></code>
+
+        </dt>
+        <dd>Check if any elements are actually trimmed</dd>
+
+        <dt>
 
           <code><a href="is_word.html">is_word()</a></code>
 
         </dt>
         <dd>Check if a string is a word (alphabetic characters only)</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="is_word_num.html">is_word_num()</a></code>
 
         </dt>
         <dd>Check if a string is alphanumeric (letters, digits, or underscores)</dd>
-      </dl><dl><dt>
+
+        <dt>
+
+          <code><a href="validate_fold.html">validate_fold()</a></code>
+
+        </dt>
+        <dd>Validate fold integrity</dd>
+
+        <dt>
+
+          <code><a href="validate_index_aliases.html">validate_index_aliases()</a></code>
+
+        </dt>
+        <dd>Validate index_aliases for a model</dd>
+
+        <dt>
 
           <code><a href="parse_gams_equation.html">parse_gams_equation()</a></code>
 
         </dt>
         <dd>Parse a GAMS equation into an AST object.</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="format_latex_aligned.html">format_latex_aligned()</a></code>
 
         </dt>
         <dd>Format a LaTeX equation across multiple lines using aligned</dd>
-      </dl><dl><dt>
+
+        <dt>
+
+          <code><a href="extract_args.ast_formula.html">extract_args(<i>&lt;ast_formula&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Extract Arguments from ast_formula</dd>
+
+        <dt>
+
+          <code><a href="extract_args.html">extract_args()</a></code>
+
+        </dt>
+        <dd>Extract Arguments from AST</dd>
+
+        <dt>
 
           <code><a href="extract_ast_elements.html">extract_ast_elements()</a></code>
 
         </dt>
         <dd>Recursively extract elements by name from a nested structure</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="extract_where_nodes.html">extract_where_nodes()</a></code>
 
         </dt>
         <dd>Extract "where" nodes from an AST</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="alias_ast_names.html">alias_ast_names()</a></code>
 
         </dt>
         <dd>Apply name aliases to AST nodes</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="depth.html">depth()</a></code>
 
         </dt>
         <dd>Get the depth of a nested list structure (AST, multimod, and other objects)</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="annotate_brackets.html">annotate_brackets()</a></code>
 
         </dt>
         <dd>Annotate expression tree with bracket requirements</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="brackets_pair.html">brackets_pair()</a></code>
 
         </dt>
         <dd>Get a pair of brackets</dd>
-      </dl><dl><dt>
+
+        <dt>
+
+          <code><a href="wrap_brackets.html">wrap_brackets()</a></code>
+
+        </dt>
+        <dd>Wrap text with brackets</dd>
+
+        <dt>
 
           <code><a href="map_ast.html">map_ast()</a></code>
 
         </dt>
         <dd>Recursively apply a function to all nodes of an AST</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="node_hash.html">node_hash()</a></code>
 
         </dt>
         <dd>Generate a stable hash for an AST or multimod object (excluding internal hash fields)</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="node_type.html">node_type()</a></code>
 
         </dt>
         <dd>Get the type of an AST or multimod node</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="remap_ast_elements.html">remap_ast_elements()</a></code>
 
         </dt>
         <dd>Replace AST elements with "ast_where" nodes</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="resolve_full_name.html">resolve_full_name()</a></code>
 
         </dt>
         <dd>Resolve alias to full set name</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="split_at_top_level_operators.html">split_at_top_level_operators()</a></code>
 
         </dt>
         <dd>Split LaTeX math string at top-level operators</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="split_top_level_args.html">split_top_level_args()</a></code>
 
         </dt>
         <dd>Split function arguments at the top level</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="build_symbols_list.html">build_symbols_list()</a></code>
 
         </dt>
         <dd>Build a list of symbols from model_info</dd>
       </dl></div><div class="section level2">
+      <h2 id="internal-and-helper-functions">Internal and helper functions<a class="anchor" aria-label="anchor" href="#internal-and-helper-functions"></a></h2>
+
+      <div class="section-desc"><p>Internal functions and helpers (typically not called directly by users).</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="load_all_mappings.html">load_all_mappings()</a></code>
+
+        </dt>
+        <dd>Load all mappings into memory</dd>
+
+        <dt>
+
+          <code><a href="load_all_parameters.html">load_all_parameters()</a></code>
+
+        </dt>
+        <dd>Load all parameters into memory</dd>
+
+        <dt>
+
+          <code><a href="load_mapping.html">load_mapping()</a></code>
+
+        </dt>
+        <dd>Load mapping data into memory</dd>
+
+        <dt>
+
+          <code><a href="load_model.html">load_model()</a></code>
+
+        </dt>
+        <dd>Load multimod model from disk</dd>
+
+        <dt>
+
+          <code><a href="load_osemosys_from_csv.html">load_osemosys_from_csv()</a></code>
+
+        </dt>
+        <dd>Load OSeMOSYS data from CSV directory</dd>
+
+        <dt>
+
+          <code><a href="load_parameter.html">load_parameter()</a></code>
+
+        </dt>
+        <dd>Load parameter data into memory</dd>
+
+        <dt>
+
+          <code><a href="save_all_mappings.html">save_all_mappings()</a></code>
+
+        </dt>
+        <dd>Save all mappings to disk</dd>
+
+        <dt>
+
+          <code><a href="save_all_parameters.html">save_all_parameters()</a></code>
+
+        </dt>
+        <dd>Save all parameters to disk</dd>
+
+        <dt>
+
+          <code><a href="save_mapping.html">save_mapping()</a></code>
+
+        </dt>
+        <dd>Save mapping data to disk and free memory</dd>
+
+        <dt>
+
+          <code><a href="save_model.html">save_model()</a></code>
+
+        </dt>
+        <dd>Save model data on disk</dd>
+
+        <dt>
+
+          <code><a href="save_parameter.html">save_parameter()</a></code>
+
+        </dt>
+        <dd>Save parameter data to disk and free memory</dd>
+
+        <dt>
+
+          <code><a href="log_solution_load.html">log_solution_load()</a></code>
+
+        </dt>
+        <dd>Log solution loading from solver to variables directory</dd>
+
+        <dt>
+
+          <code><a href="restore_ast.html">restore_ast()</a></code>
+
+        </dt>
+        <dd>Restore AST from preserved copies</dd>
+
+        <dt>
+
+          <code><a href="populate_defvals_from_energyrt.html">populate_defvals_from_energyrt()</a></code>
+
+        </dt>
+        <dd>Update model parameters with default values from energyRt</dd>
+
+        <dt>
+
+          <code><a href="populate_sets_from_data.html">populate_sets_from_data()</a></code>
+
+        </dt>
+        <dd>Populate sets from model's own mappings and parameters</dd>
+
+        <dt>
+
+          <code><a href="populate_sets_from_scenario.html">populate_sets_from_scenario()</a></code>
+
+        </dt>
+        <dd>Populate sets from energyRt scenario</dd>
+
+        <dt>
+
+          <code><a href="register_index_alias.html">register_index_alias()</a></code>
+
+        </dt>
+        <dd>Read GMPL/MathProg Model File</dd>
+
+        <dt>
+
+          <code><a href="make_valid.html">make_valid()</a></code>
+
+        </dt>
+        <dd>Make a multimod model valid by reconciling symbols</dd>
+
+        <dt>
+
+          <code><a href="quick_compare.html">quick_compare()</a></code>
+
+        </dt>
+        <dd>Quick comparison showing first few differences</dd>
+
+        <dt>
+
+          <code><a href="mps_matrix_long.html">mps_matrix_long()</a></code>
+
+        </dt>
+        <dd>Extract the sparse constraint matrix of an MPS file</dd>
+
+        <dt>
+
+          <code><a href="osemosys_dat_to_model.html">osemosys_dat_to_model()</a></code>
+
+        </dt>
+        <dd>Convert OSeMOSYS .dat to CSV and import into model</dd>
+
+        <dt>
+
+          <code><a href="read_osemosys_dat.html">read_osemosys_dat()</a></code>
+
+        </dt>
+        <dd>Read OSeMOSYS data files</dd>
+
+        <dt>
+
+          <code><a href="read_csv_results.html">read_csv_results()</a></code>
+
+        </dt>
+        <dd>Read CSV results from GMPL solver solution directory and save to model variables</dd>
+      </dl></div><div class="section level2">
       <h2 id="visualization">visualization<a class="anchor" aria-label="anchor" href="#visualization"></a></h2>
 
       <div class="section-desc"><p>Visualization functions for multimod.</p></div>
 
-
-    </div><div class="section level2">
+      <dl></dl></div><div class="section level2">
 
 
 
@@ -508,7 +1575,8 @@
 
         </dt>
         <dd>Get network data for a multimod equation</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="as_visNetwork.html">as_visNetwork()</a></code>
 
@@ -524,7 +1592,7 @@
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.3.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
 </div>
 
     </footer></div>

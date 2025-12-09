@@ -306,6 +306,20 @@ parse_gams_expr <- function(
     return(NULL)
   }
 
+  # Check for index shift patterns (y-1, y+1, ls-1, etc.) BEFORE expression parsing
+  # This must come before arithmetic operators are processed
+  if (grepl("^[a-zA-Z][a-zA-Z0-9_]*[+-][0-9]+$", expr)) {
+    # Extract symbol and offset
+    match <- regmatches(expr, regexec("^([a-zA-Z][a-zA-Z0-9_]*)([+-])([0-9]+)$", expr))[[1]]
+    if (length(match) == 4) {
+      symbol <- match[2]
+      sign <- match[3]
+      offset_val <- as.integer(match[4])
+      offset <- if (sign == "-") -offset_val else offset_val
+      return(ast_shift(symbol, offset))
+    }
+  }
+
   # check if expr has relational operator
   if (grepl("=\\s*(E|L|G|LE|GE)\\s*=", gsub("\\s+", "", expr), ignore.case = TRUE)) {
     # !!! add LE GE
@@ -481,8 +495,10 @@ parse_gams_expr <- function(
 #'
 #' This function reads a GAMS model file or text, expands any included files, removes comments, and parses the core structure into sets, parameters, variables, equations, and aliases, returning a `model_structure` object.
 #'
-#' @param file_or_text A path to a GAMS file or a character vector containing GAMS code.
+#' @param file_or_text A path to a GAMS file, or a character vector containing GAMS code 
+#'   (either as a single string with newlines, or as a vector with one line per element).
 #' @param include Logical indicating whether to expand included files (default is `TRUE`).
+#'   Only applies when reading from a file path.
 #' @param interim_file Optional path to an interim file where the processed GAMS code prepended for parsing will be saved. If `NULL`, no interim file is created.
 #' @param strict Logical indicating whether to enforce strict parsing rules (default is `TRUE`). If `FALSE`, some undeclared equations may be added to the model structure.
 #' @param verbose Logical indicating whether to print verbose output during parsing (default is `FALSE`).
@@ -498,16 +514,32 @@ read_gams <- function(
     verbose = FALSE,
     ...) {
   # browser()
-  if (file.exists(file_or_text)) {
+  
+  # Determine if input is file path or content
+  is_file <- length(file_or_text) == 1 && file.exists(file_or_text)
+  
+  if (is_file) {
+    # Read from file
     lines <- readLines(file_or_text, encoding = "UTF-8")
+    base_path <- dirname(file_or_text)
   } else {
-    lines <- unlist(strsplit(file_or_text, "\n"))
+    # Input is already content (character vector or single string)
+    if (length(file_or_text) == 1) {
+      # Single string with newlines - split it
+      lines <- unlist(strsplit(file_or_text, "\n"))
+    } else {
+      # Already a vector of lines
+      lines <- file_or_text
+    }
+    base_path <- getwd()  # Use current directory for any relative paths
   }
-  # replace non-UTF-8 characters with '?' if any
+  
+  # Replace non-UTF-8 characters with '?' if any
   lines <- iconv(lines, from = "", to = "UTF-8", sub = "?")
 
-  if (include) {
-    lines <- gams_expand_includes(lines, base_path = dirname(file_or_text))
+  # Handle includes (only if reading from file and include=TRUE)
+  if (include && is_file) {
+    lines <- gams_expand_includes(lines, base_path = base_path)
   } else {
     lines <- lines[!grepl("^\\$include\\b", lines, ignore.case = TRUE)]
   }
@@ -571,6 +603,7 @@ read_gams <- function(
   parameters <- list()
   variables <- list()
   equations <- list()
+  objective <- NULL  # Store objective metadata from Solve statement
 
   mode <- NULL
   i <- 1
@@ -622,6 +655,33 @@ read_gams <- function(
       stopifnot(nchar(line) == 1)
       mode <- NULL
       if (verbose) message(line)
+      i <- i + 1
+      next
+    }
+
+    # Detect Solve statement for objective
+    # Pattern: Solve <model_name> minimizing|maximizing <var_name> using <solver>;
+    # Example: Solve energyRt minimizing vObjective using LP;
+    if (grepl("^solve\\s+", line, ignore.case = TRUE)) {
+      solve_pattern <- "^solve\\s+(\\S+)\\s+(minimizing|maximizing)\\s+(\\S+)\\s+using\\s+(\\S+)"
+      if (grepl(solve_pattern, line, ignore.case = TRUE, perl = TRUE)) {
+        matches <- regmatches(line, regexec(solve_pattern, line, ignore.case = TRUE, perl = TRUE))[[1]]
+        model_name <- matches[2]
+        sense <- tolower(matches[3])
+        # Standardize to 'minimize'/'maximize' (GAMS uses 'minimizing'/'maximizing')
+        sense <- sub("minimizing$", "minimize", sense)
+        sense <- sub("maximizing$", "maximize", sense)
+        var_name <- matches[4]
+        solver <- matches[5]
+        objective <- list(
+          model = model_name,  # Use 'model' instead of 'model_name'
+          variable = var_name,
+          sense = sense,
+          optimization_problem = solver,
+          gams = line
+        )
+        if (verbose) message("Detected objective: ", sense, " ", var_name, " using ", solver)
+      }
       i <- i + 1
       next
     }
@@ -789,7 +849,28 @@ read_gams <- function(
         parameters[[sym_name]] <- symbol_obj
       } else if (mode == "variables") {
         # browser()
-        symbol_obj$type <- var_type
+        symbol_obj$vtype <- var_type
+        # Set default bounds based on variable type
+        if (!is.null(var_type)) {
+          if (tolower(var_type) == "positive") {
+            symbol_obj$bounds <- list(lo = 0, up = Inf)
+          } else if (tolower(var_type) == "negative") {
+            symbol_obj$bounds <- list(lo = -Inf, up = 0)
+          } else if (tolower(var_type) == "binary") {
+            symbol_obj$bounds <- list(lo = 0, up = 1)
+            symbol_obj$vtype <- "binary"  # Override to standard name
+          } else if (tolower(var_type) == "integer") {
+            symbol_obj$bounds <- list(lo = -Inf, up = Inf)
+          } else if (tolower(var_type) == "free") {
+            symbol_obj$bounds <- list(lo = -Inf, up = Inf)
+          } else {
+            # Default: free variable
+            symbol_obj$bounds <- list(lo = -Inf, up = Inf)
+          }
+        } else {
+          # No type specified: default to free
+          symbol_obj$bounds <- list(lo = -Inf, up = Inf)
+        }
         variables[[sym_name]] <- symbol_obj
       }
       i <- i + 1
@@ -823,10 +904,10 @@ read_gams <- function(
     # browser()
     ## Outside declarations: detect equation body ####
     eq_header <- parse_equation_header(line)
-    if (!is.null(eq_header) &&
-        grepl("S7_StorageLevelYearFinish", eq_header$name, ignore.case = TRUE)) {
-      browser() # debug
-    }
+    # if (!is.null(eq_header) &&
+        # grepl("S7_StorageLevelYearFinish", eq_header$name, ignore.case = TRUE)) {
+      # browser() # debug
+    # }
     if (!is.null(eq_header)) {
       eq_name <- eq_header$name
       body_accum <- character(0)
@@ -870,6 +951,13 @@ read_gams <- function(
     i <- i + 1
   }
 
+  # Wrap objectives in unnamed list for consistency
+  objectives_list <- if (!is.null(objective)) {
+    list(objective)  # Unnamed list element
+  } else {
+    list()
+  }
+
   new_model_structure(
     sets = sets,
     mappings = mappings,
@@ -877,6 +965,8 @@ read_gams <- function(
     parameters = parameters,
     variables = variables,
     equations = equations,
+    objectives = objectives_list,  # Use plural, wrap in list
+    models = list(),  # TODO: Parse model definitions from GAMS
     source = file_or_text,
     language = "GAMS"
   )

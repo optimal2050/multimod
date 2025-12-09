@@ -10,7 +10,7 @@ new_set <- function(name, desc = NULL, subset_of = NULL,
                              data = NULL) {
   stopifnot(is.character(name), length(name) == 1)
 
-  structure(
+  obj <- structure(
     list(
       name = name,
       desc = desc,
@@ -19,6 +19,9 @@ new_set <- function(name, desc = NULL, subset_of = NULL,
     ),
     class = c("set", "multimod", "ast")
   )
+
+  validate(obj, context = sprintf("set '%s'", name))
+  obj
 }
 
 #' Create a multimod mapping object
@@ -39,7 +42,7 @@ new_mapping <- function(name,
                                  auto_fold = FALSE) {
   stopifnot(is.character(name), length(name) == 1)
   # browser()
-  structure(
+  obj <- structure(
     list(
       name = name,
       desc = desc,
@@ -49,6 +52,9 @@ new_mapping <- function(name,
     ),
     class = c("mapping", "multimod", "ast")
   )
+
+  validate(obj, context = sprintf("mapping '%s'", name))
+  obj
 }
 
 #' Create a multimod parameter
@@ -57,18 +63,22 @@ new_mapping <- function(name,
 #' @param dims character vector, names of the declared dimensions
 #' @param data data frame, data for the parameter
 #' @param active_dims character vector, names of the active dimensions
+#' @param comment character, comment line from source file (e.g., *@ domain hint)
 #' @param auto_fold logical, whether to automatically fold dimensions
 #'
 #' @returns a parameter object
 #' @export
-#'
-#' @examples
 new_parameter <- function(
     name,
     desc = NULL,
     dims,
     active_dims = NULL,
     data = NULL,
+    defVal = NULL,
+    defInt = NULL,
+    symbolic = FALSE,
+    formula = NULL,
+    comment = NULL,
     auto_fold = FALSE) {
   if (is.null(active_dims)) {
     if (auto_fold) {
@@ -79,16 +89,24 @@ new_parameter <- function(
     }
   }
 
-  structure(
+  obj <- structure(
     list(
       name = name,
       desc = desc,
       dims = ast_dims(dims),
       active_dims = ast_dims(active_dims),
-      data = data
+      data = data,
+      defVal = defVal,
+      defInt = defInt,
+      symbolic = symbolic,
+      formula = formula,
+      comment = comment
     ),
     class = c("parameter", "multimod", "ast")
   )
+
+  validate(obj, context = sprintf("parameter '%s'", name))
+  obj
 }
 
 #' Create a multimod variable
@@ -97,7 +115,8 @@ new_parameter <- function(
 #' @param dims character vector, names of the declared dimensions
 #' @param data data frame, data for the variable
 #' @param active_dims character vector, names of the active dimensions
-#' @param domain character, domain of the variable (e.g., "continuous", "integer", "binary")
+#' @param domain character, domain mapping name for sparse indexing (NULL = Cartesian, character(0) = unused)
+#' @param comment character, comment line from source file (e.g., *@ domain hint)
 #' @param auto_fold logical, whether to automatically fold dimensions
 #'
 #' @returns a variable object
@@ -108,6 +127,9 @@ new_variable <- function(
     dims,
     active_dims = NULL,
     domain = NULL,
+    vtype = NULL,
+    bounds = NULL,
+    comment = NULL,
     data = NULL, # mapping parameter/set
     # domain = "continuous",
     auto_fold = FALSE) {
@@ -122,7 +144,7 @@ new_variable <- function(
     }
   }
   # message(name)
-  structure(
+  obj <- structure(
     list(
       name = name,
       desc = desc,
@@ -130,10 +152,16 @@ new_variable <- function(
       active_dims = ast_dims(active_dims),
       # domain = ast_mapping(active_dims),
       domain = domain,
+      vtype = vtype,
+      bounds = bounds,
+      comment = comment,
       data = as.data.frame(data)
     ),
     class = c("variable", "multimod", "ast")
   )
+
+  validate(obj, context = sprintf("variable '%s'", name))
+  obj
 }
 
 #' Create a multimod equation object
@@ -149,6 +177,7 @@ new_variable <- function(
 #' @param rhs An AST representing the right-hand side of the equation.
 #' @param relation Character string. The relation type: one of `"=="`, `"<="`, or `">="`.
 #' @param domain Optional AST or symbol representing the domain/mapping condition for the equation.
+#' @param comment character, comment line from source file (e.g., *@ domain hint)
 #'
 #' @returns An object of class `equation`, containing the parsed equation structure.
 #'
@@ -173,7 +202,9 @@ new_equation <- function(
     lhs,
     rhs,
     relation = "==",
-    domain = NULL) {
+    domain = NULL,
+    comment = NULL,
+    dims_index_aliases = NULL) {
   # browser()
   stopifnot(relation %in% c("==", "<=", ">="))
   # if (!inherits(rhs, "expression")) browser()
@@ -181,18 +212,23 @@ new_equation <- function(
 
   # if (name == "eqTechSng2Grp") browser()
 
-  structure(
+  obj <- structure(
     list(
       name = name,
       desc = desc,
       dims = ast_dims(dims),
       domain = domain,
+      comment = comment,
       lhs = lhs,
       relation = relation,
-      rhs = rhs
+      rhs = rhs,
+      dims_index_aliases = dims_index_aliases  # Store equation-specific iterator vars
     ),
     class = c("equation", "multimod", "ast")
   )
+
+  validate(obj, context = sprintf("equation '%s'", name))
+  obj
 }
 
 new_model_structure <- function(
@@ -204,6 +240,8 @@ new_model_structure <- function(
     parameters = list(),
     variables = list(),
     equations = list(),
+    objectives = list(),  # List of objective metadata (can have multiple)
+    models = list(),      # List of model definitions: list(name = c(equation_names))
     source = NULL,
     language = NULL
 ) {
@@ -217,6 +255,8 @@ new_model_structure <- function(
       parameters = parameters,
       variables  = variables,
       equations  = equations,
+      objectives = objectives,  # Plural - can have multiple objectives
+      models     = models,      # Track model definitions and solve statements
       source     = source, # File path or string
       # source     = tryCatch(normalizePath(source, winslash = "/"),
       #                       error = function(e) {NULL}),
@@ -233,12 +273,11 @@ new_model_structure <- function(
 #' @param parameters named list of parameter objects
 #' @param variables named list of variable objects
 #' @param equations named list of equation objects
-#' @param desc
+#' @param desc model description (character)
+#' @param metadata Named list with auxiliary information (e.g., language, source_file, data_source).
 #'
-#' @returns
+#' @returns A model object
 #' @export
-#'
-#' @examples
 new_model <- function(
     name = NULL,
     desc = NULL,
@@ -248,9 +287,18 @@ new_model <- function(
     parameters = list(),
     variables = list(),
     equations = list(),
+    inMemory = TRUE,
+    base_path = NULL,
+    metadata = list(),
     ...
 ) {
-  structure(
+  metadata <- metadata %||% list()
+    if (!is.null(metadata$language) && is.null(metadata$source_language)) {
+      metadata$source_language <- metadata$language
+    }
+    metadata$language <- NULL
+
+  model <- structure(
     list(
       name = name, # Name of the model (optional)
       desc = desc, # Description of the model (optional)
@@ -260,10 +308,19 @@ new_model <- function(
       parameters = parameters, # Named list of parameter
       variables = variables, # Named list of variable
       equations = equations, # Named list of equation
+      inMemory = inMemory, # Default: all data in memory
+      base_path = base_path, # Base path for relative data paths
+      metadata = metadata,
       ...
     ),
     class = c("model", "multimod")
   )
+
+  if (!is.null(metadata$source_language)) {
+    attr(model, "language") <- metadata$source_language
+  }
+
+  model
 }
 
 

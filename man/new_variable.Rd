@@ -10,6 +10,9 @@ new_variable(
   dims,
   active_dims = NULL,
   domain = NULL,
+  vtype = NULL,
+  bounds = NULL,
+  comment = NULL,
   data = NULL,
   auto_fold = FALSE
 )
@@ -21,7 +24,9 @@ new_variable(
 
 \item{active_dims}{character vector, names of the active dimensions}
 
-\item{domain}{character, domain of the variable (e.g., "continuous", "integer", "binary")}
+\item{domain}{character, domain mapping name for sparse indexing (NULL = Cartesian, character(0) = unused)}
+
+\item{comment}{character, comment line from source file (e.g., *@ domain hint)}
 
 \item{data}{data frame, data for the variable}
 

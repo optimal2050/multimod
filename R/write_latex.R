@@ -57,7 +57,7 @@ write_latex.equation <- function(x,
                                  verbose = FALSE,
                                  ...) {
 
-  # browser()
+  browser()
   if (!is_empty(eq_substitute)) {
     # Substitute elements in the AST
     x <- remap_ast_elements(x,
@@ -106,6 +106,29 @@ write_latex.equation <- function(x,
 #' Write LaTeX representation of a model
 #'
 #' @inherit write_latex.equation
+#' @param model_view Character; display mode: "reduced" (folded dims, skip trimmed),
+#'   "full" (original model), or "both" (comparison). Default auto-detects.
+#' @param include_data Logical; if TRUE, include data context (set sizes, etc.).
+#'   If FALSE, show pure theory. Default TRUE.
+#' @param data_detail Character; "brief" (counts only) or "detailed" (full stats).
+#' @param set_display_max_inline Maximum set elements to show inline.
+#' @param set_display_head_tail_threshold Threshold for head/tail display.
+#' @param set_display_head_n Number of head elements for large sets.
+#' @param set_display_tail_n Number of tail elements for large sets.
+#' @param include_toc Logical; include table of contents. Default FALSE.
+#' @param include_sets Logical; include sets section. Default TRUE.
+#' @param include_aliases Logical; include aliases section. Default TRUE.
+#' @param include_index_aliases Logical; include index aliases section. Default TRUE.
+#' @param include_parameters Logical; include parameters section. Default TRUE.
+#' @param include_variables Logical; include variables section. Default TRUE.
+#' @param include_equations Logical; include equations section. Default TRUE.
+#' @param include_mappings Logical; include mappings section. Default TRUE.
+#' @param use_model_aliases Logical; if TRUE, auto-use model$index_aliases. Default TRUE.
+#' @param use_aliases_in_declarations Logical; if TRUE, use aliased dimension names in
+#'   parameter/variable declarations. If FALSE (default), show full names in declarations
+#'   but use aliases in equations.
+#' @param folded_color Character; LaTeX color name for folded annotations. Default "blue".
+#' @param trimmed_color Character; LaTeX color name for trimmed annotations. Default "red".
 #'
 #' @export
 #' @method write_latex model
@@ -120,33 +143,79 @@ write_latex.model <- function(x,
                               show_date = TRUE,
                               # math_env = "equation",
                               subsection_number = TRUE,
+
+                              # === PHASE 1 CORE PARAMETERS ===
+                              model_view = c("reduced", "full", "both"),
+                              include_data = TRUE,
+                              data_detail = c("brief", "detailed"),
+
+                              # === SET DISPLAY CONTROLS ===
+                              set_display_max_inline = 10,
+                              set_display_head_tail_threshold = 100,
+                              set_display_head_n = 3,
+                              set_display_tail_n = 3,
+
+                              # === EXISTING PARAMETERS ===
+                              include_toc = FALSE,
                               include_sets = TRUE,
                               include_aliases = TRUE,
+                              include_index_aliases = TRUE,
                               include_parameters = TRUE,
                               include_variables = TRUE,
                               include_equations = TRUE,
-                              eq_substitute = list("when" = "condition"
-                                                   # "func" = "index",
-                                                   # "sum" = "index",
-                                                   # "prod" = "index"
-                                                   ),
+                              include_mappings = TRUE,
+                              eq_substitute = list("when" = "condition"),
                               alias_map = NULL,
+                              use_model_aliases = TRUE,
+                              use_aliases_in_declarations = FALSE,
+                              folded_color = "blue",
+                              trimmed_color = "red",
                               verbose = FALSE,
                               ...) {
+  # browser()
+  # Auto-detect model_view default
+  if (missing(model_view)) {
+    is_optimized <- is_folded(x) || is_trimmed(x)
+    model_view <- if (is_optimized) "reduced" else "full"
+  } else {
+    model_view <- match.arg(model_view)
+  }
+
+  # Match data_detail argument
+  data_detail <- match.arg(data_detail)
+
+  # Determine use_folded flag from model_view
+  use_folded <- (model_view != "full")
+
+  validation <- validate(x, stop_on_error = FALSE)
+  validation_note <- NULL
+  if (!validation$valid) {
+    warning(sprintf(
+      "write_latex: model validation failed with %d error(s); LaTeX output will include a warning block.",
+      length(validation$errors)
+    ))
+    validation_note <- c(
+      "",
+      "\\begin{center}",
+      "\\textbf{WARNING: Model validation failed. Output may be incomplete.}",
+      sprintf("\\textit{%d validation issue(s) detected. See R console for details.}", length(validation$errors)),
+      "\\end{center}",
+      ""
+    )
+  }
+
+  # Auto-detect aliases from model if not provided
+  if (is.null(alias_map) && use_model_aliases &&
+      !is.null(x$index_aliases) && length(x$index_aliases) > 0) {
+    # Convert named vector to list if needed
+    alias_map <- if (is.list(x$index_aliases)) x$index_aliases else as.list(x$index_aliases)
+  }
   # browser()
   if (!is_empty(eq_substitute)) {
     # Substitute elements in the AST
     x$equations <- lapply(x$equations, remap_ast_elements,
                             ast_type = eq_substitute,
                             verbose = verbose, ...)
-  }
-
-  # Apply alias mapping if provided
-  if (!is.null(alias_map)) {
-    # !!! ToDo: apply to other model components and add to aliases
-    # !!! if TRUE then use shortest alias name
-    x$equations <- lapply(x$equations, alias_ast_names, alias_map = alias_map,
-                          verbose = verbose, ...)
   }
 
   model <- x
@@ -180,15 +249,104 @@ write_latex.model <- function(x,
 
   lines <- character()
 
+  if (!is.null(validation_note)) {
+    lines <- c(lines, validation_note)
+  }
+
+  # Add table of contents if requested
+  if (include_toc) {
+    lines <- c(lines, "", "\\tableofcontents", "\\newpage", "")
+  }
+
+  # Add model optimization summary if model is folded or trimmed
+  if (is_folded(model) || is_trimmed(model)) {
+    lines <- c(lines, "", "\\section*{Model Optimization Summary}")
+
+    if (is_folded(model)) {
+      fold_summary <- get_fold_summary(model, format = "list")
+      if (!is.null(fold_summary)) {
+        lines <- c(lines, "\\textbf{Folding Applied:}")
+        lines <- c(lines, "\\textit{Folding reduces redundancy in model data by aggregating dimensions that have uniform values. This optimization does not affect the model equations or variables, only simplifies the parameter structure.}")
+        lines <- c(lines, "\\begin{itemize}")
+        if (!is.null(fold_summary$n_folded)) {
+          lines <- c(lines, sprintf("  \\item Parameters folded: %d / %d (%.1f\\%%)",
+                                    fold_summary$n_folded,
+                                    fold_summary$n_total,
+                                    100 * fold_summary$n_folded / fold_summary$n_total))
+        }
+        if (!is.null(fold_summary$parameters) && length(fold_summary$parameters) > 0) {
+          lines <- c(lines, "  \\item Dimension reductions:")
+          lines <- c(lines, "  \\begin{itemize}")
+          for (pinfo in fold_summary$parameters) {
+            safe_param <- gsub("_", "\\\\_", pinfo$parameter)
+            lines <- c(lines, sprintf("    \\item \\texttt{%s}: %s $\\rightarrow$ %s (%d $\\rightarrow$ %d rows, %s)",
+                                     safe_param,
+                                     pinfo$original_dims,
+                                     pinfo$folded_dims,
+                                     pinfo$original_rows,
+                                     pinfo$folded_rows,
+                                     pinfo$compression))
+          }
+          lines <- c(lines, "  \\end{itemize}")
+        }
+        lines <- c(lines, "\\end{itemize}")
+      }
+    }
+
+    if (is_trimmed(model)) {
+      trim_summary <- get_trim_summary(model, format = "list")
+      if (!is.null(trim_summary)) {
+        lines <- c(lines, "", "\\textbf{Trimming Applied:}")
+        lines <- c(lines, "\\textit{Trimming removes empty and unused model elements (sets with no members, parameters with no data, variables and equations with empty domains). This optimization reduces model size by eliminating elements that do not contribute to the solution.}")
+        lines <- c(lines, "\\begin{itemize}")
+        for (type in c("sets", "parameters", "mappings", "variables", "equations")) {
+          if (!is.null(trim_summary[[type]])) {
+            total <- trim_summary[[type]]$total
+            trimmed <- trim_summary[[type]]$trimmed
+            remaining <- total - trimmed
+            pct <- if (total > 0) round(100 * trimmed / total, 1) else 0
+            lines <- c(lines, sprintf("  \\item %s: %d / %d trimmed (%.1f\\%%), %d remaining",
+                                     tools::toTitleCase(type), trimmed, total, pct, remaining))
+          }
+        }
+        lines <- c(lines, "\\end{itemize}")
+      }
+    }
+    lines <- c(lines, "")
+  }
+
   ## Sets ####
   if (include_sets && !is.null(model$sets)) {
     lines <- c(lines, "", "\\section{Sets}")
     for (s in model$sets) {
-      set_lx <- paste0("\\texttt{", s$name, "}")
+      # Skip trimmed sets if model_view is "reduced"
+      if (model_view == "reduced" && isTRUE(s$trimmed)) next
+
+      # Escape underscores for LaTeX
+      safe_name <- gsub("_", "\\\\_", s$name)
+      set_lx <- paste0("\\texttt{", safe_name, "}")
       if (!is_empty(s$desc)) {
         set_lx <- paste0(set_lx, " -- ", as_latex(s$desc))
       }
-      lines <- c(lines,  set_lx, "\\\\")
+
+      # Add element display if include_data
+      if (include_data && !is.null(s$data)) {
+        elem_display <- format_set_elements(
+          s$data,
+          max_inline = set_display_max_inline,
+          head_tail_threshold = set_display_head_tail_threshold,
+          head_n = set_display_head_n,
+          tail_n = set_display_tail_n
+        )
+        set_lx <- paste0(set_lx, "\n  \\quad \\textit{", elem_display, "}")
+      }
+
+      # Annotate trimmed if showing full model
+      if (model_view %in% c("full", "both") && isTRUE(s$trimmed)) {
+        set_lx <- paste0(set_lx, " \\textcolor{", trimmed_color, "}{(trimmed)}")
+      }
+
+      lines <- c(lines, set_lx, "\\\\")
     }
   }
 
@@ -210,54 +368,146 @@ write_latex.model <- function(x,
     lines <- c(lines, "\\end{flushleft}")
   }
 
+  # Display index aliases if they exist (after aliases section)
+  if (include_index_aliases && !is.null(model$index_aliases) &&
+      length(model$index_aliases) > 0) {
+    lines <- c(lines, "", "\\section{Index Aliases}\\", "\\begin{flushleft}")
+    for (idx_name in names(model$index_aliases)) {
+      short_form <- model$index_aliases[[idx_name]]
+      alias_line <- sprintf("$\\texttt{%s} \\equiv \\texttt{%s}$", idx_name, short_form)
+      lines <- c(lines, paste0(alias_line, "\\\\"))
+    }
+    lines <- c(lines, "\\end{flushleft}")
+  }
+
 
   if (include_parameters && !is.null(model$parameters)) {
     lines <- c(lines, "", "\\section{Parameters}")
     for (p in model$parameters) {
-      # lines <- c(lines, paste0("\\texttt{", p$name, "}(",
-      #                          paste(p$dims, collapse = ","), ") -- ",
-      #                          as_latex(p$desc), "\\\\"))
-      p_tex <- paste0("$", as_latex(p), "$")
+      # Skip trimmed parameters if model_view is "reduced"
+      if (model_view == "reduced" && isTRUE(p$trimmed)) next
+
+      p_tex <- paste0("$", as_latex(p, use_folded = use_folded, 
+                                    use_index_aliases = use_aliases_in_declarations,
+                                    model = model), "$")
       if (!is_empty(p$desc) && nzchar(p$desc) > 0) {
         p_tex <- paste0(p_tex, " -- ", as_latex(p$desc))
       }
+
+      # Add row count if include_data and data_detail is "brief"
+      if (include_data && data_detail == "brief" && !is.null(p$data) && nrow(p$data) > 0) {
+        p_tex <- paste0(p_tex, " \\quad \\textit{(",
+                       format(nrow(p$data), big.mark = ","), " rows)}")
+      }
+
+      # Annotate trimmed if showing full model
+      if (model_view %in% c("full", "both") && isTRUE(p$trimmed)) {
+        p_tex <- paste0(p_tex, " \\textcolor{", trimmed_color, "}{(trimmed)}")
+      }
+
+      # Annotate folded if parameter has active_dims (folded dimensions)
+      if (!is.null(p$active_dims) && length(p$active_dims) > 0) {
+        orig_dims <- if (!is.null(p$dims)) length(p$dims) else 0
+        folded_dims <- length(p$active_dims)
+        if (orig_dims != folded_dims) {
+          folded_note <- paste0("(folded: ", orig_dims, "D $\\rightarrow$ ", folded_dims, "D")
+          # Add folded data row count if available
+          if (!is.null(p$folded_data) && nrow(p$folded_data) > 0) {
+            folded_note <- paste0(folded_note, ", ", format(nrow(p$folded_data), big.mark = ","), " rows")
+          }
+          folded_note <- paste0(folded_note, ")")
+          p_tex <- paste0(p_tex, " \\textcolor{", folded_color, "}{", folded_note, "}")
+        }
+      }
+
       lines <- c(lines, paste0(p_tex, "\\\\"))
     }
   }
 
   if (include_variables && !is.null(model$variables)) {
     lines <- c(lines, "", "\\section{Variables}")
-    # for (v in model$variables) {
-    #   lines <- c(lines, paste0("\\texttt{", v$name, "}(",
-    #                            paste(v$dims, collapse = ","), ") -- ",
-    #                            as_latex(v$desc), "\\\\"))
-    # }
     for (v in model$variables) {
-      v_tex <- paste0("$", as_latex(v), "$")
+      # Skip trimmed variables if model_view is "reduced"
+      if (model_view == "reduced" && isTRUE(v$trimmed)) next
+
+      v_tex <- paste0("$", as_latex(v, use_folded = use_folded,
+                                    use_index_aliases = use_aliases_in_declarations,
+                                    model = model), "$")
       if (!is_empty(v$desc) && nzchar(v$desc) > 0) {
         v_tex <- paste0(v_tex, " -- ", as_latex(v$desc))
       }
-      lines <- c(lines, v_tex, "\\\\")
-      # lines <- c(lines, paste0("$", as_latex(v), "$ -- ", as_latex(v$desc), "\\\\"))
+
+      # Annotate trimmed if showing full model
+      if (model_view %in% c("full", "both") && isTRUE(v$trimmed)) {
+        v_tex <- paste0(v_tex, " \\textcolor{", trimmed_color, "}{(trimmed)}")
+      }
+
+      # Annotate folded if variable has active_dims (folded dimensions)
+      if (!is.null(v$active_dims) && length(v$active_dims) > 0) {
+        orig_dims <- if (!is.null(v$dims)) length(v$dims) else 0
+        folded_dims <- length(v$active_dims)
+        if (orig_dims != folded_dims) {
+          folded_note <- paste0("(folded: ", orig_dims, "D $\\rightarrow$ ", folded_dims, "D")
+          # Add folded data row count if available
+          if (!is.null(v$folded_data) && nrow(v$folded_data) > 0) {
+            folded_note <- paste0(folded_note, ", ", format(nrow(v$folded_data), big.mark = ","), " rows")
+          }
+          folded_note <- paste0(folded_note, ")")
+          v_tex <- paste0(v_tex, " \\textcolor{", folded_color, "}{", folded_note, "}")
+        }
+      }
+
+      lines <- c(lines, paste0(v_tex, "\\\\"))
+    }
+  }
+
+  if (include_mappings && !is.null(model$mappings)) {
+    lines <- c(lines, "", "\\section{Mappings}")
+    for (m in model$mappings) {
+      # Skip trimmed mappings if model_view is "reduced"
+      if (model_view == "reduced" && isTRUE(m$trimmed)) next
+
+      m_tex <- paste0("$", as_latex(m, use_folded = use_folded), "$")
+      if (!is_empty(m$desc) && nzchar(m$desc) > 0) {
+        m_tex <- paste0(m_tex, " -- ", as_latex(m$desc))
+      }
+
+      # Add row count if include_data and data_detail is "brief"
+      if (include_data && data_detail == "brief" && !is.null(m$data) && nrow(m$data) > 0) {
+        m_tex <- paste0(m_tex, " \\quad \\textit{(",
+                       format(nrow(m$data), big.mark = ","), " rows)}")
+      }
+
+      # Annotate trimmed if showing full model
+      if (model_view %in% c("full", "both") && isTRUE(m$trimmed)) {
+        m_tex <- paste0(m_tex, " \\textcolor{", trimmed_color, "}{(trimmed)}")
+      }
+
+      lines <- c(lines, paste0(m_tex, "\\\\"))
     }
   }
 
   if (include_equations && !is.null(model$equations)) {
     lines <- c(lines, "", "\\section{Equations}\\")
     # Render all equations using as_latex()
-    eq_blocks <- vapply(
-      x$equations,
-      function(eq) {
-        if (verbose) message(eq$name)
-        # eq <- remap_ast_elements(eq)
-        eq_tex <- as_latex(eq,
-                           # math_env = math_env,
-                           subsection_number = subsection_number, ...)
-        eq_tex <- paste(eq_tex, "\n")
-        },
-      character(1)
-    )
-    lines <- c(lines, eq_blocks)
+    for (eq in x$equations) {
+      # Skip trimmed equations if model_view is "reduced"
+      if (model_view == "reduced" && isTRUE(eq$trimmed)) next
+
+      if (verbose) message(eq$name)
+      eq_tex <- as_latex(eq,
+                         subsection_number = subsection_number, 
+                         model = model,  # Pass model for index_aliases fallback
+                         ...)
+
+      # Annotate trimmed if showing full model
+      if (model_view %in% c("full", "both") && isTRUE(eq$trimmed)) {
+        # Add trimmed note after equation title
+        eq_tex <- sub("(\\\\subsection\\{.*?\\})", paste0("\\1 \\\\textcolor{", trimmed_color, "}{(trimmed)}"), eq_tex)
+      }
+
+      lines <- c(lines, eq_tex, "\n")
+    }
   }
 
   # Assemble full LaTeX content

@@ -1,3 +1,41 @@
+#' Log solution loading from solver to variables directory
+#'
+#' Creates or appends to solution_log.txt with timestamp and details of which
+#' solver's solution was loaded into the model's variables/ directory.
+#'
+#' @param model_dir Path to model root directory
+#' @param solver_name Name of solver (e.g., "gmpl", "jump", "gams")
+#' @param variables_loaded Character vector of variable names that were loaded
+#' @param verbose Logical; print log entry to console (default: TRUE)
+#' @return NULL (writes to log file as side effect)
+#' @export
+log_solution_load <- function(model_dir, solver_name, variables_loaded, verbose = TRUE) {
+
+  # Create log entry
+  log_file <- file.path(model_dir, "solution_log.txt")
+  log_entry <- sprintf(
+    "[%s] Loaded %d variables from solvers/%s/solution -> variables/\n",
+    format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+    length(variables_loaded),
+    solver_name
+  )
+
+  # Add variable list if any were loaded
+  if (length(variables_loaded) > 0) {
+    log_entry <- paste0(log_entry, "  Variables: ", paste(variables_loaded, collapse = ", "), "\n")
+  }
+
+  # Write to log file (append mode)
+  cat(log_entry, file = log_file, append = TRUE)
+
+  # Print to console if verbose
+  if (verbose) {
+    cat("Solution log updated: ", log_file, "\n")
+  }
+
+  invisible(NULL)
+}
+
 #' Check if a string is a compound expression
 #'
 #' @param s Character string (GAMS-like expression)
@@ -95,7 +133,22 @@ is_word <- function(ch) {
   return(grepl("^[a-zA-Z]+$", ch))
 }
 
+sanitize_description <- function(desc, name = NULL) {
+  if (is.null(desc) || length(desc) == 0) {
+    value <- ""
+  } else {
+    value <- desc[1]
+    if (is.na(value)) value <- ""
+  }
 
+  value <- trimws(value)
+
+  if (nzchar(value) && !grepl("^\\*+$", value)) {
+    return(value)
+  }
+
+  ""
+}
 #' Check if a string is alphanumeric (letters, digits, or underscores)
 #'
 #' This function tests whether the input string consists entirely of
@@ -257,7 +310,7 @@ if (F) {
 #' @param name_prefix A character string prefix for the new names of the
 #' replaced elements. Defaults to "m".
 #'
-#' @returns
+#' @returns Modified AST object with remapped elements
 #' @export
 #'
 remap_ast_elements <- function(obj,
@@ -396,66 +449,93 @@ alias_ast_names <- function(ast, alias_map, classes = NULL, ...) {
   # Recursive rename function
   rename_walk <- function(x) {
     # browser()
+    x_length <- length(x) ; if (x_length == 0) return(x)
     if (inherits(x, "ast")) {
       node_cls <- node_type(x)
       if (is.null(classes) || node_cls %in% classes) {
-        if (!is.null(x$name) && x$name %in% names(reverse_aliases)) {
+        # Guard against malformed structures where $name is not character
+        if (!is.null(x$name) && is.character(x$name) && x$name %in% names(reverse_aliases)) {
           x$name <- reverse_aliases[[x$name]]
         }
       }
       # Recurse into subfields
-      for (i in seq_along(x)) {
-        try(x[[i]] <- rename_walk(x[[i]]))
+      for (i in 1:x_length) {
+        if (is.null(x[[i]])) next
+        # if (i > x_length) browser()
+        x_renamed <- rename_walk(x[[i]])
+        if (is.null(x_renamed)) browser()
+        # try(x[[i]] <- rename_walk(x[[i]]))
+        x[[i]] <- x_renamed
       }
       # for (nm in names(x)) {
       #   x[[nm]] <- rename_walk(x[[nm]])
       # }
     } else if (is.list(x) && !is.data.frame(x)) {
-      x <- lapply(x, rename_walk)
+      for (i in seq_along(x)) {
+        if (is.null(x[[i]])) next
+        x[[i]] <- rename_walk(x[[i]])
+      }
     }
     x
   }
-
   rename_walk(ast)
 }
 
+# short_names_sets <- list(
+#   comm    = "c",  # commodity
+#   region  = "r",  # region
+#   year    = "y",  # year
+#   slice   = "t",  # time slice
+#   sup     = "s",  # supply
+#   dem     = "d",  # demand
+#   tech    = "n",  # technology
+#   stg     = "g",  # storage
+#   trade   = "z",  # interregional trade
+#   expp    = "x",  # export to ROW
+#   imp     = "m",  # import from ROW
+#   weather = "w",  # weather
+#   process = "p",  # process
+#   aux     = "a",  # auxiliary indicator (e.g. flags, switches)
+#   input   = "i",  # input flows to process
+#   output  = "o",  # output flows from process
+#   group   = "u",  # group of related commodities or tags
+#   # shorts for aliases
+#   techp   = "np",
+#   regionp = "rp",
+#   region2 = "r2",
+#   src     = "rs",
+#   dst     = "rd",
+#   yearp   = "yp",
+#   yeare   = "ye",
+#   yearn   = "yn",
+#   year2   = "y2",
+#   slicep  = "tp",
+#   slicepp = "tpp",
+#   slice2  = "t2",
+#   groupp  = "up",
+#   commp   = "cp",
+#   acomm   = "ca",
+#   comme   = "ce",
+#   supp    = "sp"
+# ) |>
+#   unique()
+
 short_names_sets <- list(
-  comm    = "c",  # commodity
-  region  = "r",  # region
-  year    = "y",  # year
-  slice   = "t",  # time slice
-  sup     = "s",  # supply
-  dem     = "d",  # demand
-  tech    = "n",  # technology
-  stg     = "g",  # storage
-  trade   = "z",  # interregional trade
-  expp    = "x",  # export to ROW
-  imp     = "m",  # import from ROW
-  weather = "w",  # weather
-  process = "p",  # process
-  aux     = "a",  # auxiliary indicator (e.g. flags, switches)
-  input   = "i",  # input flows to process
-  output  = "o",  # output flows from process
-  group   = "u",  # group of related commodities or tags
-  # shorts for aliases
-  techp   = "np",
-  regionp = "rp",
-  region2 = "r2",
-  src     = "rs",
-  dst     = "rd",
-  yearp   = "yp",
-  yeare   = "ye",
-  yearn   = "yn",
-  year2   = "y2",
-  slicep  = "tp",
-  slicepp = "tpp",
-  slice2  = "t2",
-  groupp  = "up",
-  commp   = "cp",
-  acomm   = "ca",
-  comme   = "ce",
-  supp    = "sp"
+  tech = "h",      # technology (avoid 't' conflict with time, trade)
+  trade = "a",     # trade (avoid 't' conflict)
+  sup = "u",       # supply (avoid 's' conflict with slice, stg)
+  slice = "ts",    # time slice (avoid 's' conflict)
+  stg = "o",       # storage (avoid 's' conflict)
+  region = "r",
+  comm = "c",
+  year = "y",
+  dem = "d",
+  group = "g",
+  imp = "i",
+  expp = "e",
+  weather = "w"
 )
+
 
 #' Resolve a dimension name to its alias
 #'
@@ -540,4 +620,259 @@ map_ast <- function(node, func, include_class = TRUE) {
   }
   recurse(node)
 }
+
+#' Collect all AST node classes from model or AST
+#'
+#' Walks through an AST or model structure and collects all unique AST node
+#' classes encountered. Non-AST objects are ignored.
+#'
+#' @param obj An AST node, model object, or nested structure containing AST nodes
+#'
+#' @return Character vector of unique AST classes found
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' gmpl <- read_gmpl("model.mod")
+#' classes <- collect_ast_classes(gmpl)
+#' # Returns: c("symbol", "constant", "expression", "setmin", ...)
+#' }
+collect_ast_classes <- function(obj) {
+  classes_found <- character(0)
+  
+  walk <- function(node) {
+    if (is.null(node)) return()
+    
+    # If it's an AST node, record its class
+    if (inherits(node, "ast")) {
+      node_class <- class(node)[1]  # First class is the specific type
+      classes_found <<- c(classes_found, node_class)
+    }
+    
+    # Recurse into lists (including AST nodes which are lists)
+    if (is.list(node) && !is.data.frame(node)) {
+      for (elem in node) {
+        if (!is.null(elem)) {
+          walk(elem)
+        }
+      }
+    }
+  }
+  
+  walk(obj)
+  unique(classes_found)
+}
+
+
+#' Extract names of specific node types from AST
+#'
+#' Recursively traverses an AST and collects the names of nodes matching
+#' the specified types (e.g., "variable", "parameter", "mapping").
+#'
+#' @param ast An AST object (equation LHS/RHS, or any expression node)
+#' @param types Character vector of node types to extract (e.g., c("variable", "parameter"))
+#'
+#' @return Character vector of unique names found
+#' @keywords internal
+extract_ast_names <- function(ast, types = c("variable", "parameter", "mapping")) {
+  if (is.null(ast)) return(character(0))
+
+  names_found <- character(0)
+
+  walk <- function(node) {
+    if (is.null(node)) return()
+
+    # Check if this node matches one of the target types
+    node_class <- node_type(node)
+    if (!is.null(node_class) && length(node_class) > 0 && node_class %in% types) {
+      if (!is.null(node$name)) {
+        names_found <<- c(names_found, node$name)
+      }
+    }
+
+    # Recurse into child nodes based on node type
+    if (!is.null(node_class) && length(node_class) > 0) {
+      if (node_class == "expression") {
+        walk(node$lhs)
+        walk(node$rhs)
+        if (!is.null(node$operands)) {
+          lapply(node$operands, walk)
+        }
+      } else if (node_class %in% c("sum", "prod")) {
+        if (!is.null(node$domain)) walk(node$domain)
+        walk(node$value)
+      } else if (node_class == "when") {
+        walk(node$condition)
+        walk(node$then)
+        if (!is.null(node$else_)) walk(node$else_)
+      } else if (node_class == "condition") {
+        walk(node$lhs)
+        walk(node$rhs)
+      }
+    }
+
+    # For generic lists, recurse into all elements
+    if (is.list(node) && !is.data.frame(node)) {
+      for (elem in node) {
+        if (!is.null(elem) && (inherits(elem, "ast") || is.list(elem))) {
+          walk(elem)
+        }
+      }
+    }
+  }
+
+  walk(ast)
+  unique(names_found)
+}
+
+#' Compare JuMP model constraint statistics between two model directories
+#'
+#' Reads constraint statistics CSV files from two JuMP model solver directories
+#' and compares constraint counts and non-zero counts. Useful for validating
+#' model generation changes.
+#'
+#' @param model_dir1 Path to first model's solver/jump directory (e.g., "tmp/model_v1/solvers/jump")
+#' @param model_dir2 Path to second model's solver/jump directory (e.g., "tmp/model_v2/solvers/jump")
+#' @param save_comparison Logical; if TRUE, saves merged comparison to CSV in model_dir1's parent directory
+#' @param verbose Logical; if TRUE, prints detailed comparison results
+#'
+#' @return A list with components:
+#'   \item{merged}{Data frame with merged statistics from both models}
+#'   \item{constraint_mismatches}{Data frame of equations with different constraint counts}
+#'   \item{nnz_differences}{Data frame of equations with different non-zero counts}
+#'   \item{summary}{Named list with total counts and match status}
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' # Compare two JuMP model versions
+#' comp <- compare_jump_stats(
+#'   "tmp/model_v1/solvers/jump",
+#'   "tmp/model_v2/solvers/jump",
+#'   verbose = TRUE
+#' )
+#'
+#' # Check if models match
+#' if (comp$summary$all_match) {
+#'   message("Models are identical!")
+#' }
+#' }
+compare_jump_stats <- function(model_dir1,
+                              model_dir2,
+                              save_comparison = TRUE,
+                              verbose = TRUE) {
+
+  # Helper to find constraint_stats.csv
+  find_stats_file <- function(dir) {
+    # Try direct path
+    if (file.exists(file.path(dir, "constraint_stats.csv"))) {
+      return(file.path(dir, "constraint_stats.csv"))
+    }
+    # Try solvers/jump subdirectory
+    if (file.exists(file.path(dir, "solvers", "jump", "constraint_stats.csv"))) {
+      return(file.path(dir, "solvers", "jump", "constraint_stats.csv"))
+    }
+    return(NULL)
+  }
+
+  stats_file1 <- find_stats_file(model_dir1)
+  stats_file2 <- find_stats_file(model_dir2)
+
+  if (is.null(stats_file1)) {
+    stop("Constraint stats not found in model_dir1: ", model_dir1)
+  }
+  if (is.null(stats_file2)) {
+    stop("Constraint stats not found in model_dir2: ", model_dir2)
+  }
+
+  # Read statistics
+  stats1 <- read.csv(stats_file1, stringsAsFactors = FALSE)
+  stats2 <- read.csv(stats_file2, stringsAsFactors = FALSE)
+
+  if (verbose) {
+    cat("\n=== JuMP Model Comparison ===\n\n")
+    cat("Model 1:", normalizePath(dirname(stats_file1)), "\n")
+    cat("  Total constraints:", sum(stats1$count), "\n")
+    cat("  Total non-zeros:", sum(stats1$nnz_total), "\n\n")
+
+    cat("Model 2:", normalizePath(dirname(stats_file2)), "\n")
+    cat("  Total constraints:", sum(stats2$count), "\n")
+    cat("  Total non-zeros:", sum(stats2$nnz_total), "\n\n")
+  }
+
+  # Merge by equation name
+  merged <- merge(stats1, stats2, by = "name", suffixes = c("_1", "_2"), all = TRUE)
+  merged$count_1[is.na(merged$count_1)] <- 0
+  merged$count_2[is.na(merged$count_2)] <- 0
+  merged$count_diff <- merged$count_2 - merged$count_1
+
+  # Check for constraint count differences
+  constraint_mismatches <- merged[merged$count_diff != 0,
+                                 c("name", "count_1", "count_2", "count_diff")]
+
+  if (nrow(constraint_mismatches) > 0) {
+    if (verbose) {
+      cat("*** CONSTRAINT COUNT DIFFERENCES ***\n")
+      print(constraint_mismatches, row.names = FALSE)
+      cat("\n")
+    }
+  } else {
+    if (verbose) cat("\u2713 All constraint counts match!\n\n")
+  }
+
+  # Check nnz differences
+  merged$nnz_diff <- merged$nnz_total_2 - merged$nnz_total_1
+  nnz_differences <- merged[abs(merged$nnz_diff) > 0,
+                           c("name", "nnz_total_1", "nnz_total_2", "nnz_diff")]
+
+  if (nrow(nnz_differences) > 0) {
+    if (verbose) {
+      cat("*** NON-ZERO COUNT DIFFERENCES ***\n")
+      print(head(nnz_differences, 20), row.names = FALSE)
+      if (nrow(nnz_differences) > 20) {
+        cat(sprintf("\n... and %d more equations with differences\n\n", nrow(nnz_differences) - 20))
+      } else {
+        cat("\n")
+      }
+    }
+  } else {
+    if (verbose) cat("\u2713 All non-zero counts match!\n\n")
+  }
+
+  # Save comparison if requested
+  if (save_comparison) {
+    # Determine output directory
+    out_dir <- if (file.exists(file.path(model_dir1, "solvers"))) {
+      model_dir1
+    } else {
+      dirname(dirname(model_dir1))  # Go up from solvers/jump to model root
+    }
+    out_file <- file.path(out_dir, "constraint_comparison.csv")
+    write.csv(merged, out_file, row.names = FALSE)
+    if (verbose) {
+      cat("Comparison saved to:", normalizePath(out_file), "\n\n")
+    }
+  }
+
+  # Build summary
+  summary_info <- list(
+    total_constraints_1 = sum(stats1$count),
+    total_constraints_2 = sum(stats2$count),
+    total_nnz_1 = sum(stats1$nnz_total),
+    total_nnz_2 = sum(stats2$nnz_total),
+    constraints_match = nrow(constraint_mismatches) == 0,
+    nnz_match = nrow(nnz_differences) == 0,
+    all_match = nrow(constraint_mismatches) == 0 && nrow(nnz_differences) == 0
+  )
+
+  invisible(list(
+    merged = merged,
+    constraint_mismatches = constraint_mismatches,
+    nnz_differences = nnz_differences,
+    summary = summary_info
+  ))
+}
+
+
 

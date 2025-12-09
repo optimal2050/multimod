@@ -10,7 +10,14 @@ ast_where(name, content, hash = node_hash(content), ...)
 \item{name}{A character string representing the name of the reference,
 matching the name of the symbol replacing AST node or a branch of the AST.}
 
-\item{...}{}
+\item{content}{The AST content}
+
+\item{hash}{Hash value for the node}
+
+\item{...}{Additional attributes}
+}
+\value{
+An AST where node
 }
 \description{
 Constructs a "where" node representing a reference to a specific

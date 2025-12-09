@@ -4,7 +4,17 @@
 \alias{new_equation}
 \title{Create a multimod equation object}
 \usage{
-new_equation(name, desc = NULL, dims, lhs, rhs, relation = "==", domain = NULL)
+new_equation(
+  name,
+  desc = NULL,
+  dims,
+  lhs,
+  rhs,
+  relation = "==",
+  domain = NULL,
+  comment = NULL,
+  dims_index_aliases = NULL
+)
 }
 \arguments{
 \item{name}{Character string. The name of the equation.}
@@ -20,6 +30,8 @@ new_equation(name, desc = NULL, dims, lhs, rhs, relation = "==", domain = NULL)
 \item{relation}{Character string. The relation type: one of \code{"=="}, \code{"<="}, or \code{">="}.}
 
 \item{domain}{Optional AST or symbol representing the domain/mapping condition for the equation.}
+
+\item{comment}{character, comment line from source file (e.g., *@ domain hint)}
 }
 \value{
 An object of class \code{equation}, containing the parsed equation structure.

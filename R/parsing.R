@@ -136,16 +136,25 @@ find_top_level_operators <- function(
     # browser()
     op_nn <- gregexpr(op_sp, expr, fixed = fixed, ignore.case = !fixed)[[1]]
     if (op_nn[1] == -1) next
-    expr_lev$op[op_nn] <- op
-    expr_lev$pos[op_nn] <- op_nn
-    # expr_lev$prec[op_nn] <- operator_precedence[[op]] %||% NA_integer_
-    expr_lev$prec[op_nn] <- get_operator_precedence(op, precedence = precedence)
-    # if (!is.null(descending)) {
-    #   expr_lev$prec[op_nn] <- sort_by_precedence(op, descending = descending)
-    # }
-
-    # replace matched positions in expr with white space
-    expr <- gsub(op_sp, " ", expr, fixed = fixed, ignore.case = !fixed)
+    
+    # Mark all positions covered by multi-character operators
+    # But only if those positions aren't already marked by a longer operator
+    match_lengths <- attr(op_nn, "match.length")
+    for (i in seq_along(op_nn)) {
+      start_pos <- op_nn[i]
+      end_pos <- start_pos + match_lengths[i] - 1
+      positions <- start_pos:end_pos
+      
+      # Only mark if not already marked (longer operators processed first)
+      if (is.na(expr_lev$op[start_pos])) {
+        expr_lev$op[positions] <- op
+        expr_lev$pos[positions] <- start_pos  # Store the start position for all chars
+        expr_lev$prec[positions] <- get_operator_precedence(op, precedence = precedence)
+      }
+    }
+    
+    # DON'T modify expr - we need consistent positions throughout
+    # expr <- gsub(op_sp, " ", expr, fixed = fixed, ignore.case = !fixed)
 
     # if (!is.null(precedence[[op]])) {
     #   expr_lev$prec[op_nn] <- precedence[[op]]

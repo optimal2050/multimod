@@ -4,12 +4,14 @@
 \alias{as_latex}
 \alias{as_latex.default}
 \alias{as_latex.character}
+\alias{as_latex.call}
 \alias{as_latex.set}
 \alias{as_latex.dims}
 \alias{as_latex.mapping}
 \alias{as_latex.parameter}
 \alias{as_latex.variable}
 \alias{as_latex.symbol}
+\alias{as_latex.shift}
 \alias{as_latex.constant}
 \alias{as_latex.unary}
 \alias{as_latex.expression}
@@ -25,17 +27,35 @@ as_latex(x, ...)
 
 \method{as_latex}{character}(x, math = FALSE, bold = FALSE, italic = FALSE, ...)
 
+\method{as_latex}{call}(x, brackets = NULL, ...)
+
 \method{as_latex}{set}(x, math_env = "text", ...)
 
-\method{as_latex}{dims}(x, brackets = NULL, ...)
+\method{as_latex}{dims}(x, brackets = NULL, subscript_dims = NULL, ...)
 
 \method{as_latex}{expression}(x, brackets = NULL, subscript_dims = is.null(brackets), ...)
 
-\method{as_latex}{parameter}(x, brackets = NULL, subscript_dims = is.null(brackets), ...)
+\method{as_latex}{parameter}(
+  x,
+  brackets = NULL,
+  subscript_dims = is.null(brackets),
+  use_index_aliases = FALSE,
+  model = NULL,
+  ...
+)
 
-\method{as_latex}{variable}(x, brackets = NULL, subscript_dims = TRUE, ...)
+\method{as_latex}{variable}(
+  x,
+  brackets = NULL,
+  subscript_dims = TRUE,
+  use_index_aliases = FALSE,
+  model = NULL,
+  ...
+)
 
 \method{as_latex}{symbol}(x, ...)
+
+\method{as_latex}{shift}(x, brackets = NULL, ...)
 
 \method{as_latex}{constant}(x, ...)
 

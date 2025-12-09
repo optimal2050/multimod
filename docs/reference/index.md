@@ -1,0 +1,542 @@
+# Package index
+
+## Abstract Syntax Tree (AST) classes
+
+Data structures to represent mathematical expressions.
+
+- [`new_ast()`](https://optimal2050.github.io/multimod/reference/new_ast.md)
+  [`ast_set()`](https://optimal2050.github.io/multimod/reference/new_ast.md)
+  : Create a new multimod AST (Abstract Syntax Tree) node
+- [`ast_call()`](https://optimal2050.github.io/multimod/reference/ast_call.md)
+  : Create a function call AST node
+- [`ast_constant()`](https://optimal2050.github.io/multimod/reference/ast_constant.md)
+  : Create a constant AST node
+- [`ast_dims()`](https://optimal2050.github.io/multimod/reference/ast_dims.md)
+  : Create an AST node for dimensions (dims) of a symbol
+- [`ast_equation()`](https://optimal2050.github.io/multimod/reference/ast_equation.md)
+  : Create an equation AST node
+- [`ast_expression()`](https://optimal2050.github.io/multimod/reference/ast_expression.md)
+  : Create an expression AST node
+- [`ast_func()`](https://optimal2050.github.io/multimod/reference/ast_func.md)
+  : Create a function AST node
+- [`ast_mapping()`](https://optimal2050.github.io/multimod/reference/ast_mapping.md)
+  : Create a mapping AST node
+- [`ast_parameter()`](https://optimal2050.github.io/multimod/reference/ast_parameter.md)
+  : Create a parameter AST node
+- [`ast_prod()`](https://optimal2050.github.io/multimod/reference/ast_prod.md)
+  : Create a product AST node
+- [`ast_setmax()`](https://optimal2050.github.io/multimod/reference/ast_setmax.md)
+  : Create a set maximum AST node
+- [`ast_setmin()`](https://optimal2050.github.io/multimod/reference/ast_setmin.md)
+  : Create a set minimum AST node
+- [`ast_shift()`](https://optimal2050.github.io/multimod/reference/ast_shift.md)
+  : Create an index shift AST node for ordered set references
+- [`ast_sum()`](https://optimal2050.github.io/multimod/reference/ast_sum.md)
+  : Create a summation AST node
+- [`ast_symbol()`](https://optimal2050.github.io/multimod/reference/ast_symbol.md)
+  : Create a symbol AST node (for unclassified identifiers)
+- [`ast_unary()`](https://optimal2050.github.io/multimod/reference/ast_unary.md)
+  : Create a unary expression AST node
+- [`ast_variable()`](https://optimal2050.github.io/multimod/reference/ast_variable.md)
+  : Create a variable AST node
+- [`ast_when()`](https://optimal2050.github.io/multimod/reference/ast_when.md)
+  : Construct a conditional expression node for multimod AST
+- [`ast_where()`](https://optimal2050.github.io/multimod/reference/ast_where.md)
+  : Create a "where" AST node
+
+## Multimod classes
+
+Classes to represent a model with sets, parameters, variables,
+equations, and data.
+
+- [`set_multimod_python()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
+  [`get_multimod_python()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
+  [`set_multimod_julia()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
+  [`get_multimod_julia()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
+  [`set_multimod_glpsol()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
+  [`get_multimod_glpsol()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
+  [`set_multimod_solver()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
+  [`get_multimod_solver()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
+  [`multimod_config_write()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
+  [`multimod_config_read()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
+  [`multimod_config_path()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
+  [`multimod_config_show()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
+  : Configuration management for multimod solver paths
+- [`new_ast()`](https://optimal2050.github.io/multimod/reference/new_ast.md)
+  [`ast_set()`](https://optimal2050.github.io/multimod/reference/new_ast.md)
+  : Create a new multimod AST (Abstract Syntax Tree) node
+- [`new_equation()`](https://optimal2050.github.io/multimod/reference/new_equation.md)
+  : Create a multimod equation object
+- [`new_mapping()`](https://optimal2050.github.io/multimod/reference/new_mapping.md)
+  : Create a multimod mapping object
+- [`new_model()`](https://optimal2050.github.io/multimod/reference/new_model.md)
+  : Create a multimod model object
+- [`new_parameter()`](https://optimal2050.github.io/multimod/reference/new_parameter.md)
+  : Create a multimod parameter
+- [`new_set()`](https://optimal2050.github.io/multimod/reference/new_set.md)
+  : Create a new set object
+- [`new_variable()`](https://optimal2050.github.io/multimod/reference/new_variable.md)
+  : Create a multimod variable
+- [`as_multimod()`](https://optimal2050.github.io/multimod/reference/as_multimod.md)
+  : Convert an object to a multimod structure
+
+## Generic methods
+
+Generic methods for multimod classes.
+
+- [`print(`*`<ast_comparison>`*`)`](https://optimal2050.github.io/multimod/reference/print.ast_comparison.md)
+  : Print comparison results in a readable format
+- [`print(`*`<ast_function>`*`)`](https://optimal2050.github.io/multimod/reference/print.ast_function.md)
+  : Print method for functions created from AST
+- [`print(`*`<model_validation>`*`)`](https://optimal2050.github.io/multimod/reference/print.model_validation.md)
+  : Print method for model validation results
+- [`print(`*`<ast>`*`)`](https://optimal2050.github.io/multimod/reference/print.md)
+  [`print(`*`<func>`*`)`](https://optimal2050.github.io/multimod/reference/print.md)
+  : Print methods for AST classes
+- [`print(`*`<variable_comparison>`*`)`](https://optimal2050.github.io/multimod/reference/print.variable_comparison.md)
+  : Print method for variable comparison results
+- [`show_bounds_mapping()`](https://optimal2050.github.io/multimod/reference/show_bounds_mapping.md)
+  : Show bounds parameter mapping
+- [`show_unmatched()`](https://optimal2050.github.io/multimod/reference/show_unmatched.md)
+  : Show unmatched elements
+- [`as.character(`*`<expression>`*`)`](https://optimal2050.github.io/multimod/reference/as.character.expression.md)
+  : Convert AST expression to character
+
+## LaTeX functions
+
+Functions to convert multimod objects to LaTeX.
+
+- [`as_latex()`](https://optimal2050.github.io/multimod/reference/as_latex.md)
+  : Convert objects to LaTeX format
+- [`write_latex(`*`<equation>`*`)`](https://optimal2050.github.io/multimod/reference/write_latex.equation.md)
+  : Write LaTeX representation of an equation
+- [`write_latex(`*`<model>`*`)`](https://optimal2050.github.io/multimod/reference/write_latex.model.md)
+  : Write LaTeX representation of a model
+- [`write_latex()`](https://optimal2050.github.io/multimod/reference/write_latex.md)
+  : Write LaTeX representation of an equation or model
+- [`estimate_latex_length()`](https://optimal2050.github.io/multimod/reference/estimate_latex_length.md)
+  : Estimate the length of a LaTeX string
+- [`format_latex_aligned()`](https://optimal2050.github.io/multimod/reference/format_latex_aligned.md)
+  : Format a LaTeX equation across multiple lines using aligned
+- [`latex_math_brakets()`](https://optimal2050.github.io/multimod/reference/latex_math_brakets.md)
+  : Generate LaTeX brackets for math expressions
+- [`latex_top_level_operators()`](https://optimal2050.github.io/multimod/reference/latex_top_level_operators.md)
+  : Identify top-level LaTeX operators in an expression
+
+## GAMS-related functions
+
+Functions to read GAMS models and convert multimod objects to GAMS code.
+
+- [`read_gams()`](https://optimal2050.github.io/multimod/reference/read_gams.md)
+  : Read GAMS model file and parse its core structure.
+- [`as_gams()`](https://optimal2050.github.io/multimod/reference/as_gams.md)
+  : Convert multimod object to GAMS syntax
+- [`write_gams(`*`<model>`*`)`](https://optimal2050.github.io/multimod/reference/write_gams.model.md)
+  : Write a full GAMS model file from a multimod object
+- [`write_gams()`](https://optimal2050.github.io/multimod/reference/write_gams.md)
+  : Write a GAMS model file from a multimod object
+- [`is_gams_expression()`](https://optimal2050.github.io/multimod/reference/is_gams_expression.md)
+  : Check if a string is a compound expression
+- [`parse_gams_equation()`](https://optimal2050.github.io/multimod/reference/parse_gams_equation.md)
+  : Parse a GAMS equation into an AST object.
+
+## GMPL-related functions
+
+Functions to read GMPL models and convert multimod objects to GMPL code.
+
+- [`read_gmpl()`](https://optimal2050.github.io/multimod/reference/read_gmpl.md)
+  : Read GMPL model file
+- [`read_gmpl_data()`](https://optimal2050.github.io/multimod/reference/read_gmpl_data.md)
+  : Read GMPL data file and parse its contents
+- [`read_gmpl_declarations()`](https://optimal2050.github.io/multimod/reference/read_gmpl_declarations.md)
+  : Read GMPL declarations sequentially
+- [`as_gmpl()`](https://optimal2050.github.io/multimod/reference/as_gmpl.md)
+  : Convert multimod object to GMPL/MathProg syntax
+- [`write_gmpl(`*`<model>`*`)`](https://optimal2050.github.io/multimod/reference/write_gmpl.model.md)
+  : Write a full GMPL model file from a multimod object
+- [`write_gmpl()`](https://optimal2050.github.io/multimod/reference/write_gmpl.md)
+  : Write a GMPL/MathProg model file from a multimod object
+- [`write_gmpl_data()`](https://optimal2050.github.io/multimod/reference/write_gmpl_data.md)
+  : Write GMPL data file from multimod model
+- [`export_glpk_model()`](https://optimal2050.github.io/multimod/reference/export_glpk_model.md)
+  : Export GLPK model to MPS or CPLEX LP format
+- [`export_data_gmpl()`](https://optimal2050.github.io/multimod/reference/export_data_gmpl.md)
+  : Generate GMPL code to export all sets and parameters to CSV files
+- [`import_gmpl_data()`](https://optimal2050.github.io/multimod/reference/import_gmpl_data.md)
+  : Import GMPL Data to Model
+- [`solve_gmpl()`](https://optimal2050.github.io/multimod/reference/solve_gmpl.md)
+  : Solve GMPL model using glpsol command line tool
+
+## JuMP/Julia-related functions
+
+Functions to read JuMP models and convert multimod objects to JuMP code.
+
+- [`as_jump()`](https://optimal2050.github.io/multimod/reference/as_jump.md)
+  : Convert multimod object to Julia/JuMP syntax
+- [`write_jump()`](https://optimal2050.github.io/multimod/reference/write_jump.md)
+  : Write a Julia/JuMP model file from a multimod object
+- [`write_jump_solution_code()`](https://optimal2050.github.io/multimod/reference/write_jump_solution_code.md)
+  : Write JuMP solution values to disk
+- [`compare_jump_stats()`](https://optimal2050.github.io/multimod/reference/compare_jump_stats.md)
+  : Compare JuMP model constraint statistics between two model
+  directories
+- [`solve_jump()`](https://optimal2050.github.io/multimod/reference/solve_jump.md)
+  : Solve a JuMP Model
+
+## Pyomo/Python-related functions
+
+Functions to convert multimod objects to Pyomo code.
+
+- [`as_pyomo()`](https://optimal2050.github.io/multimod/reference/as_pyomo.md)
+  : Convert a multimod AST node to Pyomo syntax
+
+- [`write_pyomo()`](https://optimal2050.github.io/multimod/reference/write_pyomo.md)
+  : Write Pyomo model artifacts
+
+- [`solve_pyomo()`](https://optimal2050.github.io/multimod/reference/solve_pyomo.md)
+  :
+
+  Solve a Pyomo model exported by `multimod`
+
+## Configuration and Environment
+
+Functions for configuring solver paths and Python/Julia environments.
+
+- [`set_multimod_python()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
+  [`get_multimod_python()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
+  [`set_multimod_julia()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
+  [`get_multimod_julia()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
+  [`set_multimod_glpsol()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
+  [`get_multimod_glpsol()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
+  [`set_multimod_solver()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
+  [`get_multimod_solver()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
+  [`multimod_config_write()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
+  [`multimod_config_read()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
+  [`multimod_config_path()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
+  [`multimod_config_show()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
+  : Configuration management for multimod solver paths
+- [`setup_python_environment()`](https://optimal2050.github.io/multimod/reference/setup_python_environment.md)
+  [`setup_multimod_python()`](https://optimal2050.github.io/multimod/reference/setup_python_environment.md)
+  : Configure a Python environment for multimod
+
+## Folding functions
+
+Functions for parameter folding to reduce model size by eliminating
+redundant dimensions.
+
+- [`create_fold_spec()`](https://optimal2050.github.io/multimod/reference/create_fold_spec.md)
+  : Create fold specification for parameters (generic interface)
+- [`create_fold_spec_energyRt()`](https://optimal2050.github.io/multimod/reference/create_fold_spec_energyRt.md)
+  : Create fold specification for energyRt models (convenience wrapper)
+- [`analyze_parameter_redundancy()`](https://optimal2050.github.io/multimod/reference/analyze_parameter_redundancy.md)
+  : Analyze parameter redundancy in model
+- [`analyze_dimension_redundancy()`](https://optimal2050.github.io/multimod/reference/analyze_dimension_redundancy.md)
+  : Analyze if a dimension can be safely folded
+- [`get_fold_summary()`](https://optimal2050.github.io/multimod/reference/get_fold_summary.md)
+  : Get folding statistics summary
+- [`is_folded()`](https://optimal2050.github.io/multimod/reference/is_folded.md)
+  : Check if a parameter or model is folded
+- [`get_active_dims()`](https://optimal2050.github.io/multimod/reference/get_active_dims.md)
+  : Get active dimensions from a parameter
+- [`unfold_model()`](https://optimal2050.github.io/multimod/reference/unfold_model.md)
+  : Unfold model to restore original dimensions
+
+## Trimming functions
+
+Functions for model trimming to remove unused elements (empty data,
+unused variables, dead branches).
+
+- [`untrim_model()`](https://optimal2050.github.io/multimod/reference/untrim_model.md)
+  : Untrim model or specific elements
+- [`get_trim_summary()`](https://optimal2050.github.io/multimod/reference/get_trim_summary.md)
+  : Get trim summary statistics
+- [`is_trimmed()`](https://optimal2050.github.io/multimod/reference/is_trimmed.md)
+  : Check if model or object is trimmed
+
+## Model workspace and data management
+
+Functions for saving/loading models and managing model workspaces with
+multiple data formats.
+
+- [`save_model()`](https://optimal2050.github.io/multimod/reference/save_model.md)
+  : Save model data on disk
+- [`load_model()`](https://optimal2050.github.io/multimod/reference/load_model.md)
+  : Load multimod model from disk
+- [`get_data()`](https://optimal2050.github.io/multimod/reference/get_data.md)
+  : Get data from model (with optional lazy loading)
+- [`update_parameter()`](https://optimal2050.github.io/multimod/reference/update_parameter.md)
+  : Update parameter data
+- [`update_mapping()`](https://optimal2050.github.io/multimod/reference/update_mapping.md)
+  : Update mapping data
+- [`save_parameter()`](https://optimal2050.github.io/multimod/reference/save_parameter.md)
+  : Save parameter data to disk and free memory
+- [`import_energyRt_data()`](https://optimal2050.github.io/multimod/reference/import_energyRt_data.md)
+  : Import energyRt scenario data into a multimod model
+- [`populate_sets_from_scenario()`](https://optimal2050.github.io/multimod/reference/populate_sets_from_scenario.md)
+  : Populate sets from energyRt scenario
+- [`link_scenario_data()`](https://optimal2050.github.io/multimod/reference/link_scenario_data.md)
+  : Link energyRt scenario data to model
+- [`import_osemosys_data()`](https://optimal2050.github.io/multimod/reference/import_osemosys_data.md)
+  : Import OSeMOSYS data into multimod model
+- [`export_osemosys_to_csv()`](https://optimal2050.github.io/multimod/reference/export_osemosys_to_csv.md)
+  : Export OSeMOSYS data to CSV files
+- [`export_model_source()`](https://optimal2050.github.io/multimod/reference/export_model_source.md)
+  : Export Model Source Files
+- [`add_set_data()`](https://optimal2050.github.io/multimod/reference/add_set_data.md)
+  : Add data to a set
+- [`export_import_log_from_model()`](https://optimal2050.github.io/multimod/reference/export_import_log_from_model.md)
+  : Export import log to CSV
+
+## Solver integration
+
+Functions for solving models and loading solutions.
+
+- [`solve_jump()`](https://optimal2050.github.io/multimod/reference/solve_jump.md)
+  : Solve a JuMP Model
+
+- [`solve_pyomo()`](https://optimal2050.github.io/multimod/reference/solve_pyomo.md)
+  :
+
+  Solve a Pyomo model exported by `multimod`
+
+- [`solve_glpk()`](https://optimal2050.github.io/multimod/reference/solve_glpk.md)
+  : Solve GLPK model using glpsol command line tool
+
+- [`execute_glpkAPI()`](https://optimal2050.github.io/multimod/reference/execute_glpkAPI.md)
+  : Solve GLPK model using glpkAPI
+
+## Model comparison and debugging
+
+Functions for comparing models, solutions, and debugging model
+generation.
+
+- [`compare_ast()`](https://optimal2050.github.io/multimod/reference/compare_ast.md)
+  : Compare two AST objects and report differences
+- [`compare_ast_simple()`](https://optimal2050.github.io/multimod/reference/compare_ast_simple.md)
+  : Compare AST objects using compare package with custom handling
+- [`compare_csv_files()`](https://optimal2050.github.io/multimod/reference/compare_csv_files.md)
+  : Compare CSV files in two directories
+- [`compare_dataframes()`](https://optimal2050.github.io/multimod/reference/compare_dataframes.md)
+  : Compare two dataframes and identify differences
+- [`compare_jump_stats()`](https://optimal2050.github.io/multimod/reference/compare_jump_stats.md)
+  : Compare JuMP model constraint statistics between two model
+  directories
+- [`compare_lp()`](https://optimal2050.github.io/multimod/reference/compare_lp.md)
+  : Compare two LP files and report differences
+- [`compare_mps()`](https://optimal2050.github.io/multimod/reference/compare_mps.md)
+  : Compare two MPS files and report differences
+- [`compare_solution()`](https://optimal2050.github.io/multimod/reference/compare_solution.md)
+  : Compare solutions from different solver outputs
+- [`compare_variables()`](https://optimal2050.github.io/multimod/reference/compare_variables.md)
+  : Compare variable solutions between two models
+
+## Index aliases and mapping
+
+Functions for managing index aliases and domain extraction.
+
+- [`generate_index_alias()`](https://optimal2050.github.io/multimod/reference/generate_index_alias.md)
+  : Generate dummy variable name from set name
+- [`generate_index_aliases()`](https://optimal2050.github.io/multimod/reference/generate_index_aliases.md)
+  : Generate dummy variable names for a list of sets
+- [`add_index_aliases()`](https://optimal2050.github.io/multimod/reference/add_index_aliases.md)
+  : Add index aliases to a multimod model
+- [`has_index_aliases()`](https://optimal2050.github.io/multimod/reference/has_index_aliases.md)
+  : Check if model has index aliases
+- [`en_extract_domains_from_comments()`](https://optimal2050.github.io/multimod/reference/en_extract_domains_from_comments.md)
+  : Extract energyRt domain mappings from GAMS file comments
+
+## Parameter evaluation and analysis
+
+Functions for evaluating parameters and analyzing folding opportunities.
+
+- [`evaluate_parameters()`](https://optimal2050.github.io/multimod/reference/evaluate_parameters.md)
+  : Evaluate Parameter Formulas and Defaults
+- [`analyze_fold_opportunities()`](https://optimal2050.github.io/multimod/reference/analyze_fold_opportunities.md)
+  : Analyze fold opportunities without applying
+- [`has_ast_formulas()`](https://optimal2050.github.io/multimod/reference/has_ast_formulas.md)
+  : Check if model has unevaluated AST formulas or defaults
+
+## AST conversion to R
+
+Functions for converting AST to R code.
+
+- [`as_r()`](https://optimal2050.github.io/multimod/reference/as_r.md) :
+  Convert AST to R Code
+- [`as_r(`*`<ast_formula>`*`)`](https://optimal2050.github.io/multimod/reference/as_r.ast_formula.md)
+  : Convert ast_formula to R Code
+- [`as_rfunction()`](https://optimal2050.github.io/multimod/reference/as_rfunction.md)
+  : Convert AST to R Function
+- [`collect_ast_classes()`](https://optimal2050.github.io/multimod/reference/collect_ast_classes.md)
+  : Collect all AST node classes from model or AST
+
+## Data and examples
+
+Example datasets and models.
+
+- [`example_models`](https://optimal2050.github.io/multimod/reference/example_models.md)
+  : Example Models in Multiple Formats
+
+## Utility functions
+
+Utility functions for multimod.
+
+- [`validate()`](https://optimal2050.github.io/multimod/reference/validate.md)
+  : Validate multimod or AST objects
+- [`get_active_dims()`](https://optimal2050.github.io/multimod/reference/get_active_dims.md)
+  : Get active dimensions from a parameter
+- [`get_data()`](https://optimal2050.github.io/multimod/reference/get_data.md)
+  : Get data from model (with optional lazy loading)
+- [`get_data_path()`](https://optimal2050.github.io/multimod/reference/get_data_path.md)
+  : Get data path for a parameter or mapping
+- [`get_energyrt_defvals()`](https://optimal2050.github.io/multimod/reference/get_energyrt_defvals.md)
+  : Get default values from energyRt modInp
+- [`get_fold_summary()`](https://optimal2050.github.io/multimod/reference/get_fold_summary.md)
+  : Get folding statistics summary
+- [`get_glpk_model_stats()`](https://optimal2050.github.io/multimod/reference/get_glpk_model_stats.md)
+  : Get GLPK model statistics without solving
+- [`get_import_log()`](https://optimal2050.github.io/multimod/reference/get_import_log.md)
+  : Get data import log from model
+- [`get_index_alias()`](https://optimal2050.github.io/multimod/reference/get_index_alias.md)
+  : Get index alias for a set
+- [`get_lazy_data()`](https://optimal2050.github.io/multimod/reference/get_lazy_data.md)
+  : Get lazy data with automatic loading
+- [`get_network_data()`](https://optimal2050.github.io/multimod/reference/get_network_data.md)
+  : Get network data for a multimod equation
+- [`get_trim_summary()`](https://optimal2050.github.io/multimod/reference/get_trim_summary.md)
+  : Get trim summary statistics
+- [`set_multimod_python()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
+  [`get_multimod_python()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
+  [`set_multimod_julia()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
+  [`get_multimod_julia()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
+  [`set_multimod_glpsol()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
+  [`get_multimod_glpsol()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
+  [`set_multimod_solver()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
+  [`get_multimod_solver()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
+  [`multimod_config_write()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
+  [`multimod_config_read()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
+  [`multimod_config_path()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
+  [`multimod_config_show()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
+  : Configuration management for multimod solver paths
+- [`set_data_path()`](https://optimal2050.github.io/multimod/reference/set_data_path.md)
+  : Set data path for a parameter or mapping
+- [`is_folded()`](https://optimal2050.github.io/multimod/reference/is_folded.md)
+  : Check if a parameter or model is folded
+- [`is_gams_expression()`](https://optimal2050.github.io/multimod/reference/is_gams_expression.md)
+  : Check if a string is a compound expression
+- [`is_in_memory()`](https://optimal2050.github.io/multimod/reference/is_in_memory.md)
+  : Data management utilities for multimod models
+- [`is_special()`](https://optimal2050.github.io/multimod/reference/is_special.md)
+  : Check if a character is a special character
+- [`is_trimmed()`](https://optimal2050.github.io/multimod/reference/is_trimmed.md)
+  : Check if model or object is trimmed
+- [`is_trimmed_any()`](https://optimal2050.github.io/multimod/reference/is_trimmed_any.md)
+  : Check if any elements are actually trimmed
+- [`is_word()`](https://optimal2050.github.io/multimod/reference/is_word.md)
+  : Check if a string is a word (alphabetic characters only)
+- [`is_word_num()`](https://optimal2050.github.io/multimod/reference/is_word_num.md)
+  : Check if a string is alphanumeric (letters, digits, or underscores)
+- [`validate_fold()`](https://optimal2050.github.io/multimod/reference/validate_fold.md)
+  : Validate fold integrity
+- [`validate_index_aliases()`](https://optimal2050.github.io/multimod/reference/validate_index_aliases.md)
+  : Validate index_aliases for a model
+- [`parse_gams_equation()`](https://optimal2050.github.io/multimod/reference/parse_gams_equation.md)
+  : Parse a GAMS equation into an AST object.
+- [`format_latex_aligned()`](https://optimal2050.github.io/multimod/reference/format_latex_aligned.md)
+  : Format a LaTeX equation across multiple lines using aligned
+- [`extract_args(`*`<ast_formula>`*`)`](https://optimal2050.github.io/multimod/reference/extract_args.ast_formula.md)
+  : Extract Arguments from ast_formula
+- [`extract_args()`](https://optimal2050.github.io/multimod/reference/extract_args.md)
+  : Extract Arguments from AST
+- [`extract_ast_elements()`](https://optimal2050.github.io/multimod/reference/extract_ast_elements.md)
+  : Recursively extract elements by name from a nested structure
+- [`extract_where_nodes()`](https://optimal2050.github.io/multimod/reference/extract_where_nodes.md)
+  : Extract "where" nodes from an AST
+- [`alias_ast_names()`](https://optimal2050.github.io/multimod/reference/alias_ast_names.md)
+  : Apply name aliases to AST nodes
+- [`depth()`](https://optimal2050.github.io/multimod/reference/depth.md)
+  : Get the depth of a nested list structure (AST, multimod, and other
+  objects)
+- [`annotate_brackets()`](https://optimal2050.github.io/multimod/reference/annotate_brackets.md)
+  : Annotate expression tree with bracket requirements
+- [`brackets_pair()`](https://optimal2050.github.io/multimod/reference/brackets_pair.md)
+  : Get a pair of brackets
+- [`wrap_brackets()`](https://optimal2050.github.io/multimod/reference/wrap_brackets.md)
+  : Wrap text with brackets
+- [`map_ast()`](https://optimal2050.github.io/multimod/reference/map_ast.md)
+  : Recursively apply a function to all nodes of an AST
+- [`node_hash()`](https://optimal2050.github.io/multimod/reference/node_hash.md)
+  : Generate a stable hash for an AST or multimod object (excluding
+  internal hash fields)
+- [`node_type()`](https://optimal2050.github.io/multimod/reference/node_type.md)
+  : Get the type of an AST or multimod node
+- [`remap_ast_elements()`](https://optimal2050.github.io/multimod/reference/remap_ast_elements.md)
+  : Replace AST elements with "ast_where" nodes
+- [`resolve_full_name()`](https://optimal2050.github.io/multimod/reference/resolve_full_name.md)
+  : Resolve alias to full set name
+- [`split_at_top_level_operators()`](https://optimal2050.github.io/multimod/reference/split_at_top_level_operators.md)
+  : Split LaTeX math string at top-level operators
+- [`split_top_level_args()`](https://optimal2050.github.io/multimod/reference/split_top_level_args.md)
+  : Split function arguments at the top level
+- [`build_symbols_list()`](https://optimal2050.github.io/multimod/reference/build_symbols_list.md)
+  : Build a list of symbols from model_info
+
+## Internal and helper functions
+
+Internal functions and helpers (typically not called directly by users).
+
+- [`load_all_mappings()`](https://optimal2050.github.io/multimod/reference/load_all_mappings.md)
+  : Load all mappings into memory
+- [`load_all_parameters()`](https://optimal2050.github.io/multimod/reference/load_all_parameters.md)
+  : Load all parameters into memory
+- [`load_mapping()`](https://optimal2050.github.io/multimod/reference/load_mapping.md)
+  : Load mapping data into memory
+- [`load_model()`](https://optimal2050.github.io/multimod/reference/load_model.md)
+  : Load multimod model from disk
+- [`load_osemosys_from_csv()`](https://optimal2050.github.io/multimod/reference/load_osemosys_from_csv.md)
+  : Load OSeMOSYS data from CSV directory
+- [`load_parameter()`](https://optimal2050.github.io/multimod/reference/load_parameter.md)
+  : Load parameter data into memory
+- [`save_all_mappings()`](https://optimal2050.github.io/multimod/reference/save_all_mappings.md)
+  : Save all mappings to disk
+- [`save_all_parameters()`](https://optimal2050.github.io/multimod/reference/save_all_parameters.md)
+  : Save all parameters to disk
+- [`save_mapping()`](https://optimal2050.github.io/multimod/reference/save_mapping.md)
+  : Save mapping data to disk and free memory
+- [`save_model()`](https://optimal2050.github.io/multimod/reference/save_model.md)
+  : Save model data on disk
+- [`save_parameter()`](https://optimal2050.github.io/multimod/reference/save_parameter.md)
+  : Save parameter data to disk and free memory
+- [`log_solution_load()`](https://optimal2050.github.io/multimod/reference/log_solution_load.md)
+  : Log solution loading from solver to variables directory
+- [`restore_ast()`](https://optimal2050.github.io/multimod/reference/restore_ast.md)
+  : Restore AST from preserved copies
+- [`populate_defvals_from_energyrt()`](https://optimal2050.github.io/multimod/reference/populate_defvals_from_energyrt.md)
+  : Update model parameters with default values from energyRt
+- [`populate_sets_from_data()`](https://optimal2050.github.io/multimod/reference/populate_sets_from_data.md)
+  : Populate sets from model's own mappings and parameters
+- [`populate_sets_from_scenario()`](https://optimal2050.github.io/multimod/reference/populate_sets_from_scenario.md)
+  : Populate sets from energyRt scenario
+- [`register_index_alias()`](https://optimal2050.github.io/multimod/reference/register_index_alias.md)
+  : Read GMPL/MathProg Model File
+- [`make_valid()`](https://optimal2050.github.io/multimod/reference/make_valid.md)
+  : Make a multimod model valid by reconciling symbols
+- [`quick_compare()`](https://optimal2050.github.io/multimod/reference/quick_compare.md)
+  : Quick comparison showing first few differences
+- [`mps_matrix_long()`](https://optimal2050.github.io/multimod/reference/mps_matrix_long.md)
+  : Extract the sparse constraint matrix of an MPS file
+- [`osemosys_dat_to_model()`](https://optimal2050.github.io/multimod/reference/osemosys_dat_to_model.md)
+  : Convert OSeMOSYS .dat to CSV and import into model
+- [`read_osemosys_dat()`](https://optimal2050.github.io/multimod/reference/read_osemosys_dat.md)
+  : Read OSeMOSYS data files
+- [`read_csv_results()`](https://optimal2050.github.io/multimod/reference/read_csv_results.md)
+  : Read CSV results from GMPL solver solution directory and save to
+  model variables
+
+## visualization
+
+Visualization functions for multimod.
+
+- [`get_network_data()`](https://optimal2050.github.io/multimod/reference/get_network_data.md)
+  : Get network data for a multimod equation
+- [`as_visNetwork()`](https://optimal2050.github.io/multimod/reference/as_visNetwork.md)
+  : Convert a multimod ast or equation to a visNetwork object
