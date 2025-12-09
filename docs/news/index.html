@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.0.1.9005</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.0.9007</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -23,10 +23,25 @@
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/multimod.html">Get started</a></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">{dev-status}</a></li>
+<li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Development Status</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-tutorials" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Tutorials</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials"><li><h6 class="dropdown-header" data-toc-skip>AST</h6></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials"><li><h6 class="dropdown-header" data-toc-skip>Getting Started</h6></li>
+    <li><a class="dropdown-item" href="../articles/multimod.html">Overview</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Code Generation</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>JuMP Integration</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>GMPL Integration</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Pyomo Integration</h6></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Model Management</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Configuration System</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Model Workspace</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>LaTeX Generation</h6></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Advanced</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Model Optimization (Folding &amp; Trimming)</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Abstract Syntax Tree (AST)</h6></li>
   </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
@@ -50,10 +65,136 @@
     </div>
 
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.0.1.9005" id="multimod-development-version-0019005">multimod (development version 0.0.1.9005)<a class="anchor" aria-label="anchor" href="#multimod-development-version-0019005"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.4.0.9007" id="multimod-0409007-development-version-2025-12-08">multimod 0.4.0.9007 (development version, 2025-12-08)<a class="anchor" aria-label="anchor" href="#multimod-0409007-development-version-2025-12-08"></a></h2>
+<div class="section level3">
+<h3 id="new-features-0-4-0-9007">New Features<a class="anchor" aria-label="anchor" href="#new-features-0-4-0-9007"></a></h3>
+<div class="section level4">
+<h4 id="data-integration--storage-0-4-0-9007">Data Integration &amp; Storage<a class="anchor" aria-label="anchor" href="#data-integration--storage-0-4-0-9007"></a></h4>
+<ul><li>
+<strong>Model workspace system</strong> (<code><a href="../reference/save_model.html">save_model()</a></code>, <code><a href="../reference/load_model.html">load_model()</a></code>):
+<ul><li>Apache Arrow IPC format (fast, type-safe, binary)</li>
+<li>Apache Parquet format (compressed, columnar)</li>
+<li>CSV format (human-readable, portable)</li>
+<li>Lazy loading support for large datasets</li>
+<li>See <code><a href="../articles/model_workspace.html">vignette("model_workspace")</a></code> for details</li>
+</ul></li>
+<li>
+<strong>Data import and linking</strong>:
+<ul><li>
+<code><a href="../reference/import_energyRt_data.html">import_energyRt_data()</a></code>: Import from energyRt package structures</li>
+<li>
+<code><a href="../reference/populate_sets_from_scenario.html">populate_sets_from_scenario()</a></code>: Extract set members from parameters</li>
+<li>
+<code><a href="../reference/link_scenario_data.html">link_scenario_data()</a></code>: Link to Arrow/Parquet files for lazy loading</li>
+<li>Support for OSeMOSYS example model data</li>
+</ul></li>
+<li>
+<strong>Flexible data modes</strong> in generated code:
+<ul><li>
+<strong>Embedded</strong>: Data included directly in generated Python/Julia code (for small models)</li>
+<li>
+<strong>External</strong>: Code connects to Arrow repository (for large models)</li>
+</ul></li>
+<li>
+<strong>Example datasets</strong>: Consolidated into unified <code>example_models</code> structure
+<ul><li>Access: <code>data(example_models)</code> provides both energyRt and OSeMOSYS examples</li>
+<li>Structure: <code>example_models$energyRt$multimod</code>, <code>example_models$OSeMOSYS$gmpl</code>, etc.</li>
+<li>Models used: OSeMOSYS-Utopia (standard test case), energyRt-DEMO (BASE_UTOPIA scenario)</li>
+<li>Old datasets removed; use <code>example_models$energyRt$multimod</code> instead of <code>utopia_multimod</code>
+</li>
+</ul></li>
+</ul></div>
+<div class="section level4">
+<h4 id="code-generation-0-4-0-9007">Code Generation<a class="anchor" aria-label="anchor" href="#code-generation-0-4-0-9007"></a></h4>
+<ul><li>
+<strong>Pyomo support</strong>: Complete Python/Pyomo code generation
+<ul><li>Abstract model design with external data loading</li>
+<li>Multiple solver support (HiGHS, Gurobi, CPLEX, etc.)</li>
+<li>Both embedded and external data modes</li>
+<li>See <code><a href="../articles/pyomo.html">vignette("pyomo")</a></code> for workflow details</li>
+</ul></li>
+<li>
+<strong>JuMP improvements</strong> (<code><a href="../reference/write_jump.html">write_jump()</a></code>):
+<ul><li>Modern Julia/JuMP syntax with named constraints</li>
+<li>Tuple indexing: <code>eqName[(h,r,y) in mapping]</code>
+</li>
+<li>Short index aliases: h (tech), r (region), c (comm), y (year), ts (slice)</li>
+<li>Clean <code><a href="https://rdrr.io/r/base/get.html" class="external-link">get()</a></code> pattern for parameter access with defaults</li>
+<li>Variable bounds from GAMS types: <code>&gt;= 0</code>, <code>&lt;= 0</code>, <code>Bin</code>, <code>Int</code>, free</li>
+<li>Comprehensive diagnostics with CSV logging</li>
+<li>Both embedded and external data modes</li>
+</ul></li>
+<li>
+<strong>GMPL support</strong> (<code><a href="../reference/write_gmpl.html">write_gmpl()</a></code>, <code><a href="../reference/write_gmpl_data.html">write_gmpl_data()</a></code>):
+<ul><li>Full GMPL/MathProg syntax support</li>
+<li>Proper formatting and indentation</li>
+<li>Lazy loading from Arrow/Parquet datasets</li>
+<li>Memory-efficient data writing</li>
+</ul></li>
+</ul></div>
+<div class="section level4">
+<h4 id="configuration--usability-0-4-0-9007">Configuration &amp; Usability<a class="anchor" aria-label="anchor" href="#configuration--usability-0-4-0-9007"></a></h4>
+<ul><li>
+<strong>Configuration system</strong>: Unified configuration for solver paths with 4-tier priority:
+<ul><li>R options &gt; Environment variables &gt; YAML config &gt; Auto-detection</li>
+<li>New functions: <code><a href="../reference/multimod-config.html">get_multimod_python()</a></code>, <code><a href="../reference/multimod-config.html">get_multimod_julia()</a></code>, <code><a href="../reference/multimod-config.html">get_multimod_glpsol()</a></code>
+</li>
+<li>YAML support: <code><a href="../reference/multimod-config.html">multimod_config_write()</a></code>, <code><a href="../reference/multimod-config.html">multimod_config_read()</a></code>, <code><a href="../reference/multimod-config.html">multimod_config_show()</a></code>
+</li>
+<li>See <code><a href="../articles/configuration.html">vignette("configuration")</a></code> for details</li>
+</ul></li>
+<li>
+<strong>In-memory parsing</strong>: All reader functions (<code><a href="../reference/read_gams.html">read_gams()</a></code>, <code><a href="../reference/read_gmpl.html">read_gmpl()</a></code>, <code><a href="../reference/read_gmpl_data.html">read_gmpl_data()</a></code>, <code><a href="../reference/import_gmpl_data.html">import_gmpl_data()</a></code>) now accept character vectors in addition to file paths, enabling direct parsing from R objects without temporary files.</li>
+</ul></div>
+<div class="section level4">
+<h4 id="model-optimization-0-4-0-9007">Model Optimization<a class="anchor" aria-label="anchor" href="#model-optimization-0-4-0-9007"></a></h4>
+<ul><li>
+<strong>Parameter folding</strong>: Automated dimensionality reduction for uniform parameters
+<ul><li>
+<code>fold_model()</code>, <code><a href="../reference/create_fold_spec.html">create_fold_spec()</a></code>, <code><a href="../reference/get_fold_summary.html">get_fold_summary()</a></code>
+</li>
+<li>See <code><a href="../articles/folding.html">vignette("folding")</a></code> for details</li>
+</ul></li>
+<li>
+<strong>Model trimming</strong>: Remove unused sets, parameters, variables, and equations
+<ul><li>
+<code>trim_model()</code>, <code><a href="../reference/get_trim_summary.html">get_trim_summary()</a></code>
+</li>
+</ul></li>
+</ul></div>
+</div>
+<div class="section level3">
+<h3 id="bug-fixes-0-4-0-9007">Bug Fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-4-0-9007"></a></h3>
+<ul><li>
+<strong>JuMP fix</strong>: 1-dimensional mappings now correctly loaded as <code>Set{String}</code> instead of <code>Set{Tuple{String}}</code>. This was causing membership checks like <code>t in mTradeCapacityVariable</code> to silently fail, resulting in missing constraint terms and incorrect model formulations.
+<ul><li>1D mappings: <code>Set{String}</code> for direct membership checks</li>
+<li>Multi-D mappings: <code>Set{Tuple{...}}</code> for tuple membership</li>
+<li>Parameters follow same pattern for consistent dictionary key types</li>
+<li>Generated models now produce identical results to reference implementations</li>
+</ul></li>
+<li>
+<strong>Export functions</strong>: Updated <code><a href="../reference/export_model_source.html">export_model_source()</a></code> to use new <code>example_models</code> structure
+<ul><li>
+<code>export_osemosys()</code> and <code>export_energyrt()</code> now work with consolidated datasets</li>
+</ul></li>
+</ul></div>
+<div class="section level3">
+<h3 id="documentation-0-4-0-9007">Documentation<a class="anchor" aria-label="anchor" href="#documentation-0-4-0-9007"></a></h3>
+<ul><li>New vignette: <code><a href="../articles/configuration.html">vignette("configuration")</a></code> - Configuration system and solver setup</li>
+<li>New vignette: <code><a href="../articles/pyomo.html">vignette("pyomo")</a></code> - Complete Pyomo workflow</li>
+<li>New vignette: <code><a href="../articles/model_workspace.html">vignette("model_workspace")</a></code> - Model workspace and data management</li>
+<li>Updated vignette: <code><a href="../articles/jump.html">vignette("jump")</a></code> - Complete JuMP workflow</li>
+<li>Updated vignette: <code><a href="../articles/gmpl.html">vignette("gmpl")</a></code> - Complete GMPL workflow</li>
+<li>Updated vignette: <code><a href="../articles/latex.html">vignette("latex")</a></code> - LaTeX generation with new dataset</li>
+<li>Updated: Development roadmap with realistic implementation status</li>
+</ul><hr></div>
+</div>
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.0.1" id="multimod-001-2025-06-01">multimod 0.0.1 (2025-06-01)<a class="anchor" aria-label="anchor" href="#multimod-001-2025-06-01"></a></h2>
 <ul><li>Initial GitHub release (June 1, 2025).</li>
 </ul></div>
-  </main></div>
+  </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
+    </nav></aside></div>
 
 
     <footer><div class="pkgdown-footer-left">
@@ -61,7 +202,7 @@
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.3.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
 </div>
 
     </footer></div>

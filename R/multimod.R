@@ -9,12 +9,28 @@
 #' @export
 #'
 build_symbols_list <- function(model_info) {
-  list(
+  language <- NULL
+  if (!is.null(model_info$language)) {
+    language <- model_info$language
+  } else {
+    language <- attr(model_info, "language", exact = TRUE)
+  }
+
+  symbols <- list(
     sets = names(model_info$sets), # !!! Add aliases
+    aliases = unlist(
+      lapply(model_info$aliases, function(x) ifelse(length(x) > 1, x[-1], x))),
     mappings = names(model_info$mappings),
     parameters = names(model_info$parameters),
-    variables = names(model_info$variables)
+    variables = names(model_info$variables),
+    language = language
   )
+
+  if (!is.null(language)) {
+    attr(symbols, "language") <- language
+  }
+
+  symbols
 }
 
 detect_symbol_type <- function(

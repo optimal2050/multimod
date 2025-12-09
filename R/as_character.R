@@ -41,6 +41,12 @@ brackets_pair <- function(x) {
 
 }
 
+#' Wrap text with brackets
+#'
+#' @param x Character string to wrap
+#' @param brackets Bracket style to use
+#' @param ... Additional arguments
+#' @return Character string wrapped in brackets
 #' @export
 wrap_brackets <- function(x, brackets = NULL, ...) {
   stopifnot(length(x) == 1)
@@ -50,6 +56,12 @@ wrap_brackets <- function(x, brackets = NULL, ...) {
 }
 
 # as.character ####
+
+#' Convert AST expression to character
+#' @param x An expression object
+#' @param brackets Bracket style to use
+#' @param max_char Maximum characters before truncation
+#' @param ... Additional arguments
 #' @export
 #' @method as.character expression
 as.character.expression <- function(x, brackets = NULL, max_char = 50, ...) {
@@ -167,7 +179,6 @@ as.character.prod <- function(x, ...) {
 
 #' @export
 #' @method as.character func
-#' @rdname as.character
 as.character.func <- function(x, ...) {
   val <- if (is.list(x$value)) {
     sapply(x$value, as.character, ...)

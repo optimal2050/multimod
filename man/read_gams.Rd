@@ -14,9 +14,11 @@ read_gams(
 )
 }
 \arguments{
-\item{file_or_text}{A path to a GAMS file or a character vector containing GAMS code.}
+\item{file_or_text}{A path to a GAMS file, or a character vector containing GAMS code
+(either as a single string with newlines, or as a vector with one line per element).}
 
-\item{include}{Logical indicating whether to expand included files (default is \code{TRUE}).}
+\item{include}{Logical indicating whether to expand included files (default is \code{TRUE}).
+Only applies when reading from a file path.}
 
 \item{interim_file}{Optional path to an interim file where the processed GAMS code prepended for parsing will be saved. If \code{NULL}, no interim file is created.}
 

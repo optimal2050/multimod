@@ -18,6 +18,8 @@ knitr::opts_chunk$set(
 library(here)
 ```
 
+[The Vignette is under revision]
+
 This vignette provides an overview of the current functionality of the `multimod` package, which is designed to parse GAMS models and convert them into a structured format for further analysis, visualization, rendering to LaTeX, and other mathematical programming languages. 
 
 ## Installation  
@@ -52,20 +54,27 @@ file.exists(gams_source)
 ```
 
 ```{r, echo=FALSE, eval=TRUE, iclude=FALSE}
-gams_source <- here("tmp/energyRt.gms") |> fs::path_rel(start = getwd())
+# gams_source <- here("tmp/energyRt.gms") |> fs::path_rel(start = getwd())
+gams_source <- multimod::example_models$energyRt$gams$model
 ```
 
 ## Parse model structure
 Model structure is a named list of the model symbols: sets, parameters, variables, equations, and other components. The parser reads declarations to further identify the model elements used in equations/constraints. Data and operations on data are not imported--the parser focuses on the model structure, which is stored in an object of class `model_structure`.
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 mod_str <- read_gams(gams_source, include = FALSE, verbose = FALSE)
 print(mod_str)
 ```
 
 ## Convert to multimod
 The `model_structure` object can be converted to a `multimod`, either equation by equation or all at once. The multimod's `model` class is a structured representation of the model using the Abstract Syntax Tree (AST) format. Every element of a model, including operators, variables, sets and parameters, is represented as an AST node. 
-```{r, eval=TRUE}
+
+```{r, include=FALSE, eval=TRUE}
+mod <- multimod::example_models$energyRt$multimod
+ast_node <- mod$equations[["eqObjective"]]
+```
+
+```{r, eval=FALSE}
 # (Optional) Collect all symbols
 symbols <- build_symbols_list(mod_str)
 # analyze an equation
@@ -75,7 +84,7 @@ ast_node
 
 ### Abstract Syntax Tree (AST)
 AST nodes are the building blocks of multimod equations, creating a nested structures.
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 lobstr::tree(ast_node, max_length = 25, max_depth = 5)
 ```
 
@@ -87,10 +96,15 @@ as_visNetwork(ast_node)
 
 ## Convert to multimod `model` object
 The `as_multimod` method applied converts the entire model into a multimod object, which contains lists of sets, parameters, variables, equations, represented via AST nodes.
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 mod <- as_multimod(mod_str)
 print(mod)
 ```
+
+```{r, echo=FALSE, eval=TRUE}
+print(mod)
+```
+
 
 Equations are stored in `$equations` list, and can be accessed by their names. Each equation is an object of class `equation`, which contains the left-hand side (LHS) and right-hand side (RHS) expressions and relation operator.
 

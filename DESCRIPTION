@@ -1,6 +1,7 @@
 Package: multimod
 Title: Define and Render Mathematical Models Across Multiple Optimization Languages.
-Version: 0.0.1.9005
+Version: 0.4.0.9007
+Date: 2025-12-08
 Authors@R: 
   c(person(given = "Oleg", 
           family = "Lugovoy", 
@@ -12,7 +13,7 @@ URL: https://optimal2050.github.io/multimod, https://github.com/optimal2050/mult
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
 Depends: R (>= 4.0)
 Imports:
     stringr,
@@ -21,11 +22,13 @@ Imports:
     visNetwork,
     rlang,
     purrr,
-    digest
+    digest,
+    magrittr
 Suggests: 
     knitr,
     lobstr,
-    rmarkdown
+    rmarkdown,
+    progressr
 VignetteBuilder: knitr
 LazyData: true
 Config/Needs/website: rmarkdown

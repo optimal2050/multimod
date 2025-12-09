@@ -1,11 +1,19 @@
-pandoc: '3.4'
-pkgdown: 2.1.3
+pandoc: 3.6.3
+pkgdown: 2.2.0
 pkgdown_sha: ~
 articles:
   ast: ast.html
+  configuration: configuration.html
+  folding: folding.html
+  gmpl: gmpl.html
+  jump: jump.html
+  latex: latex.html
+  model_workspace: model_workspace.html
   multimod: multimod.html
+  pyomo: pyomo.html
+  redundancy: redundancy.html
   articles/roadmap: roadmap.html
-last_built: 2025-06-02T00:07Z
+last_built: 2025-12-09T02:38Z
 urls:
   reference: https://optimal2050.github.io/multimod/reference
   article: https://optimal2050.github.io/multimod/articles

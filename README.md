@@ -33,61 +33,55 @@ optimization models in energy systems and beyond.
 
 ## Development Status
 
-The package is under active development. Contributions, bug reports, and
-feature requests are welcome! See [Get started](articles/multimod.html)
-for an overview of the current functionality and
-[{devstatus}](articles/roadmap.html) for the roadmap.
+**WARNING**: The package is in active development. All implementations
+are experimental and APIs may change. See [Get
+started](articles/multimod.html) for an overview of current
+functionality and [Development Roadmap](articles/roadmap.html) for
+implementation status and future plans.
 
 ## Workflow Diagram
 
-Items in curly braces `{}` are planned for implementation, double curly
-braces `{{}}` are potential extensions.
-
 ``` text
-[ GAMS / {JuMP / Pyomo / GMPL} ]
+┌─────────────────────────────┐
+│      Input Formats          │
+├─────────────────────────────┤
+│ GAMS    (basic/linear only) │ → read_gams()
+│ GMPL    (limited features)  │ → read_gmpl()
+│ {JuMP}  (planned)           │ → {read_jump()}
+│ {Pyomo} (planned)           │ → {read_pyomo()}
+│ {{AMPL, MPS, ...}}          │ → {{...}}
+└─────────────────────────────┘
               ↓
-          read_gams()
-         {read_jump()}
-         {read_pyomo()}
-         {read_gmpl()}
-           {{...}}
-              ↓
-     ┌────────────────────┐
-     │  model_structure   │
-     │ (a named list ...) │
-     └────────────────────┘
-              ↓
-        as_multimod()
-              ↓
-   ┌────────────────────────┐
-   │    Core Structures     │      as_visNetwork() 
-   │    <ast>, <multimod>   │     {as_diagrammer()} 
-   │ (sets, parameters,     │ ⟷  {{symbolsic manipulation}}  
-   │  variables, equations, │     {fold_parameters(), ...}
-   │  mappings, ...)        │     {data exchange}
+   ┌────────────────────────┐  
+   │   multimod Core        │        Analysis & Manipulation:
+   │ (Abstract Syntax Tree) │         • fold_model()        [✓]
+   ├────────────────────────┤         • trim_model()        [✓]
+   │ • Sets & Aliases       │  →      • save_model()        [✓]
+   │ • Parameters           │         • as_visNetwork()     [✓]
+   │ • Variables            │  ←      • model statistics    [✓]
+   │ • Equations            │         {{auto-mapping}}      [ ]
+   │ • Mappings             │         {{symbolic simplify}} [ ]
    └────────────────────────┘
               ↓
-     ┌────────────────────┐
-     │ Rendering / Output │
-     └────────────────────┘
-              ↓
-   → write_latex()
-   → write_gams()
-   → {write_jump()}
-   → {write_pyomo()}
-   → {write_gmpl()}
-   → {{write_ampl()}}
-   → {{write_mps()}}
-   → {{write_cplex()}}
-   → {{write_gurobi()}}
-   → {{...}}
+┌─────────────────────────────────┐
+│      Output Formats             │
+├─────────────────────────────────┤
+│ LaTeX  (stable)           [✓]   │ → write_latex()
+│ {GMPL} (testing)          [~]   │ → write_gmpl()
+│ {JuMP} (testing)          [~]   │ → write_jump()
+│ {Pyomo} (testing)         [~]   │ → write_pyomo()
+│ {{GAMS}} (planned)        [ ]   │ → {{write_gams()}}
+│ {{AMPL, MPS, LP, ...}}    [ ]   │ → {{...}}
+└─────────────────────────────────┘
+
+Status: [✓] implemented | [~] and { } developing | [ ] and {{ }} considering
 ```
 
 ## Installation and Example Workflow
 
 ``` r
 # install.packages("pak")
-pak::pak("optimal2050/multimod")
+pak::pkg_install("optimal2050/multimod")
 ```
 
 ### Load a GAMS model and parse
@@ -96,11 +90,6 @@ pak::pak("optimal2050/multimod")
 library(multimod)
 model_info <- read_gams("my_model.gms")
 class(model_info) # "model_structure"
-```
-
-``` r
-mod <- as_multimod(model_info, name = "My model in multimod format")
-class(mod) # "model"    "multimod"
 ```
 
     #> [1] "model"    "multimod"
@@ -113,7 +102,7 @@ print(eq)
 #> <AST equation> eqObjective
 #>   relation:  == 
 #>   lhs:  vObjective 
-#>   rhs:  sum(if (mvTotalCost[region,year]) {[region,year]}, *, vTotalCost[region,year], pPeriodLen[year] * pDiscountFactor[region,year], FALSE)
+#>   rhs:  sum(if (mvTotalCost[region,year]) {[region,year]}, *, pDiscountFactorMileStone[region,year], vTotalCost[region,year], FALSE)
 ```
 
 #### Render an equation to LaTeX
@@ -132,8 +121,13 @@ $$
 as_gams(eq) |> cat()
 #> eqObjective..
 #>   vObjective =e=
-#>   sum(([region,year])$mvTotalCost[region,year], vTotalCost[region,year] * pPeriodLen[year] * pDiscountFactor[region,year]);
-# {as_jump(mod$equations[["eqObjective"]])}
+#>   sum(([region,year])$mvTotalCost[region,year], pDiscountFactorMileStone[region,year] * vTotalCost[region,year]);
+as_jump(eq) |> cat()
+#> @constraint(
+#>     model,
+#>     eqObjective,
+#>     vObjective == sum(get(pDiscountFactorMileStone, (region, year), pDiscountFactorMileStoneDef) * vTotalCost[region, year] for (region, year) in mvTotalCost)
+#> )
 ```
 
 #### Visualize equation tree
@@ -153,9 +147,35 @@ write_latex(mod,
 tinytex::pdflatex("my_multimod_model.tex")
 ```
 
-#### Write GAMS model
+#### Write JuMP/Julia model
 
 ``` r
+# Complete workflow: save data and generate JuMP code
+save_model(mod, "my_model_dir", format = "ipc")  # Arrow format
+write_jump(mod, model_dir = "my_model_dir")      # Generate Julia code
+
+# Solve with Julia
+solve_jump(model_dir = "my_model_dir")
+```
+
+#### Write & solve GMPL model
+
+``` r
+write_gmpl(mod, model_dir = "my_model_dir")
+solve_gmpl(mod, model_dir = "my_model_dir")
+```
+
+#### Write & solve Python/Pyomo model
+
+``` r
+write_pyomo(mod, model_dir = "my_model_dir")
+solve_pyomo(mod, model_dir = "my_model_dir")
+```
+
+#### {Write GAMS model}
+
+``` r
+# in progress
 write_gams(mod, file = "my_multimod_model.gms")
 ```
 

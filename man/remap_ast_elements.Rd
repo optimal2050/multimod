@@ -22,6 +22,9 @@ remap_ast_elements(
 \item{name_prefix}{A character string prefix for the new names of the
 replaced elements. Defaults to "m".}
 }
+\value{
+Modified AST object with remapped elements
+}
 \description{
 This function replaces elements of a given AST object with "ast_where" nodes.
 It is useful for long expressions to improve readability of latex output and

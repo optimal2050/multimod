@@ -1,59 +1,51 @@
-## code to prepare `DATASET` dataset goes here
+## Unified Example Models Dataset
+##
+## This script combines example models from energyRt and OSeMOSYS into a single
+## unified dataset called 'example_models'. 
+##
+## Structure:
+##   example_models$energyRt
+##     $gams, $gmpl, $jump     - Source code in various formats
+##     $multimod               - Parsed multimod object
+##     $metadata               - Source information
+##
+##   example_models$OSeMOSYS
+##     $gmpl                   - Source code in GMPL format
+##     $multimod               - Parsed multimod object  
+##     $metadata               - Source information
+##
+## Old datasets moved to data-raw/depreciated/ for reference.
 
-# usethis::use_data(DATASET, overwrite = TRUE)
+# Load updated read_gmpl function
+devtools::load_all(".", quiet = TRUE)
 
-short_aliases_for_sets <- list(
-  comm    = "c",  # commodity
-  region  = "r",  # region
-  year    = "y",  # year
-  slice   = "t",  # time slice
-  sup     = "u",  # supply
-  dem     = "d",  # demand
-  tech    = "h",  # technology
-  stg     = "s",  # storage
-  trade   = "z",  # interregional trade
-  expp    = "x",  # export to ROW
-  imp     = "m",  # import from ROW
-  weather = "w",  # weather
-  process = "p",  # process
-  aux     = "a",  # auxiliary indicator (e.g. flags, switches)
-  input   = "i",  # input flows to process
-  output  = "o",  # output flows from process
-  group   = "g",  # group of related commodities or tags
-  # shorts for aliases
-  techp   = "hp",
-  regionp = "rp",
-  region2 = "r2",
-  src     = "rs",
-  dst     = "rd",
-  yearp   = "yp",
-  yeare   = "ye",
-  yearn   = "yn",
-  year2   = "y2",
-  slicep  = "tp",
-  slicepp = "tpp",
-  slice2  = "t2",
-  groupp  = "gp",
-  commp   = "cp",
-  acomm   = "ca",
-  comme   = "ce",
-  supp    = "up"
+(load("data-raw/energyRt_demo.RData"))
+(load("data-raw/energyRt_source.RData"))
+energyRt_source <- list(
+  gams = energyRt_source$gams,
+  gmpl = energyRt_source$gmpl,
+  jump = energyRt_source$jump,
+  multimod = energyRt_demo,
+  metadata = energyRt_source$metadata
 )
 
-if (F) {
-  # temporary file for testing and example
-  library(here)
-  devtools::load_all()
-  gams_file <- here("tmp/energyRt.gms")
-  model_info <- read_gams(gams_file, include = FALSE)
 
-  symbols <- build_symbols_list(model_info)
-  mmod <- as_multimod(model_info)
-  example_model <- list(
-    name = "energyRt.gms",
-    model_info = model_info,
-    multimod = mmod,
-    short_aliases = short_aliases_for_sets
-  )
-  usethis::use_data(example_model, overwrite = TRUE)
-}
+(load("data-raw/osemosys_source.RData"))
+mm_osemosys <- multimod::read_gmpl(
+  model_file = osemosys_source$gmpl$model,
+  data_file = osemosys_source$gmpl$data)
+
+osemosys_source <- list(
+  gmpl = osemosys_source$gmpl,
+  multimod = mm_osemosys,
+  metadata = osemosys_source
+)
+
+example_models <- list(
+  energyRt = energyRt_source,
+  OSeMOSYS = osemosys_source
+)
+
+usethis::use_data(example_models, overwrite = TRUE)
+
+

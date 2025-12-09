@@ -13,11 +13,14 @@ new_model(
   parameters = list(),
   variables = list(),
   equations = list(),
+  inMemory = TRUE,
+  base_path = NULL,
+  metadata = list(),
   ...
 )
 }
 \arguments{
-\item{desc}{}
+\item{desc}{model description (character)}
 
 \item{sets}{named list of sets}
 
@@ -28,6 +31,11 @@ new_model(
 \item{variables}{named list of variable objects}
 
 \item{equations}{named list of equation objects}
+
+\item{metadata}{Named list with auxiliary information (e.g., language, source_file, data_source).}
+}
+\value{
+A model object
 }
 \description{
 Create a multimod model object

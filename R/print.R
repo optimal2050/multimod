@@ -21,8 +21,13 @@
 
 # S3 generic dispatch for print(x) where class(x) is e.g. expr, equation, etc.
 
-#' @title Print methods for AST classes
-
+#' Print methods for AST classes
+#'
+#' S3 print methods for displaying AST and multimod objects
+#'
+#' @param x Object to print
+#' @param ... Additional arguments passed to print methods
+#' @name print
 #' @export
 #' @method print ast
 print.ast <- function(x, ...) {
@@ -198,11 +203,25 @@ print.model <- function(x, ...) {
   if (!is.null(x$authors)) {
     cat("Authors: ", paste(x$authors, collapse = ", "), "\n")
   }
-  if (!is.null(x$source)) {
-    cat("Source: ", x$source, "\n")
+  source_file <- x$source
+  if (is.null(source_file) && !is.null(x$metadata) && !is.null(x$metadata$source_file)) {
+    source_file <- x$metadata$source_file
   }
-  if (!is.null(x$language)) {
-    cat("Language: ", x$language, "\n")
+  if (!is.null(source_file)) {
+    cat("Source: ", source_file, "\n")
+  }
+  lang <- NULL
+  if (!is.null(x$metadata)) {
+    lang <- x$metadata$source_language %||% x$metadata$language
+  }
+  if (is.null(lang) && !is.null(x$language)) {
+    lang <- x$language
+  }
+  if (is.null(lang)) {
+    lang <- attr(x, "language", exact = TRUE)
+  }
+  if (!is.null(lang)) {
+    cat("Language: ", lang, "\n")
   }
   cat("Sets: ", length(x$sets), "\n")
   cat("Mappings: ", length(x$mappings), "\n")

@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.0.1.9005</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.0.9007</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -43,11 +43,26 @@
       <ul class="navbar-nav me-auto">
 <li class="nav-item"><a class="nav-link" href="../articles/multimod.html">Get started</a></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="active nav-item"><a class="nav-link" href="../articles/roadmap.html">{dev-status}</a></li>
+<li class="active nav-item"><a class="nav-link" href="../articles/roadmap.html">Development Status</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-tutorials" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Tutorials</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials">
-<li><h6 class="dropdown-header" data-toc-skip>AST</h6></li>
+<li><h6 class="dropdown-header" data-toc-skip>Getting Started</h6></li>
+    <li><a class="dropdown-item" href="../articles/multimod.html">Overview</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Code Generation</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>JuMP Integration</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>GMPL Integration</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Pyomo Integration</h6></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Model Management</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Configuration System</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Model Workspace</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>LaTeX Generation</h6></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Advanced</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Model Optimization (Folding &amp; Trimming)</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Abstract Syntax Tree (AST)</h6></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
@@ -91,69 +106,194 @@
 development. This document outlines current capabilities, design scope,
 limitations, and roadmap for future enhancements.</p>
 <div class="section level2">
-<h2 id="target-releases">🚀 Target Releases<a class="anchor" aria-label="anchor" href="#target-releases"></a>
+<h2 id="current-status-december-2025">Current Status (December 2025)<a class="anchor" aria-label="anchor" href="#current-status-december-2025"></a>
 </h2>
-<p>v0.1: GAMS reader and writer, basic AST, LaTeX exporter (internal
-use)</p>
-<p>v0.2: JuMP export and basic reader, full AST, model consistency
-checks</p>
-<p>v0.3: Pyomo, GMPL export, basic readers, updated LaTeX exporter</p>
-<p>v0.4: Data connection (<code>energyRt</code>), automated mapping
-parameters</p>
-<p>v0.5: Parameter folding, equation simplification, equations to
-R-functions</p>
-<p>v1.0: Polished release with tests, tutorials, CRAN-ready</p>
-<p>Expected timeline: 6-12 months for v1.0 (starting from June 2025),
-with incremental releases every 1-3 months.</p>
+<p><strong>Version 0.4+ (Development)</strong> - Core features
+implemented, API stabilization in progress</p>
+<p><strong>WARNING</strong>: All implementations are in active
+development stage - APIs may change, edge cases remain</p>
+<p>The package has progressed significantly beyond initial roadmap
+milestones: - [✓] Configuration system for solver paths<br>
+- [✓] Model storage (CSV, IPC, Parquet formats)<br>
+- [✓] Parameter folding and model trimming<br>
+- [✓] Comprehensive vignettes and documentation<br>
+- [~] Readers/writers implementation and testing<br>
+- [~] API stabilization and architecture decisions</p>
 <hr>
 </div>
 <div class="section level2">
-<h2 id="whats-implemented">✔️ What’s Implemented<a class="anchor" aria-label="anchor" href="#whats-implemented"></a>
+<h2 id="whats-implemented">What’s Implemented<a class="anchor" aria-label="anchor" href="#whats-implemented"></a>
 </h2>
+<div class="section level3">
+<h3 id="core-functionality">Core Functionality<a class="anchor" aria-label="anchor" href="#core-functionality"></a>
+</h3>
 <ul>
-<li>GAMS-style equation parsing into symbolic abstract syntax trees
-(AST)</li>
-<li>Structured representation of:
+<li>
+<strong>Readers</strong>:
 <ul>
-<li>Sets</li>
-<li>Parameters</li>
-<li>Variables</li>
-<li>Mappings</li>
-<li>Equations and constraints</li>
+<li>GAMS: Basic support for linear models (limited to core
+features)</li>
+<li>GMPL: Implemented but cannot parse expressions in set definitions,
+missing some language features</li>
+<li>JuMP: Not yet implemented</li>
+<li>Pyomo: Not yet implemented</li>
 </ul>
 </li>
-<li>Rendering of equations to:
+<li>
+<strong>Writers</strong> (in testing):
 <ul>
-<li>GAMS</li>
-<li>LaTeX</li>
-<li>Julia/JuMP (in progress)</li>
+<li>GAMS: Not yet implemented</li>
+<li>GMPL: Implemented, active testing</li>
+<li>JuMP: Implemented, active testing</li>
+<li>Pyomo: Implemented, active testing</li>
+<li>LaTeX: Implemented, functional</li>
 </ul>
 </li>
-<li>Expression tree visualization with <strong>visNetwork</strong>
+<li>
+<strong>AST</strong>: Complete abstract syntax tree representation
+for linear models</li>
+<li>
+<strong>Solvers</strong>: Integration with GLPK, CBC, HiGHS, CPLEX,
+Gurobi (via external calls)</li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="advanced-features">Advanced Features<a class="anchor" aria-label="anchor" href="#advanced-features"></a>
+</h3>
+<ul>
+<li>
+<strong>Parameter Folding</strong>: Automated dimensionality
+reduction for uniform parameters</li>
+<li>
+<strong>Model Trimming</strong>: Remove unused sets, parameters,
+variables, and equations</li>
+<li>
+<strong>Model Storage</strong>: Save/load models in CSV, Apache
+Arrow IPC, or Parquet formats</li>
+<li>
+<strong>Configuration System</strong>: Multi-tier configuration (R
+options → env vars → YAML → auto-detect)</li>
+<li>
+<strong>In-Memory Parsing</strong>: Readers accept file paths or
+character vectors</li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="data-integration-connectivity">Data Integration &amp; Connectivity<a class="anchor" aria-label="anchor" href="#data-integration-connectivity"></a>
+</h3>
+<ul>
+<li>
+<strong>Storage Formats</strong>:
+<ul>
+<li>Apache Arrow IPC (fast, type-safe, binary)</li>
+<li>Apache Parquet (compressed, columnar)</li>
+<li>CSV (human-readable, portable)</li>
+</ul>
 </li>
-<li>Basic symbolic simplification</li>
-<li>Integration with <code>energyRt</code> data structures</li>
+<li>
+<strong>Data Sources</strong>:
+<ul>
+<li>Import from <code>energyRt</code> package structures</li>
+<li>Import OSeMOSYS model data</li>
+<li>Link to external Arrow/Parquet datasets for lazy loading</li>
+</ul>
+</li>
+<li>
+<strong>Model Export Modes</strong>:
+<ul>
+<li>
+<strong>Embedded data</strong>: For small models (data included in
+generated code)</li>
+<li>
+<strong>External data</strong>: For large models (code connects to
+Arrow repository)</li>
+<li>Python/Pyomo and Julia/JuMP support both modes</li>
+</ul>
+</li>
+<li>
+<strong>Functions</strong>: <code><a href="../reference/save_model.html">save_model()</a></code>,
+<code><a href="../reference/load_model.html">load_model()</a></code>, <code><a href="../reference/import_energyRt_data.html">import_energyRt_data()</a></code>,
+<code><a href="../reference/link_scenario_data.html">link_scenario_data()</a></code>
+</li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="documentation-visualization">Documentation &amp; Visualization<a class="anchor" aria-label="anchor" href="#documentation-visualization"></a>
+</h3>
+<ul>
+<li>
+<strong>LaTeX Generation</strong>: Publication-ready mathematical
+documentation with annotations</li>
+<li>
+<strong>Expression Visualization</strong>: Interactive AST
+visualization with visNetwork</li>
+<li>
+<strong>Comprehensive Vignettes</strong>: 10+ vignettes covering
+major features</li>
+<li>
+<strong>Example Models</strong>: Unified dataset with energyRt and
+OSeMOSYS examples</li>
+</ul>
+<hr>
+</div>
+</div>
+<div class="section level2">
+<h2 id="current-limitations">Current Limitations<a class="anchor" aria-label="anchor" href="#current-limitations"></a>
+</h2>
+<p><strong>WARNING</strong>: All features are experimental and subject
+to change</p>
+<ul>
+<li>
+<strong>Optimization Types</strong>: Primarily designed for linear
+programming (LP) models
+<ul>
+<li>Nonlinear expressions have basic AST support but limited
+implementation</li>
+<li>Integer/binary variables supported in AST but not all writers</li>
+</ul>
+</li>
+<li>
+<strong>Model Scope</strong>: Designed around energy system models
+(<code>energyRt</code>, OSeMOSYS structures)
+<ul>
+<li>Can handle general LP models but may require adaptation</li>
+</ul>
+</li>
+<li>
+<strong>Parser Completeness</strong>:
+<ul>
+<li>
+<strong>GAMS</strong>: Basic reader for linear models, many advanced
+features not supported</li>
+<li>
+<strong>GMPL</strong>: Cannot parse expressions in set definitions,
+missing language features</li>
+<li>
+<strong>JuMP</strong>: Reader not yet implemented</li>
+<li>
+<strong>Pyomo</strong>: Reader not yet implemented</li>
+</ul>
+</li>
+<li>
+<strong>Writer Maturity</strong>:
+<ul>
+<li>
+<strong>GAMS</strong>: Not yet implemented</li>
+<li>
+<strong>GMPL/JuMP/Pyomo</strong>: In active testing, edge cases
+remain</li>
+<li>
+<strong>LaTeX</strong>: Stable</li>
+</ul>
+</li>
+<li>
+<strong>API Stability</strong>: Function signatures and class
+structures may change as we stabilize the architecture</li>
 </ul>
 <hr>
 </div>
 <div class="section level2">
-<h2 id="current-limitations">🔒 Current Limitations<a class="anchor" aria-label="anchor" href="#current-limitations"></a>
-</h2>
-<ul>
-<li>Limited to <strong>linear programming (LP)</strong> models only</li>
-<li>Designed closely around the <code>energyRt</code> models
-structure</li>
-<li>Only GAMS input is currently supported</li>
-<li>No general-purpose parsing of other languages like JuMP, Pyomo, or
-AMPL</li>
-<li>Not intended to convert arbitrary code or full model
-definitions</li>
-<li>No direct support for model data input/output formats</li>
-</ul>
-<hr>
-</div>
-<div class="section level2">
-<h2 id="project-philosophy">🎯 Project Philosophy<a class="anchor" aria-label="anchor" href="#project-philosophy"></a>
+<h2 id="project-philosophy">Project Philosophy<a class="anchor" aria-label="anchor" href="#project-philosophy"></a>
 </h2>
 <p>The goal of <code>multimod</code> is <strong>not</strong> to automate
 full model translation or parsing. Instead, it aims to:</p>
@@ -169,63 +309,160 @@ hand, especially during development, testing, or educational use.</p>
 <hr>
 </div>
 <div class="section level2">
-<h2 id="potential-use-cases">🧭 Potential Use Cases<a class="anchor" aria-label="anchor" href="#potential-use-cases"></a>
+<h2 id="potential-use-cases">Potential Use Cases<a class="anchor" aria-label="anchor" href="#potential-use-cases"></a>
 </h2>
 <ul>
-<li>Model prototyping and equation editing</li>
-<li>Generation of readable documentation (e.g., LaTeX equation
-listings)</li>
-<li>Translating symbolic equations across modeling languages (e.g., GAMS
-⇄ JuMP ⇄ Pyomo)</li>
-<li>Structural visualization for debugging or collaboration</li>
-<li>Teaching optimization model structure and indexing concepts</li>
+<li>
+<strong>Model Development</strong>: Prototype and refine
+optimization models across languages</li>
+<li>
+<strong>Cross-Platform Translation</strong>: Convert models between
+GAMS, JuMP, Pyomo, GMPL</li>
+<li>
+<strong>Documentation</strong>: Generate publication-ready LaTeX
+documentation with equations</li>
+<li>
+<strong>Model Optimization</strong>: Apply folding and trimming to
+reduce model size</li>
+<li>
+<strong>Debugging</strong>: Visualize model structure and equation
+dependencies</li>
+<li>
+<strong>Teaching</strong>: Educational tool for understanding
+optimization model structure</li>
+<li>
+<strong>Collaboration</strong>: Share models in language-agnostic
+format</li>
+<li>
+<strong>Model Storage</strong>: Efficiently save/load large models
+with structured data formats</li>
 </ul>
 <hr>
 </div>
 <div class="section level2">
-<h2 id="planned-features">🔜 Planned Features<a class="anchor" aria-label="anchor" href="#planned-features"></a>
+<h2 id="roadmap-to-v1-0">Roadmap to v1.0<a class="anchor" aria-label="anchor" href="#roadmap-to-v1-0"></a>
 </h2>
+<div class="section level3">
+<h3 id="immediate-priorities-v0-6-0-8">Immediate Priorities (v0.6-0.8)<a class="anchor" aria-label="anchor" href="#immediate-priorities-v0-6-0-8"></a>
+</h3>
+<p><strong>Architecture &amp; API Stabilization</strong>: - [~]
+Migration from S3 to R6/S7 class system<br>
+- [~] Front-end API design and stabilization<br>
+- [~] Finalize function naming conventions</p>
+<p><strong>API Revision, Unification &amp; Simplification</strong>: - [
+] Consolidate overlapping functions with inconsistent interfaces<br>
+- [ ] Establish unified parameter naming conventions across all
+functions<br>
+- [ ] Simplify data format handling (reduce format-specific function
+variants)<br>
+- [ ] Create consistent return value structures (standardize output
+formats)<br>
+- [ ] Design clear separation between user-facing and internal
+functions<br>
+- [ ] Implement <code>@keywords internal</code> for internal helpers to
+clean up documentation<br>
+- [ ] Unify error/warning messaging patterns across the package<br>
+- [ ] Standardize default argument values and behavior<br>
+- [ ] Create function families with predictable naming patterns:<br>
+- <code>read_*()</code> / <code>write_*()</code> for I/O
+operations<br>
+- <code>as_*()</code> for format conversion<br>
+- <code>load_*()</code> / <code>save_*()</code> for data
+persistence<br>
+- <code>parse_*()</code> for parsing operations<br>
+- <code>validate_*()</code> for validation checks<br>
+- [ ] Reduce exported function count (move internal utilities to package
+namespace)<br>
+- [ ] Design fluent API patterns for common workflows (e.g., model
+%&gt;% fold_model() %&gt;% trim_model())</p>
+<p><strong>Reader/Writer Completion</strong>:<br>
+- [ ] Basic GAMS reader - [ ] Implement GAMS writer<br>
+- [ ] Implement JuMP reader<br>
+- [ ] Implement Pyomo reader<br>
+- [ ] Finalize GMPL reader (handle set expressions, missing
+features)<br>
+- [~] Complete testing of GMPL/JuMP/Pyomo writers</p>
+<p><strong>Core Improvements</strong>: - [ ] Enhanced parser error
+messages and diagnostics - [ ] Performance optimization for large models
+- [ ] Extended test coverage (&gt;80% goal)</p>
+</div>
+<div class="section level3">
+<h3 id="v1-0-release-goals">v1.0 Release Goals<a class="anchor" aria-label="anchor" href="#v1-0-release-goals"></a>
+</h3>
 <ul>
-<li>Input parsing support for:
-<ul>
-<li><code>read_jump()</code></li>
-<li><code>read_pyomo()</code></li>
-<li><code>read_gmpl()</code></li>
+<li>Stable API with R6/S7 classes</li>
+<li>Basic reader/writer suite for GAMS, GMPL, JuMP, Pyomo</li>
+<li>Comprehensive documentation and vignettes</li>
+<li>Full test suite with edge case coverage</li>
+<li>CRAN submission readiness</li>
 </ul>
-</li>
-<li>Output rendering to:
-<ul>
-<li>Pyomo, AMPL, GMPL</li>
-<li>Equation simplification and data-driven dimensions reduction
-(“folding”)</li>
-</ul>
-</li>
-<li>(Potential) support for:
-<ul>
-<li>MPS, CPLEX, Gurobi, other formats</li>
-<li>Nonlinear expressions</li>
-<li>Integer/binary variables</li>
-<li>Equation grouping, tagging, and metadata</li>
-</ul>
-</li>
-<li>Enhanced IDE or browser-based visualizations</li>
-</ul>
+</div>
+<div class="section level3">
+<h3 id="long-term-vision-v2-0">Long-Term Vision (v2.0+)<a class="anchor" aria-label="anchor" href="#long-term-vision-v2-0"></a>
+</h3>
+<p><strong>Performance &amp; Scalability</strong>: - C++ core
+implementation for speed - Python API - Julia API</p>
+<p><strong>Advanced Features</strong>: - {AMPL reader/writer} - MPS/LP
+file format support - Equation simplification using symbolic algebra -
+Automated redundancy detection with safety checks - Automated
+data-driven mapping generation - Direct solver API integration (bypass
+file I/O)</p>
+<p><strong>Tooling</strong>: - Interactive model explorer (Shiny app) -
+Equation dependency graphs - Sensitivity analysis tools - Model
+comparison utilities</p>
 <hr>
 </div>
+</div>
 <div class="section level2">
-<h2 id="contributing-sponsorship">🤝 Contributing &amp; Sponsorship<a class="anchor" aria-label="anchor" href="#contributing-sponsorship"></a>
+<h2 id="contributing-support">Contributing &amp; Support<a class="anchor" aria-label="anchor" href="#contributing-support"></a>
 </h2>
-<p>The package is under active development. Contributions are
+<p>The package is under active development and contributions are
 welcome!</p>
-<p>Ways to help:</p>
+<div class="section level3">
+<h3 id="ways-to-contribute">Ways to Contribute<a class="anchor" aria-label="anchor" href="#ways-to-contribute"></a>
+</h3>
 <ul>
-<li>Open issues for bugs, feature requests, or improvements</li>
-<li>Propose support for new modeling targets</li>
-<li>Share use cases or example models</li>
-<li>Sponsor development of specific features (e.g., Pyomo exporter)</li>
+<li>
+<strong>Bug Reports</strong>: Open issues on GitHub for any bugs or
+unexpected behavior</li>
+<li>
+<strong>Feature Requests</strong>: Suggest new features or
+improvements</li>
+<li>
+<strong>Code Contributions</strong>: Submit pull requests with bug
+fixes or enhancements</li>
+<li>
+<strong>Documentation</strong>: Improve vignettes, examples, or
+function documentation</li>
+<li>
+<strong>Testing</strong>: Help test with different models and edge
+cases</li>
+<li>
+<strong>Use Cases</strong>: Share your experiences and
+workflows</li>
 </ul>
-<p>For contributions, visit: <a href="https://github.com/optimal2050/multimod" class="external-link">https://github.com/optimal2050/multimod</a><br>
-Contact: <a href="mailto:supportopensource@optimalsolution.dev" class="email">supportopensource@optimalsolution.dev</a></p>
+</div>
+<div class="section level3">
+<h3 id="development-priorities">Development Priorities<a class="anchor" aria-label="anchor" href="#development-priorities"></a>
+</h3>
+<p>Current focus areas (contributions especially welcome): 1. Parser
+robustness for edge cases 2. Performance optimization for large models
+3. Additional example models and workflows 4. Extended test coverage</p>
+</div>
+<div class="section level3">
+<h3 id="get-involved">Get Involved<a class="anchor" aria-label="anchor" href="#get-involved"></a>
+</h3>
+<ul>
+<li>
+<strong>GitHub</strong>: <a href="https://github.com/energyRt/multimod" class="external-link">https://github.com/energyRt/multimod</a>
+</li>
+<li>
+<strong>Issues</strong>: <a href="https://github.com/energyRt/multimod/issues" class="external-link">https://github.com/energyRt/multimod/issues</a>
+</li>
+<li>
+<strong>Contact</strong>: Open an issue or discussion on GitHub</li>
+</ul>
+</div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
@@ -238,7 +475,7 @@ Contact: <a href="mailto:supportopensource@optimalsolution.dev" class="email">su
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.3.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
 </div>
 
     </footer>

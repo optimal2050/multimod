@@ -10,6 +10,11 @@ new_parameter(
   dims,
   active_dims = NULL,
   data = NULL,
+  defVal = NULL,
+  defInt = NULL,
+  symbolic = FALSE,
+  formula = NULL,
+  comment = NULL,
   auto_fold = FALSE
 )
 }
@@ -21,6 +26,8 @@ new_parameter(
 \item{active_dims}{character vector, names of the active dimensions}
 
 \item{data}{data frame, data for the parameter}
+
+\item{comment}{character, comment line from source file (e.g., *@ domain hint)}
 
 \item{auto_fold}{logical, whether to automatically fold dimensions}
 }

@@ -32,10 +32,33 @@ navbar:
     articles:
       text: Tutorials
       menu:
-      - text: AST
-        # href: articles/install.html
+      - text: "Getting Started"
+      - text: Overview
+        href: articles/multimod.html
+      - text: "---"
+      - text: "Code Generation"
+      - text: JuMP Integration
+        # href: articles/jump.html
+      - text: GMPL Integration
+        # href: articles/gmpl.html
+      - text: Pyomo Integration
+        # href: articles/pyomo.html
+      - text: "---"
+      - text: "Model Management"
+      - text: Configuration System
+        # href: articles/configuration.html
+      - text: Model Workspace
+        # href: articles/model_workspace.html
+      - text: LaTeX Generation
+        # href: articles/latex.html
+      - text: "---"
+      - text: "Advanced"
+      - text: Model Optimization (Folding & Trimming)
+        # href: articles/folding.html
+      - text: Abstract Syntax Tree (AST)
+        # href: articles/ast.html
     roadmap:
-      text: "{dev-status}"
+      text: "Development Status"
       href: articles/roadmap.html
 
 reference:
@@ -77,6 +100,15 @@ reference:
   - starts_with("write_gams")
   - matches("gams")
 
+- title: GMPL-related functions
+  desc:  Functions to read GMPL models and convert multimod objects to GMPL code.
+  contents:
+  - starts_with("read_gmpl")
+  - starts_with("as_gmpl")
+  - starts_with("write_gmpl")
+  - export_glpk_model
+  - matches("gmpl")
+
 - title: JuMP/Julia-related functions
   desc:  Functions to read JuMP models and convert multimod objects to JuMP code.
   contents:
@@ -85,9 +117,111 @@ reference:
   - starts_with("write_jump")
   - matches("jump")
 
-- title: utility functions
+- title: Pyomo/Python-related functions
+  desc:  Functions to convert multimod objects to Pyomo code.
+  contents:
+  - starts_with("read_pyomo")
+  - starts_with("as_pyomo")
+  - starts_with("write_pyomo")
+  - matches("pyomo")
+
+- title: Configuration and Environment
+  desc:  Functions for configuring solver paths and Python/Julia environments.
+  contents:
+  - get_multimod_python
+  - get_multimod_julia
+  - get_multimod_glpsol
+  - set_multimod_python
+  - set_multimod_julia
+  - set_multimod_glpsol
+  - starts_with("multimod_config")
+  - setup_python_environment
+
+- title: Folding functions
+  desc:  Functions for parameter folding to reduce model size by eliminating redundant dimensions.
+  contents:
+  - starts_with("fold_")
+  - create_fold_spec
+  - create_fold_spec_energyRt
+  - analyze_parameter_redundancy
+  - analyze_dimension_redundancy
+  - get_fold_summary
+  - is_folded
+  - get_active_dims
+  - unfold_model
+
+- title: Trimming functions
+  desc:  Functions for model trimming to remove unused elements (empty data, unused variables, dead branches).
+  contents:
+  - starts_with("trim_")
+  - starts_with("untrim_")
+  - get_trim_summary
+  - is_trimmed
+
+- title: Model workspace and data management
+  desc:  Functions for saving/loading models and managing model workspaces with multiple data formats.
+  contents:
+  - save_model
+  - load_model
+  - get_data
+  - update_parameter
+  - update_mapping
+  - save_parameter
+  - import_energyRt_data
+  - populate_sets_from_scenario
+  - link_scenario_data
+  - import_osemosys_data
+  - export_osemosys_to_csv
+  - export_model_source
+  - add_set_data
+  - export_import_log_from_model
+
+- title: Solver integration
+  desc:  Functions for solving models and loading solutions.
+  contents:
+  - solve_jump
+  - solve_pyomo
+  - solve_glpk
+  - starts_with("execute_")
+
+- title: Model comparison and debugging
+  desc:  Functions for comparing models, solutions, and debugging model generation.
+  contents:
+  - starts_with("compare_")
+
+- title: Index aliases and mapping
+  desc: Functions for managing index aliases and domain extraction.
+  contents:
+  - generate_index_alias
+  - generate_index_aliases
+  - add_index_aliases
+  - has_index_aliases
+  - en_extract_domains_from_comments
+
+- title: Parameter evaluation and analysis
+  desc: Functions for evaluating parameters and analyzing folding opportunities.
+  contents:
+  - evaluate_parameters
+  - analyze_fold_opportunities
+  - has_ast_formulas
+
+- title: AST conversion to R
+  desc: Functions for converting AST to R code.
+  contents:
+  - as_r
+  - as_r.ast_formula
+  - as_rfunction
+  - collect_ast_classes
+
+- title: Data and examples
+  desc: Example datasets and models.
+  contents:
+  - example_models
+
+- title: Utility functions
   desc:  Utility functions for multimod.
   contents:
+  - validate
   - starts_with("get_")
   - starts_with("set_")
   - starts_with("is_")
@@ -101,6 +235,23 @@ reference:
   - matches("brackets")
   - matches("resolve|node|split|map_")
   - matches("build_symbols_list")
+
+- title: Internal and helper functions
+  desc: Internal functions and helpers (typically not called directly by users).
+  contents:
+  - starts_with("load_")
+  - starts_with("save_")
+  - starts_with("log_")
+  - starts_with("restore_")
+  - starts_with("populate_")
+  - starts_with("register_")
+  - make_valid
+  - quick_compare
+  - mps_matrix_long
+  - osemosys_dat_to_model
+  - read_osemosys_dat
+  - read_csv_results
+  - load_osemosys_from_csv
 
 - title: visualization
   desc:  Visualization functions for multimod.

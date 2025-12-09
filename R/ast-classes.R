@@ -92,28 +92,76 @@ ast_dims <- function(...) {
   }
   dims <- args
 
+  is_simple_identifier <- function(value) {
+    is.character(value) && length(value) == 1 && !is.na(value) &&
+      grepl("^[A-Za-z][A-Za-z0-9_]*$", value)
+  }
+
   if (length(dims) == 0 || (length(dims) == 1 && is_empty(dims[[1]]))) {
     # empty
     return(new_ast("dims"))
   }
+
+  # Preserve names before any transformations
+  dims_names <- names(dims)
+
+  flatten_dim_entries <- function(items) {
+    out <- list()
+    for (item in items) {
+      if (inherits(item, "ast")) {
+        out[[length(out) + 1]] <- item
+        next
+      }
+      if (is.list(item) && !inherits(item, "ast")) {
+        # Recursively flatten plain lists (e.g., build_stage = list("NODE", "TECH"))
+        sub_items <- flatten_dim_entries(item)
+        if (length(sub_items)) {
+          out <- c(out, sub_items)
+        }
+        next
+      }
+      if (is.atomic(item) && length(item) > 1) {
+        # Multiple identifiers packaged together; expand into scalars
+        out <- c(out, as.list(item))
+        next
+      }
+      out[[length(out) + 1]] <- item
+    }
+    out
+  }
+
+  dims <- flatten_dim_entries(dims)
+
   # check if ... is an unnamed list of objects
   if (length(dims) == 1 && !inherits(dims, "ast") &&
       #is.null(names(dims)) &&
       (is.list(dims[[1]]) || is.vector(dims[[1]]))
       ) {
-    dims <- dims[[1]]
+    # Unwrap single-element list but preserve names if they exist
+    if (!is.null(dims_names) && !is.na(dims_names[1]) && dims_names[1] != "") {
+      # Keep as list to preserve name
+      # dims stays as is
+    } else {
+      dims <- dims[[1]]
+      dims_names <- names(dims)  # Get names from unwrapped list
+    }
   }
-
-  cls <- sapply(dims, function(x) class(x)[1])
 
   dims <- lapply(dims, function(x) {
     # browser()
     if (inherits(x, "ast")) {
       return(x)
-    } else {
-      return(parse_gams_expr(x, symbols = symb_list))
     }
+    if (is_simple_identifier(x)) {
+      return(ast_symbol(x))
+    }
+    ast_parse_expr(x, symbols = symb_list)
   })
+
+  # Restore names after lapply where the original length still matches.
+  if (!is.null(dims_names) && length(dims_names) == length(dims)) {
+    names(dims) <- dims_names
+  }
 
   # if (all(cls %in% c("set", "symbol"))) {
   #   # pass
@@ -140,6 +188,7 @@ ast_dims <- function(...) {
 #' @export
 ast_mapping <- function(name, dims = ast_dims(), ...) {
   stopifnot(is.character(name))
+  stopifnot(length(name) == 1)
   # stopifnot(is.character(dims))
   stopifnot(length(dims) > 0)
   # if (!is.null(domain)) {
@@ -161,7 +210,12 @@ ast_mapping <- function(name, dims = ast_dims(), ...) {
 #' @export
 ast_variable <- function(name, dims = ast_dims(), vtype = NULL, bounds = NULL, ...) {
   stopifnot(is.character(name))
-  new_ast("variable", name = name, dims = dims, vtype, bounds, ...)
+  stopifnot(length(name) == 1)
+  # Only include non-NULL optional arguments
+  args <- list(name = name, dims = dims, ...)
+  if (!is.null(vtype)) args$vtype <- vtype
+  if (!is.null(bounds)) args$bounds <- bounds
+  do.call(new_ast, c(list("variable"), args))
 }
 
 #' Create a parameter AST node
@@ -173,6 +227,7 @@ ast_variable <- function(name, dims = ast_dims(), vtype = NULL, bounds = NULL, .
 #' @export
 ast_parameter <- function(name, dims = ast_dims(), ...) {
   stopifnot(is.character(name))
+  stopifnot(length(name) == 1)
   new_ast("parameter", name = name, dims = dims, ...)
 }
 
@@ -184,7 +239,31 @@ ast_parameter <- function(name, dims = ast_dims(), ...) {
 #' @export
 ast_symbol <- function(name, ...) {
   stopifnot(is.character(name))
+  stopifnot(length(name) == 1)
   new_ast("symbol", name = name, ...)
+}
+
+#' Create an index shift AST node for ordered set references
+#'
+#' Constructs a shifted index reference for ordered sets (e.g., YEAR, SEASON).
+#' Used for GAMS lag/lead operators like `y-1` (previous year) or `y+1` (next year).
+#' Negative offset represents backward shift (lag), positive represents forward shift (lead).
+#'
+#' @param symbol A character string representing the index symbol (e.g., "y", "ls", "ld").
+#' @param offset An integer offset. Negative for backward shift (e.g., -1 for y-1), positive for forward shift (e.g., +1 for y+1).
+#'
+#' @return A `shift` S3 object (subclass of `ast`).
+#' @export
+#' @examples
+#' ast_shift("y", -1)  # y-1 (previous year)
+#' ast_shift("y", 1)   # y+1 (next year)
+#' ast_shift("ls", -1) # ls-1 (previous season)
+ast_shift <- function(symbol, offset, ...) {
+  stopifnot(is.character(symbol), length(symbol) == 1)
+  stopifnot(is.numeric(offset), length(offset) == 1)
+  stopifnot(offset == round(offset))  # must be integer
+  stopifnot(offset != 0)  # zero offset doesn't make sense
+  new_ast("shift", symbol = symbol, offset = as.integer(offset), ...)
 }
 
 #' Create a constant AST node
@@ -401,9 +480,11 @@ ast_equation <- function(lhs, rhs, relation = "==",
 #'
 #' @param name A character string representing the name of the reference,
 #' matching the name of the symbol replacing AST node or a branch of the AST.
-#' @param ...
+#' @param content The AST content
+#' @param hash Hash value for the node
+#' @param ... Additional attributes
 #'
-#' @returns
+#' @returns An AST where node
 #' @export
 ast_where <- function(name, content, hash = node_hash(content), ...) {
   stopifnot(is.character(name))
@@ -484,4 +565,146 @@ node_hash <- function(node, algo = NULL) {
   digest::digest(ast_clean, algo = algo)
 }
 
+
+
+#' Create a function call AST node
+#'
+#' Constructs an AST node representing a function call with arguments.
+#' This is similar to ast_func but specifically for function calls in expressions.
+#'
+#' @param name Character string, function name
+#' @param args List of AST nodes representing arguments
+#' @return An object of class `ast` and `call`
+#' @export
+ast_call <- function(name, args = list()) {
+  stopifnot(is.character(name), length(name) == 1)
+  stopifnot(is.list(args))
+  stopifnot(all(sapply(args, inherits, "ast")))
+  new_ast("call", name = name, args = args)
+}
+
+#' Create a set minimum AST node
+#'
+#' Constructs an AST node representing a minimum over a set index.
+#' This is distinct from numeric min() functions.
+#'
+#' @param index An AST node representing the index set
+#' @param value An AST node representing the value expression
+#' @return An object of class `ast` and `setmin`
+#' @export
+ast_setmin <- function(index, value) {
+  stopifnot(inherits(index, "ast"))
+  stopifnot(inherits(value, "ast"))
+  new_ast("setmin", index = index, value = value)
+}
+
+#' Create a set maximum AST node
+#'
+#' Constructs an AST node representing a maximum over a set index.
+#' This is distinct from numeric max() functions.
+#'
+#' @param index An AST node representing the index set
+#' @param value An AST node representing the value expression
+#' @return An object of class `ast` and `setmax`
+#' @export
+ast_setmax <- function(index, value) {
+  stopifnot(inherits(index, "ast"))
+  stopifnot(inherits(value, "ast"))
+  new_ast("setmax", index = index, value = value)
+}
+
+# ========================================================================== #
+# Helper utilities for AST parser selection
+
+#' Resolve the parsing language for AST helpers
+#'
+#' @param language Explicit language override (e.g., "gams", "gmpl").
+#' @param symbols Symbol table or similar object that may carry a `language` field/attribute.
+#' @param context Optional object (model structure, builder) that exposes `$language` or a
+#'   `language` attribute.
+#' @keywords internal
+resolve_ast_language <- function(language = NULL, symbols = NULL, context = NULL) {
+  if (!is.null(language)) {
+    candidate <- language
+  } else {
+    candidate <- first_non_null(
+      extract_language(context),
+      extract_language(symbols)
+    )
+  }
+
+  if (is.null(candidate)) {
+    stop("Parser language is not defined. Pass `language`, or attach it to `symbols`/`context` via $language or metadata$source_language.")
+  }
+
+  lang <- as.character(candidate)[1]
+  if (is.na(lang) || !nzchar(lang)) {
+    stop("Parser language is empty. Provide an explicit language identifier (e.g., 'gams', 'gmpl').")
+  }
+
+  tolower(lang)
+}
+
+# Return first non-null element
+first_non_null <- function(...) {
+  args <- list(...)
+  for (arg in args) {
+    if (!is.null(arg) && length(arg) > 0) {
+      return(arg)
+    }
+  }
+  NULL
+}
+
+extract_language <- function(obj) {
+  if (is.null(obj)) return(NULL)
+
+  if (!is.null(obj$language)) {
+    return(obj$language)
+  }
+
+  if (!is.null(obj$metadata)) {
+    metadata_lang <- obj$metadata$source_language %||% obj$metadata$language
+    if (!is.null(metadata_lang)) {
+      return(metadata_lang)
+    }
+  }
+
+  attr(obj, "language", exact = TRUE)
+}
+
+normalize_ast_language <- function(language) {
+  if (is.null(language)) return("gams")
+  lang <- tolower(language)
+  if (lang %in% c("gmpl", "glpk", "mathprog")) {
+    return("gmpl")
+  }
+  lang
+}
+
+get_ast_parser <- function(language) {
+  lang <- normalize_ast_language(language)
+  if (lang == "gams") {
+    return(parse_gams_expr)
+  } else if (lang == "gmpl") {
+    return(parse_gmpl_expr)
+  }
+  stop("No AST parser registered for language: ", language)
+}
+
+#' Language-aware AST expression parser
+#'
+#' @keywords internal
+ast_parse_expr <- function(expr, symbols = NULL, language = NULL, context = NULL, ...) {
+  if (inherits(expr, "ast")) return(expr)
+
+  lang <- resolve_ast_language(language, symbols, context)
+  parser <- get_ast_parser(lang)
+
+  if (is.null(symbols)) {
+    symbols <- list()
+  }
+
+  parser(expr, symbols = symbols, ...)
+}
 

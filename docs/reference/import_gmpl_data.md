@@ -1,0 +1,70 @@
+# Import GMPL Data to Model
+
+Read a GMPL data file and populate a multimod model's sets and
+parameters. This is more efficient for large models as it directly
+populates the model and can save to CSV/arrow format.
+
+## Usage
+
+``` r
+import_gmpl_data(
+  model,
+  gmpl_data,
+  model_path = NULL,
+  format = c("memory", "csv", "arrow"),
+  verbose = FALSE
+)
+```
+
+## Arguments
+
+- model:
+
+  A multimod model object
+
+- gmpl_data:
+
+  Path to GMPL data file, character vector of data file contents, or a
+  list from read_gmpl_data()
+
+- model_path:
+
+  Optional path to save parameter data as CSV files (default: model's
+  base_path)
+
+- format:
+
+  Data storage format: "memory" (default), "csv", or "arrow"
+
+- verbose:
+
+  Logical. If TRUE, print progress (default FALSE)
+
+## Value
+
+Updated model object with populated sets and parameters
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+# Read model structure
+model <- read_gmpl("osemosys.txt", as_multimod = TRUE)
+
+# Import data from file
+model <- import_gmpl_data(model, gmpl_data = "utopia.txt")
+
+# Import from character vector (e.g., package data)
+data(example_models)
+model <- import_gmpl_data(model, gmpl_data = example_models$OSeMOSYS$gmpl$data)
+
+# Or import pre-parsed data
+data <- read_gmpl_data("utopia.txt")
+model <- import_gmpl_data(model, gmpl_data = data)
+
+# Save to specific directory as CSV
+model <- import_gmpl_data(model, gmpl_data = "utopia.txt",
+                          model_path = "path/to/model/data",
+                          format = "csv")
+} # }
+```

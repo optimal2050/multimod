@@ -15,13 +15,27 @@
   author = x$authors,
   show_date = TRUE,
   subsection_number = TRUE,
+  model_view = c("reduced", "full", "both"),
+  include_data = TRUE,
+  data_detail = c("brief", "detailed"),
+  set_display_max_inline = 10,
+  set_display_head_tail_threshold = 100,
+  set_display_head_n = 3,
+  set_display_tail_n = 3,
+  include_toc = FALSE,
   include_sets = TRUE,
   include_aliases = TRUE,
+  include_index_aliases = TRUE,
   include_parameters = TRUE,
   include_variables = TRUE,
   include_equations = TRUE,
+  include_mappings = TRUE,
   eq_substitute = list(when = "condition"),
   alias_map = NULL,
+  use_model_aliases = TRUE,
+  use_aliases_in_declarations = FALSE,
+  folded_color = "blue",
+  trimmed_color = "red",
   verbose = FALSE,
   ...
 )
@@ -35,8 +49,50 @@
 
 \item{subsection_number}{Logical; if \code{TRUE}, includes subsection numbering in the LaTeX output.}
 
+\item{model_view}{Character; display mode: "reduced" (folded dims, skip trimmed),
+"full" (original model), or "both" (comparison). Default auto-detects.}
+
+\item{include_data}{Logical; if TRUE, include data context (set sizes, etc.).
+If FALSE, show pure theory. Default TRUE.}
+
+\item{data_detail}{Character; "brief" (counts only) or "detailed" (full stats).}
+
+\item{set_display_max_inline}{Maximum set elements to show inline.}
+
+\item{set_display_head_tail_threshold}{Threshold for head/tail display.}
+
+\item{set_display_head_n}{Number of head elements for large sets.}
+
+\item{set_display_tail_n}{Number of tail elements for large sets.}
+
+\item{include_toc}{Logical; include table of contents. Default FALSE.}
+
+\item{include_sets}{Logical; include sets section. Default TRUE.}
+
+\item{include_aliases}{Logical; include aliases section. Default TRUE.}
+
+\item{include_index_aliases}{Logical; include index aliases section. Default TRUE.}
+
+\item{include_parameters}{Logical; include parameters section. Default TRUE.}
+
+\item{include_variables}{Logical; include variables section. Default TRUE.}
+
+\item{include_equations}{Logical; include equations section. Default TRUE.}
+
+\item{include_mappings}{Logical; include mappings section. Default TRUE.}
+
 \item{eq_substitute}{Named list; substitutions for specific AST elements in the equation
 with \code{ast_where} object to display conditions, indices, etc. below the equation.}
+
+\item{use_model_aliases}{Logical; if TRUE, auto-use model$index_aliases. Default TRUE.}
+
+\item{use_aliases_in_declarations}{Logical; if TRUE, use aliased dimension names in
+parameter/variable declarations. If FALSE (default), show full names in declarations
+but use aliases in equations.}
+
+\item{folded_color}{Character; LaTeX color name for folded annotations. Default "blue".}
+
+\item{trimmed_color}{Character; LaTeX color name for trimmed annotations. Default "red".}
 
 \item{verbose}{Logical; if \code{TRUE}, prints additional information during processing.}
 

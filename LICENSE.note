@@ -1,0 +1,95 @@
+# Third-Party Licenses
+
+## OSeMOSYS
+
+The `osemosys_gmpl_source` dataset included in this package contains code from
+the OSeMOSYS (Open Source energy MOdeling SYStem) project.
+
+**Source:** https://github.com/OSeMOSYS/OSeMOSYS_GNU_MathProg
+
+**License:** Apache License, Version 2.0
+
+**Copyright:** The OSeMOSYS Community
+
+### Apache License 2.0
+
+```
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+```
+
+### Citation
+
+If you use OSeMOSYS in your research, please cite:
+
+Howells, M., Rogner, H., Strachan, N., Heaps, C., Huntington, H., Kypreos, S.,
+Hughes, A., Silveira, S., DeCarolis, J., Bazillian, M., & Roehrl, A. (2011).
+OSeMOSYS: The Open Source Energy Modeling System: An introduction to its ethos,
+structure and development. *Energy Policy*, 39(10), 5850–5870.
+https://doi.org/10.1016/j.enpol.2011.06.033
+
+### Additional Information
+
+- **Project Website:** http://www.osemosys.org/
+- **Documentation:** https://osemosys.readthedocs.io/
+- **GitHub Organization:** https://github.com/OSeMOSYS/
+
+---
+
+## energyRt
+
+The `energyrt_source` dataset included in this package contains code from
+the energyRt package.
+
+**Source:** https://github.com/energyRt/energyRt
+
+**License:** GNU Affero General Public License v3.0 (AGPL-3.0)
+
+**Copyright:** The energyRt Development Team
+
+### AGPL-3.0 License
+
+This is a copyleft license that requires derivative works to also be open 
+source under AGPL-3.0 or compatible license.
+
+```
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published
+by the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+```
+
+Full license text: https://www.gnu.org/licenses/agpl-3.0.html
+
+### Important Note
+
+The energyRt dataset is included in multimod for **testing and validation 
+purposes only**. The AGPL-3.0 license of energyRt does NOT extend to the 
+multimod package code itself, which remains under its own license. However,
+if you create derivative works based on the energyRt dataset, you must 
+comply with AGPL-3.0 terms.
+
+---
+
+## multimod Package
+
+The multimod package itself is distributed under [YOUR LICENSE].
+The inclusion of OSeMOSYS source code for testing purposes does not change
+the license of the multimod package.

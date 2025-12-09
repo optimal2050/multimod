@@ -35,7 +35,7 @@
 
     <a class="navbar-brand me-2" href="index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.0.1.9005</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.0.9007</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -46,11 +46,26 @@
       <ul class="navbar-nav me-auto">
 <li class="nav-item"><a class="nav-link" href="articles/multimod.html">Get started</a></li>
 <li class="nav-item"><a class="nav-link" href="reference/index.html">Reference</a></li>
-<li class="nav-item"><a class="nav-link" href="articles/roadmap.html">{dev-status}</a></li>
+<li class="nav-item"><a class="nav-link" href="articles/roadmap.html">Development Status</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-tutorials" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Tutorials</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials">
-<li><h6 class="dropdown-header" data-toc-skip>AST</h6></li>
+<li><h6 class="dropdown-header" data-toc-skip>Getting Started</h6></li>
+    <li><a class="dropdown-item" href="articles/multimod.html">Overview</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Code Generation</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>JuMP Integration</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>GMPL Integration</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Pyomo Integration</h6></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Model Management</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Configuration System</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Model Workspace</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>LaTeX Generation</h6></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Advanced</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Model Optimization (Folding &amp; Trimming)</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Abstract Syntax Tree (AST)</h6></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="news/index.html">News</a></li>
@@ -89,56 +104,51 @@
 <div class="section level2">
 <h2 id="development-status">Development Status<a class="anchor" aria-label="anchor" href="#development-status"></a>
 </h2>
-<p>The package is under active development. Contributions, bug reports, and feature requests are welcome! See <a href="articles/multimod.html">Get started</a> for an overview of the current functionality and <a href="articles/roadmap.html">{devstatus}</a> for the roadmap.</p>
+<p><strong>WARNING</strong>: The package is in active development. All implementations are experimental and APIs may change. See <a href="articles/multimod.html">Get started</a> for an overview of current functionality and <a href="articles/roadmap.html">Development Roadmap</a> for implementation status and future plans.</p>
 </div>
 <div class="section level2">
 <h2 id="workflow-diagram">Workflow Diagram<a class="anchor" aria-label="anchor" href="#workflow-diagram"></a>
 </h2>
-<p>Items in curly braces <code><a href="https://rdrr.io/r/base/Paren.html" class="external-link">{}</a></code> are planned for implementation, double curly braces <code>{{}}</code> are potential extensions.</p>
-<pre class="text"><code>[ GAMS / {JuMP / Pyomo / GMPL} ]
-              ↓
-          read_gams()
-         {read_jump()}
-         {read_pyomo()}
-         {read_gmpl()}
-           {{...}}
-              ↓
-     ┌────────────────────┐
-     │  model_structure   │
-     │ (a named list ...) │
-     └────────────────────┘
-              ↓
-        as_multimod()
+<pre class="text"><code>┌─────────────────────────────┐
+│      Input Formats          │
+├─────────────────────────────┤
+│ GAMS    (basic/linear only) │ → read_gams()
+│ GMPL    (limited features)  │ → read_gmpl()
+│ {JuMP}  (planned)           │ → {read_jump()}
+│ {Pyomo} (planned)           │ → {read_pyomo()}
+│ {{AMPL, MPS, ...}}          │ → {{...}}
+└─────────────────────────────┘
               ↓
    ┌────────────────────────┐
-   │    Core Structures     │      as_visNetwork()
-   │    &lt;ast&gt;, &lt;multimod&gt;   │     {as_diagrammer()}
-   │ (sets, parameters,     │ ⟷  {{symbolsic manipulation}}
-   │  variables, equations, │     {fold_parameters(), ...}
-   │  mappings, ...)        │     {data exchange}
+   │   multimod Core        │        Analysis &amp; Manipulation:
+   │ (Abstract Syntax Tree) │         • fold_model()        [✓]
+   ├────────────────────────┤         • trim_model()        [✓]
+   │ • Sets &amp; Aliases       │  →      • save_model()        [✓]
+   │ • Parameters           │         • as_visNetwork()     [✓]
+   │ • Variables            │  ←      • model statistics    [✓]
+   │ • Equations            │         {{auto-mapping}}      [ ]
+   │ • Mappings             │         {{symbolic simplify}} [ ]
    └────────────────────────┘
               ↓
-     ┌────────────────────┐
-     │ Rendering / Output │
-     └────────────────────┘
-              ↓
-   → write_latex()
-   → write_gams()
-   → {write_jump()}
-   → {write_pyomo()}
-   → {write_gmpl()}
-   → {{write_ampl()}}
-   → {{write_mps()}}
-   → {{write_cplex()}}
-   → {{write_gurobi()}}
-   → {{...}}</code></pre>
+┌─────────────────────────────────┐
+│      Output Formats             │
+├─────────────────────────────────┤
+│ LaTeX  (stable)           [✓]   │ → write_latex()
+│ {GMPL} (testing)          [~]   │ → write_gmpl()
+│ {JuMP} (testing)          [~]   │ → write_jump()
+│ {Pyomo} (testing)         [~]   │ → write_pyomo()
+│ {{GAMS}} (planned)        [ ]   │ → {{write_gams()}}
+│ {{AMPL, MPS, LP, ...}}    [ ]   │ → {{...}}
+└─────────────────────────────────┘
+
+Status: [✓] implemented | [~] and { } developing | [ ] and {{ }} considering</code></pre>
 </div>
 <div class="section level2">
 <h2 id="installation-and-example-workflow">Installation and Example Workflow<a class="anchor" aria-label="anchor" href="#installation-and-example-workflow"></a>
 </h2>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># install.packages("pak")</span></span>
-<span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"optimal2050/multimod"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pkg_install.html" class="external-link">pkg_install</a></span><span class="op">(</span><span class="st">"optimal2050/multimod"</span><span class="op">)</span></span></code></pre></div>
 <div class="section level3">
 <h3 id="load-a-gams-model-and-parse">Load a GAMS model and parse<a class="anchor" aria-label="anchor" href="#load-a-gams-model-and-parse"></a>
 </h3>
@@ -146,25 +156,22 @@
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://optimal2050.github.io/multimod">multimod</a></span><span class="op">)</span></span>
 <span><span class="va">model_info</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/read_gams.html">read_gams</a></span><span class="op">(</span><span class="st">"my_model.gms"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">class</a></span><span class="op">(</span><span class="va">model_info</span><span class="op">)</span> <span class="co"># "model_structure"</span></span></code></pre></div>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/as_multimod.html">as_multimod</a></span><span class="op">(</span><span class="va">model_info</span>, name <span class="op">=</span> <span class="st">"My model in multimod format"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">class</a></span><span class="op">(</span><span class="va">mod</span><span class="op">)</span> <span class="co"># "model"    "multimod"</span></span></code></pre></div>
-<div class="sourceCode" id="cb5"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="co">#&gt; [1] "model"    "multimod"</span></span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="co">#&gt; [1] "model"    "multimod"</span></span></code></pre></div>
 <div class="section level4">
 <h4 id="ast-elements-an-example-equation">AST elements: an example equation<a class="anchor" aria-label="anchor" href="#ast-elements-an-example-equation"></a>
 </h4>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">eq</span> <span class="op">&lt;-</span> <span class="va">mod</span><span class="op">$</span><span class="va">equations</span><span class="op">[[</span><span class="st">"eqObjective"</span><span class="op">]</span><span class="op">]</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">eq</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/print.html">print</a></span><span class="op">(</span><span class="va">eq</span><span class="op">)</span></span>
 <span><span class="co">#&gt; &lt;AST equation&gt; eqObjective</span></span>
 <span><span class="co">#&gt;   relation:  == </span></span>
 <span><span class="co">#&gt;   lhs:  vObjective </span></span>
-<span><span class="co">#&gt;   rhs:  sum(if (mvTotalCost[region,year]) {[region,year]}, *, vTotalCost[region,year], pPeriodLen[year] * pDiscountFactor[region,year], FALSE)</span></span></code></pre></div>
+<span><span class="co">#&gt;   rhs:  sum(if (mvTotalCost[region,year]) {[region,year]}, *, pDiscountFactorMileStone[region,year], vTotalCost[region,year], FALSE)</span></span></code></pre></div>
 </div>
 <div class="section level4">
 <h4 id="render-an-equation-to-latex">Render an equation to LaTeX<a class="anchor" aria-label="anchor" href="#render-an-equation-to-latex"></a>
 </h4>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/as_latex.html">as_latex</a></span><span class="op">(</span><span class="va">eq</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mtext mathvariant="italic">𝑣𝑂𝑏𝑗𝑒𝑐𝑡𝑖𝑣𝑒</mtext><mo>=</mo><munder><mo>∑</mo><mrow><mrow><mi>r</mi><mo>,</mo><mi>y</mi></mrow><mo>∈</mo><msub><mtext mathvariant="sans-serif">𝗆𝗏𝖳𝗈𝗍𝖺𝗅𝖢𝗈𝗌𝗍</mtext><mrow><mi>r</mi><mo>,</mo><mi>y</mi></mrow></msub></mrow></munder><mrow><msub><mtext mathvariant="italic">𝑣𝑇𝑜𝑡𝑎𝑙𝐶𝑜𝑠𝑡</mtext><mrow><mi>r</mi><mo>,</mo><mi>y</mi></mrow></msub><mo>⋅</mo><msub><mtext mathvariant="sans-serif">𝗉𝖯𝖾𝗋𝗂𝗈𝖽𝖫𝖾𝗇</mtext><mi>y</mi></msub><mo>⋅</mo><msub><mtext mathvariant="sans-serif">𝗉𝖣𝗂𝗌𝖼𝗈𝗎𝗇𝗍𝖥𝖺𝖼𝗍𝗈𝗋</mtext><mrow><mi>r</mi><mo>,</mo><mi>y</mi></mrow></msub></mrow></mrow><annotation encoding="application/x-tex">
 \textit{vObjective} = \sum_{{r,y} \in \textsf{mvTotalCost}_{r,y}} {\textit{vTotalCost}_{r,y}  \cdot  \textsf{pPeriodLen}_{y}  \cdot  \textsf{pDiscountFactor}_{r,y}}
@@ -173,24 +180,29 @@
 <div class="section level4">
 <h4 id="render-a-specific-equation-to-gams-or-juliajump">Render a specific equation to GAMS or Julia/JuMP<a class="anchor" aria-label="anchor" href="#render-a-specific-equation-to-gams-or-juliajump"></a>
 </h4>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/as_gams.html">as_gams</a></span><span class="op">(</span><span class="va">eq</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; eqObjective..</span></span>
 <span><span class="co">#&gt;   vObjective =e=</span></span>
-<span><span class="co">#&gt;   sum(([region,year])$mvTotalCost[region,year], vTotalCost[region,year] * pPeriodLen[year] * pDiscountFactor[region,year]);</span></span>
-<span><span class="co"># {as_jump(mod$equations[["eqObjective"]])}</span></span></code></pre></div>
+<span><span class="co">#&gt;   sum(([region,year])$mvTotalCost[region,year], pDiscountFactorMileStone[region,year] * vTotalCost[region,year]);</span></span>
+<span><span class="fu"><a href="reference/as_jump.html">as_jump</a></span><span class="op">(</span><span class="va">eq</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; @constraint(</span></span>
+<span><span class="co">#&gt;     model,</span></span>
+<span><span class="co">#&gt;     eqObjective,</span></span>
+<span><span class="co">#&gt;     vObjective == sum(get(pDiscountFactorMileStone, (region, year), pDiscountFactorMileStoneDef) * vTotalCost[region, year] for (region, year) in mvTotalCost)</span></span>
+<span><span class="co">#&gt; )</span></span></code></pre></div>
 </div>
 <div class="section level4">
 <h4 id="visualize-equation-tree">Visualize equation tree<a class="anchor" aria-label="anchor" href="#visualize-equation-tree"></a>
 </h4>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://datastorm-open.github.io/visNetwork/" class="external-link">visNetwork</a></span><span class="op">)</span></span>
 <span><span class="fu"><a href="reference/as_visNetwork.html">as_visNetwork</a></span><span class="op">(</span><span class="va">eq</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level4">
 <h4 id="write-the-entire-model-to-latex">Write the entire model to LaTeX<a class="anchor" aria-label="anchor" href="#write-the-entire-model-to-latex"></a>
 </h4>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/write_latex.html">write_latex</a></span><span class="op">(</span><span class="va">mod</span>, </span>
 <span>            file <span class="op">=</span> <span class="st">"my_multimod_model.tex"</span>,</span>
 <span>            title <span class="op">=</span> <span class="st">"My multimod model equations"</span>,</span>
@@ -198,10 +210,36 @@
 <span><span class="fu">tinytex</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/tinytex/man/latexmk.html" class="external-link">pdflatex</a></span><span class="op">(</span><span class="st">"my_multimod_model.tex"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level4">
-<h4 id="write-gams-model">Write GAMS model<a class="anchor" aria-label="anchor" href="#write-gams-model"></a>
+<h4 id="write-jumpjulia-model">Write JuMP/Julia model<a class="anchor" aria-label="anchor" href="#write-jumpjulia-model"></a>
+</h4>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Complete workflow: save data and generate JuMP code</span></span>
+<span><span class="fu"><a href="reference/save_model.html">save_model</a></span><span class="op">(</span><span class="va">mod</span>, <span class="st">"my_model_dir"</span>, format <span class="op">=</span> <span class="st">"ipc"</span><span class="op">)</span>  <span class="co"># Arrow format</span></span>
+<span><span class="fu"><a href="reference/write_jump.html">write_jump</a></span><span class="op">(</span><span class="va">mod</span>, model_dir <span class="op">=</span> <span class="st">"my_model_dir"</span><span class="op">)</span>      <span class="co"># Generate Julia code</span></span>
+<span></span>
+<span><span class="co"># Solve with Julia</span></span>
+<span><span class="fu"><a href="reference/solve_jump.html">solve_jump</a></span><span class="op">(</span>model_dir <span class="op">=</span> <span class="st">"my_model_dir"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level4">
+<h4 id="write--solve-gmpl-model">Write &amp; solve GMPL model<a class="anchor" aria-label="anchor" href="#write--solve-gmpl-model"></a>
 </h4>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="reference/write_gams.html">write_gams</a></span><span class="op">(</span><span class="va">mod</span>, file <span class="op">=</span> <span class="st">"my_multimod_model.gms"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="reference/write_gmpl.html">write_gmpl</a></span><span class="op">(</span><span class="va">mod</span>, model_dir <span class="op">=</span> <span class="st">"my_model_dir"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/solve_gmpl.html">solve_gmpl</a></span><span class="op">(</span><span class="va">mod</span>, model_dir <span class="op">=</span> <span class="st">"my_model_dir"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level4">
+<h4 id="write--solve-pythonpyomo-model">Write &amp; solve Python/Pyomo model<a class="anchor" aria-label="anchor" href="#write--solve-pythonpyomo-model"></a>
+</h4>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/write_pyomo.html">write_pyomo</a></span><span class="op">(</span><span class="va">mod</span>, model_dir <span class="op">=</span> <span class="st">"my_model_dir"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/solve_pyomo.html">solve_pyomo</a></span><span class="op">(</span><span class="va">mod</span>, model_dir <span class="op">=</span> <span class="st">"my_model_dir"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level4">
+<h4 id="write-gams-model">{Write GAMS model}<a class="anchor" aria-label="anchor" href="#write-gams-model"></a>
+</h4>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># in progress</span></span>
+<span><span class="fu"><a href="reference/write_gams.html">write_gams</a></span><span class="op">(</span><span class="va">mod</span>, file <span class="op">=</span> <span class="st">"my_multimod_model.gms"</span><span class="op">)</span></span></code></pre></div>
 </div>
 </div>
 </div>
@@ -265,7 +303,7 @@
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.3.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
 </div>
 
     </footer>
