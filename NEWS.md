@@ -1,6 +1,6 @@
-# multimod 0.4.0.9007 (development version, 2025-12-08)
+# multimod (development version)
 
-## New Features
+## New features
 
 ### Data Integration & Storage
 
@@ -71,7 +71,7 @@
 * **Model trimming**: Remove unused sets, parameters, variables, and equations
   - `trim_model()`, `get_trim_summary()`
 
-## Bug Fixes
+## Bug fixes
 
 * **JuMP fix**: 1-dimensional mappings now correctly loaded as `Set{String}` instead of 
   `Set{Tuple{String}}`. This was causing membership checks like `t in mTradeCapacityVariable` 

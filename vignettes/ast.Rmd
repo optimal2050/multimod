@@ -2,7 +2,7 @@
 title: "Abstract Syntax Tree"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{ast}
+  %\VignetteIndexEntry{Abstract Syntax Tree}
   %\VignetteEncoding{UTF-8}
   %\VignetteEngine{knitr::rmarkdown}
 editor_options: 

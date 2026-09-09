@@ -1,7 +1,7 @@
 Package: multimod
 Title: Define and Render Mathematical Models Across Multiple Optimization Languages.
-Version: 0.4.0.9007
-Date: 2025-12-08
+Version: 0.4.0.9009
+Date: 2025-12-14
 Authors@R: 
   c(person(given = "Oleg", 
           family = "Lugovoy", 
@@ -13,7 +13,6 @@ URL: https://optimal2050.github.io/multimod, https://github.com/optimal2050/mult
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.3
 Depends: R (>= 4.0)
 Imports:
     stringr,
@@ -23,8 +22,11 @@ Imports:
     rlang,
     purrr,
     digest,
-    magrittr
+    magrittr,
+    jsonlite
 Suggests: 
+    reticulate (>= 1.28),
+    tidync,
     knitr,
     lobstr,
     rmarkdown,
@@ -32,3 +34,53 @@ Suggests:
 VignetteBuilder: knitr
 LazyData: true
 Config/Needs/website: rmarkdown
+Collate: 
+    'as_character.R'
+    'as_gams.R'
+    'as_gmpl.R'
+    'as_jump.R'
+    'as_latex.R'
+    'as_multimod.R'
+    'as_pyomo.R'
+    'as_r.R'
+    'as_rfunction.R'
+    'as_vizNetwork.R'
+    'ast-classes.R'
+    'compare.R'
+    'compare_dataframes.R'
+    'compare_solutions.R'
+    'config.R'
+    'data-example_models.R'
+    'data_management.R'
+    'evaluate_parameters.R'
+    'export_model_source.R'
+    'fold.R'
+    'glpk_solver.R'
+    'html.R'
+    'import_energyrt.R'
+    'import_osemosys.R'
+    'index_aliases.R'
+    'model_redundancy.R'
+    'model_storage.R'
+    'model_symbol_utils.R'
+    'multimod-classes.R'
+    'multimod-package.R'
+    'multimod.R'
+    'parsing.R'
+    'plot.R'
+    'print.R'
+    'read_gams.R'
+    'read_gmpl.R'
+    'setup_python.R'
+    'solve_jump.R'
+    'solve_pyomo.R'
+    'trim.R'
+    'utils.R'
+    'validate.R'
+    'write_gams.R'
+    'write_gmpl.R'
+    'write_jump.R'
+    'write_latex.R'
+    'write_pyomo.R'
+    'zzz.R'
+Config/roxygen2/version: 8.0.0
