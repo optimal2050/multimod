@@ -291,7 +291,7 @@ parse_gams_expr <- function(
     symbols = list(),
     known_funcs = c("log", "exp", "abs", "sqrt", "ord", "card"),
     # known_funcs_indexed = known_funcs_indexed,
-    depth = 0, max_depth = 20,
+    depth = 0, max_depth = 50,
     brackets = FALSE, # whether to wrap in brackets, passed to ast_*
     ...
     ) {
@@ -299,7 +299,11 @@ parse_gams_expr <- function(
   # if (brackets) browser()
   # browser()
   # if (expr == "mvTechInp(tech,comm,region,year,slice)") browser()
-  if (depth > max_depth) stop("Maximum expression nesting depth exceeded")
+  if (depth > max_depth) {
+    stop("Maximum expression nesting depth exceeded (max_depth = ", max_depth,
+         "). Binary operators are split recursively, so a flat sum of N terms ",
+         "consumes N levels: a long chain trips this without being deeply nested.")
+  }
 
   expr <- trimws(expr)
   if (expr == "") {

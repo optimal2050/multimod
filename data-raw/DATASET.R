@@ -1,51 +1,47 @@
-## Unified Example Models Dataset
+## Example Models Dataset
 ##
-## This script combines example models from energyRt and OSeMOSYS into a single
-## unified dataset called 'example_models'. 
+## Builds `example_models` from the CURRENT energyRt sources:
+##   structure : energyRt/gams/energyRt.gms   (GAMS is the source of truth;
+##               the GMPL/JuMP/Pyomo templates are still being edited)
+##   data      : energyRt::interpolate_model() on the UTOPIA R7 kit
 ##
 ## Structure:
 ##   example_models$energyRt
-##     $gams, $gmpl, $jump     - Source code in various formats
-##     $multimod               - Parsed multimod object
-##     $metadata               - Source information
+##     $gams      - list(model = <character>) GAMS template source
+##     $multimod  - parsed multimod model with energyRt data attached
+##     $metadata  - provenance
 ##
-##   example_models$OSeMOSYS
-##     $gmpl                   - Source code in GMPL format
-##     $multimod               - Parsed multimod object  
-##     $metadata               - Source information
+## The OSeMOSYS workstream was moved to drafts/ (2026-09-08).
+## Older datasets are in data-raw/depreciated/ for reference.
 ##
-## Old datasets moved to data-raw/depreciated/ for reference.
+## Usage:  pkgload::load_all("."); source("data-raw/DATASET.R")
 
-# Load updated read_gmpl function
 devtools::load_all(".", quiet = TRUE)
+source("data-raw/build_energyRt_fixture.R")
 
-(load("data-raw/energyRt_demo.RData"))
-(load("data-raw/energyRt_source.RData"))
-energyRt_source <- list(
-  gams = energyRt_source$gams,
-  gmpl = energyRt_source$gmpl,
-  jump = energyRt_source$jump,
-  multimod = energyRt_demo,
-  metadata = energyRt_source$metadata
+KIT <- "R7"
+
+m <- build_energyRt_fixture(KIT)
+
+energyRt_entry <- list(
+  gams = list(model = readLines(ENERGYRT_GMS, warn = FALSE)),
+  multimod = m,
+  metadata = list(
+    source           = "energyRt UTOPIA kit",
+    scenario         = paste0(KIT, " / utopia_seasons / base horizon"),
+    repository       = "https://github.com/optimal2050/energyRt",
+    license          = "AGPL-3.0",
+    energyRt_version = as.character(utils::packageVersion("energyRt")),
+    gams_source      = "gams/energyRt.gms",
+    date_imported    = Sys.Date(),
+    note             = paste(
+      "Model structure parsed from energyRt's GAMS template with",
+      "read_gams(include = FALSE); data attached from an interpolated",
+      "energyRt scenario. See data-raw/build_energyRt_fixture.R."
+    )
+  )
 )
 
-
-(load("data-raw/osemosys_source.RData"))
-mm_osemosys <- multimod::read_gmpl(
-  model_file = osemosys_source$gmpl$model,
-  data_file = osemosys_source$gmpl$data)
-
-osemosys_source <- list(
-  gmpl = osemosys_source$gmpl,
-  multimod = mm_osemosys,
-  metadata = osemosys_source
-)
-
-example_models <- list(
-  energyRt = energyRt_source,
-  OSeMOSYS = osemosys_source
-)
+example_models <- list(energyRt = energyRt_entry)
 
 usethis::use_data(example_models, overwrite = TRUE)
-
-

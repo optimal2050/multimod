@@ -39,7 +39,7 @@ register_index_alias <- function(collection, set_name, alias_name) {
   }
   set_name <- trimws(set_name)
   alias_name <- trimws(alias_name)
-  if (set_name == "" || alias_name == "") {
+  if (is.na(set_name) || is.na(alias_name) || set_name == "" || alias_name == "") {
     return(collection)
   }
 

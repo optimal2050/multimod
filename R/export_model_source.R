@@ -1,27 +1,21 @@
 #' Export Model Source Files
 #'
 #' @description
-#' Export model source code from package datasets (osemosys_source or
-#' energyRt_source) to files in a specified directory. This is useful for
-#' testing parsers, running models, or inspecting model code.
+#' Export model source code from the bundled `example_models` dataset to files
+#' in a specified directory. This is useful for testing parsers, running
+#' models, or inspecting model code.
 #'
-#' @param dataset Name of the dataset to export. Either "osemosys" or "energyrt".
+#' @param dataset Name of the dataset to export. Currently only "energyrt".
 #' @param dir Directory path where files will be written. Will be created if it
 #'   doesn't exist.
-#' @param format For energyrt dataset, which format to export: "gams", "gmpl",
-#'   "jump", "pyomo", or "all" (default). Ignored for osemosys dataset.
+#' @param format Which format to export: "gams", "gmpl", "jump", "pyomo", or
+#'   "all" (default).
 #' @param overwrite Logical. If TRUE, overwrite existing files. Default is FALSE.
 #' @param verbose Logical. If TRUE, print progress messages. Default is TRUE.
 #'
 #' @return Invisible list of file paths that were created.
 #'
 #' @details
-#' ## OSeMOSYS Export
-#'
-#' For the OSeMOSYS dataset, exports:
-#' - `osemosys.txt`: Model code
-#' - `utopia.txt`: Data file
-#'
 #' ## energyRt Export
 #'
 #' For the energyRt dataset, exports files based on the `format` argument:
@@ -51,9 +45,7 @@
 #'
 #' @examples
 #' \dontrun{
-#' # Export OSeMOSYS to temporary directory
 #' tmp_dir <- tempdir()
-#' export_model_source("osemosys", file.path(tmp_dir, "osemosys"))
 #'
 #' # Export energyRt GMPL format
 #' export_model_source("energyrt", file.path(tmp_dir, "energyrt"),
@@ -64,12 +56,13 @@
 #'                     format = "all")
 #'
 #' # Use exported files
-#' osemosys_dir <- file.path(tmp_dir, "osemosys")
-#' model <- read_gmpl(file.path(osemosys_dir, "osemosys.txt"))
+#' gmpl_dir <- file.path(tmp_dir, "energyrt")
+#' model <- read_gmpl(file.path(gmpl_dir, "model.mod"),
+#'                    file.path(gmpl_dir, "data.dat"))
 #' }
 #'
 #' @export
-export_model_source <- function(dataset = c("osemosys", "energyrt"),
+export_model_source <- function(dataset = c("energyrt"),
                                  dir,
                                  format = "all",
                                  overwrite = FALSE,
@@ -87,9 +80,7 @@ export_model_source <- function(dataset = c("osemosys", "energyrt"),
   files_created <- list()
 
   # Export based on dataset
-  if (dataset == "osemosys") {
-    files_created <- export_osemosys(dir, overwrite, verbose)
-  } else if (dataset == "energyrt") {
+  if (dataset == "energyrt") {
     format <- match.arg(format, c("gams", "gmpl", "jump", "pyomo", "all"))
     files_created <- export_energyrt(dir, format, overwrite, verbose)
   }
@@ -100,40 +91,6 @@ export_model_source <- function(dataset = c("osemosys", "energyrt"),
   }
 
   invisible(files_created)
-}
-
-#' @keywords internal
-export_osemosys <- function(dir, overwrite, verbose) {
-  # Load dataset into local environment
-  env <- environment()
-  utils::data("example_models", envir = env)
-  dataset <- get("example_models", envir = env)$OSeMOSYS$gmpl
-
-  files <- character()
-
-  # Model file
-  model_file <- file.path(dir, "osemosys.txt")
-  if (!file.exists(model_file) || overwrite) {
-    writeLines(dataset$model, model_file)
-    files <- c(files, model_file)
-    if (verbose) message("Wrote: osemosys.txt (",
-                        length(dataset$model), " lines)")
-  } else {
-    if (verbose) message("Skipped: osemosys.txt (file exists)")
-  }
-
-  # Data file
-  data_file <- file.path(dir, "utopia.txt")
-  if (!file.exists(data_file) || overwrite) {
-    writeLines(dataset$data, data_file)
-    files <- c(files, data_file)
-    if (verbose) message("Wrote: utopia.txt (",
-                        length(dataset$data), " lines)")
-  } else {
-    if (verbose) message("Skipped: utopia.txt (file exists)")
-  }
-
-  return(files)
 }
 
 #' @keywords internal

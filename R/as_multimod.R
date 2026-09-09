@@ -38,7 +38,7 @@ as_multimod.model_structure <- function(x, index_aliases = NULL, ...) {
 
   # Convert sets and aliases
   sets <- lapply(x$sets, function(s) {
-    new_set(name = s$name, desc = s$desc)
+    new_set(name = s$name, desc = s$desc, subset_of = s$subset_of)
   })
 
   # Reorganize aliases: combine all aliases by base set name
@@ -49,6 +49,19 @@ as_multimod.model_structure <- function(x, index_aliases = NULL, ...) {
     alias_map <- list()
 
     for (alias_pair in x$aliases) {
+      # Skip if NULL or empty
+      if (is.null(alias_pair) || length(alias_pair) == 0) next
+      
+      # Convert list to character vector if needed
+      if (is.list(alias_pair)) {
+        alias_pair <- unlist(alias_pair, use.names = FALSE)
+      }
+      
+      # Ensure it's a character vector
+      if (!is.character(alias_pair)) {
+        alias_pair <- as.character(alias_pair)
+      }
+      
       if (length(alias_pair) < 2) next
 
       # Find which existing group this belongs to (if any)
@@ -90,11 +103,14 @@ as_multimod.model_structure <- function(x, index_aliases = NULL, ...) {
 
   # Convert mappings
   mappings <- lapply(x$mappings, function(m) {
+    # Use description field (from reconciliation) or desc field (legacy)
+    mapping_desc <- if (!is.null(m$description)) m$description else m$desc
     new_mapping(
       name = m$name,
-      desc = m$desc,
+      desc = mapping_desc,
       dims = m$dims,
-      data = if (!is.null(m$data)) m$data else NULL # optional
+      data = if (!is.null(m$data)) m$data else NULL, # optional
+      symbols = symbols
     )
   })
 
@@ -107,7 +123,8 @@ as_multimod.model_structure <- function(x, index_aliases = NULL, ...) {
       data = if (!is.null(p$data)) p$data else NULL, # optional
       defVal = p$defVal,
       symbolic = if (!is.null(p$symbolic)) p$symbolic else FALSE,
-      formula = p$formula  # Preserve computed parameter formulas
+      formula = p$formula,  # Preserve computed parameter formulas
+      symbols = symbols
     )
     # Preserve dims_index_aliases for computed parameters
     if (!is.null(p$dims_index_aliases)) {
@@ -125,7 +142,8 @@ as_multimod.model_structure <- function(x, index_aliases = NULL, ...) {
       domain = v$domain,    # Preserve sparse domain mapping from read_gams
       vtype = v$vtype,      # Preserve variable type (positive, integer, binary, etc.)
       bounds = v$bounds,    # Preserve bounds (lo, up)
-      comment = v$comment   # Preserve *@ comment
+      comment = v$comment,   # Preserve *@ comment
+      symbols = symbols
     )
     # Preserve dims_index_aliases for variables
     if (!is.null(v$dims_index_aliases)) {
@@ -138,10 +156,20 @@ as_multimod.model_structure <- function(x, index_aliases = NULL, ...) {
   equations <- list()
   objectives <- list()  # Store objective metadata: list(eq_name = list(equation, variable, sense, ...))
 
-  # Process objectives from model_structure: find matching equations and create multimod entries
+  # Process objectives from model_structure
   if (!is.null(x$objectives) && length(x$objectives) > 0) {
     for (i in seq_along(x$objectives)) {
       obj_info <- x$objectives[[i]]
+      
+      # For linopy models, objectives don't have equation matches - they're standalone
+      # Pyomo (AbstractModel-first import) also provides objective *signatures* without equations.
+      # Just pass through the objective info as-is.
+      if (!is.null(x$language) && grepl("linopy|pyomo", x$language, ignore.case = TRUE)) {
+        objectives[[length(objectives) + 1]] <- obj_info
+        next
+      }
+      
+      # For GAMS/GMPL models: find matching equations
       obj_var_name <- obj_info$variable
       obj_sense <- obj_info$sense
 
@@ -198,10 +226,76 @@ as_multimod.model_structure <- function(x, index_aliases = NULL, ...) {
   for (eq_name in names(x$equations)) {
     eqn_info <- x$equations[[eq_name]]
 
+    # Pyomo (AbstractModel-first): constraints may be exported as signatures only
+    # (no algebra yet). Keep them as lightweight placeholder equations so users
+    # can explore model structure without requiring expression parsing.
+    if (!is.null(x$language) && grepl("pyomo", x$language, ignore.case = TRUE)) {
+      eq_body <- eqn_info$body %||% eqn_info$pyomo %||% NULL
+      if (is.null(eq_body) && is.null(eqn_info$lhs) && is.null(eqn_info$rhs)) {
+        relation <- eqn_info$relation %||% "=="
+        if (!relation %in% c("==", "<=", ">=")) relation <- "=="
+
+        placeholder_desc <- eqn_info$desc %||% NULL
+        if (is.null(placeholder_desc) || !nzchar(as.character(placeholder_desc))) {
+          placeholder_desc <- "Pyomo constraint signature only (algebra not imported)"
+        } else {
+          placeholder_desc <- paste0(as.character(placeholder_desc), " [signature only]")
+        }
+
+        eq_obj <- new_equation(
+          name = eq_name,
+          desc = placeholder_desc,
+          dims = eqn_info$dims %||% character(0),
+          lhs = ast_constant(0),
+          rhs = ast_constant(0),
+          relation = relation,
+          dims_index_aliases = eqn_info$dims_index_aliases %||% NULL,
+          symbols = symbols
+        )
+        class(eq_obj) <- c("equation_signature", class(eq_obj))
+        equations[[eq_name]] <- eq_obj
+        next
+      }
+    }
+    
+    # Skip placeholder equations that can't be parsed:
+    # 1. Fallback constraints: "[fallback] name_lhs >= name_rhs"
+    if (!is.null(eqn_info$body)) {
+      if (grepl("^\\[fallback\\]", eqn_info$body)) {
+        next
+      }
+      
+      # 2. Special handling for objective placeholders:
+      #    "objective = [linopy objective with N terms]"
+      #    Create a minimal equation for the objective even if we can't parse the full expression
+      if (eq_name == "objective" && grepl("linopy objective with.*terms", eqn_info$body)) {
+        # Create minimal objective equation: objective (no lhs/rhs AST, just metadata)
+        eqn <- structure(
+          list(
+            name = "objective",
+            desc = eqn_info$desc %||% "Objective function",
+            dims = character(0),
+            dims_index_aliases = eqn_info$dims_index_aliases %||% character(0),
+            relation = "==",
+            # No lhs/rhs - this is just a placeholder equation
+            sense = eqn_info$sense %||% "minimize",
+            body = eqn_info$body
+          ),
+          class = c("objective_equation", "equation", "multimod")
+        )
+        equations[[eq_name]] <- eqn
+        next
+      }
+    }
+
     eqn <- tryCatch(
       {
         # Use appropriate parser based on source language
         if (!is.null(x$language) &&
+            grepl("linopy", x$language, ignore.case = TRUE)) {
+          stop("linopy equation parsing is not part of the package; ",
+               "the experimental reader lives in drafts/R/read_linopy.R")
+        } else if (!is.null(x$language) &&
             grepl("gmpl|glpk|mathprog", x$language, ignore.case = TRUE)) {
           parse_gmpl_equation_to_ast(eqn_info, symbols)
         } else if (!is.null(x$language) &&
@@ -229,6 +323,14 @@ as_multimod.model_structure <- function(x, index_aliases = NULL, ...) {
     args$metadata <- NULL
   } else {
     metadata <- list()
+  }
+  
+  # Copy symbol_name_map and latex_names from model_structure if available
+  if (!is.null(x$metadata$symbol_name_map)) {
+    metadata$symbol_name_map <- x$metadata$symbol_name_map
+  }
+  if (!is.null(x$metadata$latex_names)) {
+    metadata$latex_names <- x$metadata$latex_names
   }
 
   data_source <- NULL

@@ -26,6 +26,18 @@ build_symbols_list <- function(model_info) {
     language = language
   )
 
+  # Propagate symbol_name_map so parsers (e.g., linopy) can reconcile
+  # hyphenated vs underscore naming conventions during AST construction.
+  metadata <- NULL
+  if (!is.null(model_info$metadata)) {
+    metadata <- model_info$metadata
+  } else {
+    metadata <- attr(model_info, "metadata", exact = TRUE)
+  }
+  if (!is.null(metadata$symbol_name_map)) {
+    symbols$symbol_name_map <- metadata$symbol_name_map
+  }
+
   if (!is.null(language)) {
     attr(symbols, "language") <- language
   }

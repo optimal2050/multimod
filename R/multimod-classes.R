@@ -39,15 +39,16 @@ new_mapping <- function(name,
                                  dims = NULL,
                                  active_dims = NULL,
                                  data = NULL,
-                                 auto_fold = FALSE) {
+                                 auto_fold = FALSE,
+                                 symbols = NULL) {
   stopifnot(is.character(name), length(name) == 1)
   # browser()
   obj <- structure(
     list(
       name = name,
       desc = desc,
-      dims = ast_dims(dims),
-      active_dims = ast_dims(active_dims),
+      dims = ast_dims(dims, symbols = symbols),
+      active_dims = ast_dims(active_dims, symbols = symbols),
       data = data
     ),
     class = c("mapping", "multimod", "ast")
@@ -79,7 +80,8 @@ new_parameter <- function(
     symbolic = FALSE,
     formula = NULL,
     comment = NULL,
-    auto_fold = FALSE) {
+    auto_fold = FALSE,
+    symbols = NULL) {
   if (is.null(active_dims)) {
     if (auto_fold) {
       # dims_folded <- fold_param_dims(data, dims)
@@ -93,8 +95,8 @@ new_parameter <- function(
     list(
       name = name,
       desc = desc,
-      dims = ast_dims(dims),
-      active_dims = ast_dims(active_dims),
+      dims = ast_dims(dims, symbols = symbols),
+      active_dims = ast_dims(active_dims, symbols = symbols),
       data = data,
       defVal = defVal,
       defInt = defInt,
@@ -132,7 +134,8 @@ new_variable <- function(
     comment = NULL,
     data = NULL, # mapping parameter/set
     # domain = "continuous",
-    auto_fold = FALSE) {
+    auto_fold = FALSE,
+    symbols = NULL) {
   # stopifnot(domain %in% c("continuous", "integer", "binary"))
 
   if (is.null(active_dims)) {
@@ -148,8 +151,8 @@ new_variable <- function(
     list(
       name = name,
       desc = desc,
-      dims = ast_dims(dims),
-      active_dims = ast_dims(active_dims),
+      dims = ast_dims(dims, symbols = symbols),
+      active_dims = ast_dims(active_dims, symbols = symbols),
       # domain = ast_mapping(active_dims),
       domain = domain,
       vtype = vtype,
@@ -204,7 +207,8 @@ new_equation <- function(
     relation = "==",
     domain = NULL,
     comment = NULL,
-    dims_index_aliases = NULL) {
+    dims_index_aliases = NULL,
+    symbols = NULL) {
   # browser()
   stopifnot(relation %in% c("==", "<=", ">="))
   # if (!inherits(rhs, "expression")) browser()
@@ -216,7 +220,7 @@ new_equation <- function(
     list(
       name = name,
       desc = desc,
-      dims = ast_dims(dims),
+      dims = ast_dims(dims, symbols = symbols),
       domain = domain,
       comment = comment,
       lhs = lhs,

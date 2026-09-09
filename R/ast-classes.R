@@ -155,6 +155,8 @@ ast_dims <- function(...) {
     if (is_simple_identifier(x)) {
       return(ast_symbol(x))
     }
+    
+    # Parse as expression with language context (handles set names with hyphens, etc.)
     ast_parse_expr(x, symbols = symb_list)
   })
 
@@ -314,21 +316,20 @@ ast_when <- function(condition, then, otherwise = NULL, ...) {
 #' index. The index is typically a `set`, `dims` or `when` object if
 #' filtering is applied to the index.
 #'
-#' @param index Character. The index variable (e.g., `"t"`).
+#' @param index An AST node representing the index variable(s) (e.g., `ast_dims("t")`).
 #' @param value An AST node representing the expression to be summed.
+#' @param domain An optional AST node representing a domain condition.
+#'   This can be a mapping, a logical condition (e.g., from a `$`-filter), or a parameter.
+#'   Use `NULL` if there is no restriction.
 #'
 #' @return An object of class `ast` and `sum`.
 #' @export
-ast_sum <- function(index = ast_dims(), value) {
+ast_sum <- function(index = ast_dims(), value, domain = NULL) {
   stopifnot(inherits(index, "ast"))
-  # stopifnot(inherits(domain, "ast") || is.null(domain))
   stopifnot(inherits(value, "ast"))
-  # if (!is.null(domain)) stopifnot(inherits(domain, "ast"))
-  new_ast("sum", index = index, value = value)
+  if (!is.null(domain)) stopifnot(inherits(domain, "ast"))
+  new_ast("sum", index = index, value = value, domain = domain)
 }
-# @param domain An optional AST node (class `ast`) representing a domain condition.
-#   This can be a mapping, a logical condition (e.g., from a `$`-filter), or a parameter.
-#   Use `NULL` if there is no restriction.
 
 
 #' Create a product AST node
@@ -340,11 +341,11 @@ ast_sum <- function(index = ast_dims(), value) {
 #' @inheritParams ast_sum
 #' @return An object of class `ast` and `prod`.
 #' @export
-ast_prod <- function(index, value) {
+ast_prod <- function(index, value, domain = NULL) {
   stopifnot(inherits(index, "ast"))
-  # if (!is.null(domain)) stopifnot(inherits(domain, "ast"))
   stopifnot(inherits(value, "ast"))
-  new_ast("prod", index = index, value = value)
+  if (!is.null(domain)) stopifnot(inherits(domain, "ast"))
+  new_ast("prod", index = index, value = value, domain = domain)
 }
 
 #' Create a function AST node
@@ -688,6 +689,9 @@ get_ast_parser <- function(language) {
     return(parse_gams_expr)
   } else if (lang == "gmpl") {
     return(parse_gmpl_expr)
+  } else if (lang == "linopy") {
+    stop("linopy AST parsing is not part of the package; ",
+         "the experimental reader lives in drafts/R/read_linopy.R")
   }
   stop("No AST parser registered for language: ", language)
 }

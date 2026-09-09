@@ -3,8 +3,16 @@
 ^LICENSE\.md$
 ^_pkgdown\.yml$
 ^docs$
+^drafts$
+^dev$
 ^pkgdown$
 ^README\.Rmd$
 ^data-raw$
 ^vignettes/articles$
 ^CODE_OF_CONDUCT\.md$
+^\.github$
+^\.claude$
+^AGENTS\.md$
+^CLAUDE\.md$
+^CONTRIBUTING\.md$
+^tmp$

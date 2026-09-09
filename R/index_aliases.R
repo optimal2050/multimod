@@ -209,7 +209,9 @@ generate_index_alias <- function(set_name, used_names = character(0),
     # Try different suffix patterns
     for (pattern in c("pp$", "p$", "2$", "3$")) {
       potential_base <- sub(pattern, "", name_lower)
-      if (potential_base != name_lower && nchar(potential_base) > 0) {
+      # Check for NA values before comparison
+      if (!is.na(potential_base) && !is.na(name_lower) && 
+          potential_base != name_lower && nchar(potential_base) > 0) {
         # Check if base exists in all_set_names (case-insensitive)
         if (any(tolower(all_set_names) == potential_base)) {
           is_alias <- TRUE

@@ -49,6 +49,7 @@ The package is designed to facilitate the exchange of mathematical models across
 ├─────────────────────────────┤
 │ GAMS    (basic/linear only) │ → read_gams()
 │ GMPL    (limited features)  │ → read_gmpl()
+│ {linopy} (runtime capture)  │ → {read_linopy()}
 │ {JuMP}  (planned)           │ → {read_jump()}
 │ {Pyomo} (planned)           │ → {read_pyomo()}
 │ {{AMPL, MPS, ...}}          │ → {{...}}
@@ -154,6 +155,24 @@ write_pyomo(mod, model_dir = "my_model_dir")
 solve_pyomo(mod, model_dir = "my_model_dir")
 ```
 
+#### {Read Python models (linopy/PyPSA)}
+```r
+# Requires reticulate and Python packages
+library(reticulate)
+
+# Read linopy model (runtime capture)
+linopy <- import("linopy")
+m <- linopy$Model()
+# ... build model ...
+mod <- read_linopy(m)
+
+# Read PyPSA network model
+pypsa <- import("pypsa")
+n <- pypsa$Network()
+# ... configure network ...
+n$optimize$create_model()
+mod <- read_pypsa(n)
+```
 
 #### {Write GAMS model}
 ```r
@@ -164,7 +183,12 @@ write_gams(mod, file = "my_multimod_model.gms")
 
 ## License
 
-MIT License
+MIT License — see `LICENSE`.
+
+The bundled `example_models` dataset includes third-party model source:
+OSeMOSYS (Apache-2.0) and energyRt-generated source (AGPL-3.0). Those licenses
+apply to that data only, not to the multimod package code. See `LICENSE.note`
+for the full terms and the OSeMOSYS citation.
 
 
 

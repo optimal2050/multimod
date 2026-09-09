@@ -120,7 +120,6 @@ reference:
 - title: Pyomo/Python-related functions
   desc:  Functions to convert multimod objects to Pyomo code.
   contents:
-  - starts_with("read_pyomo")
   - starts_with("as_pyomo")
   - starts_with("write_pyomo")
   - matches("pyomo")
@@ -170,8 +169,6 @@ reference:
   - import_energyRt_data
   - populate_sets_from_scenario
   - link_scenario_data
-  - import_osemosys_data
-  - export_osemosys_to_csv
   - export_model_source
   - add_set_data
   - export_import_log_from_model
@@ -248,10 +245,7 @@ reference:
   - make_valid
   - quick_compare
   - mps_matrix_long
-  - osemosys_dat_to_model
-  - read_osemosys_dat
   - read_csv_results
-  - load_osemosys_from_csv
 
 - title: visualization
   desc:  Visualization functions for multimod.

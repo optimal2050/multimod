@@ -181,4 +181,9 @@ write_gams(mod, file = "my_multimod_model.gms")
 
 ## License
 
-MIT License
+MIT License — see `LICENSE`.
+
+The bundled `example_models` dataset includes third-party model source:
+OSeMOSYS (Apache-2.0) and energyRt-generated source (AGPL-3.0). Those licenses
+apply to that data only, not to the multimod package code. See `LICENSE.note`
+for the full terms and the OSeMOSYS citation.

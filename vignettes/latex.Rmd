@@ -1,0 +1,377 @@
+---
+title: "LaTeX Generation"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{LaTeX Generation}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = TRUE
+)
+```
+
+This vignette demonstrates how to generate LaTeX documents from multimod models, including options for displaying folded and trimmed models with proper annotations.
+
+## Setup
+
+```{r setup}
+library(multimod)
+```
+
+## Load Example Model
+
+We'll use the UTOPIA model that comes with the multimod package:
+
+```{r load-model}
+data(example_models)
+demo_model <- example_models$energyRt$multimod
+print(demo_model)
+```
+
+## Basic LaTeX Generation
+
+The simplest way to generate LaTeX is to call `write_latex()` on a model:
+
+```{r basic-latex, eval=FALSE}
+# Generate LaTeX as a string
+tex <- write_latex(demo_model)
+
+# Save to file
+write_latex(demo_model, file = "model.tex")
+```
+
+The generated LaTeX document includes:
+- Document preamble with necessary packages
+- Title and metadata
+- Sets with element listings
+- Parameters with dimensions
+- Variables with dimensions
+- Equations with mathematical notation
+- Mappings (domain definitions)
+
+## Model View Modes
+
+The `model_view` parameter controls how the model is displayed:
+
+### Auto Mode (Default)
+Automatically detects if model is optimized and chooses appropriate view:
+```{r auto-mode, eval=FALSE}
+tex <- write_latex(demo_model)  # Auto-detects view mode
+```
+
+### Reduced Mode
+Shows only active (non-trimmed) elements, ideal for optimized models:
+```{r reduced-mode, eval=FALSE}
+tex <- write_latex(model_optimized, model_view = "reduced")
+```
+
+### Full Mode
+Shows all elements with annotations for trimmed/folded items:
+```{r full-mode, eval=FALSE}
+tex <- write_latex(model_optimized, model_view = "full")
+```
+
+## Model Optimization and LaTeX Output
+
+### Folding
+
+Folding reduces parameter dimensionality by consolidating dimensions with uniform values:
+
+```{r folding}
+# Create fold specification
+fold_spec <- create_fold_spec(
+  demo_model,
+  fold_dims = list(
+    slice = list(
+      tech = "mTechSlice",
+      comm = "mCommSlice"
+    ),
+    region = list(
+      tech = "mTechRegion",
+      sup = "mSupRegion"
+    )
+  )
+)
+
+# Apply folding
+model_folded <- fold_model(demo_model, fold_spec)
+
+# Check folding summary
+get_fold_summary(model_folded, format = "text")
+```
+
+### Trimming
+
+Trimming removes empty and unused model elements:
+
+```{r trimming}
+# Trim the folded model
+model_optimized <- trim_model(model_folded)
+
+# Check trimming summary
+get_trim_summary(model_optimized, format = "text")
+```
+
+### LaTeX with Optimization Summary
+
+When generating LaTeX for optimized models, an optimization summary is automatically included:
+
+```{r optimized-latex, eval=FALSE}
+tex <- write_latex(model_optimized, model_view = "full")
+```
+
+The optimization summary includes:
+- **Folding statistics**: Number and percentage of folded parameters
+- **Dimension reductions**: Details of each folded parameter (e.g., 5D → 2D)
+- **Trimming statistics**: Counts for trimmed sets, parameters, mappings, variables, equations
+- **Explanatory text**: Describes what folding and trimming do
+
+### Folded Annotations
+
+In full view mode, folded parameters show green annotations:
+
+```{r folded-annotations, eval=FALSE}
+# Parameters will show: (folded: 5D → 2D) in green
+tex <- write_latex(model_optimized, model_view = "full")
+```
+
+### Trimmed Annotations
+
+Trimmed elements are marked in blue (customizable):
+
+```{r trimmed-annotations, eval=FALSE}
+# Default blue color
+tex <- write_latex(model_optimized, 
+                  model_view = "full", 
+                  trimmed_color = "blue")
+
+# Custom color
+tex <- write_latex(model_optimized, 
+                  model_view = "full", 
+                  trimmed_color = "red")
+```
+
+## Data Display Options
+
+### Include Data
+
+Control whether to show set elements and parameter row counts:
+
+```{r data-display, eval=FALSE}
+# With data (default)
+tex <- write_latex(demo_model, include_data = TRUE)
+
+# Without data (theory mode)
+tex <- write_latex(demo_model, include_data = FALSE)
+```
+
+### Data Detail Level
+
+Control the amount of data shown:
+
+```{r data-detail, eval=FALSE}
+# Brief: Shows row counts and first few elements
+tex <- write_latex(demo_model, data_detail = "brief")
+
+# Detailed: Shows more information
+tex <- write_latex(demo_model, data_detail = "detailed")
+```
+
+### Set Element Display
+
+Customize how set elements are displayed:
+
+```{r set-display, eval=FALSE}
+tex <- write_latex(demo_model,
+                  set_display_max_inline = 10,        # Max elements to show inline
+                  set_display_head_tail_threshold = 100,  # Threshold for head/tail
+                  set_display_head_n = 5,             # Number of head elements
+                  set_display_tail_n = 3)             # Number of tail elements
+```
+
+## Index Aliases
+
+Index aliases provide short names for dimensions in equations:
+
+```{r aliases, eval=FALSE}
+# Aliases are auto-detected from model$index_aliases
+tex <- write_latex(demo_model, use_model_aliases = TRUE)
+
+# This will use 'c' instead of 'comm', 'r' instead of 'region', etc.
+```
+
+The LaTeX output includes an "Index Aliases" section showing the mapping.
+
+## Controlling Alias Usage
+
+Control where aliases appear:
+
+```{r alias-control, eval=FALSE}
+# Default: Full names in declarations, aliases in equations
+tex <- write_latex(demo_model, use_aliases_in_declarations = FALSE)
+
+# Aliases everywhere
+tex <- write_latex(demo_model, use_aliases_in_declarations = TRUE)
+```
+
+## Section Visibility
+
+Control which sections appear in the output:
+
+```{r sections, eval=FALSE}
+tex <- write_latex(demo_model,
+                  include_sets = TRUE,
+                  include_aliases = TRUE,
+                  include_index_aliases = TRUE,
+                  include_parameters = TRUE,
+                  include_variables = TRUE,
+                  include_equations = TRUE,
+                  include_mappings = TRUE)  # Now TRUE by default
+
+# Equations only
+tex <- write_latex(demo_model,
+                  include_sets = FALSE,
+                  include_parameters = FALSE,
+                  include_variables = FALSE,
+                  include_equations = TRUE)
+```
+
+## Table of Contents
+
+Add a table of contents to the document:
+
+```{r toc, eval=FALSE}
+tex <- write_latex(demo_model, include_toc = TRUE)
+```
+
+## Complete Example
+
+Here's a complete example generating a publication-ready LaTeX document:
+
+```{r complete-example, eval=FALSE}
+# Load and optimize model
+data(example_models)
+demo_model <- example_models$energyRt$multimod
+
+# Create comprehensive fold specification
+fold_spec <- create_fold_spec(
+  demo_model,
+  fold_dims = list(
+    slice = list(
+      tech = "mTechSlice",
+      comm = "mCommSlice",
+      stg = c("mStorageComm", "mCommSlice")
+    ),
+    region = list(
+      tech = "mTechRegion",
+      sup = "mSupRegion"
+    ),
+    year = list(
+      tech = "mTechYear",
+      stg = "mStorageYear"
+    )
+  )
+)
+
+# Apply folding and trimming
+model_folded <- fold_model(demo_model, fold_spec)
+model_optimized <- trim_model(model_folded)
+
+# Generate comprehensive LaTeX document
+write_latex(
+  model_optimized,
+  file = "utopia_optimized.tex",
+  model_view = "full",              # Show all with annotations
+  include_toc = TRUE,               # Include table of contents
+  include_data = TRUE,              # Show data details
+  data_detail = "brief",            # Brief data format
+  use_model_aliases = TRUE,         # Use short names in equations
+  use_aliases_in_declarations = FALSE,  # Full names in declarations
+  trimmed_color = "blue",           # Color for trimmed annotations
+  include_sets = TRUE,
+  include_aliases = TRUE,
+  include_index_aliases = TRUE,
+  include_parameters = TRUE,
+  include_variables = TRUE,
+  include_equations = TRUE,
+  include_mappings = TRUE
+)
+
+# Compile with pdflatex
+system("pdflatex utopia_optimized.tex")
+```
+
+## Underscore Handling
+
+The LaTeX generator automatically escapes underscores in set element names, ensuring they display correctly:
+
+```{r underscores, eval=FALSE}
+# Set elements like "A_D", "RES_HYD" are automatically escaped
+# They will appear correctly in the PDF as A_D, RES_HYD
+tex <- write_latex(demo_model, include_data = TRUE)
+```
+
+## Converting Individual Objects
+
+You can also convert individual model components to LaTeX:
+
+```{r individual-objects, eval=FALSE}
+# Convert a parameter
+param_latex <- as_latex(demo_model$parameters$pTechCinp2use)
+
+# Convert a variable
+var_latex <- as_latex(demo_model$variables$vTechInp)
+
+# Convert an equation
+eq_latex <- as_latex(demo_model$equations$eqTechInp2Out)
+
+# Convert an AST node
+ast_latex <- as_latex(demo_model$equations$eqTechInp2Out$rhs)
+```
+
+## Tips for Publication-Quality Output
+
+1. **Use full mode with optimized models** to show readers what was removed
+2. **Include table of contents** for longer models
+3. **Add explanatory text** via the optimization summary
+4. **Use consistent colors** for annotations (blue for trimmed, green for folded)
+5. **Show brief data** to give readers context without overwhelming detail
+6. **Use index aliases** to make equations more readable
+7. **Keep full names in declarations** for clarity
+
+## Compiling LaTeX Documents
+
+After generating the `.tex` file, compile it with:
+
+```bash
+pdflatex model.tex
+```
+
+For models with table of contents, run twice:
+
+```bash
+pdflatex model.tex
+pdflatex model.tex
+```
+
+## Summary
+
+The `write_latex()` function provides comprehensive control over LaTeX generation:
+
+- **Model views**: Auto, reduced, full, or both
+- **Data display**: Control detail level and element formatting
+- **Optimization**: Automatic summary with explanatory text
+- **Annotations**: Visual markers for folded and trimmed elements
+- **Aliases**: Short names for readability
+- **Sections**: Fine-grained control over content
+- **TOC**: Optional table of contents
+- **Customization**: Colors, fonts, and display options
+
+This makes it easy to generate publication-ready mathematical documentation directly from your model code.
