@@ -4,7 +4,7 @@
 \alias{collect_scenario_parameter_data}
 \title{Collect scenario parameter data into memory}
 \usage{
-collect_scenario_parameter_data(ert_param)
+collect_scenario_parameter_data(ert_param, scenario = NULL)
 }
 \arguments{
 \item{ert_param}{energyRt parameter object}

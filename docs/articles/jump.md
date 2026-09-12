@@ -1,0 +1,708 @@
+# multimod to JuMP
+
+## Introduction
+
+This vignette demonstrates the complete workflow for converting an
+energyRt model to JuMP (Julia for Mathematical Programming) format and
+solving it with modern solvers like HiGHS, Gurobi, or CPLEX. The
+workflow includes:
+
+1.  Reading a GAMS model structure
+2.  Converting to multimod format
+3.  Connecting to energyRt scenario data
+4.  Writing JuMP model files
+5.  Solving with Julia/JuMP
+
+We’ll use the UTOPIA base scenario from energyRt as our example.
+
+## JuMP-Specific Features
+
+### Key Functions
+
+#### 1. `write_jump(model, model_dir, cleanup, format)`
+
+Generates a complete Julia/JuMP project with model code, data loading,
+and diagnostics.
+
+**Parameters:**
+
+- `model_dir`: Output directory for the project
+- `cleanup = FALSE`: Whether to remove existing directory first
+- `format = "ipc"`: Data format (“ipc” for Arrow, “csv” for CSV files)
+
+**Generated Files:**
+
+    model_dir/
+    ├── format.txt              # Data format specification
+    ├── model.rds               # Saved R model object
+    ├── sets/                   # Set members
+    ├── mappings/               # Set membership data
+    ├── parameters/             # Numeric parameter data
+    └── solvers/
+        └── jump/
+            ├── model.jl        # Main model file
+            ├── data.jl         # Data loading code
+            ├── constraint_stats.csv  # Diagnostic output
+            └── variable_stats.csv    # Diagnostic output
+
+**Key Features:**
+
+- **Modern JuMP syntax**: Named constraints with tuple indexing
+- **Short index aliases**: `h` (tech), `r` (region), `c` (comm), `y`
+  (year), `ts` (slice)
+- **get() pattern**: Clean parameter access with defaults
+- **Variable bounds**: Properly typed (\>=0, \<=0, binary, integer,
+  free)
+- **Comprehensive diagnostics**: Constraint and variable statistics with
+  nonzero counts
+
+#### 2. `save_model(model, model_dir, format, verbose)`
+
+Saves model data (sets, mappings, parameters) to disk in Arrow or CSV
+format.
+
+**Parameters:**
+
+- `format = "ipc"`: Arrow IPC format (fast, compact)
+- `format = "csv"`: CSV format (human-readable, slower)
+- `verbose = TRUE`: Print progress information
+
+**Arrow Format Benefits:**
+
+- **Fast**: Binary format, instant loading
+- **Compact**: 40-60% smaller than CSV
+- **Type-safe**: Preserves data types exactly
+- **Memory-mapped**: Can load without copying to RAM
+
+### Modern JuMP Code Generation
+
+The generated JuMP code uses modern best practices:
+
+``` julia
+# Named constraints with tuple indexing
+eqTechCap = @constraint(
+    model,
+    eqTechCap[(h, y) in mTechSpan],
+    vTechCap[(h, y)] == 
+        get(pTechStock, (h, y), pTechStockDef) +
+        sum(vTechNewCap[(h, yy)] for yy in year 
+            if (h, yy, y) in mTechNew)
+)
+
+# Variables with proper bounds
+@variable(model, vTechCap[mTechSpan] >= 0)
+@variable(model, vBalance[mvBalance] >= -Inf)  # free variable
+@variable(model, vTechRetired[mTechRetired], Bin)  # binary
+
+# Clean parameter access with defaults
+get(pTechStock, (h, y), pTechStockDef)
+
+# Constraint diagnostics (automatic)
+_log_constraint(constraint_stats, "eqTechCap", eqTechCap, 
+                length(mTechSpan), time() - _t0)
+```
+
+### Diagnostics and Validation
+
+Every generated model includes automatic diagnostics:
+
+**Constraint Statistics:** - Count: Number of constraint instances -
+Dimension: Number of indices - Mapping size: Size of constraint domain -
+Time: Construction time in seconds - Nonzeros: Total, min, max, average
+coefficients per constraint
+
+**Variable Statistics:** - Count: Number of variable instances -
+Dimension: Number of indices - Bounds: Fixed, free, lower_only,
+upper_only, bounded
+
+Output CSV files enable: - Model verification and comparison -
+Performance profiling - Debugging dimension mismatches - Tracking
+constraint complexity
+
+## Prerequisites
+
+``` r
+library(multimod)
+library(energyRt)  # For scenario data
+```
+
+**Julia Requirements:**
+
+- Julia 1.6+ (preferably 1.10+)
+- JuMP.jl package
+- Solver package (HiGHS.jl, Gurobi.jl, CPLEX.jl, etc.)
+- Arrow.jl (for IPC format) or CSV.jl (for CSV format)
+- DataFrames.jl
+
+Install Julia packages:
+
+``` julia
+using Pkg
+Pkg.add(["JuMP", "HiGHS", "Arrow", "DataFrames", "CSV", "Dates"])
+```
+
+## Step 1: Read GAMS Model Structure
+
+``` r
+# Path to GAMS model
+gams_file <- "C:/Users/admin/Documents/R/multimod/dev/scenarios/BASE_UTOPIA/script/gams_cbc/energyRt.gms"
+
+# Read model structure
+cat("Reading GAMS model...\n")
+model_struct <- read_gams(gams_file)
+
+# Inspect structure
+cat("Model structure:\n")
+cat("  Sets:", length(model_struct$sets), "\n")
+cat("  Mappings:", length(model_struct$mappings), "\n")
+cat("  Parameters:", length(model_struct$parameters), "\n")
+cat("  Variables:", length(model_struct$variables), "\n")
+cat("  Equations:", length(model_struct$equations), "\n")
+```
+
+## Step 2: Convert to Multimod Format
+
+``` r
+cat("\nConverting to multimod...\n")
+model <- as_multimod(model_struct)
+
+# Extract domain information from GAMS comments
+model <- en_extract_domains_from_comments(model, verbose = TRUE)
+
+# Populate default values from energyRt conventions
+model <- populate_defvals_from_energyrt(model)
+
+# Check index aliases (used in JuMP code)
+cat("\nIndex aliases for JuMP:\n")
+print(model$index_aliases)
+```
+
+The index aliases are used throughout the generated JuMP code:
+
+``` julia
+for (h, r, c, y, ts) in mvTechInp  # not (tech, region, comm, year, slice)
+    vTechInp[(h, r, c, y, ts)]      # tuple indexing
+end
+```
+
+## Step 3: Load and Import Scenario Data
+
+``` r
+# Load energyRt scenario
+cat("\nLoading energyRt scenario...\n")
+scen_file <- "C:/Users/admin/Documents/R/multimod/dev/scenarios/BASE_UTOPIA/scen.RData"
+load(scen_file)
+
+cat("Scenario class:", class(scen), "\n")
+```
+
+### Import with Comprehensive Logging
+
+``` r
+# Import all data (sets, parameters, mappings, bounds)
+cat("\nImporting energyRt scenario data...\n")
+model <- import_energyRt_data(
+  model, 
+  scen, 
+  inMemory = TRUE,  # Load data into R memory
+  log_file = "tmp/import_log.csv"
+)
+
+cat("\nImport complete!\n")
+
+# Verify data population
+n_params <- length(model$parameters)
+n_with_data <- sum(sapply(model$parameters, function(p) {
+  !is.null(p$data) && nrow(p$data) > 0
+}))
+
+cat("Parameters with data:", n_with_data, "/", n_params, "\n")
+```
+
+### Check Bounds Processing
+
+The importer automatically splits bounds parameters:
+
+``` r
+# Show bounds mapping
+show_bounds_mapping(model)
+
+# Example: pTechAf (type="bounds") becomes:
+#   pTechAfLo - lower bounds
+#   pTechAfUp - upper bounds
+```
+
+## Step 4: Save Model Data
+
+Save the model data to disk for Julia to load:
+
+``` r
+# Create output directory
+test_dir <- "tmp/utopia_jump"
+
+# Save model data in Arrow IPC format (recommended)
+cat("\nSaving model data (Arrow IPC format)...\n")
+save_model(model, test_dir, format = "ipc", verbose = TRUE)
+
+# Alternative: CSV format (slower, but human-readable)
+# save_model(model, test_dir, format = "csv", verbose = TRUE)
+
+cat("\nData saved to:", test_dir, "\n")
+```
+
+**Format Comparison:**
+
+| Format      | Speed       | Size       | Human-readable | Type-safe  |
+|-------------|-------------|------------|----------------|------------|
+| IPC (Arrow) | ⚡⚡⚡ Fast | 📦 Compact | ❌ No          | ✅ Yes     |
+| CSV         | 🐌 Slow     | 📦📦 Large | ✅ Yes         | ⚠️ Partial |
+
+## Step 5: Generate JuMP Code
+
+``` r
+# Generate complete JuMP project
+cat("\nGenerating JuMP code...\n")
+write_jump(model, model_dir = test_dir)
+
+cat("✓ JuMP code generated\n")
+
+# Show generated files
+julia_dir <- file.path(test_dir, "solvers", "jump")
+cat("\nGenerated files:\n")
+print(list.files(julia_dir, recursive = FALSE))
+```
+
+### Inspect Generated Code
+
+``` r
+# Show first 100 lines of model.jl
+model_file <- file.path(julia_dir, "model.jl")
+cat("\n=== model.jl (first 100 lines) ===\n")
+model_lines <- readLines(model_file, n = 100)
+cat(paste(model_lines, collapse = "\n"), "\n")
+```
+
+### Inspect Data Loading Code
+
+``` r
+# Show data loading code
+data_file <- file.path(julia_dir, "data.jl")
+cat("\n=== data.jl (first 80 lines) ===\n")
+data_lines <- readLines(data_file, n = 80)
+cat(paste(data_lines, collapse = "\n"), "\n")
+```
+
+Key features in data.jl:
+
+``` julia
+# Automatic format detection
+DATA_EXT = lowercase(strip(read("../../format.txt", String))) == "csv" ? ".csv" : ".arrow"
+
+# Smart 1D vs multi-D handling
+function _load_mapping_file(mapping_name)
+    # ...
+    if ncol(df) == 1
+        return Set(string(row[1]) for row in eachrow(df))  # Set{String}
+    else
+        return Set(Tuple(...) for row in eachrow(df))       # Set{Tuple{...}}
+    end
+end
+
+# Parameters with dimension-aware keys
+function _load_param_file(param_name, dims)
+    # ...
+    if length(dims) == 1
+        return Dict(string(row[1]) => row[end] ...)  # Scalar keys
+    else
+        return Dict(Tuple(...) => row[end] ...)       # Tuple keys
+    end
+end
+```
+
+This ensures: - ✅ `t in mTradeCapacityVariable` works (not
+`(t,) in ...`) - ✅ `get(pSliceWeight, "ANNUAL", 0.0)` works (not
+tuple) - ✅ `get(pTechStock, (h, y), 0.0)` works with tuples
+
+## Step 6: Solve with Julia/JuMP
+
+### Option A: Run from R
+
+``` r
+# Execute Julia model from R
+cat("\n=== SOLVING WITH JULIA/JUMP ===\n\n")
+
+# Change to Julia directory and run
+old_wd <- getwd()
+setwd(julia_dir)
+system2("julia", args = "model.jl")
+setwd(old_wd)
+```
+
+### Option B: Run from Julia REPL
+
+``` julia
+# In Julia REPL:
+cd("path/to/tmp/utopia_jump/solvers/jump")
+include("model.jl")
+```
+
+### Option C: Run from Terminal
+
+``` bash
+cd path/to/tmp/utopia_jump/solvers/jump
+julia model.jl
+```
+
+## Step 7: Analyze Results
+
+### Read Diagnostic CSVs
+
+``` r
+# Read constraint statistics
+constraint_csv <- file.path(julia_dir, "constraint_stats.csv")
+if (file.exists(constraint_csv)) {
+  cat("\n=== CONSTRAINT STATISTICS ===\n")
+  con_stats <- read.csv(constraint_csv)
+  
+  cat("Total constraints:", nrow(con_stats), "\n")
+  cat("Non-empty constraints:", sum(con_stats$count > 0), "\n")
+  cat("Total instances:", sum(con_stats$count), "\n")
+  cat("Total nonzeros:", sum(con_stats$nnz_total), "\n\n")
+  
+  # Top 10 by count
+  cat("Top 10 largest constraints:\n")
+  top10 <- head(con_stats[order(-con_stats$count), 
+                          c("name", "count", "dimension", "nnz_total", "nnz_avg")], 10)
+  print(top10)
+  
+  # Top 10 by construction time
+  cat("\nTop 10 slowest to build:\n")
+  top10_time <- head(con_stats[order(-con_stats$time_seconds), 
+                               c("name", "count", "time_seconds", "nnz_total")], 10)
+  print(top10_time)
+}
+```
+
+``` r
+# Read variable statistics
+variable_csv <- file.path(julia_dir, "variable_stats.csv")
+if (file.exists(variable_csv)) {
+  cat("\n=== VARIABLE STATISTICS ===\n")
+  var_stats <- read.csv(variable_csv)
+  
+  cat("Total variables:", nrow(var_stats), "\n")
+  cat("Total instances:", sum(var_stats$count), "\n\n")
+  
+  cat("Bounds summary:\n")
+  cat("  Fixed:      ", sum(var_stats$fixed), "\n")
+  cat("  Free:       ", sum(var_stats$free), "\n")
+  cat("  Lower only: ", sum(var_stats$lower_only), "\n")
+  cat("  Upper only: ", sum(var_stats$upper_only), "\n")
+  cat("  Bounded:    ", sum(var_stats$bounded), "\n\n")
+  
+  # Top 10 by count
+  cat("Top 10 largest variables:\n")
+  top10 <- head(var_stats[order(-var_stats$count), 
+                          c("name", "count", "dimension", "lower_only", "free")], 10)
+  print(top10)
+}
+```
+
+### Parse Solution from Julia Output
+
+The Julia script prints solution information to console. You can capture
+it:
+
+``` r
+# Run and capture output
+output <- system2("julia", 
+                  args = file.path(julia_dir, "model.jl"),
+                  stdout = TRUE, 
+                  stderr = TRUE)
+
+# Parse objective value
+obj_line <- grep("Objective value:", output, value = TRUE)
+if (length(obj_line) > 0) {
+  obj_value <- as.numeric(sub(".*Objective value:\\s+([-0-9.e+]+).*", "\\1", obj_line))
+  cat("\nObjective value:", format(obj_value, big.mark = ",", scientific = FALSE), "\n")
+}
+
+# Parse termination status
+status_line <- grep("Termination status:", output, value = TRUE)
+if (length(status_line) > 0) {
+  status <- sub(".*Termination status:\\s+(\\w+).*", "\\1", status_line)
+  cat("Termination status:", status, "\n")
+}
+
+# Parse solve time
+time_line <- grep("HiGHS run time", output, value = TRUE)
+if (length(time_line) > 0) {
+  solve_time <- sub(".*HiGHS run time\\s*:\\s*([-0-9.]+).*", "\\1", time_line)
+  cat("Solve time:", solve_time, "seconds\n")
+}
+```
+
+## Comparison with energyRt Original
+
+Compare with the original energyRt translation if available:
+
+``` r
+# Load reference model results
+ref_con_stats <- "dev/scenarios/BASE_UTOPIA/script/julia_highs/constraint_stats.csv"
+if (file.exists(ref_con_stats)) {
+  ref_con <- read.csv(ref_con_stats)
+  our_con <- read.csv(constraint_csv)
+  
+  cat("\n=== MODEL COMPARISON ===\n\n")
+  
+  # Compare sizes
+  cat("Constraint counts:\n")
+  cat("  Reference: ", nrow(ref_con), "constraint families\n")
+  cat("  Our model: ", nrow(our_con), "constraint families\n\n")
+  
+  cat("Total instances:\n")
+  cat("  Reference: ", sum(ref_con$count), "\n")
+  cat("  Our model: ", sum(our_con$count), "\n\n")
+  
+  cat("Total nonzeros:\n")
+  cat("  Reference: ", sum(ref_con$nnz_total), "\n")
+  cat("  Our model: ", sum(our_con$nnz_total), "\n\n")
+  
+  # Compare specific constraints
+  common_names <- intersect(ref_con$name, our_con$name)
+  cat("Comparing", length(common_names), "common constraints:\n\n")
+  
+  for (cname in head(common_names, 10)) {
+    ref_row <- ref_con[ref_con$name == cname, ]
+    our_row <- our_con[our_con$name == cname, ]
+    
+    match <- (ref_row$count == our_row$count && 
+              ref_row$nnz_total == our_row$nnz_total)
+    
+    status <- if (match) "✓" else "✗"
+    
+    cat(sprintf("  %s %-20s: ref=%4d/%5d nnz, our=%4d/%5d nnz\n",
+                status, cname, 
+                ref_row$count, ref_row$nnz_total,
+                our_row$count, our_row$nnz_total))
+  }
+}
+```
+
+## Advanced: Custom Solver Configuration
+
+You can modify the generated `model.jl` to use different solvers or set
+solver options:
+
+``` julia
+# Use Gurobi instead of HiGHS
+using Gurobi
+model = Model(Gurobi.Optimizer)
+set_optimizer_attribute(model, "TimeLimit", 3600)
+set_optimizer_attribute(model, "MIPGap", 1e-4)
+
+# Use CPLEX
+using CPLEX
+model = Model(CPLEX.Optimizer)
+set_optimizer_attribute(model, "CPX_PARAM_TILIM", 3600)
+
+# Use Cbc (open-source)
+using Cbc
+model = Model(Cbc.Optimizer)
+set_optimizer_attribute(model, "seconds", 3600)
+
+# Multiple solvers with fallback
+try
+    using Gurobi
+    model = Model(Gurobi.Optimizer)
+catch
+    using HiGHS
+    model = Model(HiGHS.Optimizer)
+end
+```
+
+## Performance Tips
+
+### 1. Use Arrow IPC Format
+
+Arrow is 3-5x faster than CSV for loading:
+
+``` r
+# Benchmark data loading
+library(microbenchmark)
+
+microbenchmark(
+  arrow = {
+    save_model(model, "tmp/bench_arrow", format = "ipc", verbose = FALSE)
+  },
+  csv = {
+    save_model(model, "tmp/bench_csv", format = "csv", verbose = FALSE)
+  },
+  times = 5
+)
+```
+
+### 2. Pre-compile Julia Package
+
+First run is slow due to compilation. Pre-compile:
+
+``` julia
+using Pkg
+Pkg.precompile()
+```
+
+Or use PackageCompiler.jl to create a sysimage:
+
+``` julia
+using PackageCompiler
+create_sysimage(["JuMP", "HiGHS", "Arrow", "DataFrames"]; 
+                sysimage_path="jump_sysimage.so")
+```
+
+Then run with: `julia --sysimage jump_sysimage.so model.jl`
+
+### 3. Monitor Memory Usage
+
+For large models, track memory:
+
+``` julia
+using Logging
+@info "Memory before model build" memory=Base.gc_live_bytes()/1e9
+
+# Build model...
+
+@info "Memory after model build" memory=Base.gc_live_bytes()/1e9
+```
+
+## Debugging Tips
+
+### Check Data Loading
+
+If the model fails to load, test data loading separately:
+
+``` julia
+# In Julia REPL:
+include("data.jl")
+
+# Check specific sets/parameters
+println("comm set: ", comm)
+println("pTechStock: ", typeof(pTechStock), " with ", length(pTechStock), " entries")
+
+# Test parameter access
+println("Test get: ", get(pTechStock, ("E01", "2025"), 0.0))
+```
+
+### Check Constraint Dimensions
+
+If constraints have unexpected nonzero counts:
+
+``` r
+# In R, before generating code:
+cat("\nChecking constraint dimensions:\n")
+for (eq in model$equations[1:5]) {
+  cat(sprintf("%-20s: %s\n", eq$name, paste(eq$dims, collapse = " x ")))
+}
+
+# Check mapping sizes
+cat("\nChecking mapping sizes:\n")
+for (map_name in names(model$parameters)[1:10]) {
+  p <- model$parameters[[map_name]]
+  if (!is.null(p$data)) {
+    cat(sprintf("%-25s: %5d rows\n", map_name, nrow(p$data)))
+  }
+}
+```
+
+### Validate Against GAMS
+
+Compare with GAMS output if available:
+
+``` r
+# Read GAMS solution
+gams_gdx <- "path/to/gams_solution.gdx"
+# ... use gdxrrw or other tools to read GDX
+# Compare with Julia output
+```
+
+## Complete Workflow Script
+
+Here’s the complete end-to-end workflow:
+
+``` r
+library(multimod)
+library(energyRt)
+
+# 1. Read and convert GAMS model
+model <- as_multimod(read_gams("path/to/energyRt.gms"))
+model <- en_extract_domains_from_comments(model)
+model <- populate_defvals_from_energyrt(model)
+
+# 2. Load and import scenario data
+load("path/to/scen.RData")
+model <- import_energyRt_data(model, scen, inMemory = TRUE)
+
+# 3. Save model data
+test_dir <- "tmp/my_model"
+save_model(model, test_dir, format = "ipc", verbose = TRUE)
+
+# 4. Generate JuMP code
+write_jump(model, model_dir = test_dir)
+
+# 5. Solve with Julia
+julia_dir <- file.path(test_dir, "solvers", "jump")
+setwd(julia_dir)
+system2("julia", args = "model.jl")
+
+# 6. Read results
+con_stats <- read.csv(file.path(julia_dir, "constraint_stats.csv"))
+var_stats <- read.csv(file.path(julia_dir, "variable_stats.csv"))
+
+cat("Total constraints:", sum(con_stats$count), "\n")
+cat("Total variables:", sum(var_stats$count), "\n")
+cat("Total nonzeros:", sum(con_stats$nnz_total), "\n")
+```
+
+## Key Differences from GMPL
+
+| Feature      | GMPL       | JuMP                         |
+|--------------|------------|------------------------------|
+| Language     | AMPL-like  | Julia (native)               |
+| Syntax       | MathProg   | Julia/JuMP macros            |
+| Data format  | .dat files | Arrow/CSV                    |
+| Index syntax | `[i,j,k]`  | `[(i,j,k)]` tuple            |
+| Constraints  | Anonymous  | Named objects                |
+| Solvers      | GLPK only  | HiGHS, Gurobi, CPLEX, Cbc, … |
+| Performance  | Good       | Excellent                    |
+| Ecosystem    | Limited    | Rich (Julia packages)        |
+| Debugging    | Printf     | Full Julia tooling           |
+
+## Summary
+
+The JuMP translation provides:
+
+- ✅ **Modern syntax**: Named constraints, tuple indexing, get() pattern
+- ✅ **Type safety**: Proper handling of 1D vs multi-D data
+- ✅ **Variable bounds**: From GAMS variable types
+- ✅ **Diagnostics**: Comprehensive constraint/variable statistics
+- ✅ **Performance**: Fast Arrow format, efficient code generation
+- ✅ **Flexibility**: Multiple solver options
+- ✅ **Validation**: Built-in nonzero counts for debugging
+
+The key innovation is the dimension-aware data loading that correctly
+handles both scalar and tuple keys, ensuring generated code matches the
+original model structure exactly.
+
+## Further Reading
+
+- JuMP documentation: [jump.dev](https://jump.dev/)
+- Julia language: [julialang.org](https://julialang.org/)
+- Arrow format: [arrow.apache.org](https://arrow.apache.org/)
+- energyRt package:
+  [github.com/energyRt/energyRt](https://github.com/energyRt/energyRt)
+- HiGHS solver: [highs.dev](https://highs.dev/)
+
+## Session Info
+
+``` r
+sessionInfo()
+```

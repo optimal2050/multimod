@@ -4,7 +4,12 @@
 \alias{convert_energyrt_parameter}
 \title{Convert energyRt parameter to multimod format}
 \usage{
-convert_energyrt_parameter(ert_param, orig_param = NULL, inMemory = FALSE)
+convert_energyrt_parameter(
+  ert_param,
+  orig_param = NULL,
+  inMemory = FALSE,
+  scenario = NULL
+)
 }
 \arguments{
 \item{ert_param}{An energyRt parameter object}

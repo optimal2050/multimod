@@ -917,7 +917,7 @@ as_jump_sum_prod <- function(x, model = NULL, ...) {
     # Resolve alias to base set for iteration
     iter_base_set <- resolve_alias_to_set(iter_set_name, model)
   } else if (inherits(iterator, "dims")) {
-    # Multiple iterators as tuple: (year, slice) or (region, year)
+    # Multiple iterators as tuple: (year, timeslice) or (region, year)
     # Extract names from dims
     iter_set_names <- sapply(iterator, function(d) {
       if (inherits(d, "symbol")) d$name
@@ -948,7 +948,7 @@ as_jump_sum_prod <- function(x, model = NULL, ...) {
       iter_base_set <- condition$name
     } else {
       # Tuple dimensions < mapping dimensions: nested iteration with filter
-      # e.g., for y in year for s in slice if (..., y, s) in mSupAva
+      # e.g., for y in year for s in timeslice if (..., y, s) in mSupAva
       # Convert to nested for loops (handled later)
       iter_name <- NULL  # Signal that we need nested loops
       iter_base_set <- NULL
@@ -962,7 +962,7 @@ as_jump_sum_prod <- function(x, model = NULL, ...) {
   if (inherits(iterator, "dims") && is.null(iter_name)) {
     # Nested iteration case: tuple dimensions < mapping dimensions
     # Generate nested for loops with filter
-    # e.g., for y in year for s in slice if (sup, comm, region, y, s) in mSupAva
+    # e.g., for y in year for s in timeslice if (sup, comm, region, y, s) in mSupAva
     
     # Build nested for loops with aliases
     nested_loops <- paste(sapply(seq_along(iterator), function(i) {

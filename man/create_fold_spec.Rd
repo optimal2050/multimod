@@ -11,10 +11,10 @@ create_fold_spec(model, fold_dims, tolerance = 1e-10, verbose = TRUE)
 
 \item{fold_dims}{Dimension configuration. Can be:
 \itemize{
-\item Character vector: dimension names (e.g., \code{c("slice")})
-\item Named list (simple): dimension → mapping (e.g., \code{list(slice = "mCommSlice")})
+\item Character vector: dimension names (e.g., \code{c("timeslice")})
+\item Named list (simple): dimension → mapping (e.g., \code{list(timeslice = "mCommTimeslice")})
 \item Named list (advanced): dimension → entity-specific mappings
-(e.g., \code{list(slice = list(tech = "mTechSlice", comm = "mCommSlice"))})
+(e.g., \code{list(timeslice = list(tech = "mTechTimeslice", comm = "mCommTimeslice"))})
 }}
 
 \item{tolerance}{Numeric tolerance for detecting constant values (default: 1e-10)}
@@ -30,20 +30,20 @@ features as \code{create_fold_spec_energyRt} but without energyRt-specific defau
 }
 \examples{
 \dontrun{
-# Simple: fold slice dimension
-fold_spec <- create_fold_spec(model, fold_dims = "slice")
+# Simple: fold timeslice dimension
+fold_spec <- create_fold_spec(model, fold_dims = "timeslice")
 
 # With single validation mapping
-fold_spec <- create_fold_spec(model, fold_dims = list(slice = "mCommSlice"))
+fold_spec <- create_fold_spec(model, fold_dims = list(timeslice = "mCommTimeslice"))
 
 # Entity-specific (advanced)
 fold_spec <- create_fold_spec(
   model,
   fold_dims = list(
-    slice = list(
-      tech = "mTechSlice",
-      comm = "mCommSlice",
-      stg = c("mStorageComm", "mCommSlice")  # Chain
+    timeslice = list(
+      tech = "mTechTimeslice",
+      comm = "mCommTimeslice",
+      stg = c("mStorageComm", "mCommTimeslice")  # Chain
     )
   )
 )

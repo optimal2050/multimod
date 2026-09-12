@@ -174,7 +174,7 @@ ast_dims <- function(...) {
   #   stop("Invalid input for `dims`: ",
   #        "must be set, symbol, or characters.")
   # }
-  if (!is.list(dims)) browser()
+  if (!is.list(dims)) .dev_break("ast-classes.R:177")
   out <- do.call(new_ast, c("dims", dims))
   return(out)
 }
@@ -408,7 +408,7 @@ ast_expression <- function(op, lhs, rhs, brackets = NULL) {
   stopifnot(is.character(op), !is.null(lhs), !is.null(rhs))
   stopifnot(inherits(lhs, "ast"), inherits(rhs, "ast"))
   stopifnot(length(op) == 1)
-  if (length(brackets) > 1) browser()
+  if (length(brackets) > 1) .dev_break("ast-classes.R:411")
   stopifnot(length(brackets) <= 1)
   new_ast("expression", op = op, lhs = lhs, rhs = rhs, brackets = brackets)
 }

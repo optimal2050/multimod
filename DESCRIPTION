@@ -1,7 +1,7 @@
 Package: multimod
 Title: Define and Render Mathematical Models Across Multiple Optimization Languages.
-Version: 0.4.0.9009
-Date: 2025-12-14
+Version: 0.4.1.9000
+Date: 2026-09-09
 Authors@R: 
   c(person(given = "Oleg", 
           family = "Lugovoy", 
@@ -10,7 +10,7 @@ Authors@R:
           comment = c(ORCID = "0000-0001-5546-9875")))
 Description: Multimod provides a domain-specific language (DSL) for defining algebraic equations and constraints in R, and rendering them to multiple mathematical programming languages, including GAMS, AMPL, Pyomo, and JuMP. It supports structured storage of equations, parameters, sets, and mappings, and aims to simplify the development of complex optimization models across platforms.
 URL: https://optimal2050.github.io/multimod, https://github.com/optimal2050/multimod 
-License: MIT + file LICENSE
+License: Apache License (>= 2)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Depends: R (>= 4.0)
@@ -18,6 +18,8 @@ Imports:
     stringr,
     dplyr,
     data.table,
+    Matrix,
+    arrow,
     visNetwork,
     rlang,
     purrr,
@@ -25,6 +27,9 @@ Imports:
     magrittr,
     jsonlite
 Suggests: 
+    energyRt,
+    highs,
+    withr,
     reticulate (>= 1.28),
     tidync,
     knitr,
@@ -34,53 +39,4 @@ Suggests:
 VignetteBuilder: knitr
 LazyData: true
 Config/Needs/website: rmarkdown
-Collate: 
-    'as_character.R'
-    'as_gams.R'
-    'as_gmpl.R'
-    'as_jump.R'
-    'as_latex.R'
-    'as_multimod.R'
-    'as_pyomo.R'
-    'as_r.R'
-    'as_rfunction.R'
-    'as_vizNetwork.R'
-    'ast-classes.R'
-    'compare.R'
-    'compare_dataframes.R'
-    'compare_solutions.R'
-    'config.R'
-    'data-example_models.R'
-    'data_management.R'
-    'evaluate_parameters.R'
-    'export_model_source.R'
-    'fold.R'
-    'glpk_solver.R'
-    'html.R'
-    'import_energyrt.R'
-    'import_osemosys.R'
-    'index_aliases.R'
-    'model_redundancy.R'
-    'model_storage.R'
-    'model_symbol_utils.R'
-    'multimod-classes.R'
-    'multimod-package.R'
-    'multimod.R'
-    'parsing.R'
-    'plot.R'
-    'print.R'
-    'read_gams.R'
-    'read_gmpl.R'
-    'setup_python.R'
-    'solve_jump.R'
-    'solve_pyomo.R'
-    'trim.R'
-    'utils.R'
-    'validate.R'
-    'write_gams.R'
-    'write_gmpl.R'
-    'write_jump.R'
-    'write_latex.R'
-    'write_pyomo.R'
-    'zzz.R'
 Config/roxygen2/version: 8.0.0

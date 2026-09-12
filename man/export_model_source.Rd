@@ -5,7 +5,7 @@
 \title{Export Model Source Files}
 \usage{
 export_model_source(
-  dataset = c("osemosys", "energyrt"),
+  dataset = c("energyrt"),
   dir,
   format = "all",
   overwrite = FALSE,
@@ -13,13 +13,13 @@ export_model_source(
 )
 }
 \arguments{
-\item{dataset}{Name of the dataset to export. Either "osemosys" or "energyrt".}
+\item{dataset}{Name of the dataset to export. Currently only "energyrt".}
 
 \item{dir}{Directory path where files will be written. Will be created if it
 doesn't exist.}
 
-\item{format}{For energyrt dataset, which format to export: "gams", "gmpl",
-"jump", "pyomo", or "all" (default). Ignored for osemosys dataset.}
+\item{format}{Which format to export: "gams", "gmpl", "jump", "pyomo", or
+"all" (default).}
 
 \item{overwrite}{Logical. If TRUE, overwrite existing files. Default is FALSE.}
 
@@ -29,20 +29,11 @@ doesn't exist.}
 Invisible list of file paths that were created.
 }
 \description{
-Export model source code from package datasets (osemosys_source or
-energyRt_source) to files in a specified directory. This is useful for
-testing parsers, running models, or inspecting model code.
+Export model source code from the bundled \code{example_models} dataset to files
+in a specified directory. This is useful for testing parsers, running
+models, or inspecting model code.
 }
 \details{
-\subsection{OSeMOSYS Export}{
-
-For the OSeMOSYS dataset, exports:
-\itemize{
-\item \code{osemosys.txt}: Model code
-\item \code{utopia.txt}: Data file
-}
-}
-
 \subsection{energyRt Export}{
 
 For the energyRt dataset, exports files based on the \code{format} argument:
@@ -80,9 +71,7 @@ For the energyRt dataset, exports files based on the \code{format} argument:
 }
 \examples{
 \dontrun{
-# Export OSeMOSYS to temporary directory
 tmp_dir <- tempdir()
-export_model_source("osemosys", file.path(tmp_dir, "osemosys"))
 
 # Export energyRt GMPL format
 export_model_source("energyrt", file.path(tmp_dir, "energyrt"),
@@ -93,8 +82,9 @@ export_model_source("energyrt", file.path(tmp_dir, "energyrt_all"),
                     format = "all")
 
 # Use exported files
-osemosys_dir <- file.path(tmp_dir, "osemosys")
-model <- read_gmpl(file.path(osemosys_dir, "osemosys.txt"))
+gmpl_dir <- file.path(tmp_dir, "energyrt")
+model <- read_gmpl(file.path(gmpl_dir, "model.mod"),
+                   file.path(gmpl_dir, "data.dat"))
 }
 
 }

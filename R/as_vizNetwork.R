@@ -59,7 +59,7 @@ get_network_data <- function(x, alias_map = NULL, show_dims = TRUE) {
     id_counter <<- id_counter + 1
     my_id <- id_counter
 
-    if (grepl("<.+>", label)) browser()
+    if (grepl("<.+>", label)) .dev_break("as_vizNetwork.R:62")
     # if (label == "sum" || label == "prod") {
     #   if (node_type(expr$index) == "dims") {
     #     label <- paste0(label, with_dims(expr$name, expr$index, show_dims = show_dims))

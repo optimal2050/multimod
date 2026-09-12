@@ -1,6 +1,36 @@
 # multimod (development version)
 
+## Breaking changes
+
+* `analyze_fold_opportunities()`: `fold_slice` is now `fold_timeslice`, and the
+  `slice` dimension is spelled `timeslice` throughout `R/fold.R`, matching
+  energyRt. The old spelling was dead code, so the timeslice-coverage check
+  never ran.
+
 ## New features
+
+### Direct matrix / MPS backend
+
+* Assemble a model straight into LP arrays, bypassing the symbolic layer:
+  `model_to_lp()`, `build_col_index()`, `build_row_index()`, `build_triplets()`.
+* `write_mps()`, `read_mps_solution()`, `write_energyrt_output()` for the
+  file round trip; `solve_highs()` for an in-process solve returning duals.
+* `multimod_from_energyRt()` builds a model from an interpolated energyRt
+  scenario in one call, with `fill_variable_domains()` resolving the variable
+  domains the GAMS `*@` comments do not carry.
+* energyRt user constraints and costs (`newConstraint()`, `newCosts()`) are
+  supported via `add_user_constraints()` and
+  `declare_user_constraint_symbols()`.
+* `check_matrix_numbers()` reports the magnitude spectrum of an assembled LP,
+  with offender tables by equation and variable.
+* `read_cuopt_solution()` reads cuOpt's solution format, and
+  `read_solver_solution()` dispatches on the file itself (`solver = "auto"`)
+  rather than a caller-supplied guess.
+* `write_energyrt_output()` also emits `raw_data_set.csv` and `log.csv`, the
+  files `energyRt::read_solution()` requires beside the per-variable tables.
+
+See `dev/mps-pipeline-and-issues.md` for the pipeline, measurements and open
+items.
 
 ### Data Integration & Storage
 
@@ -72,6 +102,22 @@
   - `trim_model()`, `get_trim_summary()`
 
 ## Bug fixes
+
+* Folded scenarios (`fold = TRUE`) silently produced a wrong model: an `NA`
+  wildcard matched nothing on join and fell back to the parameter default.
+  Wildcards are now expanded on import, and one reaching the matrix errors.
+* An empty or unlinked gating map could trigger a dense expansion of a
+  summation index; emptiness is now tested before arity, and an undeclared
+  mapping errors.
+* Parameter values of `Inf` became infinite coefficients. multimod now drops
+  those rows and maps an infinite default to 0, as every energyRt writer does.
+* `import_energyRt_data()` reported "0 rows" for a fully readable on-disk
+  scenario, and an import where nothing is reachable is now an error rather
+  than a warning.
+* `get_data()` treated a legitimately empty on-disk table as unreadable and
+  aborted the build.
+* `DESCRIPTION` no longer carries a `Collate` field: it had fallen out of date,
+  and files absent from it are silently not sourced.
 
 * **JuMP fix**: 1-dimensional mappings now correctly loaded as `Set{String}` instead of 
   `Set{Tuple{String}}`. This was causing membership checks like `t in mTradeCapacityVariable` 

@@ -4,7 +4,7 @@
 \alias{process_bounds_with_log}
 \title{Process bounds parameters with logging}
 \usage{
-process_bounds_with_log(model, scenario_params, bounds_names)
+process_bounds_with_log(model, scenario_params, bounds_names, scenario = NULL)
 }
 \description{
 Process bounds parameters with logging

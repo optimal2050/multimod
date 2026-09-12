@@ -375,13 +375,20 @@ test_that("write_gmpl skips trimmed elements", {
       vEmpty = new_variable("vEmpty", dims = "empty_tech", vtype = "continuous")
     )
   )
+  # KNOWN BUG: as_multimod() drops $data from sets, so `region` arrives with
+  # zero members and trim_model() then correctly trims it as empty. That is
+  # why the 'set region is declared' assertion below fails. The failure is
+  # real and in as_multimod(), not in this test -- it was hidden until now
+  # behind a validation error that fired first.
   model <- as_multimod(model)
 
   # Trim
   trimmed <- trim_model(model, verbose = FALSE)
 
-  # Generate GMPL code
-  gmpl_code <- write_gmpl(trimmed, include_solve = FALSE)
+  # check = FALSE: this fixture is a structural stub with no equations and no
+  # objective, which validate() rejects. Validation is not what is under test
+  # here -- whether trimmed elements are omitted from the emitted GMPL is.
+  gmpl_code <- write_gmpl(trimmed, include_solve = FALSE, check = FALSE)
   gmpl_text <- paste(gmpl_code, collapse = "\n")
 
   # Check that trimmed set is not declared

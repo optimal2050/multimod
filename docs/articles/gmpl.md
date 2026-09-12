@@ -1,0 +1,715 @@
+# multimod to GMPL
+
+## Introduction
+
+This vignette demonstrates the complete workflow for converting an
+energyRt model to GMPL (GNU MathProg Language, as subset of AMPL) format
+and solving it with GLPK. The workflow includes:
+
+1.  Reading a GAMS model structure
+2.  Converting to multimod format
+3.  Connecting to energyRt scenario data (stored as Arrow/Parquet)
+4.  Writing GMPL model and data files
+5.  Solving with GLPK using glpkAPI
+
+We’ll use the UTOPIA base scenario from energyRt as our example.
+
+## GMPL-Specific Functions and Behavior
+
+### Key Functions
+
+#### 1. `write_gmpl(model, file, include_solve, export_vars, use_table_output)`
+
+Writes the model structure to a `.mod` file.
+
+**Parameters:**
+
+- `include_solve = TRUE`: Adds solve statement, objective, and output
+  code
+- `export_vars`: Controls which variables to export to CSV
+  - `NULL` (default): Export all variables to individual CSVs
+  - `c("var1", "var2")`: Export only specified variables
+  - `FALSE` or `character(0)`: No custom CSV export
+- `use_table_output`: Adds GMPL table statement for output
+  - `TRUE`: Exports all variables using table statement to
+    `table_output.csv`
+  - `FALSE` (default): No table output
+- Both `export_vars` and `use_table_output` can be used together
+
+**Example:**
+
+``` r
+# Export only key variables
+write_gmpl(model, "model.mod", export_vars = c("vTechCap", "vObjective"))
+
+# Use GMPL table output instead of custom CSVs
+write_gmpl(model, "model.mod", export_vars = FALSE, use_table_output = TRUE)
+```
+
+#### 2. `write_gmpl_data(model, file)`
+
+Writes the data section to a `.dat` file with lazy loading from
+Arrow/Parquet files.
+
+**GMPL-specific formatting:**
+
+- Empty sets: `set name := ;`
+- Empty mappings: `set name := ;`
+- Empty parameters: `param name default <defVal> := ;`
+- Multi-dimensional mappings use comma-separated tuples:
+  `elem1,elem2, elem1,elem3, ...`
+- Parameters with default values:
+  `param name default <defVal> := [idx1,idx2] val ...`
+- Sparse parameters: Default value ensures missing combinations are
+  handled correctly
+- File ends with: `end;`
+
+#### 3. `populate_sets_from_scenario(model, scenario)`
+
+Extracts unique set members from energyRt scenario parameters.
+
+- Scans all Arrow/Parquet files to find dimension values
+- Populates `model$sets[[name]]$data` with character vectors
+- Required before writing data file
+
+#### 4. `link_scenario_data(model, scenario)`
+
+Links energyRt parameter data to model without loading into memory.
+
+- Distinguishes mappings (`@type == "map"`) from parameters
+  (`@type == "numpar"`)
+- Preserves `@defVal` for parameter default values
+- Stores references to Arrow/Parquet files in `model$misc$path`
+- Data is loaded only when
+  [`write_gmpl_data()`](https://optimal2050.github.io/multimod/reference/write_gmpl_data.md)
+  is called (lazy loading)
+
+### Key GMPL Differences from GAMS
+
+| Feature            | GAMS                   | GMPL                 |
+|--------------------|------------------------|----------------------|
+| Case sensitivity   | Case-insensitive       | Case-sensitive       |
+| Tuple syntax       | `(a, b, c)` or `a.b.c` | Commas: `a,b,c`      |
+| Index syntax       | `[a,b,c]` or `[a b c]` | `[a,b,c]` only       |
+| Empty declarations | Optional               | Required             |
+| Sparse data        | Auto-handled           | Needs default values |
+| Output             | `put` statements       | `printf` statements  |
+| Data I/O           | `$include`, GDX        | `table` statement    |
+
+## Prerequisites
+
+``` r
+library(multimod)
+```
+
+## Step 1: Read GAMS Model Structure
+
+First, we read the model structure from the GAMS file. This gives us the
+model skeleton (sets, parameters, variables, equations) without data.
+
+``` r
+# Path to GAMS model
+gams_file <- "C:/Users/admin/Documents/R/multimod/dev/scenarios/BASE_UTOPIA/script/gams_cbc/energyRt.gms"
+
+# Read model structure
+cat("Reading GAMS model...\n")
+model_struct <- read_gams(gams_file)
+
+# Inspect structure
+cat("Model structure:\n")
+cat("  Sets:", length(model_struct$sets), "\n")
+cat("  Mappings:", length(model_struct$mappings), "\n")
+cat("  Parameters:", length(model_struct$parameters), "\n")
+cat("  Variables:", length(model_struct$variables), "\n")
+cat("  Equations:", length(model_struct$equations), "\n")
+```
+
+## Step 2: Convert to Multimod Format
+
+Convert the model structure to multimod’s internal representation. This
+automatically generates index aliases for use in GMPL.
+
+``` r
+cat("\nConverting to multimod...\n")
+model <- as_multimod(model_struct)
+
+# Check index aliases
+cat("Index aliases generated:\n")
+print(model$index_aliases)
+```
+
+The index aliases map set names to short variable names used in equation
+iterations: - `tech` → `h` - `region` → `r` - `comm` → `c` - `year` →
+`y` - etc.
+
+These aliases are used in GMPL’s `for` loops and indexing expressions.
+
+## Step 3: Connect to energyRt Scenario Data
+
+Now we connect the model to actual data from an energyRt scenario. The
+data is stored in Arrow/Parquet format on disk.
+
+``` r
+# Load energyRt scenario
+cat("\nLoading energyRt scenario...\n")
+library(energyRt)
+scen_file <- "C:/Users/admin/Documents/R/multimod/dev/scenarios/BASE_UTOPIA/scen.RData"
+load(scen_file)
+
+cat("Scenario class:", class(scen), "\n")
+cat("Parameters in scenario:", length(scen@modInp@parameters), "\n")
+
+# Set base path for lazy loading
+model$base_path <- "C:/Users/admin/Documents/R/multimod/dev/scenarios/BASE_UTOPIA"
+cat("Base path set to:", model$base_path, "\n")
+```
+
+### Import Scenario Data with Logging
+
+We use the comprehensive
+[`import_energyRt_data()`](https://optimal2050.github.io/multimod/reference/import_energyRt_data.md)
+function that handles sets, parameters, mappings, and bounds parameters:
+
+``` r
+# Import all data with detailed logging
+cat("\nImporting energyRt scenario data...\n")
+model <- import_energyRt_data(model, scen, inMemory = TRUE, log_file = "tmp/import_log.csv")
+
+# Check what was imported
+cat("\nImport summary:\n")
+cat("  Sets populated\n")
+cat("  Parameters linked\n")
+cat("  Mappings linked\n")  
+cat("  Bounds split and linked\n")
+```
+
+### Inspect Bounds Mapping
+
+Bounds parameters (e.g., `pTechAf` with type “bounds”) are automatically
+split into separate Lo/Up parameters:
+
+``` r
+# Show bounds mapping
+show_bounds_mapping(model)
+
+# Check for any import issues
+show_unmatched(model)
+
+# Access detailed import log
+log <- get_import_log(model)
+cat("\nBounds processed:", length(log$bounds), "\n")
+```
+
+The
+[`import_energyRt_data()`](https://optimal2050.github.io/multimod/reference/import_energyRt_data.md)
+function:
+
+1.  **Populates sets** from scenario parameter dimensions
+2.  **Links parameters** (numeric data) with lazy loading support
+3.  **Links mappings** (set membership data)
+4.  **Splits bounds parameters** into separate Lo/Up parameters
+    - Example: `pTechAf` (type=“bounds”) → `pTechAfLo` + `pTechAfUp`
+    - Handles dimension aliases (e.g., `src`/`dst` for `region`)
+    - Preserves defVal: `c(lo_default, up_default)`
+    - Filters by “type” column: `lo/lower/min` vs `up/upper/max`
+
+## Step 4: Write GMPL Files
+
+Now we write the model and data files. The data will be loaded from disk
+automatically during writing.
+
+``` r
+# Create output directory
+output_dir <- "C:/Users/admin/Documents/R/multimod/tmp/utopia_gmpl"
+dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+
+# Write model file (.mod) with solve and output statements
+cat("\nWriting GMPL model file...\n")
+mod_file <- file.path(output_dir, "utopia.mod")
+write_gmpl(model, file = mod_file, include_solve = TRUE)
+
+cat("Model file written:", mod_file, "\n")
+cat("File size:", format(file.size(mod_file), big.mark = ","), "bytes\n")
+
+# Write data file (.dat) - this triggers lazy loading
+cat("\nWriting GMPL data file (loading data from disk)...\n")
+dat_file <- file.path(output_dir, "utopia.dat")
+write_gmpl_data(model, file = dat_file)
+
+cat("Data file written:", dat_file, "\n")
+cat("File size:", format(file.size(dat_file), big.mark = ","), "bytes\n")
+```
+
+### Output Control Options
+
+You can control which variables are exported:
+
+``` r
+# Export only specific variables
+write_gmpl(model, "model.mod", 
+           include_solve = TRUE,
+           export_vars = c("vTechCap", "vTechAct", "vObjective"))
+
+# No custom CSV export (minimal file)
+write_gmpl(model, "model.mod", 
+           include_solve = TRUE,
+           export_vars = FALSE)
+
+# Use GMPL table output
+write_gmpl(model, "model.mod", 
+           include_solve = TRUE,
+           use_table_output = TRUE)
+
+# Combine: custom CSVs for key vars + table output for everything
+write_gmpl(model, "model.mod", 
+           include_solve = TRUE,
+           export_vars = c("vObjective", "vTechCap"),
+           use_table_output = TRUE)
+```
+
+### What Happens During write_gmpl_data()?
+
+When
+[`write_gmpl_data()`](https://optimal2050.github.io/multimod/reference/write_gmpl_data.md)
+is called:
+
+1.  For each mapping/parameter, checks if data is in memory
+2.  If not, calls
+    [`get_lazy_data()`](https://optimal2050.github.io/multimod/reference/get_lazy_data.md)
+    which:
+    - Resolves the path: `base_path + misc$path`
+    - Opens the Arrow/Parquet dataset
+    - Collects data into a data frame
+3.  Writes the data in GMPL format with proper syntax:
+    - Empty sets/mappings: `set name := ;`
+    - Parameters with defaults: `param name default <defVal> := ...`
+    - Comma-separated tuples: `elem1,elem2, elem3,elem4, ...`
+    - Comma-separated indices: `[idx1,idx2] value`
+4.  Data is immediately eligible for garbage collection
+
+This means: - **Memory efficient**: Only one parameter in memory at a
+time - **Transparent**: Same code works for in-memory or on-disk data -
+**Scalable**: Can handle models with hundreds of parameters
+
+## Step 5: Inspect Generated Files
+
+Let’s look at what was generated.
+
+``` r
+# Show first 50 lines of .mod file
+cat("\n=== Model file (.mod) - First 50 lines ===\n")
+mod_lines <- readLines(mod_file, n = 50)
+cat(paste(mod_lines, collapse = "\n"), "\n")
+```
+
+``` r
+# Show first 100 lines of .dat file
+cat("\n=== Data file (.dat) - First 100 lines ===\n")
+dat_lines <- readLines(dat_file, n = 100)
+cat(paste(dat_lines, collapse = "\n"), "\n")
+```
+
+### Data File Structure
+
+The `.dat` file contains:
+
+``` ampl
+set FORIF := FORIFSET;  # Conditional evaluation set
+
+# Basic sets (derived from data)
+set region := R1 R2 R3 R4 R5 R6 R7;
+set year := 2025 2026 2030 2033;
+set comm := ELC COA GAS NUC HYD ...;
+
+# Mappings (tuples)
+set mCommReg :=
+CO2 R1,
+CO2 R2,
+ELC R1,
+...;
+
+# Parameters (values with indices)
+param pDemand :=
+[DEM_ELC R1 2025] 100.5,
+[DEM_ELC R2 2025] 85.3,
+...;
+```
+
+## Step 6: Solve with GLPK
+
+Now we solve the model using GLPK via the glpkAPI interface.
+
+``` r
+cat("\n=== SOLVING WITH GLPK ===\n\n")
+
+# Execute GLPK solver
+result <- execute_glpkAPI(
+  model_dir = output_dir,
+  mod_file = "utopia.mod",
+  dat_file = "utopia.dat",
+  verbose = TRUE,
+  save_solution = TRUE
+)
+
+# Display results
+cat("\n=== SOLUTION SUMMARY ===\n")
+cat("Status:", result$status_message, "\n")
+cat("Objective value:", format(result$objective, big.mark = ",", scientific = FALSE), "\n")
+cat("Variables:", result$n_variables, "\n")
+cat("Constraints:", result$n_constraints, "\n")
+cat("Non-zero variables:", nrow(result$solution_nonzero), "\n")
+```
+
+### Solution Output
+
+The solver automatically executes the `printf` statements in the model
+file, writing solution CSV files to the `output/` directory:
+
+- `output/log.csv` - Solver timing information
+- `output/vObjective.csv` - Objective function value
+- `output/vTechCap.csv` - Technology capacity variables
+- `output/vBalance.csv` - Commodity balance variables
+- … (one file per variable)
+
+``` r
+# Show objective value
+cat("\n=== OBJECTIVE VALUE ===\n")
+obj_file <- file.path(output_dir, "output", "vObjective.csv")
+if (file.exists(obj_file)) {
+  obj_data <- read.csv(obj_file)
+  print(obj_data)
+}
+
+# Show non-zero variables summary
+cat("\n=== NON-ZERO VARIABLES (first 20) ===\n")
+print(head(result$solution_nonzero, 20))
+```
+
+## Performance Considerations
+
+### Memory Usage
+
+The lazy loading approach keeps memory usage low:
+
+``` r
+# Before write_gmpl_data()
+mem_before <- pryr::mem_used()
+
+# Write data file (loads from disk)
+write_gmpl_data(model, file = dat_file)
+
+# After (data eligible for GC)
+mem_after <- pryr::mem_used()
+
+cat("Memory increase:", format(mem_after - mem_before, units = "MB"), "\n")
+```
+
+### Timing
+
+``` r
+# Time the complete workflow
+system.time({
+  model_struct <- read_gams(gams_file)
+  model <- as_multimod(model_struct)
+  # ... populate data ...
+  write_gmpl(model, file = mod_file)
+  write_gmpl_data(model, file = dat_file)
+})
+
+# Time the solve
+system.time({
+  result <- execute_glpkAPI(output_dir, verbose = FALSE)
+})
+```
+
+## Comparison with Original Model
+
+We can compare our solution with energyRt’s original GLPK output if
+available:
+
+``` r
+# Try to read original objective from output files
+original_output_dir <- "C:/Users/admin/Documents/R/multimod/dev/scenarios/BASE_UTOPIA/script/glpk/output"
+orig_obj_file <- file.path(original_output_dir, "vObjective.csv")
+
+if (file.exists(orig_obj_file)) {
+  orig_obj_data <- read.csv(orig_obj_file)
+  original_obj <- orig_obj_data$value[1]
+  
+  # Our model objective
+  our_obj <- result$objective
+  
+  # Difference
+  diff <- abs(our_obj - original_obj)
+  rel_diff <- diff / abs(original_obj) * 100
+  
+  cat("\nComparison with original:\n")
+  cat("Original objective:", format(original_obj, scientific = FALSE), "\n")
+  cat("Our objective:     ", format(our_obj, scientific = FALSE), "\n")
+  cat("Absolute diff:     ", format(diff, scientific = TRUE), "\n")
+  cat("Relative diff:     ", sprintf("%.2e%%", rel_diff), "\n")
+  
+  if (rel_diff < 1e-6) {
+    cat("\n✓ Solutions match (numerically equivalent)\n")
+  } else if (rel_diff < 1) {
+    cat("\n✓ Solutions close (< 1% difference)\n")
+  }
+} else {
+  cat("\nOriginal solution not found for comparison\n")
+  cat("Our objective:", format(result$objective, scientific = FALSE), "\n")
+}
+```
+
+### Compare CSV Outputs
+
+Compare individual variable CSV files:
+
+``` r
+# Paths to output directories
+original_output_dir <- "C:/Users/admin/Documents/R/multimod/dev/scenarios/BASE_UTOPIA/script/glpk/output"
+our_output_dir <- file.path(output_dir, "output")
+
+if (dir.exists(original_output_dir)) {
+  original_files <- list.files(original_output_dir, pattern = "\\.csv$")
+  our_files <- list.files(our_output_dir, pattern = "\\.csv$")
+  
+  # Find common files
+  common_files <- intersect(original_files, our_files)
+  cat("\nComparing", length(common_files), "common CSV files:\n\n")
+  
+  for (fname in head(common_files, 10)) {
+    orig_path <- file.path(original_output_dir, fname)
+    our_path <- file.path(our_output_dir, fname)
+    
+    tryCatch({
+      orig_data <- read.csv(orig_path)
+      our_data <- read.csv(our_path)
+      
+      if (nrow(orig_data) == nrow(our_data) && "value" %in% names(orig_data)) {
+        max_diff <- max(abs(orig_data$value - our_data$value), na.rm = TRUE)
+        rel_diff <- max_diff / (max(abs(orig_data$value), na.rm = TRUE) + 1e-10)
+        status <- if (rel_diff < 1e-6) "✓ MATCH" else sprintf("⚠ DIFF: %.2e", rel_diff)
+      } else {
+        status <- sprintf("%d rows", nrow(our_data))
+      }
+      
+      cat(sprintf("  %-25s %s\n", fname, status))
+    }, error = function(e) {
+      cat(sprintf("  %-25s ERROR\n", fname))
+    })
+  }
+}
+```
+
+## Complete Workflow Script
+
+Here’s the complete workflow in a single script:
+
+``` r
+library(multimod)
+library(energyRt)
+
+# 1. Read and convert GAMS model
+gams_file <- "path/to/energyRt.gms"
+model <- as_multimod(read_gams(gams_file))
+
+# 2. Load scenario and import data
+load("path/to/scen.RData")
+model$base_path <- "path/to/scenario"
+
+# Import all data (sets, parameters, mappings, bounds)
+model <- import_energyRt_data(model, scen, inMemory = TRUE)
+
+# 3. Write GMPL files
+output_dir <- "path/to/output"
+dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+
+write_gmpl(model, 
+           file = file.path(output_dir, "model.mod"), 
+           include_solve = TRUE)
+
+write_gmpl_data(model, 
+                file = file.path(output_dir, "model.dat"))
+
+# 4. Solve with GLPK
+result <- execute_glpkAPI(output_dir, 
+                         mod_file = "model.mod",
+                         dat_file = "model.dat",
+                         verbose = TRUE, 
+                         save_solution = TRUE)
+
+# 5. Analyze results
+cat("Status:", result$status_message, "\n")
+cat("Objective:", result$objective, "\n")
+cat("Non-zero variables:", nrow(result$solution_nonzero), "\n")
+print(head(result$solution_nonzero, 20))
+```
+
+## Diagnostics and Debugging
+
+### Data Export for Inspection
+
+When troubleshooting model generation, you can export the loaded sets
+and parameters to CSV format for inspection:
+
+``` r
+# Export all data to CSV files
+write_gmpl(model, 
+           file = "model.mod",
+           export_data = TRUE)
+
+# This creates a data/ directory with:
+# - data/sets/*.csv       - One file per set
+# - data/mappings/*.csv   - One file per mapping
+# - data/parameters/*.csv - One file per parameter
+```
+
+Each CSV file contains the loaded data in a readable tabular format,
+making it easy to verify that data was imported correctly from energyRt
+scenarios.
+
+### Solution Comparison
+
+Compare solutions from different model runs or solvers:
+
+``` r
+# Compare two solved models
+result1 <- execute_glpkAPI("path/to/model1", verbose = FALSE)
+result2 <- execute_glpkAPI("path/to/model2", verbose = FALSE)
+
+comparison <- compare_solution(result1, result2)
+
+# Returns:
+# $objective_diff      - Difference in objective values
+# $missing_in_first    - Variables present in second but not first
+# $missing_in_second   - Variables present in first but not second
+# $value_differences   - Variables with different values
+```
+
+You can also compare dumped CSV files from `export_data = TRUE`:
+
+``` r
+# Compare parameter data between two models
+compare_solution("model1/data/parameters/pDemand.csv",
+                "model2/data/parameters/pDemand.csv")
+```
+
+### LP/MPS Export
+
+Export models to standard LP or MPS formats for external validation or
+use with other solvers:
+
+``` r
+# Export to CPLEX LP format
+export_glpk_model(model_dir = output_dir,
+                 mod_file = "model.mod",
+                 dat_file = "model.dat",
+                 output_file = "model.lp",
+                 format = "CPLEX_LP")
+
+# Export to MPS format
+export_glpk_model(model_dir = output_dir,
+                 mod_file = "model.mod",
+                 dat_file = "model.dat",
+                 output_file = "model.mps",
+                 format = "MPS")
+
+# Also supports: "GLPK_LP" (GLPK native), "Fixed_MPS" (fixed-format MPS)
+```
+
+These exported files can be: - Opened in text editors for manual
+inspection - Used with other optimization solvers (CPLEX, Gurobi, CBC,
+etc.) - Compared between model versions for debugging
+
+### Deep Model Comparison
+
+For detailed model comparison, use the LP/MPS comparison functions:
+
+``` r
+# Compare LP files constraint-by-constraint and variable-by-variable
+lp_comparison <- compare_lp("original.lp", "modified.lp", verbose = TRUE)
+
+# Compare MPS files
+mps_comparison <- compare_mps("original.mps", "modified.mps", verbose = TRUE)
+
+# Both functions:
+# - Extract all constraints and variables to data frames
+# - Sort by name for order-independent comparison
+# - Use compare::compare() for detailed difference reporting
+# - Return rich comparison results
+
+# Control comparison behavior:
+compare_lp("model1.lp", "model2.lp",
+          ignoreOrder = TRUE,        # Default: ignore row/column ordering
+          ignoreNameCase = FALSE,    # Default: names are case-sensitive
+          verbose = TRUE)            # Show progress during comparison
+```
+
+The comparison reports: - **Constraints**: name, type (≤, ≥, =),
+lower/upper bounds - **Variables**: name, type (continuous, integer,
+binary), bounds, objective coefficients - **Differences**: Missing
+elements, value mismatches, structural changes
+
+This is particularly useful for: - **Roundtrip validation**: Verify that
+GAMS → multimod → GMPL preserves the model - **Refactoring**: Confirm
+that code changes don’t alter the mathematical model - **Debugging**:
+Identify exactly what changed between model versions - **Solver
+comparison**: Ensure different solvers receive equivalent models
+
+### Complete Diagnostics Workflow
+
+``` r
+# 1. Export data for inspection
+write_gmpl(model, "model.mod", export_data = TRUE)
+
+# 2. Generate and solve model
+result1 <- execute_glpkAPI(output_dir, verbose = TRUE)
+
+# 3. Export to LP format for archival/comparison
+export_glpk_model(output_dir, "model.mod", "model.dat", 
+                 output_file = "baseline.lp", format = "CPLEX_LP")
+
+# 4. Make changes to model...
+# model_modified <- modify_model(model)
+# write_gmpl(model_modified, "model.mod")
+# write_gmpl_data(model_modified, "model.dat")
+
+# 5. Solve modified model
+result2 <- execute_glpkAPI(output_dir, verbose = TRUE)
+
+# 6. Export modified version
+export_glpk_model(output_dir, "model.mod", "model.dat",
+                 output_file = "modified.lp", format = "CPLEX_LP")
+
+# 7. Compare everything
+compare_solution(result1, result2)  # Compare solutions
+compare_lp("baseline.lp", "modified.lp", verbose = TRUE)  # Deep model comparison
+```
+
+## Summary
+
+This workflow demonstrates:
+
+- ✅ **Seamless conversion** from GAMS to GMPL
+- ✅ **Lazy loading** from Arrow/Parquet datasets
+- ✅ **Memory efficiency** for large models
+- ✅ **Automated solving** with GLPK
+- ✅ **Solution extraction** to CSV files
+- ✅ **Comprehensive diagnostics** for debugging and validation
+
+The key innovation is the lazy loading system, which allows working with
+large energyRt scenarios without loading all data into memory at once.
+
+## Further Reading
+
+- GMPL language reference: [GLPK
+  documentation](https://www.gnu.org/software/glpk/)
+- energyRt package: [GitHub
+  repository](https://github.com/energyRt/energyRt)
+- Arrow format: [Apache Arrow documentation](https://arrow.apache.org/)
+
+## Session Info
+
+``` r
+sessionInfo()
+```

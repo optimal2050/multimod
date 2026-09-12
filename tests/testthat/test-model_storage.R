@@ -452,3 +452,70 @@ test_that("no metadata files in subdirectories", {
 })
 
 
+
+
+# =============================================================================
+# A detached table that is genuinely empty is not a missing table
+# =============================================================================
+#
+# energyRt detaches a parameter's data and leaves a summary in misc$onDisk,
+# including the row count. A map that legitimately holds no tuples (e.g.
+# mvTechPhaseOut in a scenario with no phase-outs) therefore claims external
+# data while having nothing to load. That is not the same failure as a path
+# that cannot be read, and reporting it as one halted the import of a
+# perfectly good scenario.
+# =============================================================================
+
+test_that("a recorded-empty table reads back as empty, not as an error", {
+  m <- new_model(
+    name = "empty_ondisk",
+    mappings = list(
+      mGone = new_mapping("mGone", desc = "no tuples", dims = c("tech", "year"),
+                          active_dims = c("tech", "year"), data = data.frame())
+    )
+  )
+  # what energyRt's detach leaves behind for an empty table: the record is
+  # keyed by slot name
+  m$mappings$mGone$misc <- list(onDisk = list(data = list(dim = c(0L, 2L))),
+                                inMemory = FALSE)
+
+  d <- get_data(m, "mGone", type = "mapping")
+  expect_false(is.null(d))
+  expect_equal(nrow(d), 0L)
+  # columns come from the declared dims, so arity checks downstream still mean
+  # something
+  expect_equal(names(d), c("tech", "year"))
+})
+
+test_that("a table that claims rows but cannot be loaded still errors", {
+  m <- new_model(
+    name = "lost_ondisk",
+    mappings = list(
+      mLost = new_mapping("mLost", desc = "unreachable", dims = c("tech", "year"),
+                          active_dims = c("tech", "year"), data = data.frame())
+    )
+  )
+  m$mappings$mLost$misc <- list(onDisk = list(data = list(dim = c(239L, 2L))),
+                                path = file.path(tempdir(), "no_such_dir"),
+                                inMemory = FALSE)
+
+  expect_error(get_data(m, "mLost", type = "mapping"),
+               "declares data outside")
+})
+
+test_that("a parameter's empty read carries a value column", {
+  m <- new_model(
+    name = "empty_param",
+    parameters = list(
+      pGone = new_parameter("pGone", desc = "no rows", dims = c("tech", "year"),
+                            active_dims = c("tech", "year"),
+                            data = data.frame(), defVal = NULL)
+    )
+  )
+  m$parameters$pGone$misc <- list(onDisk = list(data = list(dim = c(0L, 3L))),
+                                  inMemory = FALSE)
+
+  d <- get_data(m, "pGone", type = "parameter")
+  expect_equal(nrow(d), 0L)
+  expect_equal(names(d), c("tech", "year", "value"))
+})

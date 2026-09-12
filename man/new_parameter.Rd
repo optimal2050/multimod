@@ -15,7 +15,8 @@ new_parameter(
   symbolic = FALSE,
   formula = NULL,
   comment = NULL,
-  auto_fold = FALSE
+  auto_fold = FALSE,
+  symbols = NULL
 )
 }
 \arguments{

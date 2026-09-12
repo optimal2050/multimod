@@ -33,6 +33,7 @@
   eq_substitute = list(when = "condition"),
   alias_map = NULL,
   use_model_aliases = TRUE,
+  use_latex_names = TRUE,
   use_aliases_in_declarations = FALSE,
   folded_color = "blue",
   trimmed_color = "red",

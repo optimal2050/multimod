@@ -439,45 +439,40 @@ replace_where_duplicates <- function(obj) {
 #' @return Modified AST with aliases applied.
 #' @export
 alias_ast_names <- function(ast, alias_map, classes = NULL, ...) {
-  # browser()
   stopifnot(is.list(alias_map))
-  # message(ast$name)
 
-  # reverse_aliases <- setNames(names(alias_map), unname(alias_map))  # e.g. region -> r
-  reverse_aliases <- alias_map
+  # `alias_map[[nm]]` is a hashed lookup. The previous form was
+  # `nm %in% names(alias_map)`, which allocated a fresh character vector of
+  # every key at every node visited -- the map is constant for a traversal, so
+  # that was pure waste repeated once per node.
 
-  # Recursive rename function
   rename_walk <- function(x) {
-    # browser()
-    x_length <- length(x) ; if (x_length == 0) return(x)
+    n <- length(x)
+    if (n == 0L) return(x)
+
     if (inherits(x, "ast")) {
-      node_cls <- node_type(x)
-      if (is.null(classes) || node_cls %in% classes) {
-        # Guard against malformed structures where $name is not character
-        if (!is.null(x$name) && is.character(x$name) && x$name %in% names(reverse_aliases)) {
-          x$name <- reverse_aliases[[x$name]]
+      if (is.null(classes) || class(x)[1L] %in% classes) {
+        nm <- x$name
+        if (!is.null(nm) && is.character(nm) && length(nm) == 1L) {
+          a <- alias_map[[nm]]
+          if (!is.null(a)) x$name <- a
         }
       }
-      # Recurse into subfields
-      for (i in 1:x_length) {
-        if (is.null(x[[i]])) next
-        # if (i > x_length) browser()
-        x_renamed <- rename_walk(x[[i]])
-        if (is.null(x_renamed)) browser()
-        # try(x[[i]] <- rename_walk(x[[i]]))
-        x[[i]] <- x_renamed
-      }
-      # for (nm in names(x)) {
-      #   x[[nm]] <- rename_walk(x[[nm]])
-      # }
-    } else if (is.list(x) && !is.data.frame(x)) {
-      for (i in seq_along(x)) {
-        if (is.null(x[[i]])) next
-        x[[i]] <- rename_walk(x[[i]])
-      }
+    } else if (!is.list(x) || is.data.frame(x)) {
+      # Atomic vectors and data frames carry no nested names to rewrite.
+      return(x)
+    }
+
+    for (i in seq_len(n)) {
+      xi <- x[[i]]
+      # Only lists can contain further nodes. Recursing into atomic leaves cost
+      # a function call each and returned them unchanged; an ast node is mostly
+      # scalar fields, so that was the bulk of the calls.
+      if (is.list(xi)) x[[i]] <- rename_walk(xi)
     }
     x
   }
+
   rename_walk(ast)
 }
 
@@ -876,3 +871,20 @@ compare_jump_stats <- function(model_dir1,
 
 
 
+
+#' Marker for a state the author believed unreachable
+#'
+#' Replaces `browser()` calls left in package code. `browser()` stops an
+#' interactive session and waits for input with no message -- indistinguishable
+#' from a hang -- while under `Rscript` it is inert, so it survives CI and only
+#' ever bites a human. This warns and continues: the signal is kept, the block
+#' is not.
+#'
+#' @param context Where it fired, as "file.R:line".
+#' @keywords internal
+.dev_break <- function(context = "") {
+  warning("multimod: reached a state believed unreachable",
+          if (nzchar(context)) paste0(" (", context, ")") else "",
+          call. = FALSE)
+  invisible(NULL)
+}

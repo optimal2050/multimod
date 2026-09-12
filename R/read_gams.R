@@ -346,27 +346,43 @@ parse_gams_expr <- function(
   # ">=", "<=", ">", "<", "="
   # `+`, `-`
   # browser()
-  top_ops <- find_top_level_operators(expr, descending = TRUE)$op |> unique()
-  for (op in top_ops) {
-    tokens <- split_top_level(expr, op, keep_op = FALSE, as_list = FALSE)
-    if (!is.null(tokens) && length(tokens) >= 2) {
-      lhs <- parse_gams_expr(tokens[[1]], symbols, known_funcs, depth + 1, max_depth)
-      rhs <- parse_gams_expr(paste(tokens[-1], collapse = paste0(" ", op, " ")), symbols, known_funcs, depth + 1, max_depth)
-      # return(list(type = "expression", op = tolower(op), lhs = lhs, rhs = rhs))
+  # Split at the LAST top-level operator of the loosest precedence group.
+  #
+  # `-` and `/` are left-associative: `a - b + c` is `(a - b) + c`, so the tree
+  # must break at the last operator, not the first. Splitting at the first (and
+  # rejoining the remainder) builds `a - (b + c)`, which silently negates every
+  # term after the first minus. That stayed invisible because every text
+  # renderer flattens the tree back to `a - b + c` without brackets and the
+  # target language re-parses it correctly; only a backend that evaluates the
+  # AST directly (as_matrix) sees the wrong signs.
+  #
+  # `**` is right-associative, so it keeps the first-split behaviour.
+  op_tbl <- find_top_level_operators(expr, descending = TRUE)
+  op_tbl <- op_tbl[!is.na(op_tbl$op), , drop = FALSE]
+
+  for (p in unique(op_tbl$prec)) {
+    grp <- op_tbl[op_tbl$prec == p, , drop = FALSE]
+    k <- if (all(grp$op == "**")) which.min(grp$pos) else which.max(grp$pos)
+    op <- grp$op[k]
+    at <- grp$pos[k]
+
+    lhs_txt <- trimws(substr(expr, 1L, at - 1L))
+    rhs_txt <- trimws(substr(expr, at + nchar(op), nchar(expr)))
+
+    if (nzchar(lhs_txt) && nzchar(rhs_txt)) {
+      lhs <- parse_gams_expr(lhs_txt, symbols, known_funcs, depth + 1, max_depth)
+      rhs <- parse_gams_expr(rhs_txt, symbols, known_funcs, depth + 1, max_depth)
       return(ast_expression(op, lhs = lhs, rhs = rhs, brackets = brackets))
-    } else if (length(tokens) == 1) {
-      # Handle unary operators
+    }
+
+    if (!nzchar(lhs_txt) && nzchar(rhs_txt)) {
       if (op %in% c("not", "-", "!")) {
-        rhs <- parse_gams_expr(tokens[[1]], symbols, known_funcs,
-                               depth + 1, max_depth)
+        rhs <- parse_gams_expr(rhs_txt, symbols, known_funcs, depth + 1, max_depth)
         return(ast_unary(op, rhs))
       } else if (op %in% "+") {
-        # ignore unary plus
-        return(parse_gams_expr(tokens[[1]], symbols, known_funcs,
-                               depth, max_depth))
+        return(parse_gams_expr(rhs_txt, symbols, known_funcs, depth, max_depth))
       } else {
-        stop("Unrecognized unary operator: ", op, "\n",
-             "Cannot parse expression: ", expr)
+        stop("Unrecognized unary operator: ", op, "; cannot parse: ", expr)
       }
     }
   }
@@ -409,7 +425,7 @@ parse_gams_expr <- function(
 
   # sum(...), prod(...)
   if (grepl("^(sum|prod)\\(", expr)) {
-    browser() # should not be here!
+    .dev_break("read_gams.R:428") # should not be here!
     agg_type <- if (grepl("^sum\\(", expr)) "sum" else "prod"
     parts <- split_indexed_operator(expr)
     if (is.null(parts) || length(parts) != 2) stop("Malformed aggregate: cannot split arguments")
@@ -488,7 +504,6 @@ parse_gams_expr <- function(
   }
 
   if (max_lev > 0) {
-    browser()
     stop("Expression has unrecognized operators or structure: ", expr)
   }
 
@@ -697,7 +712,6 @@ read_gams <- function(
       # check if there is a code after set(s)
       the_rest <- sub("^set(s)?\\b\\s*", "", line, ignore.case = TRUE)
       if (nchar(the_rest) > 0) {
-        browser()
         stop(
           "Unrecognized code after set(s) declaration: '",
           the_rest, "'\n",
@@ -713,7 +727,6 @@ read_gams <- function(
       # check if there is a code after alias(es)
       the_rest <- sub("^alias(es)?\\b\\s*", "", line, ignore.case = TRUE)
       if (nchar(the_rest) > 0) {
-        browser()
         stop(
           "Unrecognized code after alias(es) declaration: '",
           the_rest, "'\n",
@@ -728,7 +741,6 @@ read_gams <- function(
       # check if there is a code after parameter(s)
       the_rest <- sub("^parameter(s)?\\b\\s*", "", line, ignore.case = TRUE)
       if (nchar(the_rest) > 0) {
-        browser()
         stop(
           "Unrecognized code after parameter(s) declaration: '",
           the_rest, "'\n",
@@ -752,7 +764,6 @@ read_gams <- function(
       # check if there is a code after variable(s)
       the_rest <- sub("^([a-zA-Z0-9_]+\\s+)?variable(s)?\\b\\s*", "", line, ignore.case = TRUE)
       if (nchar(the_rest) > 0) {
-        browser()
         stop(
           "Unrecognized code after variable(s) declaration: '",
           the_rest, "'\n",
@@ -767,7 +778,6 @@ read_gams <- function(
       # check if there is a code after equation(s)
       the_rest <- sub("^equation(s)?\\b\\s*", "", line, ignore.case = TRUE)
       if (nchar(the_rest) > 0) {
-        browser()
         stop(
           "Unrecognized code after equation(s) declaration: '",
           the_rest, "'\n",
@@ -923,7 +933,7 @@ read_gams <- function(
       }
       if (verbose) {
         if (grepl(".;", lines[i])) {
-          browser() # debug - should not be here
+          .dev_break("read_gams.R:936") # debug - should not be here
           message("Found semicolon at end of equation body")
         }
       }
@@ -996,7 +1006,6 @@ parse_equation_header <- function(line) {
     name_and_dims <- header
     condition     <- NULL
   } else {
-    browser()
     stop("Unrecognized equation header format: ", line)
   }
 

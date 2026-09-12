@@ -7,10 +7,10 @@
 #' @param model A multimod model object (from energyRt)
 #' @param fold_dims Dimension configuration. Same format as \code{create_fold_spec()}.
 #'   Can be:
-#'   - Character vector: dimension names (e.g., \code{c("slice")})  
-#'   - Named list (simple): dimension → mapping (e.g., \code{list(slice = "mCommSlice")})
+#'   - Character vector: dimension names (e.g., \code{c("timeslice")})  
+#'   - Named list (simple): dimension → mapping (e.g., \code{list(timeslice = "mCommTimeslice")})
 #'   - Named list (advanced): dimension → entity-specific mappings
-#'     (e.g., \code{list(slice = list(tech = "mTechSlice", comm = "mCommSlice"))})
+#'     (e.g., \code{list(timeslice = list(tech = "mTechTimeslice", comm = "mCommTimeslice"))})
 #' @param tolerance Numeric tolerance for considering values equal (default: 1e-10)
 #' @param verbose Logical; print progress messages (default: TRUE)
 #'
@@ -31,25 +31,25 @@
 #' - Else → NA (no validation)
 #' 
 #' Mapping chains join mappings by common columns:
-#' Example: \code{stg = c("mStorageComm", "mCommSlice")}
-#' - \code{mStorageComm[stg, comm]} ⨝ \code{mCommSlice[comm, slice]} → \code{[stg, slice]}
+#' Example: \code{stg = c("mStorageComm", "mCommTimeslice")}
+#' - \code{mStorageComm[stg, comm]} ⨝ \code{mCommTimeslice[comm, timeslice]} → \code{[stg, timeslice]}
 #' 
 #' For derived mappings (chains), mappings are joined in sequence by common columns.
-#' Example: \code{stg = c("mStorageComm", "mCommSlice")}
-#' - \code{mStorageComm[stg, comm]} inner_join \code{mCommSlice[comm, slice]} → \code{[stg, slice]}
+#' Example: \code{stg = c("mStorageComm", "mCommTimeslice")}
+#' - \code{mStorageComm[stg, comm]} inner_join \code{mCommTimeslice[comm, timeslice]} → \code{[stg, timeslice]}
 #'
 #' @examples
 #' \dontrun{
 #' # Explicit configuration for energyRt models
 #' fold_spec <- create_fold_spec_energyRt(model, 
 #'   fold_dims = list(
-#'     slice = list(
-#'       tech = "mTechSlice",
-#'       sup = "mSupSlice", 
-#'       comm = "mCommSlice",
-#'       stg = c("mStorageComm", "mCommSlice"),
-#'       trade = c("mTradeComm", "mCommSlice"),
-#'       imp = c("mImportComm", "mCommSlice")
+#'     timeslice = list(
+#'       tech = "mTechTimeslice",
+#'       sup = "mSupTimeslice", 
+#'       comm = "mCommTimeslice",
+#'       stg = c("mStorageComm", "mCommTimeslice"),
+#'       trade = c("mTradeComm", "mCommTimeslice"),
+#'       imp = c("mImportComm", "mCommTimeslice")
 #'     )
 #'   ))
 #' 
@@ -341,11 +341,11 @@ create_fold_spec_energyRt <- function(model,
   
   # Parse fold_dims configuration
   if (is.list(fold_dims)) {
-    # Explicit configuration: list(slice = list(tech = "mTechSlice", stg = c("mStorageComm", "mCommSlice")))
+    # Explicit configuration: list(timeslice = list(tech = "mTechTimeslice", stg = c("mStorageComm", "mCommTimeslice")))
     dim_entity_mapping_config <- fold_dims
     fold_dims_vec <- names(fold_dims)
   } else {
-    # Simple vector: c("slice", "region") - but no default mappings, will return NA
+    # Simple vector: c("timeslice", "region") - but no default mappings, will return NA
     fold_dims_vec <- fold_dims
     dim_entity_mapping_config <- list()
   }
@@ -473,28 +473,28 @@ create_fold_spec_energyRt <- function(model,
 #' the appropriate validation mapping. Uses PRIORITY-BASED selection: returns
 #' the mapping for the FIRST matching entity dimension found.
 #'
-#' Supports mapping chains for derived mappings (e.g., stg → comm → slice).
+#' Supports mapping chains for derived mappings (e.g., stg → comm → timeslice).
 #'
 #' @param param_name Parameter name (for debugging)
 #' @param dim_to_fold Dimension to fold
 #' @param dims All dimensions in parameter
 #' @param entity_mapping Named list mapping entity dimensions to validation mappings.
 #'   Values can be single string or character vector for chains.
-#'   Example: list(tech = "mTechSlice", 
-#'                 stg = c("mStorageComm", "mCommSlice"))
+#'   Example: list(tech = "mTechTimeslice", 
+#'                 stg = c("mStorageComm", "mCommTimeslice"))
 #'
 #' @return Mapping specification: single string or character vector for chains
 #' @keywords internal
 guess_validation_mapping_energyRt <- function(param_name, dim_to_fold, dims, entity_mapping) {
   
-  if (dim_to_fold != "slice") {
+  if (dim_to_fold != "timeslice") {
     # Not implemented for region/year yet
     return(NA_character_)
   }
   
   # Priority-based selection: use FIRST matching entity dimension
-  # For pTechCinp2use[tech, comm, ...]: has both tech and comm, returns mTechSlice (tech wins)
-  # For pStorage...[stg, comm, ...]: has stg, returns c("mStorageComm", "mCommSlice")
+  # For pTechCinp2use[tech, comm, ...]: has both tech and comm, returns mTechTimeslice (tech wins)
+  # For pStorage...[stg, comm, ...]: has stg, returns c("mStorageComm", "mCommTimeslice")
   for (entity_dim in names(entity_mapping)) {
     if (entity_dim %in% dims) {
       mapping_spec <- entity_mapping[[entity_dim]]
@@ -519,10 +519,10 @@ guess_validation_mapping_energyRt <- function(param_name, dim_to_fold, dims, ent
 #'
 #' @param model A multimod model object
 #' @param fold_dims Dimension configuration. Can be:
-#'   - Character vector: dimension names (e.g., \code{c("slice")})
-#'   - Named list (simple): dimension → mapping (e.g., \code{list(slice = "mCommSlice")})
+#'   - Character vector: dimension names (e.g., \code{c("timeslice")})
+#'   - Named list (simple): dimension → mapping (e.g., \code{list(timeslice = "mCommTimeslice")})
 #'   - Named list (advanced): dimension → entity-specific mappings 
-#'     (e.g., \code{list(slice = list(tech = "mTechSlice", comm = "mCommSlice"))})
+#'     (e.g., \code{list(timeslice = list(tech = "mTechTimeslice", comm = "mCommTimeslice"))})
 #' @param tolerance Numeric tolerance for detecting constant values (default: 1e-10)
 #' @param verbose Logical; print progress messages (default: TRUE)
 #'
@@ -530,20 +530,20 @@ guess_validation_mapping_energyRt <- function(param_name, dim_to_fold, dims, ent
 #' 
 #' @examples
 #' \dontrun{
-#' # Simple: fold slice dimension
-#' fold_spec <- create_fold_spec(model, fold_dims = "slice")
+#' # Simple: fold timeslice dimension
+#' fold_spec <- create_fold_spec(model, fold_dims = "timeslice")
 #' 
 #' # With single validation mapping
-#' fold_spec <- create_fold_spec(model, fold_dims = list(slice = "mCommSlice"))
+#' fold_spec <- create_fold_spec(model, fold_dims = list(timeslice = "mCommTimeslice"))
 #' 
 #' # Entity-specific (advanced)
 #' fold_spec <- create_fold_spec(
 #'   model,
 #'   fold_dims = list(
-#'     slice = list(
-#'       tech = "mTechSlice",
-#'       comm = "mCommSlice",
-#'       stg = c("mStorageComm", "mCommSlice")  # Chain
+#'     timeslice = list(
+#'       tech = "mTechTimeslice",
+#'       comm = "mCommTimeslice",
+#'       stg = c("mStorageComm", "mCommTimeslice")  # Chain
 #'     )
 #'   )
 #' )
@@ -563,7 +563,7 @@ create_fold_spec <- function(model,
 #' Fold model dimensions to reduce data size
 #'
 #' Reduces redundant dimensions in parameters where data is constant across
-#' those dimensions. Only folds high-cardinality indexing dimensions (slice,
+#' those dimensions. Only folds high-cardinality indexing dimensions (timeslice,
 #' optionally region/year) while preserving structural dimensions (tech, comm, etc.).
 #'
 #' The algorithm uses per-group validation: for each combination of OTHER dimensions,
@@ -584,13 +584,13 @@ create_fold_spec <- function(model,
 #' variation in the data. For each parameter, it groups by all OTHER dimensions
 #' and checks if values are constant within each group (within tolerance).
 #' 
-#' Example: For \code{pStorageInpEff[stg, comm, region, year, slice]} testing slice:
+#' Example: For \code{pStorageInpEff[stg, comm, region, year, timeslice]} testing timeslice:
 #' - Groups by \code{(stg, comm, region, year)}
-#' - For each group, checks if ALL slice values are identical
+#' - For each group, checks if ALL timeslice values are identical
 #' - Only folds if EVERY group has constant values
 #' 
 #' This handles sparse data correctly - if a parameter only has values for
-#' peak hours (1 slice out of 17), that's fine. It only checks if the values
+#' peak hours (1 timeslice out of 17), that's fine. It only checks if the values
 #' that DO exist are constant within each group.
 #' 
 #' The fold creates three slots per parameter:
@@ -609,7 +609,8 @@ create_fold_spec <- function(model,
 #' \dontrun{
 #' # Specify fold dimensions with entity-specific mappings
 #' fold_dims <- list(
-#'   slice = c("mSupSlice", "mDemSlice", "mStorageSlice", "mTradeSlice"),
+#'   timeslice = list(sup = "mSupTimeslice", trade = "mTradeTimeslice",
+#'            stg = c("mStorageComm", "mCommTimeslice")),
 #'   region = c("mTechRegion", "mSupRegion", "mDemRegion", "mStorageRegion"),
 #'   year = c("mTechYear", "mSupYear", "mDemYear", "mStorageYear")
 #' )
@@ -944,7 +945,7 @@ fold_model_loop <- function(model, fold_spec, tolerance, verbose, p = NULL) {
 #' @param model Model object (for set membership and alias resolution)
 #' @param tolerance Numeric tolerance for value equality (default 1e-10)
 #' @param validation_mapping Optional. Name of mapping to use for coverage validation
-#'   (e.g., "mTechSlice"). If NULL, auto-detects based on parameter dimensions.
+#'   (e.g., "mTechTimeslice"). If NULL, auto-detects based on parameter dimensions.
 #'
 #' @return List with can_fold (logical) and reason (character)
 #' @keywords internal
@@ -968,18 +969,18 @@ analyze_dimension_redundancy <- function(param, dim_to_test, model,
     return(list(can_fold = FALSE, reason = "Dimension not in data"))
   }
   
-  # Step 3: For slice dimension, get timeframe mapping for coverage validation
+  # Step 3: For timeslice dimension, get timeframe mapping for coverage validation
   # This is CRITICAL: we need to verify that data covers ALL applicable slices
   # for each entity. Otherwise folding would broadcast values to slices that
   # should use the default value.
   #
   # The validation_mapping parameter can be:
-  # - Single string: direct mapping name (e.g., "mTechSlice")
-  # - Character vector: chain of mappings to join (e.g., c("mStorageComm", "mCommSlice"))
+  # - Single string: direct mapping name (e.g., "mTechTimeslice")
+  # - Character vector: chain of mappings to join (e.g., c("mStorageComm", "mCommTimeslice"))
   timeframe_mapping <- NULL
   entity_dim <- NULL
   
-  if (dim_to_test == "slice") {
+  if (dim_to_test == "timeslice") {
     if (!is.null(validation_mapping) && length(validation_mapping) > 0 && !is.na(validation_mapping[1])) {
       
       if (length(validation_mapping) == 1) {
@@ -991,9 +992,9 @@ analyze_dimension_redundancy <- function(param, dim_to_test, model,
           
           # Extract entity dimension from mapping name
           entity_mapping <- c(
-            "mTechSlice" = "tech",
-            "mCommSlice" = "comm",
-            "mSupSlice" = "sup"
+            "mTechTimeslice" = "tech",
+            "mCommTimeslice" = "comm",
+            "mSupTimeslice" = "sup"
           )
           entity_dim <- entity_mapping[mapping_name]
           
@@ -1014,8 +1015,8 @@ analyze_dimension_redundancy <- function(param, dim_to_test, model,
         
       } else {
         # Chain of mappings - join them in sequence
-        # Example: c("mStorageComm", "mCommSlice") 
-        # mStorageComm[stg, comm] join mCommSlice[comm, slice] → [stg, slice]
+        # Example: c("mStorageComm", "mCommTimeslice") 
+        # mStorageComm[stg, comm] join mCommTimeslice[comm, timeslice] → [stg, timeslice]
         
         tryCatch({
           result_mapping <- model$mappings[[validation_mapping[1]]]$data
@@ -1153,7 +1154,7 @@ analyze_dimension_redundancy <- function(param, dim_to_test, model,
     ))
   }
   
-  # Step 5: CRITICAL CHECK for slice dimension with timeframe mappings
+  # Step 5: CRITICAL CHECK for timeslice dimension with timeframe mappings
   # Even if values are constant, we can only fold if data covers ALL applicable
   # slices for each entity. Otherwise, folding would incorrectly broadcast the
   # value to slices that should use the default.
@@ -1163,7 +1164,7 @@ analyze_dimension_redundancy <- function(param, dim_to_test, model,
   # - If we fold: pPeakCost[COAL,R1,2025]=100 broadcasts to ALL 3 slices
   # - But MID and BASE should use default (0), not 100!
   # - Therefore: CANNOT FOLD
-  if (dim_to_test == "slice" && !is.null(timeframe_mapping) && !is.null(entity_dim)) {
+  if (dim_to_test == "timeslice" && !is.null(timeframe_mapping) && !is.null(entity_dim)) {
     
     # Build map of dimension names to actual column names in data (handling aliases)
     dim_to_col <- setNames(other_dims, other_dims)
@@ -1211,7 +1212,7 @@ analyze_dimension_redundancy <- function(param, dim_to_test, model,
         if (length(missing_slices) > 0) {
           return(list(
             can_fold = FALSE,
-            reason = sprintf("Incomplete slice coverage for %s=%s: has %d/%d slices (missing: %s). Folding would incorrectly broadcast to missing slices.",
+            reason = sprintf("Incomplete timeslice coverage for %s=%s: has %d/%d slices (missing: %s). Folding would incorrectly broadcast to missing slices.",
                             entity_dim, entity_value, 
                             length(actual_slices), length(expected_slices),
                             paste(head(missing_slices, 3), collapse=", "))
@@ -1222,7 +1223,7 @@ analyze_dimension_redundancy <- function(param, dim_to_test, model,
   }
   
   # Dimension is redundant - values are constant within EVERY group
-  # AND (for slice) data covers ALL applicable slices for each entity
+  # AND (for timeslice) data covers ALL applicable slices for each entity
   # This means the parameter value doesn't actually depend on this dimension,
   # even though it's indexed by it. Safe to fold.
   return(list(
@@ -1412,8 +1413,7 @@ validate_fold <- function(model, verbose = TRUE) {
 #' Reports which parameters could be folded and the potential compression.
 #'
 #' @param model A multimod model object
-#' @param fold_slice Logical; consider slice dimension
-#' @param fold_slice Logical; consider slice dimension
+#' @param fold_timeslice Logical; consider the timeslice dimension
 #' @param fold_region Logical; consider region dimension
 #' @param fold_year Logical; consider year dimension
 #' @param tolerance Numeric tolerance for value equality (default: 1e-10)
@@ -1421,7 +1421,7 @@ validate_fold <- function(model, verbose = TRUE) {
 #' @return Data frame with fold analysis
 #' @export
 analyze_fold_opportunities <- function(model,
-                                      fold_slice = TRUE,
+                                      fold_timeslice = TRUE,
                                       fold_region = FALSE,
                                       fold_year = FALSE,
                                       tolerance = 1e-10) {
@@ -1432,7 +1432,7 @@ analyze_fold_opportunities <- function(model,
   stopifnot(inherits(model, "multimod") || inherits(model, "model"))
   
   fold_candidates <- c()
-  if (fold_slice) fold_candidates <- c(fold_candidates, "slice")
+  if (fold_timeslice) fold_candidates <- c(fold_candidates, "timeslice")
   if (fold_region) fold_candidates <- c(fold_candidates, "region")
   if (fold_year) fold_candidates <- c(fold_candidates, "year")
   

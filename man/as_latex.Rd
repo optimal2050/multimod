@@ -71,7 +71,7 @@ as_latex(x, ...)
   ...
 )
 
-\method{as_latex}{sum}(x, brackets = NULL, ...)
+\method{as_latex}{sum}(x, brackets = NULL, use_index_aliases = FALSE, model = NULL, ...)
 
 \method{as_latex}{prod}(x, brackets = NULL, ...)
 

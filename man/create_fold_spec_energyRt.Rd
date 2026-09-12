@@ -12,10 +12,10 @@ create_fold_spec_energyRt(model, fold_dims, tolerance = 1e-10, verbose = TRUE)
 \item{fold_dims}{Dimension configuration. Same format as \code{create_fold_spec()}.
 Can be:
 \itemize{
-\item Character vector: dimension names (e.g., \code{c("slice")})
-\item Named list (simple): dimension → mapping (e.g., \code{list(slice = "mCommSlice")})
+\item Character vector: dimension names (e.g., \code{c("timeslice")})
+\item Named list (simple): dimension → mapping (e.g., \code{list(timeslice = "mCommTimeslice")})
 \item Named list (advanced): dimension → entity-specific mappings
-(e.g., \code{list(slice = list(tech = "mTechSlice", comm = "mCommSlice"))})
+(e.g., \code{list(timeslice = list(tech = "mTechTimeslice", comm = "mCommTimeslice"))})
 }}
 
 \item{tolerance}{Numeric tolerance for considering values equal (default: 1e-10)}
@@ -47,15 +47,15 @@ Mapping priority (for entity-specific configuration):
 }
 
 Mapping chains join mappings by common columns:
-Example: \code{stg = c("mStorageComm", "mCommSlice")}
+Example: \code{stg = c("mStorageComm", "mCommTimeslice")}
 \itemize{
-\item \code{mStorageComm[stg, comm]} ⨝ \code{mCommSlice[comm, slice]} → \code{[stg, slice]}
+\item \code{mStorageComm[stg, comm]} ⨝ \code{mCommTimeslice[comm, timeslice]} → \code{[stg, timeslice]}
 }
 
 For derived mappings (chains), mappings are joined in sequence by common columns.
-Example: \code{stg = c("mStorageComm", "mCommSlice")}
+Example: \code{stg = c("mStorageComm", "mCommTimeslice")}
 \itemize{
-\item \code{mStorageComm[stg, comm]} inner_join \code{mCommSlice[comm, slice]} → \code{[stg, slice]}
+\item \code{mStorageComm[stg, comm]} inner_join \code{mCommTimeslice[comm, timeslice]} → \code{[stg, timeslice]}
 }
 }
 \examples{
@@ -63,13 +63,13 @@ Example: \code{stg = c("mStorageComm", "mCommSlice")}
 # Explicit configuration for energyRt models
 fold_spec <- create_fold_spec_energyRt(model, 
   fold_dims = list(
-    slice = list(
-      tech = "mTechSlice",
-      sup = "mSupSlice", 
-      comm = "mCommSlice",
-      stg = c("mStorageComm", "mCommSlice"),
-      trade = c("mTradeComm", "mCommSlice"),
-      imp = c("mImportComm", "mCommSlice")
+    timeslice = list(
+      tech = "mTechTimeslice",
+      sup = "mSupTimeslice", 
+      comm = "mCommTimeslice",
+      stg = c("mStorageComm", "mCommTimeslice"),
+      trade = c("mTradeComm", "mCommTimeslice"),
+      imp = c("mImportComm", "mCommTimeslice")
     )
   ))
 

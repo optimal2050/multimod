@@ -156,6 +156,10 @@ solve_pyomo(mod, model_dir = "my_model_dir")
 ```
 
 #### {Read Python models (linopy/PyPSA)}
+
+> Not currently shipped. The experimental linopy/PyPSA readers live in
+> `drafts/` and are not part of the package; the example below is
+> illustrative of the planned API.
 ```r
 # Requires reticulate and Python packages
 library(reticulate)
@@ -183,7 +187,7 @@ write_gams(mod, file = "my_multimod_model.gms")
 
 ## License
 
-MIT License — see `LICENSE`.
+Apache License 2.0 — see `LICENSE.md`.
 
 The bundled `example_models` dataset includes third-party model source:
 OSeMOSYS (Apache-2.0) and energyRt-generated source (AGPL-3.0). Those licenses

@@ -313,23 +313,38 @@ test_that("write_latex generates compilable LaTeX", {
 
   # Create temporary file
   temp_tex <- tempfile(fileext = ".tex")
-  temp_pdf <- sub("\\.tex$", ".pdf", temp_tex)
+  temp_pdf <- sub("[.]tex$", ".pdf", temp_tex)
 
   # Generate LaTeX
   write_latex(demo_model, file = temp_tex)
 
-  # Try to compile
-  result <- system2("pdflatex",
-                   args = c("-interaction=nonstopmode",
-                           "-output-directory", dirname(temp_tex),
-                           temp_tex),
-                   stdout = FALSE, stderr = FALSE)
+  # -interaction=nonstopmode suppresses TeX's own error prompts, but NOT
+  # MiKTeX's package installer: when a required package is absent MiKTeX stops
+  # and waits to fetch it, with no terminal prompt to notice. That is an
+  # indefinite hang, and it wedged the whole suite for hours because
+  # test_dir() runs every file in one process.
+  #
+  # --disable-installer turns that wait into an error. It is MiKTeX-only, so it
+  # is passed only when MiKTeX is what we found; TeX Live rejects unknown flags.
+  is_miktex <- grepl("miktex", Sys.which("pdflatex"), ignore.case = TRUE)
+  args <- c("-interaction=nonstopmode", "-halt-on-error",
+            if (is_miktex) "--disable-installer",
+            "-output-directory", dirname(temp_tex), temp_tex)
 
-  # Check if PDF was created - !!! check
+  # And a timeout regardless, so no future engine quirk can hang the suite.
+  status <- tryCatch(
+    system2("pdflatex", args = args, stdout = FALSE, stderr = FALSE,
+            timeout = 120),
+    error = function(e) NA_integer_
+  )
+  on.exit(unlink(c(temp_tex, temp_pdf)), add = TRUE)
+
+  # A timeout is environmental, never a statement about the generated LaTeX,
+  # so it must not be reported as a failure of write_latex().
+  skip_if(is.na(status) || identical(as.integer(status), 124L),
+          "pdflatex timed out (missing TeX packages?)")
+
   expect_true(file.exists(temp_pdf))
-
-  # Cleanup
-  unlink(c(temp_tex, temp_pdf))
 })
 
 test_that("write_latex handles trimmed color parameter", {

@@ -328,7 +328,8 @@ link_scenario_data <- function(model, scenario, inMemory = FALSE) {
 #' @param inMemory Logical. Embed data in-memory?
 #' @return Updated parameter with data reference
 #' @keywords internal
-convert_energyrt_parameter <- function(ert_param, orig_param = NULL, inMemory = FALSE) {
+convert_energyrt_parameter <- function(ert_param, orig_param = NULL, inMemory = FALSE,
+                                       scenario = NULL) {
   # Start with original parameter structure if available
   result <- if (!is.null(orig_param)) {
     orig_param
@@ -356,7 +357,7 @@ convert_energyrt_parameter <- function(ert_param, orig_param = NULL, inMemory = 
   )
 
   if (isTRUE(inMemory)) {
-    loaded <- collect_scenario_parameter_data(ert_param)
+    loaded <- collect_scenario_parameter_data(ert_param, scenario = scenario)
     result$data <- loaded
     result$misc$inMemory <- TRUE
     result$misc$path <- NULL

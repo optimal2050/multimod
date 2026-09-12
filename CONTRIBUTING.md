@@ -73,8 +73,8 @@ coefficient is a bug.
 
 ## License
 
-By contributing you agree that your contributions are licensed under the MIT
-License. See [LICENSE](LICENSE). Note that other packages in the stack are
+By contributing you agree that your contributions are licensed under the Apache
+License. See [LICENSE.md](LICENSE.md). Note that other packages in the stack are
 Apache-2.0 or AGPL-3 — do not copy code or data across that boundary without an
 explicit maintainer decision.
 

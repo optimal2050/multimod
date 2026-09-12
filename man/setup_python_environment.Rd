@@ -35,7 +35,7 @@ usable solver backend is available immediately. Set to \code{NULL} or
 \code{character(0)} to skip installation.}
 
 \item{python_version}{Optional Python version spec passed to
-\code{\link[reticulate:conda-tools]{reticulate::conda_create()}}. If \code{NULL}, reticulate's default is used.}
+\code{\link[reticulate:conda_create]{reticulate::conda_create()}}. If \code{NULL}, reticulate's default is used.}
 
 \item{ensure_miniconda}{Logical flag controlling whether
 \code{\link[reticulate:install_miniconda]{reticulate::install_miniconda()}} should run when no Conda binary is

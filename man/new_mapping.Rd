@@ -11,7 +11,8 @@ new_mapping(
   dims = NULL,
   active_dims = NULL,
   data = NULL,
-  auto_fold = FALSE
+  auto_fold = FALSE,
+  symbols = NULL
 )
 }
 \arguments{
