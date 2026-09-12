@@ -22,7 +22,7 @@ analyze_dimension_redundancy(
 \item{tolerance}{Numeric tolerance for value equality (default 1e-10)}
 
 \item{validation_mapping}{Optional. Name of mapping to use for coverage validation
-(e.g., "mTechSlice"). If NULL, auto-detects based on parameter dimensions.}
+(e.g., "mTechTimeslice"). If NULL, auto-detects based on parameter dimensions.}
 }
 \value{
 List with can_fold (logical) and reason (character)

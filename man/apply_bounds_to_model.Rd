@@ -4,7 +4,7 @@
 \alias{apply_bounds_to_model}
 \title{Attach bounds data to model parameters}
 \usage{
-apply_bounds_to_model(model, scenario_param, base_name)
+apply_bounds_to_model(model, scenario_param, base_name, scenario = NULL)
 }
 \arguments{
 \item{model}{Multimod model}

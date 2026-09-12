@@ -24,5 +24,5 @@ Named character vector. Dummy variable names with set names as names
 Creates unique dummy variable names for a collection of sets
 }
 \examples{
-generate_index_aliases(c("tech", "region", "comm", "commp", "year", "slice"))
+generate_index_aliases(c("tech", "region", "comm", "commp", "year", "timeslice"))
 }

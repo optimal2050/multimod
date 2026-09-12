@@ -767,7 +767,7 @@ as_latex.expression <- function(x, brackets = NULL, ...) {
 
   if (!inherits(lhs, "ast")) {
     warning("lhs in expression is not an AST: fallback to str()")
-    browser()
+    .dev_break("as_latex.R:770")
     lhs <- paste(capture.output(str(lhs)), collapse = "")
   } else {
     lhs <- as_latex(lhs, brackets, ...)
@@ -775,7 +775,7 @@ as_latex.expression <- function(x, brackets = NULL, ...) {
 
   if (!inherits(rhs, "ast")) {
     warning("rhs in expression is not an AST: fallback to str()")
-    browser()
+    .dev_break("as_latex.R:778")
     rhs <- paste(capture.output(str(rhs)), collapse = "")
   } else {
     rhs <- as_latex(rhs, brackets, ...)

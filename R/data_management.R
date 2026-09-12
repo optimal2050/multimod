@@ -151,9 +151,9 @@ load_arrow_data <- function(path, format = NULL, collect = TRUE) {
 #' @return data.frame with parameter values (may be empty)
 #'
 #' @keywords internal
-collect_scenario_parameter_data <- function(ert_param) {
+collect_scenario_parameter_data <- function(ert_param, scenario = NULL) {
   if (!is.null(ert_param@data) && nrow(ert_param@data) > 0) {
-    return(as.data.frame(ert_param@data))
+    return(.unfold_param_data(as.data.frame(ert_param@data), ert_param, scenario))
   }
 
   param_path <- ert_param@misc$path
@@ -166,7 +166,7 @@ collect_scenario_parameter_data <- function(ert_param) {
       }
     )
     if (!is.null(data) && nrow(data) > 0) {
-      return(as.data.frame(data))
+      return(.unfold_param_data(as.data.frame(data), ert_param, scenario))
     }
   }
 
@@ -693,8 +693,10 @@ populate_sets_from_data <- function(model, load_data = FALSE) {
 #' @return List with lo/up data.frames (each containing dims + value)
 #'
 #' @keywords internal
-split_bounds_parameter_data <- function(ert_param) {
-  data <- collect_scenario_parameter_data(ert_param)
+split_bounds_parameter_data <- function(ert_param, scenario = NULL) {
+  # Bounds take their own import path, so the unfold has to be threaded here
+  # too - a folded pTechAf reaches the matrix as pTechAfLo / pTechAfUp.
+  data <- collect_scenario_parameter_data(ert_param, scenario = scenario)
   if (nrow(data) == 0) {
     return(NULL)
   }
@@ -740,7 +742,7 @@ split_bounds_parameter_data <- function(ert_param) {
 #' @return List with model and diagnostic info
 #'
 #' @keywords internal
-apply_bounds_to_model <- function(model, scenario_param, base_name) {
+apply_bounds_to_model <- function(model, scenario_param, base_name, scenario = NULL) {
   lo_name <- paste0(base_name, "Lo")
   up_name <- paste0(base_name, "Up")
   if (is.null(model$parameters)) model$parameters <- list()
@@ -760,7 +762,7 @@ apply_bounds_to_model <- function(model, scenario_param, base_name) {
   issues <- character()
   
   # Try to split data if available
-  splits <- split_bounds_parameter_data(scenario_param)
+  splits <- split_bounds_parameter_data(scenario_param, scenario = scenario)
   has_data <- !is.null(splits)
   
   # If no data available, create empty data frames
@@ -879,6 +881,18 @@ import_energyRt_data <- function(model, scenario, inMemory = scenario@inMemory, 
 
   if (is.null(inMemory)) inMemory <- FALSE
 
+  # A folded scenario must be unfolded as it is read, and unfolding needs the
+  # data in hand. The lazy path loads straight from the parameter store later,
+  # with no scenario to resolve membership against, so it would read the
+  # wildcard rows back and silently drop them on the join.
+  if (!isTRUE(inMemory) && .scenario_is_folded(scenario)) {
+    stop("This scenario was interpolated with fold = TRUE, so its parameters ",
+         "carry wildcard (NA) index values that must be expanded on read.\n",
+         "  Pass inMemory = TRUE to import_energyRt_data(); the lazy path ",
+         "cannot expand them and would build a model that solves to a wrong ",
+         "answer without erroring.", call. = FALSE)
+  }
+
   cat("Importing energyRt scenario data...\n")
   
   # Initialize import log
@@ -889,11 +903,19 @@ import_energyRt_data <- function(model, scenario, inMemory = scenario@inMemory, 
   import_log$sets <- set_log$log
   model <- set_log$model
   
+  # Step 1b: Declare this scenario's user-constraint support symbols
+  # (mCns*/pCns*/mCosts*/pCosts*). They are per-scenario, so energyRt.gms does
+  # not declare them, and step 2 only links symbols the model already has.
+  model <- declare_user_constraint_symbols(model, scenario)
+
   # Step 2: Link regular parameters and mappings
   link_result <- link_scenario_data_with_log(model, scenario, inMemory = inMemory)
   import_log$parameters <- link_result$param_log
   import_log$mappings <- link_result$mapping_log
   model <- link_result$model
+
+  # Step 2b: Parse the compiled user constraints and user costs into equations.
+  model <- add_user_constraints(model, scenario)
 
   # Step 3: Handle bounds parameters
   scenario_params <- scenario@modInp@parameters
@@ -903,7 +925,8 @@ import_energyRt_data <- function(model, scenario, inMemory = scenario@inMemory, 
 
   if (length(bounds_names) > 0) {
     cat("  Processing", length(bounds_names), "bounds parameters...\n")
-    bounds_result <- process_bounds_with_log(model, scenario_params, bounds_names)
+    bounds_result <- process_bounds_with_log(model, scenario_params, bounds_names,
+                                            scenario = scenario)
     import_log$bounds <- bounds_result$log
     model <- bounds_result$model
     
@@ -1059,7 +1082,8 @@ link_scenario_data_with_log <- function(model, scenario, inMemory = FALSE) {
         model$mappings[[pname]] <- convert_energyrt_parameter(
           ert_param,
           model$mappings[[pname]],
-          inMemory = inMemory
+          inMemory = inMemory,
+          scenario = scenario
         )
         
         mapping_log[[pname]] <- create_link_log_entry(
@@ -1086,7 +1110,8 @@ link_scenario_data_with_log <- function(model, scenario, inMemory = FALSE) {
         model$parameters[[pname]] <- convert_energyrt_parameter(
           ert_param,
           model$parameters[[pname]],
-          inMemory = inMemory
+          inMemory = inMemory,
+          scenario = scenario
         )
         
         param_log[[pname]] <- create_link_log_entry(
@@ -1119,12 +1144,57 @@ link_scenario_data_with_log <- function(model, scenario, inMemory = FALSE) {
     mapping_log = mapping_log
   )
 }
+# "linked" counts symbols attached, not data reachable. A run in which every
+# symbol links and every one carries zero rows builds a 1x1 model that solves
+# cleanly and returns a plausible wrong answer -- the failure this reporting
+# exists to make visible.
+.report_rows <- function(entries, what) {
+  linked <- Filter(function(x) identical(x$status, "linked"), entries)
+  if (!length(linked)) return(invisible(NULL))
+  rows <- vapply(linked, function(x) {
+    n <- x$n_rows
+    if (is.null(n) || is.na(n)) 0 else as.numeric(n)
+  }, numeric(1))
+  empty <- sum(rows == 0)
+  reachable <- vapply(linked, function(x) isTRUE(x$resolvable), logical(1))
+  cat(sprintf("            %s rows across %d linked %s, %d empty, %d reachable\n",
+              format(sum(rows), big.mark = ","), length(linked), what, empty,
+              sum(reachable)))
+  # Not a warning. A model in which nothing is reachable still builds, still
+  # solves, and still returns a plausible number - built entirely from default
+  # values. That failure has to stop the import, not decorate its log.
+  if (!any(reachable)) {
+    stop(sprintf(paste0(
+      "Import failed: not one of the %d linked %s can be reached - no rows in ",
+      "memory and no on-disk reference. The model would be built from default ",
+      "values alone and would solve to a plausible wrong answer.\n",
+      "  If the scenario is stored on disk, load it first, or pass ",
+      "inMemory = TRUE to import_energyRt_data()."),
+      length(linked), what), call. = FALSE)
+  }
+  invisible(sum(rows))
+}
 
+
+
+#' Rows an energyRt parameter holds, attached or detached
+#'
+#' A detached (on-disk) parameter keeps its row count in the `misc$onDisk`
+#' summary; its `@data` slot is empty by design.
+#' @keywords internal
+.ert_n_rows <- function(ert_param) {
+  if (!is.null(ert_param@data) && nrow(ert_param@data) > 0) {
+    return(nrow(ert_param@data))
+  }
+  d <- .ondisk_dim(ert_param@misc$onDisk)
+  if (!is.null(d)) return(as.integer(d[1]))
+  0L
+}
 
 #' Create log entry for parameter/mapping link
 #'
 #' @keywords internal
-create_link_log_entry <- function(multimod_name, scenario_name, type, status, 
+create_link_log_entry <- function(multimod_name, scenario_name, type, status,
                                    ert_param, inMemory) {
   list(
     multimod_name = multimod_name,
@@ -1134,9 +1204,19 @@ create_link_log_entry <- function(multimod_name, scenario_name, type, status,
     dims = paste(ert_param@dimSets, collapse = ", "),
     n_dims = length(ert_param@dimSets),
     defVal = if (!is.null(ert_param@defVal)) paste(ert_param@defVal, collapse = ", ") else NA,
-    has_data = !is.null(ert_param@data) && nrow(ert_param@data) > 0,
-    n_rows = if (!is.null(ert_param@data)) nrow(ert_param@data) else 0,
+    has_data = .ert_n_rows(ert_param) > 0,
+    # Row count as stored, not as attached. An on-disk parameter's @data slot is
+    # detached and always reports 0, which made the import summary announce
+    # "0 rows, all empty" for a scenario whose data was entirely readable - and
+    # so made the real version of that failure impossible to notice.
+    n_rows = .ert_n_rows(ert_param),
     path = if (!is.null(ert_param@misc$path)) ert_param@misc$path else NA,
+    # Whether the data can be reached at all - in memory now, or on disk via
+    # the per-object reference that get_lazy_data() resolves. An on-disk
+    # scenario legitimately reports n_rows = 0 here while being perfectly
+    # readable, so row counts alone cannot tell a lazy link from a lost one.
+    resolvable = (!is.null(ert_param@data) && nrow(ert_param@data) > 0) ||
+      !is.null(ert_param@misc$path) || isTRUE(ert_param@misc$onDisk),
     inMemory = inMemory
   )
 }
@@ -1145,14 +1225,15 @@ create_link_log_entry <- function(multimod_name, scenario_name, type, status,
 #' Process bounds parameters with logging
 #'
 #' @keywords internal
-process_bounds_with_log <- function(model, scenario_params, bounds_names) {
+process_bounds_with_log <- function(model, scenario_params, bounds_names,
+                                    scenario = NULL) {
   log_entries <- list()
   attached_total <- 0
   missing_targets <- list()
   
   for (pname in bounds_names) {
     ert_param <- scenario_params[[pname]]
-    result <- apply_bounds_to_model(model, ert_param, pname)
+    result <- apply_bounds_to_model(model, ert_param, pname, scenario = scenario)
     model <- result$model
     
     # Create log entry for this bounds parameter
@@ -1362,12 +1443,14 @@ print_import_summary <- function(import_log) {
   if (!is.null(import_log$parameters)) {
     n_linked <- sum(sapply(import_log$parameters, function(x) x$status == "linked"))
     cat("Parameters:", n_linked, "/", length(import_log$parameters), "linked\n")
+    .report_rows(import_log$parameters, "parameters")
   }
   
   # Mappings
   if (!is.null(import_log$mappings)) {
     n_linked <- sum(sapply(import_log$mappings, function(x) x$status == "linked"))
     cat("Mappings:  ", n_linked, "/", length(import_log$mappings), "linked\n")
+    .report_rows(import_log$mappings, "mappings")
   }
   
   # Bounds

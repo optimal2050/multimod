@@ -7,29 +7,31 @@ as_rexpression <- function(x, ...) {
   UseMethod("as_rexpression")
 }
 
-#' @method as_rexpression constant
+#' @exportS3Method
+#' @noRd
 as_rexpression.constant <- function(x, ...) {
   format(x$value, scientific = FALSE)
 }
 
-#' @method as_rexpression symbol
+#' @exportS3Method
+#' @noRd
 as_rexpression.symbol <- function(x, ...) {
   x$name
 }
 
-#' @method as_rexpression variable
+#' @exportS3Method
 #' @noRd
 as_rexpression.variable <- function(x, ...) {
   paste0(x$name)
 }
 
-#' @method as_rexpression parameter
+#' @exportS3Method
 #' @noRd
 as_rexpression.parameter <- function(x, ...) {
   paste0(x$name)
 }
 
-#' @method as_rexpression expression
+#' @exportS3Method
 #' @noRd
 as_rexpression.expression <- function(x, ...) {
   lhs <- as_rexpression(x$lhs, ...)
@@ -44,7 +46,7 @@ as_rexpression.expression <- function(x, ...) {
   }
 }
 
-#' @method as_rexpression sum
+#' @exportS3Method
 #' @noRd
 as_rexpression.sum <- function(x, ...) {
   index_expr <- as_rexpression(x$index, ...)
@@ -52,7 +54,7 @@ as_rexpression.sum <- function(x, ...) {
   paste0("df_sum(", index_expr, ", ", value_expr, ")")
 }
 
-#' @method as_rexpression prod
+#' @exportS3Method
 #' @noRd
 as_rexpression.prod <- function(x, ...) {
   index_expr <- as_rexpression(x$index, ...)
@@ -60,7 +62,7 @@ as_rexpression.prod <- function(x, ...) {
   paste0("df_prod(", index_expr, ", ", value_expr, ")")
 }
 
-#' @method as_rexpression when
+#' @exportS3Method
 #' @noRd
 as_rexpression.when <- function(x, ...) {
   cond <- as_rexpression(x$condition, ...)
@@ -68,7 +70,7 @@ as_rexpression.when <- function(x, ...) {
   paste0("df_filter(", then, ", ", cond, ")")
 }
 
-#' @method as_rexpression dims
+#' @exportS3Method
 #' @noRd
 as_rexpression.dims <- function(x, ...) {
   paste0(vapply(x, function(s) s$name, character(1)), collapse = ",")

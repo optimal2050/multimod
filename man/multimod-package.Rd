@@ -21,5 +21,10 @@ Useful links:
 \author{
 \strong{Maintainer}: Oleg Lugovoy \email{olugovoy@optimalsolution.dev} (\href{https://orcid.org/0000-0001-5546-9875}{ORCID})
 
+Authors:
+\itemize{
+  \item Oleg Lugovoy \email{olugovoy@optimalsolution.dev} (\href{https://orcid.org/0000-0001-5546-9875}{ORCID})
+}
+
 }
 \keyword{internal}

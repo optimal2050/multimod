@@ -4,7 +4,7 @@
 \alias{split_bounds_parameter_data}
 \title{Split bounds-style parameter into low/high tables}
 \usage{
-split_bounds_parameter_data(ert_param)
+split_bounds_parameter_data(ert_param, scenario = NULL)
 }
 \arguments{
 \item{ert_param}{energyRt parameter object of type "bounds"}

@@ -180,7 +180,6 @@ write_latex.equation <- function(x,
                                  verbose = FALSE,
                                  ...) {
 
-  browser()
   if (!is_empty(eq_substitute)) {
     # Substitute elements in the AST
     x <- remap_ast_elements(x,

@@ -27,7 +27,7 @@ Modified model with folded parameters
 }
 \description{
 Reduces redundant dimensions in parameters where data is constant across
-those dimensions. Only folds high-cardinality indexing dimensions (slice,
+those dimensions. Only folds high-cardinality indexing dimensions (timeslice,
 optionally region/year) while preserving structural dimensions (tech, comm, etc.).
 }
 \details{
@@ -39,15 +39,15 @@ Folding analyzes each parameter to identify dimensions that don't provide
 variation in the data. For each parameter, it groups by all OTHER dimensions
 and checks if values are constant within each group (within tolerance).
 
-Example: For \code{pStorageInpEff[stg, comm, region, year, slice]} testing slice:
+Example: For \code{pStorageInpEff[stg, comm, region, year, timeslice]} testing timeslice:
 \itemize{
 \item Groups by \code{(stg, comm, region, year)}
-\item For each group, checks if ALL slice values are identical
+\item For each group, checks if ALL timeslice values are identical
 \item Only folds if EVERY group has constant values
 }
 
 This handles sparse data correctly - if a parameter only has values for
-peak hours (1 slice out of 17), that's fine. It only checks if the values
+peak hours (1 timeslice out of 17), that's fine. It only checks if the values
 that DO exist are constant within each group.
 
 The fold creates three slots per parameter:
@@ -70,7 +70,8 @@ Safety measures:
 \dontrun{
 # Specify fold dimensions with entity-specific mappings
 fold_dims <- list(
-  slice = c("mSupSlice", "mDemSlice", "mStorageSlice", "mTradeSlice"),
+  timeslice = list(sup = "mSupTimeslice", trade = "mTradeTimeslice",
+           stg = c("mStorageComm", "mCommTimeslice")),
   region = c("mTechRegion", "mSupRegion", "mDemRegion", "mStorageRegion"),
   year = c("mTechYear", "mSupYear", "mDemYear", "mStorageYear")
 )

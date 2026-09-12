@@ -23,7 +23,7 @@ render_html <- function(node, title = "Multimod AST Equation", fontsize = "120%"
 }
 
 if (F) {
-  ast <- parse_gams_expr("vTechOut(tech, comm, region, year, slice) / pTechUse2cact(tech, comm, region, year, slice)", symbols)
+  ast <- parse_gams_expr("vTechOut(tech, comm, region, year, timeslice) / pTechUse2cact(tech, comm, region, year, timeslice)", symbols)
   render_html(ast, title = "Technology Output Equation")
 
 }
@@ -94,7 +94,7 @@ if (F) {
                            max_total_width = 80,
                            max_side_width = 45,
                            symbol_map = list(
-                             t = "tech", c = "comm", cp = "commp", r = "region", y = "year", s = "slice",
+                             t = "tech", c = "comm", cp = "commp", r = "region", y = "year", s = "timeslice",
                              pTechCinp2use = "pC2use", pTechUse2cact = "pUse2a", pTechCact2cout = "pA2out"
                            )
   )

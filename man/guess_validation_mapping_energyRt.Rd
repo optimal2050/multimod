@@ -20,8 +20,8 @@ guess_validation_mapping_energyRt(
 
 \item{entity_mapping}{Named list mapping entity dimensions to validation mappings.
 Values can be single string or character vector for chains.
-Example: list(tech = "mTechSlice",
-stg = c("mStorageComm", "mCommSlice"))}
+Example: list(tech = "mTechTimeslice",
+stg = c("mStorageComm", "mCommTimeslice"))}
 }
 \value{
 Mapping specification: single string or character vector for chains
@@ -32,6 +32,6 @@ the appropriate validation mapping. Uses PRIORITY-BASED selection: returns
 the mapping for the FIRST matching entity dimension found.
 }
 \details{
-Supports mapping chains for derived mappings (e.g., stg → comm → slice).
+Supports mapping chains for derived mappings (e.g., stg → comm → timeslice).
 }
 \keyword{internal}

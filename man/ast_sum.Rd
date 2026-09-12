@@ -4,12 +4,16 @@
 \alias{ast_sum}
 \title{Create a summation AST node}
 \usage{
-ast_sum(index = ast_dims(), value)
+ast_sum(index = ast_dims(), value, domain = NULL)
 }
 \arguments{
-\item{index}{Character. The index variable (e.g., \code{"t"}).}
+\item{index}{An AST node representing the index variable(s) (e.g., \code{ast_dims("t")}).}
 
 \item{value}{An AST node representing the expression to be summed.}
+
+\item{domain}{An optional AST node representing a domain condition.
+This can be a mapping, a logical condition (e.g., from a \code{$}-filter), or a parameter.
+Use \code{NULL} if there is no restriction.}
 }
 \value{
 An object of class \code{ast} and \code{sum}.

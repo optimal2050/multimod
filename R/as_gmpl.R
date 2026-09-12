@@ -150,7 +150,7 @@ as_gmpl.dims <- function(x, use_index_aliases = TRUE, brackets = "[", ...) {
     set_name <- dim_binding_name(d)
     # Priority: iterator vars > dummy vars > original name
     a <- try({(!is.null(iter_vars) && set_name %in% names(iter_vars))})
-    if (inherits(a, "try-error")) browser()
+    if (inherits(a, "try-error")) .dev_break("as_gmpl.R:153")
     if (!is.null(iter_vars) && set_name %in% names(iter_vars)) {
       iter_vars[[set_name]]
     } else if (!is.null(index_aliases) && set_name %in% names(index_aliases)) {
@@ -707,6 +707,12 @@ as_gmpl.func <- function(x, ...) {
     return(as_gmpl_sum_prod(x, ...))
   }
 
+  # GMPL/MathProg has no ord()/card(); they must go through a model-supplied
+  # position/cardinality parameter
+  if (tolower(x$name) %in% c("ord", "card")) {
+    return(as_gmpl_ord_card(x, ...))
+  }
+
   # Generic function handling
   val <- if (inherits(x$value, c("ast", "multimod"))) {
     as_gmpl(x$value, ...)
@@ -723,6 +729,75 @@ as_gmpl.func <- function(x, ...) {
   } else {
     return(paste0(x$name, "(", val_str, ")"))
   }
+}
+
+#' Render GAMS `ord()` / `card()` for GMPL
+#'
+#' GAMS `ord(s)` is the 1-based position of a member within its set, and
+#' `card(s)` the set's cardinality. **MathProg has neither function.** The only
+#' faithful translation is a parameter carrying those values, which the model
+#' must supply - substituting the member's own value is wrong whenever set
+#' members are not consecutive integers (e.g. years 2030, 2040, 2050), and
+#' `ord(y) < pOlife + ord(yp)` is position arithmetic, not value arithmetic.
+#'
+#' The expected parameter follows the convention `ord<Set>` / `card<Set>` on the
+#' *base* set, so `ord(year)`, `ord(yearp)` and `ord(yeare)` all render as
+#' `ordYear[<iterator>]`. Alias sets are resolved to their base before naming.
+#'
+#' @param x A `func` AST node named `ord` or `card`.
+#' @param model The model, used to resolve set aliases and to check that the
+#'   position parameter actually exists.
+#' @param ... Additional arguments passed to `as_gmpl`.
+#' @return A GMPL parameter reference, e.g. `ordYear[y]`.
+#' @keywords internal
+as_gmpl_ord_card <- function(x, model = NULL, ...) {
+  fname <- tolower(x$name)
+
+  # the argument is a set node, sometimes wrapped in a one-element list
+  arg <- x$value
+  if (is.list(arg) && !inherits(arg, "ast") && length(arg) >= 1) arg <- arg[[1]]
+  set_name <- dim_binding_name(arg)
+  if (!nzchar(set_name)) {
+    stop("Cannot render ", fname, "(): its argument has no resolvable set name.")
+  }
+
+  # resolve alias sets to the base set (yearp / yeare -> year)
+  base <- set_name
+  if (!is.null(model) && !is.null(model$aliases)) {
+    for (grp in model$aliases) {
+      if (set_name %in% grp) {
+        base <- grp[[1]]
+        break
+      }
+    }
+  }
+
+  pname <- paste0(fname, toupper(substring(base, 1, 1)), substring(base, 2))
+
+  if (!is.null(model) && !is.null(model$parameters) &&
+      !pname %in% names(model$parameters)) {
+    stop(
+      "GMPL has no '", fname, "()' function, so ", fname, "(", set_name,
+      ") needs a position parameter '", pname, "' declared over set '", base,
+      "', and the model does not define one.\n",
+      "  Declare it in the source model (energyRt declares ordYear/cardYear ",
+      "for exactly this reason), or avoid ", fname, "() in equations you intend ",
+      "to render to GMPL."
+    )
+  }
+
+  # same iterator resolution as as_gmpl.dims: iterator vars > index aliases > name
+  iter_vars <- getOption("multimod.iterator_vars", NULL)
+  index_aliases <- getOption("multimod.index_aliases", NULL)
+  itr <- if (!is.null(iter_vars) && set_name %in% names(iter_vars)) {
+    iter_vars[[set_name]]
+  } else if (!is.null(index_aliases) && set_name %in% names(index_aliases)) {
+    index_aliases[[set_name]]
+  } else {
+    set_name
+  }
+
+  paste0(pname, "[", itr, "]")
 }
 
 #' Convert GAMS-style sum/prod to GMPL binding syntax
@@ -747,16 +822,16 @@ as_gmpl_sum_prod <- function(x, ...) {
   }
 
   idx_when <- x$index
-  iterator <- idx_when$then  # The set/symbol(s) being iterated (e.g., comm or [year, slice])
+  iterator <- idx_when$then  # The set/symbol(s) being iterated (e.g., comm or [year, timeslice])
   condition <- idx_when$condition  # The filter condition (e.g., mTechGroupComm[...])
 
   # Check if iterator is a tuple (dims object) or single symbol
   is_tuple <- inherits(iterator, "dims")
 
   if (is_tuple) {
-    # Multiple iterators: sum((year, slice)$condition, expr)
+    # Multiple iterators: sum((year, timeslice)$condition, expr)
     # In GMPL, multi-iterator with condition must be NESTED sums:
-    # sum{y in year}(sum{s in slice: condition}(expr))
+    # sum{y in year}(sum{s in timeslice: condition}(expr))
 
     iter_sets <- sapply(iterator, dim_binding_name)
 
@@ -948,7 +1023,7 @@ as_gmpl_sum_prod <- function(x, ...) {
   options(multimod.in_binding_condition = old_in_binding)
 
   # Build the binding: {bindings: condition}
-  # bindings is either "c in comm" or "y in year, s in slice"
+  # bindings is either "c in comm" or "y in year, s in timeslice"
   binding <- paste0(bindings, ": ", cond_str)
 
   # Handle value - may contain nested when for additional filtering

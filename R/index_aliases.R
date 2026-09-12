@@ -150,8 +150,8 @@ has_index_aliases <- function(model) {
 preferred_dummy_names <- list(
   tech = "h",      # technology (avoid 't' conflict with time, trade)
   trade = "a",     # trade (avoid 't' conflict)
-  sup = "u",       # supply (avoid 's' conflict with slice, stg)
-  slice = "ts",    # time slice (avoid 's' conflict)
+  sup = "u",       # supply (avoid 's' conflict with timeslice, stg)
+  timeslice = "ts",    # time timeslice (avoid 's' conflict)
   stg = "o",       # storage (avoid 's' conflict)
   region = "r",
   comm = "c",
@@ -166,7 +166,7 @@ preferred_dummy_names <- list(
 #' Generate dummy variable name from set name
 #'
 #' Creates a short dummy variable name from a set name following conventions:
-#' - Uses preferred names for common sets (tech -> h, slice -> ts, etc.)
+#' - Uses preferred names for common sets (tech -> h, timeslice -> ts, etc.)
 #' - First letter of the set name (lowercase) for others
 #' - If it's an alias, use two letters (checking against all_set_names)
 #' - Ensures uniqueness by checking against all symbols in model
@@ -178,7 +178,7 @@ preferred_dummy_names <- list(
 #' @return Character. A short dummy variable name
 #' @examples
 #' generate_index_alias("tech") # "h"
-#' generate_index_alias("slice") # "ts"
+#' generate_index_alias("timeslice") # "ts"
 #' generate_index_alias("commp", all_set_names = c("comm", "commp")) # "cp"
 #' @export
 generate_index_alias <- function(set_name, used_names = character(0),
@@ -299,7 +299,7 @@ generate_index_alias <- function(set_name, used_names = character(0),
 #' @param all_symbols List. All symbols in model (from build_symbols_list)
 #' @return Named character vector. Dummy variable names with set names as names
 #' @examples
-#' generate_index_aliases(c("tech", "region", "comm", "commp", "year", "slice"))
+#' generate_index_aliases(c("tech", "region", "comm", "commp", "year", "timeslice"))
 #' @export
 generate_index_aliases <- function(set_names, all_set_names = set_names, all_symbols = NULL) {
   stopifnot(is.character(set_names))

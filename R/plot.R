@@ -4,6 +4,7 @@
 #' @param ... Additional arguments (currently unused)
 #'
 #' @return A visNetwork plot
+#' @exportS3Method
 #' @noRd
 plot.ast <- function(x, ...) {
   nodes <- list()

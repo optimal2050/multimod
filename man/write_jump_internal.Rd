@@ -2,7 +2,7 @@
 % Please edit documentation in R/write_jump.R
 \name{write_jump_internal}
 \alias{write_jump_internal}
-\title{Generate metadata CSV files for sets, mappings, and parameters}
+\title{Internal function to write JuMP model}
 \usage{
 write_jump_internal(
   model,
@@ -25,12 +25,6 @@ write_jump_internal(
 )
 }
 \description{
-Generate metadata CSV files for sets, mappings, and parameters
+Internal function to write JuMP model
 }
-\keyword{Internal}
-\keyword{JuMP}
-\keyword{function}
 \keyword{internal}
-\keyword{model}
-\keyword{to}
-\keyword{write}

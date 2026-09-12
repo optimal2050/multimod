@@ -688,9 +688,6 @@ write_jump.model_structure <- function(model, file = NULL, model_dir = NULL, sol
   lines
 }
 
-#' Generate metadata CSV files for sets, mappings, and parameters
-#' @keywords internal
-
 #' Internal function to write JuMP model
 #'
 #' @keywords internal

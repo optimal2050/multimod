@@ -13,7 +13,8 @@ new_equation(
   relation = "==",
   domain = NULL,
   comment = NULL,
-  dims_index_aliases = NULL
+  dims_index_aliases = NULL,
+  symbols = NULL
 )
 }
 \arguments{

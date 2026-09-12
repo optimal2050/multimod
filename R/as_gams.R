@@ -17,7 +17,6 @@ as_gams.default <- function(x, ...) {
   } else if (length(x) == 1 && is.character(x)) {
     return(x)
   }
-  browser()
   warning("No as_gams method for object of class: ", class(x))
   x
 }
@@ -124,7 +123,6 @@ as_gams.func <- function(x, ...) {
   } else if (is.list(x$value) && !is.data.frame(x$value)) {
     sapply(x$value, as_gams, ...)
   } else {
-    browser()
     stop("Unsupported value type for func: ", class(x$value))
   }
   val_str <- paste(val, collapse = ", ")

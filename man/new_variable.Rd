@@ -14,7 +14,8 @@ new_variable(
   bounds = NULL,
   comment = NULL,
   data = NULL,
-  auto_fold = FALSE
+  auto_fold = FALSE,
+  symbols = NULL
 )
 }
 \arguments{

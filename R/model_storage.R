@@ -706,6 +706,79 @@ update_mapping <- function(model, name, data, auto_save = FALSE) {
 
   model
 }
+# Does this object claim data that lives somewhere other than $data?
+#
+# convert_energyrt_parameter() records an on-disk source as misc$path /
+# misc$onDisk and leaves $data empty, but get_data() only ever looked in $data
+# and in model$storage -- two conventions that never met. The consequence was
+# silent: every parameter fell through to its scalar default and the model
+# built as a 1x1, while the import log still reported every symbol linked.
+.claims_external_data <- function(obj) {
+  if (is.null(obj)) return(FALSE)
+  m <- obj$misc
+  if (is.null(m)) return(FALSE)
+  isTRUE(!is.null(m$path)) || isTRUE(!is.null(m$onDisk)) || identical(m$inMemory, FALSE)
+}
+
+# A symbol that claims data elsewhere and yields none must not quietly become
+# its default. Wrong numbers with no error are worse than a stop, especially on
+# a large model where nobody can eyeball the result.
+#' Does the object's own on-disk record say the table is empty?
+#'
+#' energyRt stores a summary of the detached table in `misc$onDisk`, including
+#' its dimensions. A map that legitimately holds no tuples (`mvTechPhaseOut` in
+#' a scenario with no phase-outs) therefore *claims* external data while having
+#' nothing to load - which is not the same failure as a path that cannot be
+#' read, and must not be reported as one.
+#' @keywords internal
+#' @noRd
+.recorded_empty <- function(obj) {
+  d <- .ondisk_dim(obj$misc$onDisk)
+  !is.null(d) && isTRUE(as.integer(d[1]) == 0L)
+}
+
+#' Dimensions recorded in an on-disk summary, or NULL
+#'
+#' energyRt keys the record by slot name (`onDisk$data$dim`); a flat record
+#' (`onDisk$dim`) also occurs. Accept either.
+#' @keywords internal
+#' @noRd
+.ondisk_dim <- function(rec) {
+  if (is.null(rec)) return(NULL)
+  if (!is.null(rec$dim)) return(rec$dim)
+  rec[["data"]]$dim
+}
+
+#' A zero-row table with the object's declared columns
+#' @keywords internal
+#' @noRd
+.empty_like <- function(obj) {
+  nms <- tryCatch(
+    vapply(obj$dims, dim_binding_name, character(1), USE.NAMES = FALSE),
+    error = function(e) character()
+  )
+  nms <- nms[nzchar(nms)]
+  if (inherits(obj, "parameter")) nms <- c(nms, "value")
+  if (!length(nms)) return(data.frame())
+  cols <- rep(list(character()), length(nms))
+  if (inherits(obj, "parameter")) cols[[length(cols)]] <- numeric()
+  names(cols) <- nms
+  as.data.frame(cols, stringsAsFactors = FALSE)
+}
+
+.no_data_for <- function(obj, name, kind) {
+  stop(sprintf(paste0(
+    "%s '%s' declares data outside $data but none could be loaded.\n",
+    "  misc$path   : %s\n",
+    "  misc$inMemory: %s\n",
+    "Load it in memory (import_energyRt_data(..., inMemory = TRUE)) or make ",
+    "the path readable. Continuing would silently use the default value."),
+    kind, name,
+    if (is.null(obj$misc$path)) "<none>" else as.character(obj$misc$path)[1],
+    if (is.null(obj$misc$inMemory)) "<unset>" else as.character(obj$misc$inMemory)),
+    call. = FALSE)
+}
+
 
 
 #' Get data from model (with optional lazy loading)
@@ -763,6 +836,16 @@ get_data <- function(model, name, type = c("parameter", "mapping", "set", "varia
       }
     }
 
+    # The per-object reference, which the model$storage path above does not
+    # know about. get_lazy_data() resolves misc$path/onDisk properly.
+    if (.claims_external_data(param)) {
+      d <- tryCatch(get_lazy_data(param, base_path = model$base_path),
+                    error = function(e) NULL)
+      if (!is.null(d) && NROW(d) > 0) return(d)
+      if (.recorded_empty(param)) return(.empty_like(param))
+      .no_data_for(param, name, "Parameter")
+    }
+
     # Fallback to scalar default when no data or formula is available
     if (is.null(param$formula) && !is.null(param$defVal) && !inherits(param$defVal, "ast")) {
       return(param$defVal)
@@ -789,6 +872,15 @@ get_data <- function(model, name, type = c("parameter", "mapping", "set", "varia
         model$mappings[[name]]$data <- data
         return(data)
       }
+    }
+
+    # Same per-object reference the parameter branch honours above.
+    if (.claims_external_data(mapping)) {
+      d <- tryCatch(get_lazy_data(mapping, base_path = model$base_path),
+                    error = function(e) NULL)
+      if (!is.null(d) && NROW(d) > 0) return(d)
+      if (.recorded_empty(mapping)) return(.empty_like(mapping))
+      .no_data_for(mapping, name, "Mapping")
     }
 
     return(NULL)

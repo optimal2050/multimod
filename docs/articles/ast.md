@@ -1,0 +1,122 @@
+# Abstract Syntax Tree
+
+``` r
+library(multimod)
+library(lobstr)
+library(visNetwork)
+```
+
+## Example equation \#1
+
+``` r
+model_info <- example_model$model_info #|> as_multimod()
+mm <- as_multimod(
+  x = model_info, 
+  name = "Base energyRt model",
+  desc = "Converted to multimod format and exported to PDF/LaTeX using the multimod R package",
+  authors = "source: www.energyRt.org\nhttps://github.com/optimal2050/multimod"
+  )
+# eq <- example_model$multimod$equations$eqTechCapUp
+eq <- mm$equations$eqTechCapUp
+print(eq$name); print(eq$desc)
+names(eq)
+```
+
+### Full tree structure
+
+``` r
+depth(eq)
+tree(eq, max_depth = 5)
+```
+
+### Network representation
+
+``` r
+eq_net <- multimod::get_network_data(eq)
+visNetwork(eq_net$nodes, eq_net$edges) |>
+  visOptions(highlightNearest = TRUE, nodesIdSelection = TRUE) |>
+  visHierarchicalLayout(direction = "LR")  
+```
+
+### LaTeX output
+
+``` r
+eq_latex <- as_latex(eq)
+cat(eq_latex)
+write_latex(eq, file = "tmp/test.tex")
+```
+
+## Example equation \#2
+
+``` r
+# eq <- example_model$multimod$equations$eqTechAInp
+eq <- mm$equations$eqTechAInp
+eq <- mm$equations$eqTechCap
+eq <- mm$equations$eqCost
+eq <- mm$equations$eqTaxCost
+eq <- mm$equations$eqStorageEac
+eq <- mm$equations$eqTechSng2Sng
+eq <- mm$equations$eqStorageStore
+eq <- mm$equations$eqImportIrCost
+eq <- mm$equations$eqStorageVarom
+eq <- mm$equations$eqTechGrp2Sng
+eq <- mm$equations$eqTechAfcOutLo
+eq <- mm$equations$eqImportTot
+eq <- mm$equations$eqTechEac
+eq <- mm$equations$eqAggOutTot
+eq <- mm$equations$eqTechSng2Grp
+eq <- mm$equations$eqTechShareInpUp
+eq <- alias_ast_names(eq, aliases = example_model$short_aliases)
+print(eq$name); print(eq$desc)
+```
+
+### Partial tree structure
+
+``` r
+tree(eq, max_depth = 3)
+```
+
+### Network representation
+
+``` r
+eq_net <- get_network_data(eq, show_dims = TRUE)
+visNetwork(eq_net$nodes, eq_net$edges) |>
+  visOptions(highlightNearest = TRUE, nodesIdSelection = TRUE) |>
+  visInteraction(navigationButtons = TRUE) |>
+  visHierarchicalLayout(direction = "LR")
+```
+
+``` r
+as_visNetwork(eq$lhs) |>
+  visOptions(highlightNearest = TRUE, nodesIdSelection = TRUE) |>
+  visInteraction(navigationButtons = TRUE) |>
+  visHierarchicalLayout(direction = "LR")
+```
+
+### LaTeX output
+
+``` r
+eq_w <- remap_ast_elements(eq) 
+# eq_latex <- as_latex(eq_w)
+# eq_latex <- 
+# eq_latex |> cat()
+
+write_latex(eq_w, file = "tmp/test.tex")
+write_latex(eq, file = "tmp/test.tex")
+write_latex(ast_node, file = "tmp/test.tex")
+
+
+m <- mm
+m$equations <- mm$equations |>
+  lapply(remap_ast_elements) |>
+  lapply(alias_ast_names, aliases = example_model$short_aliases)
+write_latex(m, file = "tmp/multimod-test.tex", include_aliases = F)
+
+write_latex(m$equations$eqObjective, file = "tmp/eqObjective.tex")
+```
+
+### GAMS output
+
+```
+write_gams(mm, file = "tmp/multimod-test.gms", format_expr = TRUE)
+```
