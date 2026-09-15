@@ -4,18 +4,23 @@
 \alias{build_col_index}
 \title{Build the LP column index}
 \usage{
-build_col_index(model, verbose = FALSE)
+build_col_index(model, verbose = FALSE, names = TRUE)
 }
 \arguments{
 \item{model}{A multimod model with data attached.}
 
 \item{verbose}{Logical; report per-variable column counts.}
+
+\item{names}{Logical; add the readable \code{name} column (\code{symbol.i1.i2...}).
+\code{FALSE} skips it — on large models the names dominate index-building
+memory, and the MPS/solution path never reads them.}
 }
 \value{
 A \code{data.table} with columns \code{j} (1-based column index), \code{symbol},
-\code{name} (\code{symbol.i1.i2...}), \code{i1}..\code{iN} (index members, \code{NA} beyond a
-symbol's arity), and bounds \code{lo}, \code{up}, \code{vtype}. Per-symbol dimension names
-are kept in the \code{dim_names} attribute (a named list).
+\code{name} (\code{symbol.i1.i2...}, when \code{names = TRUE}), \code{i1}..\code{iN} (index
+members, \code{NA} beyond a symbol's arity), and bounds \code{lo}, \code{up}, \code{vtype}.
+Per-symbol dimension names are kept in the \code{dim_names} attribute (a named
+list).
 }
 \description{
 One row per LP column. Columns are enumerated per variable from the tuples of

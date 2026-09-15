@@ -310,6 +310,14 @@ parse_gams_expr <- function(
     return(NULL)
   }
 
+  # A numeric literal must be read whole, before any operator splitting: in
+  # scientific notation the exponent's sign is not a top-level operator, and
+  # splitting there leaves "1e" and an "Unrecognized expression" failure.
+  # A zero-carbon cap is written exactly "1e-20".
+  if (grepl("^[+-]?([0-9]+([.][0-9]*)?|[.][0-9]+)([eE][+-]?[0-9]+)?$", expr)) {
+    return(ast_constant(as.numeric(expr)))
+  }
+
   # Check for index shift patterns (y-1, y+1, ls-1, etc.) BEFORE expression parsing
   # This must come before arithmetic operators are processed
   if (grepl("^[a-zA-Z][a-zA-Z0-9_]*[+-][0-9]+$", expr)) {
@@ -448,10 +456,16 @@ parse_gams_expr <- function(
     return(parsed_expr)
   }
 
-  # Handle dot-access like y.val as val(y)
-  if (grepl("^[a-zA-Z0-9_]+\\.[a-zA-Z0-9_]+$", expr)) {
-    # browser()
-    parts <- strsplit("y.val", "\\.", fixed = FALSE)[[1]]
+  # A decimal literal ("3201.976") must not be read as dot-access: route
+  # numbers to the constant branch before any attribute interpretation.
+  if (grepl("^[+-]?([0-9]+(\\.[0-9]*)?|\\.[0-9]+)([eE][+-]?[0-9]+)?$", expr)) {
+    return(ast_constant(as.numeric(expr)))
+  }
+
+  # Handle dot-access like y.val as val(y); object and method must be
+  # identifier-shaped (letter-leading), never numeric.
+  if (grepl("^[a-zA-Z_][a-zA-Z0-9_]*\\.[a-zA-Z_][a-zA-Z0-9_]*$", expr)) {
+    parts <- strsplit(expr, ".", fixed = TRUE)[[1]]
     object <- parts[1]
     method <- parts[2]
     object <- parse_gams_expr(object, symbols = symbols)
@@ -475,7 +489,12 @@ parse_gams_expr <- function(
   if (max_lev == 0) {
     sq <- find_top_level_operators(expr, ",", precedence = NULL)
     if (nrow(sq) > 0) {
-      symb <- split_top_level(expr, ",", keep_op = FALSE, as_list = FALSE)
+      # Splitting leaves the separator's surrounding whitespace on the
+      # operands. An index parsed as " timeslice" matches no set, so a
+      # sum over the tuple binds nothing and the constraint row is emitted
+      # with its RHS and no coefficients -- a silently relaxed model.
+      symb <- trimws(split_top_level(expr, ",", keep_op = FALSE,
+                                     as_list = FALSE))
     } else {
       # check if expr is a word-like symbol
       if (grepl("^[a-zA-Z][a-zA-Z0-9_]*$", expr)) {

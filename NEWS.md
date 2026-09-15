@@ -3,9 +3,11 @@
 ## Breaking changes
 
 * `analyze_fold_opportunities()`: `fold_slice` is now `fold_timeslice`, and the
-  `slice` dimension is spelled `timeslice` throughout `R/fold.R`, matching
-  energyRt. The old spelling was dead code, so the timeslice-coverage check
-  never ran.
+  `slice` dimension is spelled `timeslice` throughout, matching energyRt. The
+  old spelling was dead code, so the timeslice-coverage check never ran.
+* Example models are consolidated into `example_models`: use
+  `example_models$energyRt$multimod` in place of the removed `utopia_multimod`
+  and its siblings.
 
 ## New features
 
@@ -13,96 +15,82 @@
 
 * Assemble a model straight into LP arrays, bypassing the symbolic layer:
   `model_to_lp()`, `build_col_index()`, `build_row_index()`, `build_triplets()`.
-* `write_mps()`, `read_mps_solution()`, `write_energyrt_output()` for the
-  file round trip; `solve_highs()` for an in-process solve returning duals.
+* `write_mps()`, `read_mps_solution()`, `write_energyrt_output()` for the file
+  round trip; `solve_highs()` for an in-process solve returning duals.
+* New `solve_mps()`: solve a written MPS file locally with HiGHS and emit a
+  solution file that `read_mps_solution()` consumes -- the local counterpart of
+  the cloud solve leg.
 * `multimod_from_energyRt()` builds a model from an interpolated energyRt
-  scenario in one call, with `fill_variable_domains()` resolving the variable
-  domains the GAMS `*@` comments do not carry.
+  scenario in one call, resolving the variable domains the GAMS `*@` comments
+  do not carry.
 * energyRt user constraints and costs (`newConstraint()`, `newCosts()`) are
-  supported via `add_user_constraints()` and
-  `declare_user_constraint_symbols()`.
+  supported.
+* `model_to_lp()` gains `on_empty_row`: an LP in which a user constraint
+  carries no coefficients is refused by default, and any other empty row
+  warns. `"all"`, `"warn"` and `"ignore"` select other policies.
+* The matrix evaluator supports the GAMS `<set>.val` intrinsic, and
+  `val()`/`ord()` resolve short index aliases (`y` -> `year`) and alias groups.
 * `check_matrix_numbers()` reports the magnitude spectrum of an assembled LP,
   with offender tables by equation and variable.
 * `read_cuopt_solution()` reads cuOpt's solution format, and
-  `read_solver_solution()` dispatches on the file itself (`solver = "auto"`)
-  rather than a caller-supplied guess.
+  `read_solver_solution()` dispatches on the file itself (`solver = "auto"`).
 * `write_energyrt_output()` also emits `raw_data_set.csv` and `log.csv`, the
   files `energyRt::read_solution()` requires beside the per-variable tables.
 
 See `dev/mps-pipeline-and-issues.md` for the pipeline, measurements and open
 items.
 
-### Data Integration & Storage
+### Data integration and storage
 
-* **Model workspace system** (`save_model()`, `load_model()`):
-  - Apache Arrow IPC format (fast, type-safe, binary)
-  - Apache Parquet format (compressed, columnar)
-  - CSV format (human-readable, portable)
-  - Lazy loading support for large datasets
-  - See `vignette("model_workspace")` for details
+* `save_model()` / `load_model()` store a model workspace as Arrow IPC,
+  Parquet or CSV, with lazy loading for large datasets. See
+  `vignette("model_workspace")`.
+* `import_energyRt_data()`, `populate_sets_from_scenario()` and
+  `link_scenario_data()` import energyRt structures and link Arrow/Parquet
+  files for lazy loading; OSeMOSYS example data is supported.
+* Generated code carries data either embedded in the code (small models) or
+  read from an Arrow repository (large models).
 
-* **Data import and linking**:
-  - `import_energyRt_data()`: Import from energyRt package structures
-  - `populate_sets_from_scenario()`: Extract set members from parameters
-  - `link_scenario_data()`: Link to Arrow/Parquet files for lazy loading
-  - Support for OSeMOSYS example model data
+### Code generation
 
-* **Flexible data modes** in generated code:
-  - **Embedded**: Data included directly in generated Python/Julia code (for small models)
-  - **External**: Code connects to Arrow repository (for large models)
+* Pyomo code generation: abstract models with external data loading, and any
+  solver Pyomo supports. See `vignette("pyomo")`.
+* `write_jump()` generates modern JuMP syntax: named constraints, tuple
+  indexing, short index aliases, variable bounds from GAMS types, and CSV
+  diagnostics.
+* `write_gmpl()` / `write_gmpl_data()` generate GMPL/MathProg, writing data
+  lazily from Arrow/Parquet datasets.
 
-* **Example datasets**: Consolidated into unified `example_models` structure
-  - Access: `data(example_models)` provides both energyRt and OSeMOSYS examples
-  - Structure: `example_models$energyRt$multimod`, `example_models$OSeMOSYS$gmpl`, etc.
-  - Models used: OSeMOSYS-Utopia (standard test case), energyRt-DEMO (BASE_UTOPIA scenario)
-  - Old datasets removed; use `example_models$energyRt$multimod` instead of `utopia_multimod`
+### Configuration and usability
 
-### Code Generation
+* Solver paths resolve through R options, environment variables, a YAML config
+  and auto-detection, in that order: `get_multimod_python()`,
+  `get_multimod_julia()`, `get_multimod_glpsol()`, with
+  `multimod_config_write()`, `multimod_config_read()` and
+  `multimod_config_show()`. See `vignette("configuration")`.
+* Reader functions (`read_gams()`, `read_gmpl()`, `read_gmpl_data()`,
+  `import_gmpl_data()`) accept character vectors as well as file paths, so a
+  model can be parsed from an R object without a temporary file.
 
-* **Pyomo support**: Complete Python/Pyomo code generation
-  - Abstract model design with external data loading
-  - Multiple solver support (HiGHS, Gurobi, CPLEX, etc.)
-  - Both embedded and external data modes
-  - See `vignette("pyomo")` for workflow details
+### Model optimization
 
-* **JuMP improvements** (`write_jump()`):
-  - Modern Julia/JuMP syntax with named constraints
-  - Tuple indexing: `eqName[(h,r,y) in mapping]`
-  - Short index aliases: h (tech), r (region), c (comm), y (year), ts (slice)
-  - Clean `get()` pattern for parameter access with defaults
-  - Variable bounds from GAMS types: `>= 0`, `<= 0`, `Bin`, `Int`, free
-  - Comprehensive diagnostics with CSV logging
-  - Both embedded and external data modes
-
-* **GMPL support** (`write_gmpl()`, `write_gmpl_data()`):
-  - Full GMPL/MathProg syntax support
-  - Proper formatting and indentation
-  - Lazy loading from Arrow/Parquet datasets
-  - Memory-efficient data writing
-
-### Configuration & Usability
-
-* **Configuration system**: Unified configuration for solver paths with 4-tier priority:
-  - R options > Environment variables > YAML config > Auto-detection
-  - New functions: `get_multimod_python()`, `get_multimod_julia()`, `get_multimod_glpsol()`
-  - YAML support: `multimod_config_write()`, `multimod_config_read()`, `multimod_config_show()`
-  - See `vignette("configuration")` for details
-
-* **In-memory parsing**: All reader functions (`read_gams()`, `read_gmpl()`, `read_gmpl_data()`, 
-  `import_gmpl_data()`) now accept character vectors in addition to file paths, enabling 
-  direct parsing from R objects without temporary files.
-
-### Model Optimization
-
-* **Parameter folding**: Automated dimensionality reduction for uniform parameters
-  - `fold_model()`, `create_fold_spec()`, `get_fold_summary()`
-  - See `vignette("folding")` for details
-
-* **Model trimming**: Remove unused sets, parameters, variables, and equations
-  - `trim_model()`, `get_trim_summary()`
+* `fold_model()` reduces the dimensionality of uniform parameters;
+  `create_fold_spec()` and `get_fold_summary()` support it. See
+  `vignette("folding")`.
+* `trim_model()` removes unused sets, parameters, variables and equations, and
+  `get_trim_summary()` reports what went.
 
 ## Bug fixes
 
+* A constraint summing over more than one index was silently dropped from the
+  model: the index list in `sum((region, timeslice)$map, ...)` kept the comma's
+  whitespace, so the second index matched no set and the sum bound nothing. The
+  row still assembled, with its bounds and no coefficients, and solved to
+  Optimal.
+* Numeric literals in scientific notation with a signed exponent (`1e-20`,
+  `3.6888e+08`) failed to parse.
+* A decimal literal in an equation body (`=l= 3201.976`) was read as dot-access
+  and became `val(y)`, building a wrong matrix.
 * Folded scenarios (`fold = TRUE`) silently produced a wrong model: an `NA`
   wildcard matched nothing on join and fell back to the parameter default.
   Wildcards are now expanded on import, and one reaching the matrix errors.
@@ -115,34 +103,23 @@ items.
   scenario, and an import where nothing is reachable is now an error rather
   than a warning.
 * `get_data()` treated a legitimately empty on-disk table as unreadable and
-  aborted the build.
+  aborted the build. An empty table whose recorded path resolves nowhere now
+  imports as empty.
+* JuMP: 1-dimensional mappings loaded as `Set{Tuple{String}}`, so membership
+  checks silently failed and constraints lost terms. They now load as
+  `Set{String}`, and generated models reproduce the reference results.
+* `export_model_source()`, `export_osemosys()` and `export_energyrt()` work
+  with the consolidated `example_models`.
 * `DESCRIPTION` no longer carries a `Collate` field: it had fallen out of date,
   and files absent from it are silently not sourced.
 
-* **JuMP fix**: 1-dimensional mappings now correctly loaded as `Set{String}` instead of 
-  `Set{Tuple{String}}`. This was causing membership checks like `t in mTradeCapacityVariable` 
-  to silently fail, resulting in missing constraint terms and incorrect model formulations.
-  - 1D mappings: `Set{String}` for direct membership checks
-  - Multi-D mappings: `Set{Tuple{...}}` for tuple membership
-  - Parameters follow same pattern for consistent dictionary key types
-  - Generated models now produce identical results to reference implementations
-
-* **Export functions**: Updated `export_model_source()` to use new `example_models` structure
-  - `export_osemosys()` and `export_energyrt()` now work with consolidated datasets
-
 ## Documentation
 
-* New vignette: `vignette("configuration")` - Configuration system and solver setup
-* New vignette: `vignette("pyomo")` - Complete Pyomo workflow
-* New vignette: `vignette("model_workspace")` - Model workspace and data management
-* Updated vignette: `vignette("jump")` - Complete JuMP workflow
-* Updated vignette: `vignette("gmpl")` - Complete GMPL workflow
-* Updated vignette: `vignette("latex")` - LaTeX generation with new dataset
-* Updated: Development roadmap with realistic implementation status
+* New vignettes: `configuration`, `pyomo`, `model_workspace`.
+* Updated vignettes: `jump`, `gmpl`, `latex`.
 
 ---
 
 # multimod 0.0.1 (2025-06-01)
 
 * Initial GitHub release (June 1, 2025).
-

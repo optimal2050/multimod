@@ -9,7 +9,9 @@ model_to_lp(
   col_index = NULL,
   row_index = NULL,
   on_duplicate = c("error", "last", "first"),
-  verbose = FALSE
+  verbose = FALSE,
+  index_names = FALSE,
+  on_empty_row = c("user_constraints", "all", "warn", "ignore")
 )
 }
 \arguments{
@@ -21,6 +23,20 @@ model_to_lp(
 that stores one index tuple with several distinct values.}
 
 \item{verbose}{Logical; report progress.}
+
+\item{index_names}{Logical; carry the readable \code{name} column in the index
+tables. Default \code{FALSE}: nothing on the solve/MPS/decode path reads the
+names, and on a large model they are the biggest single allocation of
+index building (one interned string per LP row and column).}
+
+\item{on_empty_row}{What to do about equation rows that carry no
+coefficients. Such a row reads \verb{0 <op> rhs}: it constrains nothing, yet
+the model still assembles and the solver still reports Optimal, so the
+answer is silently to a different question. \code{"user_constraints"} (the
+default) refuses when a USER constraint (\verb{eqCns*}) is empty -- a relaxed
+user constraint is never what the author meant -- and warns about any
+other empty rows. \code{"all"} refuses on any empty row, \code{"warn"} only warns,
+\code{"ignore"} says nothing.}
 }
 \value{
 A list with

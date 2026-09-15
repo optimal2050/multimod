@@ -239,3 +239,115 @@ test_that("a wildcard reaching the matrix is an error, not a default", {
   expect_error(model_to_lp(m), "wildcard")
   expect_error(model_to_lp(m), pname, fixed = TRUE)
 })
+
+# =============================================================================
+# Tuple index lists: sum((a, b)$map, ...)
+# =============================================================================
+#
+# energyRt emits this shape whenever a term sums over MORE THAN ONE free index
+# -- a constraint whose term names no `for.sum` and whose variable carries dims
+# the equation's `for.each` does not (class-constraint.R:1163). Every test
+# above uses the single-iterator form `sum(tech$..., ...)`, which has no comma.
+#
+# The comma is the whole story: the operand split left the separator's
+# whitespace attached, so the second iterator parsed as " timeslice", matched
+# no set, and the sum bound nothing. The row was still emitted, with its
+# correct RHS and no coefficients -- `0 <= cap`, which every solver reports as
+# Optimal. That is how EU41_N10_TRANS solved to 2.602e12 while ignoring its
+# own CO2 path (2026-09-14).
+
+test_that("a tuple index list parses without the separator's whitespace", {
+  n <- multimod:::parse_gams_expr("region, timeslice")
+  expect_s3_class(n, "dims")
+  expect_identical(
+    vapply(n, function(x) x$name, character(1), USE.NAMES = FALSE),
+    c("region", "timeslice"))
+
+  # the spacing energyRt actually emits, and a wider tuple
+  n3 <- multimod:::parse_gams_expr("tech,  region ,year")
+  expect_identical(
+    vapply(n3, function(x) x$name, character(1), USE.NAMES = FALSE),
+    c("tech", "region", "year"))
+})
+
+test_that("a sum over a tuple of free indices carries coefficients", {
+  data(example_models, package = "multimod")
+  m <- example_models$energyRt$multimod
+
+  # sum over (tech, region) -- two free indices -- gated by mTechSpan, with the
+  # equation indexed by year alone. No for.sum, no pCnsMult, literal RHS: the
+  # bare shape energyRt emits for `term1 = list(variable = "vTechCap")`.
+  span <- as.data.frame(get_data(m, "mTechSpan", type = "mapping"))
+  yrs <- unique(span[, "year", drop = FALSE])
+  m$mappings$mCnsForEachTUP <- new_mapping(
+    "mCnsForEachTUP", desc = "row set", dims = "year",
+    active_dims = "year", data = yrs)
+
+  ir <- paste0(
+    "eqCnsTUP(year)$mCnsForEachTUP(year)..   ",
+    "sum((tech, region)$mTechSpan(tech, region, year), ",
+    "vTechCap(tech, region, year)) =l= 100;")
+  eq <- multimod:::.parse_cns_equation(ir, build_symbols_list(m), desc = "tuple")
+  m$equations[[eq$name]] <- eq
+
+  lp <- model_to_lp(m)
+  rows <- which(lp$row_index$symbol == "eqCnsTUP")
+  expect_gt(length(rows), 0)
+
+  # the defect: rows present, RHS right, matrix empty
+  nz <- Matrix::rowSums(abs(lp$A[rows, , drop = FALSE]) > 0)
+  expect_true(all(nz > 0))
+  expect_true(all(lp$row_up[rows] == 100))
+
+  # and the package's own detector agrees
+  expect_false("eqCnsTUP" %in%
+                 check_matrix_numbers(lp, verbose = FALSE)$empty_row_symbols)
+})
+
+test_that("numeric literals in scientific notation parse whole", {
+  # the exponent's sign is not a top-level operator; splitting there left "1e"
+  for (lit in c("1e-20", "1E-20", "1.0e-20", "1e+20", "3.6888e+08", "2.5e-3")) {
+    n <- multimod:::parse_gams_expr(lit)
+    expect_s3_class(n, "constant")
+    expect_equal(n$value, as.numeric(lit), tolerance = 0)
+  }
+  # a zero-carbon cap is written exactly this way
+  n <- multimod:::parse_gams_expr("1e-20")
+  expect_equal(n$value, 1e-20)
+})
+
+# =============================================================================
+# The guardrail: an empty constraint row must not pass silently
+# =============================================================================
+
+test_that("model_to_lp refuses a user constraint that binds nothing", {
+  data(example_models, package = "multimod")
+  m <- example_models$energyRt$multimod
+
+  span <- as.data.frame(get_data(m, "mTechSpan", type = "mapping"))
+  yrs <- unique(span[, "year", drop = FALSE])
+  m$mappings$mCnsForEachVOID <- new_mapping(
+    "mCnsForEachVOID", desc = "row set", dims = "year",
+    active_dims = "year", data = yrs)
+  # a gate map with no rows: the sum binds nothing, the row is still declared
+  m$mappings$mVoidGate <- new_mapping(
+    "mVoidGate", desc = "empty gate", dims = c("tech", "region", "year"),
+    active_dims = c("tech", "region", "year"),
+    data = span[0, c("tech", "region", "year")])
+
+  ir <- paste0(
+    "eqCnsVOID(year)$mCnsForEachVOID(year)..   ",
+    "sum((tech, region)$mVoidGate(tech, region, year), ",
+    "vTechCap(tech, region, year)) =l= 100;")
+  eq <- multimod:::.parse_cns_equation(ir, build_symbols_list(m), desc = "void")
+  m$equations[[eq$name]] <- eq
+
+  expect_error(model_to_lp(m), "eqCnsVOID")
+  expect_error(model_to_lp(m), "constrain nothing")
+
+  # the escape hatches still assemble, so a caller can inspect the matrix
+  expect_warning(lp <- model_to_lp(m, on_empty_row = "warn"), "eqCnsVOID")
+  expect_silent(lp2 <- model_to_lp(m, on_empty_row = "ignore"))
+  expect_true("eqCnsVOID" %in%
+                check_matrix_numbers(lp2, verbose = FALSE)$empty_row_symbols)
+})

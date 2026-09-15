@@ -389,7 +389,52 @@
   if (fn == "sum")  return(.mx_eval_sum(node, env, ctx))
   if (fn == "prod") return(.mx_eval_prod(node, env, ctx))
   if (fn == "ord")  return(.mx_eval_ord(node, env, ctx))
+  if (fn == "val")  return(.mx_eval_val(node, env, ctx))
   stop("as_matrix: unsupported function '", node$name, "'.")
+}
+
+#' `<set>.val` - numeric value of the bound member (GAMS semantics: the
+#' label read as a number, e.g. year "2030" -> 2030). Used by generated
+#' vintage/lifespan window arithmetic in user constraints.
+#' @keywords internal
+#' @noRd
+.mx_eval_val <- function(node, env, ctx) {
+  arg <- node$value
+  if (is.list(arg) && !inherits(arg, "ast") && length(arg)) arg <- arg[[1]]
+  set_name <- .mx_env_name(ctx, env, dim_binding_name(arg))
+  if (!set_name %in% names(env)) {
+    stop("as_matrix: val(", set_name, ") refers to an unbound index.")
+  }
+  v <- suppressWarnings(as.numeric(as.character(env[[set_name]])))
+  if (anyNA(v)) {
+    stop("as_matrix: val(", set_name, ") - member(s) ",
+         paste(utils::head(unique(env[[set_name]][is.na(v)]), 3),
+               collapse = ", "),
+         " are not numeric labels.")
+  }
+  data.table::data.table(.k = env$.k, j = NA_integer_, coef = v)
+}
+
+#' Resolve an expression's index name to the env binding, through the
+#' model's short index aliases (year -> y) and alias groups (yearp -> year).
+#' @keywords internal
+#' @noRd
+.mx_env_name <- function(ctx, env, set_name) {
+  if (set_name %in% names(env)) return(set_name)
+  ia <- ctx$model$index_aliases
+  if (!is.null(ia)) {
+    base <- names(ia)[ia == set_name]
+    if (length(base) && base[1] %in% names(env)) return(base[1])
+  }
+  if (!is.null(ctx$model$aliases)) {
+    for (grp in ctx$model$aliases) {
+      if (set_name %in% grp) {
+        hit <- intersect(unlist(grp), names(env))
+        if (length(hit)) return(hit[1])
+      }
+    }
+  }
+  set_name
 }
 
 #' `ord(set)` - 1-based position of the bound member within its set
@@ -398,7 +443,7 @@
 .mx_eval_ord <- function(node, env, ctx) {
   arg <- node$value
   if (is.list(arg) && !inherits(arg, "ast") && length(arg)) arg <- arg[[1]]
-  set_name <- dim_binding_name(arg)
+  set_name <- .mx_env_name(ctx, env, dim_binding_name(arg))
   if (!set_name %in% names(env)) {
     stop("as_matrix: ord(", set_name, ") refers to an unbound index.")
   }
