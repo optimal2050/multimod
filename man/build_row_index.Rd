@@ -4,17 +4,20 @@
 \alias{build_row_index}
 \title{Build the LP row index}
 \usage{
-build_row_index(model, verbose = FALSE)
+build_row_index(model, verbose = FALSE, names = TRUE)
 }
 \arguments{
 \item{model}{A multimod model with data attached.}
 
 \item{verbose}{Logical; report per-equation row counts.}
+
+\item{names}{Logical; add the readable \code{name} column — see
+\code{\link[=build_col_index]{build_col_index()}}.}
 }
 \value{
 A \code{data.table} with columns \code{i} (1-based row index), \code{symbol},
-\code{name}, \code{i1}..\code{iN}, \code{sense} (\code{"=="}, \code{"<="}, \code{">="}) and \code{rhs}
-(\code{NA_real_} until coefficient extraction fills it).
+\code{name} (when \code{names = TRUE}), \code{i1}..\code{iN}, \code{sense} (\code{"=="}, \code{"<="},
+\code{">="}) and \code{rhs} (\code{NA_real_} until coefficient extraction fills it).
 }
 \description{
 One row per LP constraint. Rows are enumerated per equation from the tuples

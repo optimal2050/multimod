@@ -25,6 +25,14 @@
 #'   tables. Default `FALSE`: nothing on the solve/MPS/decode path reads the
 #'   names, and on a large model they are the biggest single allocation of
 #'   index building (one interned string per LP row and column).
+#' @param on_empty_row What to do about equation rows that carry no
+#'   coefficients. Such a row reads `0 <op> rhs`: it constrains nothing, yet
+#'   the model still assembles and the solver still reports Optimal, so the
+#'   answer is silently to a different question. `"user_constraints"` (the
+#'   default) refuses when a USER constraint (`eqCns*`) is empty -- a relaxed
+#'   user constraint is never what the author meant -- and warns about any
+#'   other empty rows. `"all"` refuses on any empty row, `"warn"` only warns,
+#'   `"ignore"` says nothing.
 #'
 #' @return A list with
 #'   `A` (a `Matrix::dgCMatrix`), `obj`, `row_lo`, `row_up`, `col_lo`, `col_up`,
@@ -34,8 +42,11 @@
 #' @export
 model_to_lp <- function(model, col_index = NULL, row_index = NULL,
                         on_duplicate = c("error", "last", "first"),
-                        verbose = FALSE, index_names = FALSE) {
+                        verbose = FALSE, index_names = FALSE,
+                        on_empty_row = c("user_constraints", "all", "warn",
+                                         "ignore")) {
   on_duplicate <- match.arg(on_duplicate)
+  on_empty_row <- match.arg(on_empty_row)
   stopifnot(inherits(model, "multimod") || inherits(model, "model"))
   if (is.null(col_index)) col_index <- build_col_index(model, verbose = verbose,
                                                        names = index_names)
@@ -75,6 +86,7 @@ model_to_lp <- function(model, col_index = NULL, row_index = NULL,
     row_index = row_index,
     col_index = col_index
   )
+  .check_empty_rows(lp, on_empty_row)
   if (verbose) {
     message(sprintf("LP: %d rows x %d cols, %d nonzeros (%s %s)",
                     nrow_lp, ncol_lp, length(A@x),
@@ -82,6 +94,48 @@ model_to_lp <- function(model, col_index = NULL, row_index = NULL,
                     obj_spec$symbol))
   }
   lp
+}
+
+#' Refuse (or report) equation rows that carry no coefficients
+#'
+#' A row with no entries reads `0 <op> rhs` and binds nothing, but the model
+#' assembles and the solver returns Optimal, so the failure is invisible: the
+#' 442M-nonzero EU41_N10_TRANS solved to 2.602e12 in 2026-09 while ignoring the
+#' CO2 path its rows declared. The detection itself already existed in
+#' [check_matrix_numbers()] but nothing called it.
+#' @keywords internal
+#' @noRd
+.check_empty_rows <- function(lp, on_empty_row) {
+  if (identical(on_empty_row, "ignore") || !nrow(lp$row_index)) return(invisible())
+  empty <- setdiff(seq_len(nrow(lp$A)), unique(lp$A@i + 1L))
+  if (!length(empty)) return(invisible())
+
+  syms <- unique(lp$row_index$symbol[empty])
+  user <- grep("^eqCns", syms, value = TRUE)
+  fmt <- function(s) {
+    n <- vapply(s, function(x) sum(lp$row_index$symbol[empty] == x), integer(1))
+    paste0(sprintf("%s (%d row%s)", s, n, ifelse(n == 1, "", "s")),
+           collapse = ", ")
+  }
+  msg <- function(s) paste0(
+    "model_to_lp(): ", length(empty), " equation row(s) carry no coefficients",
+    " and so constrain nothing: ", fmt(s),
+    ". A row like this still assembles and still solves to Optimal, so the",
+    " result answers a different model. Check the gating maps and index names",
+    " of the equation(s) named above; check_matrix_numbers() reports the same.")
+
+  fatal <- switch(on_empty_row,
+                  all = syms,
+                  user_constraints = user,
+                  warn = character())
+  if (length(fatal)) {
+    stop(msg(fatal), if (identical(on_empty_row, "user_constraints") &&
+                         length(setdiff(syms, user)))
+      paste0(" Other empty rows: ", fmt(setdiff(syms, user)), ".") else "",
+      call. = FALSE)
+  }
+  warning(msg(syms), call. = FALSE)
+  invisible()
 }
 
 #' Objective vector from the model's declared objective
@@ -263,4 +317,86 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
             nrow(lp$col_index), " cols) plus index tables in ", index_dir)
   }
   invisible(list(mps = file, col_index = col_path, row_index = row_path))
+}
+
+#' Solve a written MPS file locally and emit a HiGHS solution file
+#'
+#' The fully local counterpart of the cloud solve leg: reads an MPS file
+#' written by [write_mps()], solves it in-process with HiGHS, and writes a
+#' raw-style solution file that [read_highs_solution()] /
+#' [read_mps_solution()] consume unchanged. Positional column/row names
+#' (`c0`, `r0`, ...) are reconstructed from the solver dimensions, matching
+#' what [write_mps()] emits; files with other naming conventions decode
+#' correctly only through their own index tables.
+#'
+#' @param file Path to the MPS file (uncompressed; the HiGHS reader does not
+#'   accept `.gz`).
+#' @param sol_file Path for the solution file; default `file` with a `.sol`
+#'   extension.
+#' @param control Optional list of HiGHS options (e.g.
+#'   `list(solver = "ipm", run_crossover = "on")`).
+#' @param require_optimal Logical; error unless the run ends optimal.
+#' @param verbose Logical; report progress.
+#'
+#' @return A list with `status_message`, `objective`, `sol_file` and
+#'   `run_time` (seconds).
+#' @export
+solve_mps <- function(file, sol_file = NULL, control = list(),
+                      require_optimal = TRUE, verbose = FALSE) {
+  if (!requireNamespace("highs", quietly = TRUE)) {
+    stop("solve_mps() needs the 'highs' package. Install it with ",
+         "install.packages(\"highs\").")
+  }
+  if (!file.exists(file)) stop("MPS file not found: ", file)
+  if (grepl("\\.gz$", file, ignore.case = TRUE)) {
+    stop("The HiGHS reader does not accept gzipped MPS; decompress first.")
+  }
+  if (is.null(sol_file)) {
+    sol_file <- paste0(tools::file_path_sans_ext(file), ".sol")
+  }
+
+  s <- highs::hi_new_solver(highs::highs_model(L = 0, lower = 0, upper = 0))
+  highs::hi_solver_read_model(s, file)
+  if (length(control)) {
+    for (nm in names(control)) highs::hi_solver_set_option(s, nm, control[[nm]])
+  }
+  highs::hi_solver_run(s)
+
+  msg <- highs::hi_solver_status_message(s)
+  if (require_optimal && !grepl("optimal", msg, ignore.case = TRUE)) {
+    stop("HiGHS finished with status '", msg, "', not optimal.\n",
+         "  Pass require_optimal = FALSE to write the solution anyway.")
+  }
+
+  sol <- highs::hi_solver_get_solution(s)
+  objective <- sum(highs::hi_solver_get_lp_costs(s) * sol$col_value)
+  n <- length(sol$col_value)
+  m <- length(sol$row_value)
+
+  # Raw-style solution file (the format read_highs_solution() parses); dual
+  # sections are written only when the solver reports valid duals.
+  con <- file(sol_file, "wb")   # binary: LF endings, byte-stable across OSes
+  wr <- function(...) writeLines(c(...), con, sep = "\n")
+  wr("Model status", msg, "")
+  wr("# Primal solution values", "Feasible",
+     sprintf("Objective %.17g", objective))
+  wr(sprintf("# Columns %d", n))
+  wr(sprintf("c%d %.17g", seq_len(n) - 1L, sol$col_value))
+  wr(sprintf("# Rows %d", m))
+  wr(sprintf("r%d %.17g", seq_len(m) - 1L, sol$row_value))
+  if (isTRUE(sol$dual_valid)) {
+    wr("", "# Dual solution values", "Feasible")
+    wr(sprintf("# Columns %d", n))
+    wr(sprintf("c%d %.17g", seq_len(n) - 1L, sol$col_dual))
+    wr(sprintf("# Rows %d", m))
+    wr(sprintf("r%d %.17g", seq_len(m) - 1L, sol$row_dual))
+  }
+  close(con)
+
+  if (verbose) {
+    message("solved ", basename(file), ": ", msg, ", objective ",
+            format(objective, digits = 10), " -> ", sol_file)
+  }
+  list(status_message = msg, objective = objective, sol_file = sol_file,
+       run_time = highs::hi_solver_get_run_time(s))
 }

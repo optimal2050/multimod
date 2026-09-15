@@ -10,7 +10,8 @@ build_triplets(
   row_index = NULL,
   equations = NULL,
   on_duplicate = c("error", "last", "first"),
-  verbose = FALSE
+  verbose = FALSE,
+  chunk_rows = 1000000L
 )
 }
 \arguments{
@@ -29,6 +30,13 @@ and Pyomo do silently; \code{"first"} takes the first. Either non-default choice
 reports the parameter and the number of tuples affected.}
 
 \item{verbose}{Logical; report per-equation term counts and timings.}
+
+\item{chunk_rows}{Integer; evaluate each equation over at most this many LP
+rows at a time. Each LP row's terms are independent, so slicing by row is
+exact; what it bounds is the pre-aggregation intermediate of a \code{sum()}
+(outer rows x inner tuples), which on a large full-year model otherwise
+allocates tens of gigabytes in one piece. The aggregated per-chunk
+triplets concatenate without renumbering (\code{.k} carries the global row id).}
 }
 \value{
 A list with \code{triplets} (\code{data.table(i, j, coef)}, aggregated), \code{rhs}
