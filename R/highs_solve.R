@@ -33,6 +33,12 @@
 #'   user constraint is never what the author meant -- and warns about any
 #'   other empty rows. `"all"` refuses on any empty row, `"warn"` only warns,
 #'   `"ignore"` says nothing.
+#' @param chunk_rows Passed to [build_triplets()]: evaluate each equation over
+#'   at most this many LP rows at a time. It bounds the pre-aggregation
+#'   intermediate of a `sum()` (outer rows x inner tuples), which is the
+#'   transient that dominates peak memory on a large full-year build. Slicing
+#'   by row is exact -- each LP row's terms are independent, and the per-chunk
+#'   triplets concatenate without renumbering.
 #'
 #' @return A list with
 #'   `A` (a `Matrix::dgCMatrix`), `obj`, `row_lo`, `row_up`, `col_lo`, `col_up`,
@@ -44,7 +50,8 @@ model_to_lp <- function(model, col_index = NULL, row_index = NULL,
                         on_duplicate = c("error", "last", "first"),
                         verbose = FALSE, index_names = FALSE,
                         on_empty_row = c("user_constraints", "all", "warn",
-                                         "ignore")) {
+                                         "ignore"),
+                        chunk_rows = 1000000L) {
   on_duplicate <- match.arg(on_duplicate)
   on_empty_row <- match.arg(on_empty_row)
   stopifnot(inherits(model, "multimod") || inherits(model, "model"))
@@ -54,7 +61,8 @@ model_to_lp <- function(model, col_index = NULL, row_index = NULL,
                                                        names = index_names)
 
   tr <- build_triplets(model, col_index = col_index, row_index = row_index,
-                       on_duplicate = on_duplicate, verbose = verbose)
+                       on_duplicate = on_duplicate, verbose = verbose,
+                       chunk_rows = chunk_rows)
   trip <- tr$triplets
   nrow_lp <- nrow(row_index)
   ncol_lp <- nrow(col_index)
