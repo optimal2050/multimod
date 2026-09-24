@@ -1,24 +1,8 @@
-# An empty table whose recorded misc$path resolves nowhere must import as
-# empty, not error: an EMPTY table legitimately gets no on-disk file when a
-# scenario is saved (e.g. an unused `group` set), while its shell may still
-# carry the path the writer would have used. The import's no-silent-default
-# hard stop is reserved for the aggregate case (nothing reachable at all,
-# .report_rows) -- per-object emptiness is data, not failure.
-
-test_that("an empty parameter with a dangling path imports as empty", {
-  setClass("mm_mock_param",
-           representation(data = "ANY", misc = "list", name = "character",
-                          dimSets = "character"),
-           where = environment())
-  p <- new("mm_mock_param",
-           data = data.frame(),
-           misc = list(path = file.path(tempdir(), "does-not-exist-anywhere")),
-           name = "group", dimSets = character())
-
-  out <- collect_scenario_parameter_data(p)
-  expect_s3_class(out, "data.frame")
-  expect_identical(nrow(out), 0L)
-})
+# `get_data_path()` and `detect_arrow_format()` must return NULL rather than
+# error when a recorded path resolves nowhere. The companion test - that an
+# EMPTY energyRt parameter with a dangling path imports as empty rather than
+# failing - moved to energyRt with collect_scenario_parameter_data() on
+# 2026-09-24.
 
 test_that("get_data_path and detect_arrow_format return NULL on dangling paths", {
   # multimod's own objects are lists; a missing path is NULL, not an error

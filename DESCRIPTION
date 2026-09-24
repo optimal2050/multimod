@@ -28,7 +28,6 @@ Imports:
     jsonlite
 Suggests: 
     R6,
-    energyRt,
     highs,
     withr,
     reticulate (>= 1.28),
