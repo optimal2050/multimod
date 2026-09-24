@@ -69,7 +69,7 @@ The package has progressed significantly beyond initial roadmap milestones:
   - **Embedded data**: For small models (data included in generated code)
   - **External data**: For large models (code connects to Arrow repository)
   - Python/Pyomo and Julia/JuMP support both modes
-- **Functions**: `save_model()`, `load_model()`, `import_energyRt_data()`, `link_scenario_data()`
+- **Functions**: `save_model()`, `load_model()`, `import_energyRt_data()`, `link_scenario_data_with_log()`
 
 ### Documentation & Visualization
 - **LaTeX Generation**: Publication-ready mathematical documentation with annotations

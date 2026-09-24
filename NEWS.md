@@ -50,6 +50,17 @@ items.
   files for lazy loading; OSeMOSYS example data is supported.
 * Generated code carries data either embedded in the code (small models) or
   read from an Arrow repository (large models).
+* Constructors are also available under the cross-language names used by the
+  planned C++ and Python bindings: `Set()`, `Parameter()`, `Equation()`,
+  `SetRef()` and so on. These are aliases; the `new_*()` and `ast_*()` names
+  are unchanged. `is_declaration()` replaces `inherits(x, "multimod")`.
+* AST nodes are validated against the schema when constructed, so a malformed
+  node is refused where it is built rather than surfacing later as a renderer
+  that emits nothing. Disable with `options(multimod.validate = FALSE)`.
+* Language-neutral serialisation of the AST: `model_to_json()` /
+  `model_from_json()`, with the node shapes declared once in `ast_schema()` and
+  a JSON Schema emitted by `ast_json_schema()`. `validate_ast()` checks a node
+  against the schema. Previously structure was only ever written as `.rds`.
 
 ### Code generation
 

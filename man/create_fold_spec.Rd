@@ -2,50 +2,60 @@
 % Please edit documentation in R/fold.R
 \name{create_fold_spec}
 \alias{create_fold_spec}
-\title{Create fold specification for parameters (generic interface)}
+\title{Create a fold specification for a model's parameters}
 \usage{
 create_fold_spec(model, fold_dims, tolerance = 1e-10, verbose = TRUE)
 }
 \arguments{
-\item{model}{A multimod model object}
+\item{model}{A multimod model object.}
 
-\item{fold_dims}{Dimension configuration. Can be:
+\item{fold_dims}{Dimension configuration. Either:
 \itemize{
-\item Character vector: dimension names (e.g., \code{c("timeslice")})
-\item Named list (simple): dimension → mapping (e.g., \code{list(timeslice = "mCommTimeslice")})
-\item Named list (advanced): dimension → entity-specific mappings
-(e.g., \code{list(timeslice = list(tech = "mTechTimeslice", comm = "mCommTimeslice"))})
+\item a character vector of dimension names (e.g. \code{c("timeslice")});
+\item a named list mapping dimension to validation mapping
+(e.g. \code{list(timeslice = "mCommTimeslice")});
+\item a named list mapping dimension to entity-specific mappings
+(e.g. \code{list(timeslice = list(tech = "mTechTimeslice", stg = c("mStorageComm", "mCommTimeslice")))}), where a character vector
+is a chain.
 }}
 
-\item{tolerance}{Numeric tolerance for detecting constant values (default: 1e-10)}
+\item{tolerance}{Numeric tolerance for detecting constant values.}
 
-\item{verbose}{Logical; print progress messages (default: TRUE)}
+\item{verbose}{Logical; print progress.}
 }
 \value{
-Data frame with fold specification for each parameter
+A data frame with one row per parameter/dimension pair: \code{param_name},
+\code{dim_to_fold}, \code{validation_mapping}, \code{validation_mapping_raw}, \code{can_fold}
+and \code{reason}.
 }
 \description{
-Generic interface for creating fold specifications. Supports all the same
-features as \code{create_fold_spec_energyRt} but without energyRt-specific defaults.
+Scans a model's parameters and reports, for each, whether a dimension can be
+folded away - that is, whether the parameter's values are constant along it
+within tolerance - together with the mapping that should be used to validate
+the fold.
+}
+\details{
+Nothing here is energyRt-specific: the function walks \code{model$parameters} and
+the \code{fold_dims} configuration it is given. Only the \emph{default} mapping names
+(\code{mTechTimeslice} and friends) follow energyRt's conventions, and those are
+supplied by the caller.
 }
 \examples{
 \dontrun{
-# Simple: fold timeslice dimension
 fold_spec <- create_fold_spec(model, fold_dims = "timeslice")
 
-# With single validation mapping
-fold_spec <- create_fold_spec(model, fold_dims = list(timeslice = "mCommTimeslice"))
-
-# Entity-specific (advanced)
 fold_spec <- create_fold_spec(
   model,
   fold_dims = list(
     timeslice = list(
       tech = "mTechTimeslice",
       comm = "mCommTimeslice",
-      stg = c("mStorageComm", "mCommTimeslice")  # Chain
+      stg  = c("mStorageComm", "mCommTimeslice")   # a chain
     )
   )
 )
 }
+}
+\seealso{
+\code{\link[=fold_model]{fold_model()}}, \code{\link[=create_fold_spec_energyRt]{create_fold_spec_energyRt()}}
 }

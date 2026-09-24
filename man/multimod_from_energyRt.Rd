@@ -15,8 +15,10 @@ multimod_from_energyRt(
 \arguments{
 \item{scen}{An interpolated energyRt scenario.}
 
-\item{gms}{Path to \code{energyRt.gms}. Defaults to the copy shipped with the
-installed energyRt; pass a path to read a working tree instead.}
+\item{gms}{The GAMS model source. \code{NULL} (the default) reads the code
+energyRt ships in \code{.modelCode$GAMS}, which needs no source checkout and
+matches the installed energyRt version. Pass a path to read a working
+tree instead, or a character vector of GAMS source directly.}
 
 \item{prefer}{Passed to \code{\link[=fill_variable_domains]{fill_variable_domains()}}.}
 

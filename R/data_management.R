@@ -108,6 +108,7 @@ detect_arrow_format <- function(path) {
 #' @return Arrow dataset or data.table
 #' 
 #' @keywords internal
+#' @export
 load_arrow_data <- function(path, format = NULL, collect = TRUE) {
   if (!requireNamespace("arrow", quietly = TRUE)) {
     stop("Package 'arrow' required for on-disk data. Install with: install.packages('arrow')")
@@ -1320,6 +1321,7 @@ find_unmatched_elements <- function(model, scenario, import_log) {
 #' Export import log to CSV file
 #'
 #' @keywords internal
+#' @export
 export_import_log <- function(import_log, log_file) {
   # Flatten the log structure into a data frame
   rows <- list()

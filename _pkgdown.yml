@@ -168,7 +168,6 @@ reference:
   - save_parameter
   - import_energyRt_data
   - populate_sets_from_scenario
-  - link_scenario_data
   - export_model_source
   - add_set_data
   - export_import_log_from_model

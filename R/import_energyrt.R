@@ -19,14 +19,23 @@ en_extract_domains_from_comments <- function(model, verbose = FALSE) {
     stop("model must be a model_structure object from read_gams()")
   }
 
-  # Get source file path
-  if (is.null(model$source) || !file.exists(model$source)) {
-    warning("Cannot extract domain hints: source file not found")
+  # `source` is whatever read_gams() was handed: a file path, or the GAMS
+  # source itself as a character vector - which is how energyRt's shipped
+  # `.modelCode$GAMS` arrives. `en_extract_gams_domain_hints()` below already
+  # accepts either, so the only thing this guard has to do is not call
+  # file.exists() on a 2,954-element vector.
+  src <- model$source
+  is_path <- length(src) == 1L && !is.na(src) && nzchar(src) && file.exists(src)
+  is_text <- is.character(src) && length(src) > 1L
+  if (!is_path && !is_text) {
+    warning("Cannot extract domain hints: no readable GAMS source")
     return(model)
   }
 
   if (verbose) {
-    cat("Extracting domain hints from:", model$source, "\n")
+    cat("Extracting domain hints from:",
+        if (is_path) src else sprintf("<%d lines of GAMS source>", length(src)),
+        "\n")
   }
 
   # Extract hints from source file
@@ -266,57 +275,6 @@ populate_defvals_from_energyrt <- function(model) {
     message("Populated default values for ", updated_count,
             " parameters from energyRt modInp")
   }
-
-  model
-}
-
-#' Link energyRt scenario data to model
-#'
-#' Links data from an energyRt scenario to a multimod model structure.
-#' The data remains on disk (lazy loading) - only references are stored.
-#'
-#' @param model A multimod model object
-#' @param scenario An energyRt scenario object with modInp@@parameters
-#' @param inMemory Logical. Load parameter data into memory instead of
-#'   referencing on-disk Arrow files?
-#' @return The model with linked data references
-#' @export
-link_scenario_data <- function(model, scenario, inMemory = FALSE) {
-  param_names <- names(scenario@modInp@parameters)
-  n_params <- 0
-  n_mappings <- 0
-
-  for (pname in param_names) {
-    ert_param <- scenario@modInp@parameters[[pname]]
-
-    # Use @type to distinguish mappings from parameters
-    param_type <- as.character(ert_param@type)
-
-    if (param_type == "map") {
-      # Mapping (including subsets)
-      if (pname %in% names(model$mappings)) {
-        model$mappings[[pname]] <- convert_energyrt_parameter(
-          ert_param,
-          model$mappings[[pname]],
-          inMemory = inMemory
-        )
-        n_mappings <- n_mappings + 1
-      }
-    } else if (param_type == "numpar") {
-      # Numeric parameter
-      if (pname %in% names(model$parameters)) {
-        model$parameters[[pname]] <- convert_energyrt_parameter(
-          ert_param,
-          model$parameters[[pname]],
-          inMemory = inMemory
-        )
-        n_params <- n_params + 1
-      }
-    }
-  }
-
-  cat("  Mappings linked: ", n_mappings, "\n")
-  cat("  Parameters linked:", n_params, "\n")
 
   model
 }

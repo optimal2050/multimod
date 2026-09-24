@@ -117,6 +117,11 @@ validate.ast <- function(x, context = NULL, stop_on_error = TRUE, recursive = TR
   if (!is.list(x)) {
     errors <- c(errors, "AST nodes must be stored as lists")
   }
+  # Structural check against ast_schema(): required fields present, no
+  # undeclared ones. The class-specific validators below add the semantic
+  # checks on top; this one is generated from the schema, so the two cannot
+  # disagree about what fields a node has.
+  errors <- c(errors, .validate_node(x, context))
   finalize_ast_validation(errors, character(), character(), context, stop_on_error)
 }
 

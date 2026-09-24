@@ -20,6 +20,7 @@ new_set <- function(name, desc = NULL, subset_of = NULL,
     class = c("set", "multimod", "ast")
   )
 
+  .check_node(obj)
   validate(obj, context = sprintf("set '%s'", name))
   obj
 }
@@ -54,6 +55,7 @@ new_mapping <- function(name,
     class = c("mapping", "multimod", "ast")
   )
 
+  .check_node(obj)
   validate(obj, context = sprintf("mapping '%s'", name))
   obj
 }
@@ -107,6 +109,7 @@ new_parameter <- function(
     class = c("parameter", "multimod", "ast")
   )
 
+  .check_node(obj)
   validate(obj, context = sprintf("parameter '%s'", name))
   obj
 }
@@ -163,6 +166,7 @@ new_variable <- function(
     class = c("variable", "multimod", "ast")
   )
 
+  .check_node(obj)
   validate(obj, context = sprintf("variable '%s'", name))
   obj
 }
@@ -231,6 +235,7 @@ new_equation <- function(
     class = c("equation", "multimod", "ast")
   )
 
+  .check_node(obj)
   validate(obj, context = sprintf("equation '%s'", name))
   obj
 }

@@ -27,6 +27,7 @@ Imports:
     magrittr,
     jsonlite
 Suggests: 
+    R6,
     energyRt,
     highs,
     withr,
