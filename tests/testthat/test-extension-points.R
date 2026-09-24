@@ -146,32 +146,7 @@ test_that("fold_model records mode = 'drop' in fold_info", {
                          logical(1))))
 })
 
-test_that("the unfold guard only fires for a wildcard fold", {
-  # .scenario_is_folded() decides whether energyRt data needs materialising.
-  # A drop-mode fold has no column left to expand.
-  f <- multimod:::.scenario_is_folded
-  mk <- function(mode) {
-    p <- methods::new("parameter", name = "pX", dimSets = "region",
-                      type = "numpar")
-    p@misc <- list(fold_info = c(list(folded = TRUE),
-                                 if (!is.null(mode)) list(mode = mode)))
-    mi <- methods::new("modInp")
-    mi@parameters <- list(pX = p)
-    s <- methods::new("scenario")
-    s@modInp <- mi
-    s
-  }
-  skip_if_not_installed("energyRt")
-  # loadNamespace(), NOT library(): attaching energyRt MASKS multimod's
-  # save_model(), load_model() and get_data() for every test file that runs
-  # after this one in the same session - which silently broke 12 tests in
-  # test-folding.R, test-model_storage.R and test-trim-core.R. The S4 class
-  # table is populated by loading the namespace; attaching is not needed.
-  loadNamespace("energyRt")
-
-  expect_true(f(mk("wildcard")))
-  expect_false(f(mk("drop")))
-  # a missing mode predates the field; every energyRt that wrote one wrote a
-  # wildcard, so it must still expand rather than silently skip
-  expect_true(f(mk(NULL)))
-})
+# The companion test - that .scenario_is_folded() only fires for a WILDCARD
+# fold, since a "drop" fold has no column left to expand - moved to energyRt
+# on 2026-09-24 with .scenario_is_folded() itself. See
+# energyRt/tests/testthat/test-multimod-import.R.

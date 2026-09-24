@@ -166,11 +166,8 @@ reference:
   - update_parameter
   - update_mapping
   - save_parameter
-  - import_energyRt_data
-  - populate_sets_from_scenario
   - export_model_source
   - add_set_data
-  - export_import_log_from_model
 
 - title: Solver integration
   desc:  Functions for solving models and loading solutions.
@@ -192,7 +189,6 @@ reference:
   - generate_index_aliases
   - add_index_aliases
   - has_index_aliases
-  - en_extract_domains_from_comments
 
 - title: Parameter evaluation and analysis
   desc: Functions for evaluating parameters and analyzing folding opportunities.

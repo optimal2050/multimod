@@ -26,7 +26,7 @@
 #
 # Why not make the whole package reference-based: copy-on-modify is load-bearing
 # here. `solve_highs(attach = TRUE)` deliberately does NOT modify the caller's
-# model, `multimod_from_energyRt()` rebinds `m <- f(m)` six times, and several
+# model, `energyRt::as_multimod()` rebinds `m <- f(m)` six times, and several
 # tests take a copy of the packaged fixture and mutate it. Reference semantics
 # would invert all of that silently.
 #
