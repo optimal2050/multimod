@@ -26,7 +26,10 @@ Invisibly, the paths written.
 }
 \description{
 Reproduces what energyRt's generated \code{output.py} writes, so
-\code{energyRt::read_solution()} consumes it unchanged: one file per variable with
-the variable's own dimension names plus \code{value}, \strong{nonzero rows only}, and a
-\code{variable_list.csv} naming the variables written.
+\code{energyRt::read_solution()} consumes it unchanged: the per-variable tables
+of \code{\link[=write_solution]{write_solution()}}, plus a \code{variable_list.csv} naming what was written,
+a set-membership table and a run log.
+}
+\seealso{
+\code{\link[=write_solution]{write_solution()}}
 }

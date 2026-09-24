@@ -431,24 +431,35 @@ read_mps_solution <- function(sol, index_dir = NULL, col_index = NULL,
   out
 }
 
-#' Write a solution in energyRt's `output/` layout
+#' Write a solution as one table per variable
 #'
-#' Reproduces what energyRt's generated `output.py` writes, so
-#' `energyRt::read_solution()` consumes it unchanged: one file per variable with
-#' the variable's own dimension names plus `value`, **nonzero rows only**, and a
-#' `variable_list.csv` naming the variables written.
+#' Writes each solved variable to its own file, with the index columns under
+#' their real set names rather than positional `i1..iN`.
 #'
-#' @param solution The list returned by [read_mps_solution()] or [solve_highs()].
-#' @param dir Output directory; created if absent.
-#' @param format `"arrow"` (feather, lz4 - what energyRt writes), `"csv"` or
-#'   `"parquet"`.
-#' @param variables Optional character vector limiting which variables to write.
+#' This is multimod's own layout and carries no assumptions about who reads it.
+#' [write_energyrt_output()] builds on it, adding the extra files energyRt's
+#' `read_solution()` expects.
 #'
-#' @return Invisibly, the paths written.
+#' @param solution A solution from [solve_highs()] or [read_mps_solution()].
+#' @param dir Directory to write into; created if absent.
+#' @param format One of `"arrow"`, `"csv"`, `"parquet"`.
+#' @param variables Optional character vector; write only these variables.
+#' @param nonzero_only Drop rows whose value is zero, and skip a variable that
+#'   is entirely zero. `TRUE` by default, which is what solvers' readers
+#'   generally expect.
+#' @return The paths written, invisibly, with the kept variable names in the
+#'   `"variables"` attribute.
+#' @seealso [write_energyrt_output()], [read_mps_solution()]
 #' @export
-write_energyrt_output <- function(solution, dir,
-                                  format = c("arrow", "csv", "parquet"),
-                                  variables = NULL) {
+#' @examples
+#' \dontrun{
+#' r <- solve_highs(m, attach = FALSE)
+#' write_solution(r, "runs/out", format = "csv")
+#' }
+write_solution <- function(solution, dir,
+                           format = c("arrow", "csv", "parquet"),
+                           variables = NULL,
+                           nonzero_only = TRUE) {
   format <- match.arg(format)
   primal <- solution$primal
   if (is.null(primal)) stop("solution has no $primal table.")
@@ -467,8 +478,9 @@ write_energyrt_output <- function(solution, dir,
   written <- character()
   kept <- character()
   for (nm in syms) {
-    df <- .solution_by_variable(primal, nm, dim_names, nonzero_only = TRUE)
-    if (is.null(df)) next                      # all zero: energyRt omits it
+    df <- .solution_by_variable(primal, nm, dim_names,
+                                nonzero_only = nonzero_only)
+    if (is.null(df)) next                      # all zero: omitted
     p <- switch(
       format,
       arrow = {
@@ -490,13 +502,44 @@ write_energyrt_output <- function(solution, dir,
     written <- c(written, p)
     kept <- c(kept, nm)
   }
+  attr(written, "variables") <- kept
+  attr(written, "dim_names") <- dim_names
+  invisible(written)
+}
+
+#' Write a solution in energyRt's `output/` layout
+#'
+#' Reproduces what energyRt's generated `output.py` writes, so
+#' `energyRt::read_solution()` consumes it unchanged: the per-variable tables
+#' of [write_solution()], plus a `variable_list.csv` naming what was written,
+#' a set-membership table and a run log.
+#'
+#' @param solution The list returned by [read_mps_solution()] or [solve_highs()].
+#' @param dir Output directory; created if absent.
+#' @param format `"arrow"` (feather, lz4 - what energyRt writes), `"csv"` or
+#'   `"parquet"`.
+#' @param variables Optional character vector limiting which variables to write.
+#'
+#' @return Invisibly, the paths written.
+#' @seealso [write_solution()]
+#' @export
+write_energyrt_output <- function(solution, dir,
+                                  format = c("arrow", "csv", "parquet"),
+                                  variables = NULL) {
+  format <- match.arg(format)
+  # the per-variable tables are multimod's own layout; everything below is the
+  # extra scaffolding energyRt::read_solution() additionally requires
+  written <- write_solution(solution, dir, format = format,
+                            variables = variables, nonzero_only = TRUE)
+  kept <- attr(written, "variables")
+  dim_names <- attr(written, "dim_names")
 
   vl <- file.path(dir, "variable_list.csv")
   writeLines(c("value", kept), vl)
 
-  meta <- c(.write_raw_data_set(primal, dim_names, dir),
+  meta <- c(.write_raw_data_set(solution$primal, dim_names, dir),
             .write_solution_log(solution, dir))
-  invisible(c(vl, written, meta))
+  invisible(c(vl, as.character(written), meta))
 }
 
 #' Set membership, in the long form energyRt's reader expects

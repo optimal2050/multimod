@@ -685,28 +685,19 @@ extract_ast_names <- function(ast, types = c("variable", "parameter", "mapping")
       }
     }
 
-    # Recurse into child nodes based on node type
-    if (!is.null(node_class) && length(node_class) > 0) {
-      if (node_class == "expression") {
-        walk(node$lhs)
-        walk(node$rhs)
-        if (!is.null(node$operands)) {
-          lapply(node$operands, walk)
-        }
-      } else if (node_class %in% c("sum", "prod")) {
-        if (!is.null(node$domain)) walk(node$domain)
-        walk(node$value)
-      } else if (node_class == "when") {
-        walk(node$condition)
-        walk(node$then)
-        if (!is.null(node$else_)) walk(node$else_)
-      } else if (node_class == "condition") {
-        walk(node$lhs)
-        walk(node$rhs)
-      }
-    }
-
-    # For generic lists, recurse into all elements
+    # Recurse into every child exactly once.
+    #
+    # An AST node IS a list of its children, so this generic walk already
+    # reaches `lhs`/`rhs`/`value`/`domain`/`index`/`operands` and everything
+    # else. There used to be a per-class branch above this one that walked the
+    # known children by name, and because it was not an `else` the generic walk
+    # then visited those same children AGAIN - 2^depth visits for a tree of
+    # depth d. `eqCost` is a flat sum of 21 `+` terms, which nests 21 levels
+    # right-associatively, and `trim.R` calls this six times per equation: that
+    # was the `trim_model()` hang (a single pass over 152 equations ran >10 min
+    # with no error). The per-class branch was pure duplication - it reached a
+    # strict subset of what this loop reaches - so it is gone rather than
+    # `else`-ed, which would have stopped `sum`'s `index` being walked at all.
     if (is.list(node) && !is.data.frame(node)) {
       for (elem in node) {
         if (!is.null(elem) && (inherits(elem, "ast") || is.list(elem))) {

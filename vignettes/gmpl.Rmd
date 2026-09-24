@@ -82,9 +82,10 @@ Extracts unique set members from energyRt scenario parameters.
 - Populates `model$sets[[name]]$data` with character vectors
 - Required before writing data file
 
-#### 4. `link_scenario_data(model, scenario)`
+#### 4. `link_scenario_data_with_log(model, scenario)`
 
-Links energyRt parameter data to model without loading into memory.
+Links energyRt parameter data to model without loading into memory, and
+records what matched in an import log.
 
 - Distinguishes mappings (`@type == "map"`) from parameters (`@type == "numpar"`)
 - Preserves `@defVal` for parameter default values

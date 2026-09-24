@@ -18,10 +18,16 @@
 #'   can_fold, reason
 #'   
 #' @details
-#' **Note**: This function has the SAME functionality as \code{create_fold_spec()}.
-#' The only difference is naming - this version emphasizes it's designed for energyRt
-#' models, but both functions support all features (entity-specific mappings, chains, etc.).
-#' 
+#' **Deprecated.** This is now a thin alias for [create_fold_spec()], which does
+#' the work and is not energyRt-specific. Use that instead.
+#'
+#' Until 2026-09-24 this name was defined *twice* in this file. The first
+#' definition delegated to `create_fold_spec()`, which delegated straight back -
+#' infinite mutual recursion, avoided only because the second definition
+#' silently overrode the first and carried the real implementation. The
+#' implementation now lives under `create_fold_spec()` and this name forwards
+#' to it.
+#'
 #' Mapping priority (for entity-specific configuration):
 #' - Uses FIRST matching entity dimension
 #' - If parameter has "tech" → use tech mapping
@@ -332,11 +338,55 @@ is_folded.default <- function(x) {
   return(FALSE)
 }
 
-create_fold_spec_energyRt <- function(model,
-                                       fold_dims,
-                                       tolerance = 1e-10,
-                                       verbose = TRUE) {
-  
+#' Create a fold specification for a model's parameters
+#'
+#' Scans a model's parameters and reports, for each, whether a dimension can be
+#' folded away - that is, whether the parameter's values are constant along it
+#' within tolerance - together with the mapping that should be used to validate
+#' the fold.
+#'
+#' Nothing here is energyRt-specific: the function walks `model$parameters` and
+#' the `fold_dims` configuration it is given. Only the *default* mapping names
+#' (`mTechTimeslice` and friends) follow energyRt's conventions, and those are
+#' supplied by the caller.
+#'
+#' @param model A multimod model object.
+#' @param fold_dims Dimension configuration. Either:
+#'   - a character vector of dimension names (e.g. `c("timeslice")`);
+#'   - a named list mapping dimension to validation mapping
+#'     (e.g. `list(timeslice = "mCommTimeslice")`);
+#'   - a named list mapping dimension to entity-specific mappings
+#'     (e.g. `list(timeslice = list(tech = "mTechTimeslice",
+#'     stg = c("mStorageComm", "mCommTimeslice")))`), where a character vector
+#'     is a chain.
+#' @param tolerance Numeric tolerance for detecting constant values.
+#' @param verbose Logical; print progress.
+#'
+#' @return A data frame with one row per parameter/dimension pair: `param_name`,
+#'   `dim_to_fold`, `validation_mapping`, `validation_mapping_raw`, `can_fold`
+#'   and `reason`.
+#' @seealso [fold_model()], [create_fold_spec_energyRt()]
+#' @export
+#' @examples
+#' \dontrun{
+#' fold_spec <- create_fold_spec(model, fold_dims = "timeslice")
+#'
+#' fold_spec <- create_fold_spec(
+#'   model,
+#'   fold_dims = list(
+#'     timeslice = list(
+#'       tech = "mTechTimeslice",
+#'       comm = "mCommTimeslice",
+#'       stg  = c("mStorageComm", "mCommTimeslice")   # a chain
+#'     )
+#'   )
+#' )
+#' }
+create_fold_spec <- function(model,
+                             fold_dims,
+                             tolerance = 1e-10,
+                             verbose = TRUE) {
+
   `%>%` <- magrittr::`%>%`
   
   # Parse fold_dims configuration
@@ -467,97 +517,10 @@ create_fold_spec_energyRt <- function(model,
 }
 
 
-#' Guess validation mapping for fold specification (energyRt-specific)
-#'
-#' Uses parameter dimensions and entity-to-mapping configuration to select
-#' the appropriate validation mapping. Uses PRIORITY-BASED selection: returns
-#' the mapping for the FIRST matching entity dimension found.
-#'
-#' Supports mapping chains for derived mappings (e.g., stg → comm → timeslice).
-#'
-#' @param param_name Parameter name (for debugging)
-#' @param dim_to_fold Dimension to fold
-#' @param dims All dimensions in parameter
-#' @param entity_mapping Named list mapping entity dimensions to validation mappings.
-#'   Values can be single string or character vector for chains.
-#'   Example: list(tech = "mTechTimeslice", 
-#'                 stg = c("mStorageComm", "mCommTimeslice"))
-#'
-#' @return Mapping specification: single string or character vector for chains
-#' @keywords internal
-guess_validation_mapping_energyRt <- function(param_name, dim_to_fold, dims, entity_mapping) {
-  
-  if (dim_to_fold != "timeslice") {
-    # Not implemented for region/year yet
-    return(NA_character_)
-  }
-  
-  # Priority-based selection: use FIRST matching entity dimension
-  # For pTechCinp2use[tech, comm, ...]: has both tech and comm, returns mTechTimeslice (tech wins)
-  # For pStorage...[stg, comm, ...]: has stg, returns c("mStorageComm", "mCommTimeslice")
-  for (entity_dim in names(entity_mapping)) {
-    if (entity_dim %in% dims) {
-      mapping_spec <- entity_mapping[[entity_dim]]
-      # Return as-is: can be single string or vector (chain)
-      if (length(mapping_spec) == 1) {
-        return(mapping_spec)
-      } else {
-        # Return chain as concatenated string with separator for storage
-        return(paste(mapping_spec, collapse = " → "))
-      }
-    }
-  }
-  
-  return(NA_character_)
-}
-
-
-#' Create fold specification for parameters (generic interface)
-#'
-#' Generic interface for creating fold specifications. Supports all the same 
-#' features as \code{create_fold_spec_energyRt} but without energyRt-specific defaults.
-#'
-#' @param model A multimod model object
-#' @param fold_dims Dimension configuration. Can be:
-#'   - Character vector: dimension names (e.g., \code{c("timeslice")})
-#'   - Named list (simple): dimension → mapping (e.g., \code{list(timeslice = "mCommTimeslice")})
-#'   - Named list (advanced): dimension → entity-specific mappings 
-#'     (e.g., \code{list(timeslice = list(tech = "mTechTimeslice", comm = "mCommTimeslice"))})
-#' @param tolerance Numeric tolerance for detecting constant values (default: 1e-10)
-#' @param verbose Logical; print progress messages (default: TRUE)
-#'
-#' @return Data frame with fold specification for each parameter
-#' 
-#' @examples
-#' \dontrun{
-#' # Simple: fold timeslice dimension
-#' fold_spec <- create_fold_spec(model, fold_dims = "timeslice")
-#' 
-#' # With single validation mapping
-#' fold_spec <- create_fold_spec(model, fold_dims = list(timeslice = "mCommTimeslice"))
-#' 
-#' # Entity-specific (advanced)
-#' fold_spec <- create_fold_spec(
-#'   model,
-#'   fold_dims = list(
-#'     timeslice = list(
-#'       tech = "mTechTimeslice",
-#'       comm = "mCommTimeslice",
-#'       stg = c("mStorageComm", "mCommTimeslice")  # Chain
-#'     )
-#'   )
-#' )
-#' }
-#' @export
-create_fold_spec <- function(model,
-                              fold_dims,
-                              tolerance = 1e-10,
-                              verbose = TRUE) {
-  
-  # Delegate to energyRt implementation which has full functionality
-  # (entity-specific mappings, chains, etc.)
-  create_fold_spec_energyRt(model, fold_dims, tolerance, verbose)
-}
+# `guess_validation_mapping_energyRt()` was removed here on 2026-09-24. It had
+# no caller anywhere in R/, tests/ or vignettes/: the priority-based entity
+# selection it performed was inlined into create_fold_spec() above, and the
+# extracted helper was left orphaned. Deleted rather than moved to energyRt.
 
 
 #' Fold model dimensions to reduce data size
@@ -871,6 +834,16 @@ fold_model_loop <- function(model, fold_spec, tolerance, verbose, p = NULL) {
     # Store metadata
     param$misc$fold_info <- list(
       folded = TRUE,
+      # Which ENCODING of the fold this is. energyRt records the same field and
+      # can write either "wildcard" (the dimension column is kept and the
+      # folded rows carry NA, exported later as ANY* tokens) or "drop". Both
+      # packages compute the same whole-column fold; they serialise it
+      # differently, and a wildcard has to be expanded before it reaches a
+      # matrix while a dropped column does not. multimod only ever drops, but
+      # it has to SAY so: without the field, absence is ambiguous between
+      # "multimod wrote this" and "an energyRt predating the field wrote it",
+      # and a reader cannot tell whether expansion is required.
+      mode = "drop",
       original_dims = original_dims,
       removed_dims = all_removed_dims,  # Accumulated across sequential folds
       validation_mapping = validation_mapping,

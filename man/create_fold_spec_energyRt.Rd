@@ -32,9 +32,15 @@ Uses the same underlying implementation but provides energyRt-specific defaults
 for entity-to-mapping associations.
 }
 \details{
-\strong{Note}: This function has the SAME functionality as \code{create_fold_spec()}.
-The only difference is naming - this version emphasizes it's designed for energyRt
-models, but both functions support all features (entity-specific mappings, chains, etc.).
+\strong{Deprecated.} This is now a thin alias for \code{\link[=create_fold_spec]{create_fold_spec()}}, which does
+the work and is not energyRt-specific. Use that instead.
+
+Until 2026-09-24 this name was defined \emph{twice} in this file. The first
+definition delegated to \code{create_fold_spec()}, which delegated straight back -
+infinite mutual recursion, avoided only because the second definition
+silently overrode the first and carried the real implementation. The
+implementation now lives under \code{create_fold_spec()} and this name forwards
+to it.
 
 Mapping priority (for entity-specific configuration):
 \itemize{

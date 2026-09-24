@@ -36,7 +36,20 @@ split_top_level_dollar <- function(expr_str) {
   return(NULL) # No top-level $
 }
 
-# Remove comments between $ontext and $offtext
+#' Strip GAMS block comments
+#'
+#' Removes everything between `$ontext` and `$offtext`, inclusive.
+#'
+#' Exported because consumers that parse GAMS sources of their own - energyRt's
+#' model code, for one - need the same treatment before scanning for domain
+#' hints, and duplicating it would let the two drift.
+#'
+#' @param lines Character vector of GAMS source lines.
+#' @return The lines with block comments removed.
+#' @seealso [read_gams()], [parse_equation_header()]
+#' @export
+#' @examples
+#' remove_ontext_offtext(c("a;", "$ontext", "note", "$offtext", "b;"))
 remove_ontext_offtext <- function(lines) {
   # browser()
   result <- character(0)
@@ -1005,6 +1018,24 @@ read_gams <- function(
   )
 }
 
+#' Parse a GAMS equation header
+#'
+#' Splits the part of an equation before `..` into its name, index list and
+#' optional `$` condition.
+#'
+#' Exported because consumers that compile their own GAMS-flavoured IR into
+#' multimod equations need exactly this parse. energyRt's user constraints
+#' (`newConstraint()`) arrive as GAMS strings whose headers look like
+#' `eqCnsX(region, year)$mCnsForEachX(region, year)..`, and re-implementing the
+#' split would let the two parsers disagree.
+#'
+#' @param line A single line of GAMS source ending in `..`.
+#' @return A list with the header's components, or `NULL` if `line` is not an
+#'   equation header.
+#' @seealso [read_gams()], [parse_gams_equation()], [remove_ontext_offtext()]
+#' @export
+#' @examples
+#' parse_equation_header("eqCost(region, year).. ")
 parse_equation_header <- function(line) {
   # browser()
   pattern_step1 <- "^\\s*(.*?)\\s*\\.\\.\\s*$"

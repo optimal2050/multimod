@@ -11,7 +11,8 @@ model_to_lp(
   on_duplicate = c("error", "last", "first"),
   verbose = FALSE,
   index_names = FALSE,
-  on_empty_row = c("user_constraints", "all", "warn", "ignore")
+  on_empty_row = c("user_constraints", "all", "warn", "ignore"),
+  chunk_rows = 1000000L
 )
 }
 \arguments{
@@ -37,6 +38,13 @@ default) refuses when a USER constraint (\verb{eqCns*}) is empty -- a relaxed
 user constraint is never what the author meant -- and warns about any
 other empty rows. \code{"all"} refuses on any empty row, \code{"warn"} only warns,
 \code{"ignore"} says nothing.}
+
+\item{chunk_rows}{Passed to \code{\link[=build_triplets]{build_triplets()}}: evaluate each equation over
+at most this many LP rows at a time. It bounds the pre-aggregation
+intermediate of a \code{sum()} (outer rows x inner tuples), which is the
+transient that dominates peak memory on a large full-year build. Slicing
+by row is exact -- each LP row's terms are independent, and the per-chunk
+triplets concatenate without renumbering.}
 }
 \value{
 A list with

@@ -16,9 +16,15 @@ new_ast <- function(node_type, ..., inherits_class = NULL) {
   stopifnot(is.character(node_type))
   stopifnot(length(node_type) == 1)
   stopifnot(is.null(inherits_class) || !is.na(inherits_class) || is.character(inherits_class))
-  structure(list(...),
-            class = c(node_type, inherits_class, "ast"))
-            # class = c(paste0("", node_type), inherits_class, "ast"))
+  out <- structure(list(...),
+                   class = c(node_type, inherits_class, "ast"))
+  # Checked against ast_schema() at construction: a node missing a required
+  # field otherwise travels until a renderer declines to dispatch on it and
+  # emits nothing at all, which is the trap CLAUDE.md warns about. The check is
+  # shallow - children were validated when they were built - so it stays O(1)
+  # per node rather than re-walking the subtree.
+  .check_node(out, node_type)
+  out
 }
 
 #' Create an AST node representing a set

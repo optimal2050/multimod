@@ -148,6 +148,35 @@ fill_variable_domains <- function(model, prefer = c("spec", "hint"),
   NULL
 }
 
+#' energyRt's GAMS model code, as shipped
+#'
+#' energyRt `.Rbuildignore`s its `gams/` directory, so `system.file()` finds
+#' nothing in an *installed* energyRt and [.energyrt_gms()] returns NULL - which
+#' meant `gms = NULL` could never resolve and every caller had to point at a
+#' source checkout.
+#'
+#' The code is shipped, though: `.modelCode$GAMS` in energyRt's `R/sysdata.rda`
+#' carries it as a character vector of ~3,000 lines (alongside the JuMP, Pyomo
+#' and GLPK templates). Reading that is strictly better than a file lookup - it
+#' needs no checkout, and it ties the AST to the *installed* energyRt version
+#' rather than to whichever of the nine `.gms` files in `gams/` happened to be
+#' on disk. (The two differ: 0.90.0.9000 ships 2,954 lines where the working
+#' tree's `gams/energyRt.gms` had 2,979.)
+#'
+#' Read through `getFromNamespace()` rather than `:::`, as `.mapping_spec` is,
+#' so the dependency is explicit and fails with a clear message if it moves.
+#'
+#' @return Character vector of GAMS source lines, or `NULL`.
+#' @keywords internal
+#' @noRd
+.energyrt_model_code <- function() {
+  .need_energyRt("Reading the energyRt model")
+  mc <- tryCatch(utils::getFromNamespace(".modelCode", "energyRt"),
+                 error = function(e) NULL)
+  if (is.null(mc) || is.null(mc$GAMS) || !length(mc$GAMS)) return(NULL)
+  mc$GAMS
+}
+
 #' Build a multimod model from an interpolated energyRt scenario
 #'
 #' Structure is read from energyRt's GAMS template; data comes from the
@@ -156,8 +185,10 @@ fill_variable_domains <- function(model, prefer = c("spec", "hint"),
 #' takes the model this returns.
 #'
 #' @param scen An interpolated energyRt scenario.
-#' @param gms Path to `energyRt.gms`. Defaults to the copy shipped with the
-#'   installed energyRt; pass a path to read a working tree instead.
+#' @param gms The GAMS model source. `NULL` (the default) reads the code
+#'   energyRt ships in `.modelCode$GAMS`, which needs no source checkout and
+#'   matches the installed energyRt version. Pass a path to read a working
+#'   tree instead, or a character vector of GAMS source directly.
 #' @param prefer Passed to [fill_variable_domains()].
 #' @param inMemory Load the scenario's data into memory. Must be `TRUE` for a
 #'   folded scenario (the lazy path cannot expand wildcards) - see
@@ -182,13 +213,36 @@ multimod_from_energyRt <- function(scen, gms = NULL, prefer = c("spec", "hint"),
   }
   prefer <- match.arg(prefer)
 
-  if (is.null(gms)) gms <- .energyrt_gms()
-  if (is.null(gms) || !file.exists(gms)) {
-    stop("Could not find energyRt's GAMS template. Pass `gms = ` explicitly ",
-         "(e.g. \"<energyRt>/gams/energyRt.gms\").", call. = FALSE)
+  # Where the equations come from. The default is the code energyRt SHIPS
+  # (.modelCode$GAMS); a path or a character vector is honoured if given,
+  # and a source checkout is the last resort.
+  if (is.null(gms)) {
+    code <- .energyrt_model_code()
+    src <- sprintf("energyRt::.modelCode$GAMS (energyRt %s)",
+                   utils::packageVersion("energyRt"))
+    if (is.null(code)) {
+      code <- .energyrt_gms()
+      src <- code
+    }
+    if (is.null(code)) {
+      stop("energyRt ships its model code as `.modelCode$GAMS`, which this ",
+           "energyRt does not expose, and no `gams/energyRt.gms` was found ",
+           "either.\n  Pass `gms = ` explicitly (a path, or a character ",
+           "vector of GAMS source).", call. = FALSE)
+    }
+  } else if (length(gms) == 1L && file.exists(gms)) {
+    code <- gms                       # read_gams() takes a path
+    src <- gms
+  } else if (is.character(gms) && length(gms) > 1L) {
+    code <- gms                       # ... or the source itself
+    src <- "<character vector>"
+  } else {
+    stop("`gms` must be a path to a .gms file or a character vector of GAMS ",
+         "source; got ", class(gms)[1], " of length ", length(gms), ".",
+         call. = FALSE)
   }
 
-  ms <- read_gams(gms, include = FALSE)
+  ms <- read_gams(code, include = FALSE)
   ms <- en_extract_domains_from_comments(ms)
   ms <- populate_defvals_from_energyrt(ms)
   m <- as_multimod(ms)
@@ -198,7 +252,14 @@ multimod_from_energyRt <- function(scen, gms = NULL, prefer = c("spec", "hint"),
   m <- suppressWarnings(
     add_index_aliases(m, index_aliases_energyRt, overwrite = TRUE))
 
+  # Constraints and cost terms added with energyRt's newConstraint() /
+  # newCosts() are NOT in the GAMS template: interpolation compiles them to a
+  # GAMS string IR on `modInp@user_constraints`, per scenario. Omitting this
+  # step produced a model of exactly the right shape with those rows missing -
+  # the silent-wrong-answer failure this package keeps guarding against.
+  m <- add_user_constraints(m, scen, verbose = verbose)
+
   attr(m, "energyRt_version") <- as.character(utils::packageVersion("energyRt"))
-  attr(m, "energyRt_gms") <- gms
+  attr(m, "energyRt_gms") <- src
   m
 }

@@ -63,7 +63,15 @@
   for (p in params) {
     if (!isS4(p) || !methods::is(p, "parameter")) next
     fi <- p@misc$fold_info
-    if (!is.null(fi) && isTRUE(fi$folded)) return(TRUE)
+    if (is.null(fi) || !isTRUE(fi$folded)) next
+    # Only a WILDCARD fold needs expanding: the dimension column is still
+    # there with NA in the folded rows. A "drop" fold has removed the column
+    # outright, so there is nothing to materialise. energyRt records the
+    # encoding in fold_info$mode; a missing mode predates the field, and
+    # every energyRt that wrote one wrote a wildcard, so treat it as such
+    # rather than silently skipping an expansion that is needed.
+    if (identical(fi$mode, "drop")) next
+    return(TRUE)
   }
   FALSE
 }
