@@ -130,10 +130,10 @@ fold_spec <- create_fold_spec(
 
 ### Option 2: energyRt-Specific Interface
 
-For energyRt models with entity-specific mappings, use `create_fold_spec_energyRt()`:
+For energyRt models with entity-specific mappings, use `create_fold_spec()`:
 
 ```{r create_fold_spec, eval=FALSE}
-fold_spec <- create_fold_spec_energyRt(
+fold_spec <- create_fold_spec(
   model,
   fold_dims = list(
     slice = list(

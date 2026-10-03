@@ -36,7 +36,7 @@ test_that("parse_equation_header splits a header and declines a non-header", {
 # ---------------------------------------------------------------------------
 
 test_that("create_fold_spec and its energyRt alias agree", {
-  # Until 2026-09-24 `create_fold_spec_energyRt` was defined TWICE in fold.R.
+  # Until 2026-09-24 `create_fold_spec` was defined TWICE in fold.R.
   # The first definition delegated to create_fold_spec(), which delegated
   # straight back - infinite mutual recursion, avoided only because the second
   # definition silently overrode the first. If that ever returns, this test
@@ -45,7 +45,7 @@ test_that("create_fold_spec and its energyRt alias agree", {
   m <- example_models$energyRt$multimod
 
   a <- create_fold_spec(m, fold_dims = "timeslice", verbose = FALSE)
-  b <- create_fold_spec_energyRt(m, fold_dims = "timeslice", verbose = FALSE)
+  b <- create_fold_spec(m, fold_dims = "timeslice", verbose = FALSE)
 
   expect_s3_class(a, "data.frame")
   expect_gt(nrow(a), 0)

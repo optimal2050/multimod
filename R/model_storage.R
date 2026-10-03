@@ -772,7 +772,7 @@ update_mapping <- function(model, name, data, auto_save = FALSE) {
     "  misc$path   : %s\n",
     "  misc$inMemory: %s\n",
     "Load it in memory (for an energyRt scenario, ",
-    "energyRt::import_energyRt_data(..., inMemory = TRUE)) or make ",
+    "energyRt::multimod_import_data(..., inMemory = TRUE)) or make ",
     "the path readable. Continuing would silently use the default value."),
     kind, name,
     if (is.null(obj$misc$path)) "<none>" else as.character(obj$misc$path)[1],

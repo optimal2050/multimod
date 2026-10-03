@@ -120,7 +120,7 @@ Most common case - technologies don't vary by time-slice:
 
 ```{r fold_slice, eval=FALSE}
 # Create fold specification for slice dimension
-fold_spec_1x <- create_fold_spec_energyRt(
+fold_spec_1x <- create_fold_spec(
   demo_model,
   fold_dims = list(
     slice = list(
@@ -163,7 +163,7 @@ Equations updated: 27 equations now reference folded parameters
 For single-region models, fold both slice AND region:
 
 ```{r fold_slice_region, eval=FALSE}
-fold_spec_2x <- create_fold_spec_energyRt(
+fold_spec_2x <- create_fold_spec(
   demo_model,
   fold_dims = list(
     slice = list(tech = "mTechSlice", comm = "mCommSlice"),
@@ -200,7 +200,7 @@ Data file size: 926 KB → 127 KB (86% reduction)
 For representative year models, fold all three:
 
 ```{r fold_3x, eval=FALSE}
-fold_spec_3x <- create_fold_spec_energyRt(
+fold_spec_3x <- create_fold_spec(
   demo_model,
   fold_dims = list(
     slice = list(tech = "mTechSlice"),
@@ -816,7 +816,7 @@ str(model_optimized$misc$transformations)
    └─ analyze_parameter_redundancy()
 
 2. Create fold specification (start with slice)
-   └─ create_fold_spec_energyRt()
+   └─ create_fold_spec()
 
 3. Apply folding
    └─ fold_model()

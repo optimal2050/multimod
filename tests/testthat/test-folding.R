@@ -46,7 +46,7 @@ test_that("fold_model accumulates removed dimensions across sequential folds", {
   demo_model <- example_models$energyRt$multimod
   
   # Create multi-dimensional fold specification
-  fold_spec <- create_fold_spec_energyRt(
+  fold_spec <- create_fold_spec(
     demo_model,
     fold_dims = list(
       timeslice = list(tech = "mTechTimeslice"),
@@ -97,7 +97,7 @@ test_that("get_active_dims returns correct dimensions", {
   data(example_models, package = "multimod")
   demo_model <- example_models$energyRt$multimod
   
-  fold_spec <- create_fold_spec_energyRt(
+  fold_spec <- create_fold_spec(
     demo_model,
     fold_dims = list(timeslice = list(tech = "mTechTimeslice")),
     verbose = FALSE
@@ -139,7 +139,7 @@ test_that("is_folded works for parameters and models", {
   expect_false(is_folded(demo_model$parameters$pTechCinp2use))
   
   # Create and apply fold
-  fold_spec <- create_fold_spec_energyRt(
+  fold_spec <- create_fold_spec(
     demo_model,
     fold_dims = list(timeslice = list(tech = "mTechTimeslice")),
     verbose = FALSE
@@ -169,7 +169,7 @@ test_that("get_fold_summary returns folding statistics", {
   expect_null(get_fold_summary(demo_model, format = "data.frame"))
   
   # Create and apply fold
-  fold_spec <- create_fold_spec_energyRt(
+  fold_spec <- create_fold_spec(
     demo_model,
     fold_dims = list(timeslice = list(tech = "mTechTimeslice"), region = "region"),
     verbose = FALSE
@@ -214,7 +214,7 @@ test_that("fold_equations updates parameter references in AST", {
   demo_model <- example_models$energyRt$multimod
   
   # Fold on multiple dimensions
-  fold_spec <- create_fold_spec_energyRt(
+  fold_spec <- create_fold_spec(
     demo_model,
     fold_dims = list(
       timeslice = list(tech = "mTechTimeslice"),
@@ -285,7 +285,7 @@ test_that("JuMP code generation with single-dimension folding produces correct c
   demo_model <- example_models$energyRt$multimod
   
   # Single-dimension fold
-  fold_spec <- create_fold_spec_energyRt(
+  fold_spec <- create_fold_spec(
     demo_model,
     fold_dims = list(timeslice = list(tech = "mTechTimeslice")),
     verbose = FALSE
@@ -324,7 +324,7 @@ test_that("JuMP code generation with multi-dimension folding produces correct co
   demo_model <- example_models$energyRt$multimod
   
   # Multi-dimension fold
-  fold_spec <- create_fold_spec_energyRt(
+  fold_spec <- create_fold_spec(
     demo_model,
     fold_dims = list(
       timeslice = list(tech = "mTechTimeslice"),
@@ -357,7 +357,7 @@ test_that("JuMP folded model solves correctly", {
   demo_model <- example_models$energyRt$multimod
   
   # Create fold specification
-  fold_spec <- create_fold_spec_energyRt(
+  fold_spec <- create_fold_spec(
     demo_model,
     fold_dims = list(timeslice = list(tech = "mTechTimeslice")),
     verbose = FALSE
@@ -401,7 +401,7 @@ test_that("JuMP folded and unfolded models produce same objective", {
   demo_model <- example_models$energyRt$multimod
   
   # Fold specification
-  fold_spec <- create_fold_spec_energyRt(
+  fold_spec <- create_fold_spec(
     demo_model,
     fold_dims = list(
       timeslice = list(tech = "mTechTimeslice"),
@@ -465,7 +465,7 @@ test_that("GMPL code generation with folding works", {
   demo_model <- example_models$energyRt$multimod
   
   # Create fold specification
-  fold_spec <- create_fold_spec_energyRt(
+  fold_spec <- create_fold_spec(
     demo_model,
     fold_dims = list(timeslice = list(tech = "mTechTimeslice")),
     verbose = FALSE
@@ -505,7 +505,7 @@ test_that("folded_data is properly populated", {
   data(example_models, package = "multimod")
   demo_model <- example_models$energyRt$multimod
   
-  fold_spec <- create_fold_spec_energyRt(
+  fold_spec <- create_fold_spec(
     demo_model,
     fold_dims = list(timeslice = list(tech = "mTechTimeslice")),
     verbose = FALSE
@@ -538,7 +538,7 @@ test_that("compression ratios are calculated correctly", {
   data(example_models, package = "multimod")
   demo_model <- example_models$energyRt$multimod
   
-  fold_spec <- create_fold_spec_energyRt(
+  fold_spec <- create_fold_spec(
     demo_model,
     fold_dims = list(
       timeslice = list(tech = "mTechTimeslice"),
@@ -570,7 +570,7 @@ test_that("as_jump respects parameter dims from equation AST", {
   data(example_models, package = "multimod")
   demo_model <- example_models$energyRt$multimod
   
-  fold_spec <- create_fold_spec_energyRt(
+  fold_spec <- create_fold_spec(
     demo_model,
     fold_dims = list(timeslice = list(tech = "mTechTimeslice")),
     verbose = FALSE
