@@ -3,7 +3,7 @@
 ## Builds `example_models` from the CURRENT energyRt sources:
 ##   structure : energyRt/gams/energyRt.gms   (GAMS is the source of truth;
 ##               the GMPL/JuMP/Pyomo templates are still being edited)
-##   data      : energyRt::interpolate_model() on the UTOPIA R7 kit
+##   data      : energyRt::interpolate_model() on the TOPIA R7 kit
 ##
 ## Structure:
 ##   example_models$energyRt
@@ -27,8 +27,8 @@ energyRt_entry <- list(
   gams = list(model = readLines(ENERGYRT_GMS, warn = FALSE)),
   multimod = m,
   metadata = list(
-    source           = "energyRt UTOPIA kit",
-    scenario         = paste0(KIT, " / utopia_seasons / base horizon"),
+    source           = "energyRt TOPIA kit",
+    scenario         = paste0(KIT, " / topia_seasons / base horizon"),
     repository       = "https://github.com/optimal2050/energyRt",
     license          = "Apache-2.0",
     energyRt_version = as.character(utils::packageVersion("energyRt")),

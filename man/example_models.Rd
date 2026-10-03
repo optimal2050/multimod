@@ -7,7 +7,7 @@
 \format{
 A list with 1 element:
 \describe{
-\item{energyRt}{energyRt Utopia test case with components:
+\item{energyRt}{energyRt TOPIA test case with components:
 \describe{
 \item{gams}{List with \code{model}: energyRt's GAMS template source
 (\code{gams/energyRt.gms}) as a character vector, ready for
@@ -49,7 +49,7 @@ All source code character vectors can be used directly with \code{read_gams()},
 \subsection{energyRt Test Case}{
 
 The energyRt package is an R-based energy systems modeling framework. The
-UTOPIA R7 kit is a small 7-region, multi-timeslice test case used for
+TOPIA R7 kit is a small 7-region, multi-timeslice test case used for
 validation.
 
 The model \emph{structure} is parsed from energyRt's GAMS template with

@@ -19,8 +19,8 @@
 # per *map*, and 9 maps gate more than one equation, so it undercounts.
 # =============================================================================
 
-EXPECTED_COLS <- 18298L
-EXPECTED_ROWS <- 18163L
+EXPECTED_COLS <- 19218L
+EXPECTED_ROWS <- 19083L
 
 test_that("build_col_index reproduces the LP column count", {
   data(example_models, package = "multimod")

@@ -27,9 +27,9 @@ test_that("model_to_lp assembles a matrix of the right shape", {
   lp <- model_to_lp(example_models$energyRt$multimod)
 
   expect_s4_class(lp$A, "dgCMatrix")
-  expect_equal(nrow(lp$A), 18163L)
-  expect_equal(ncol(lp$A), 18298L)
-  expect_equal(length(lp$A@x), 43612L)
+  expect_equal(nrow(lp$A), 19083L)
+  expect_equal(ncol(lp$A), 19218L)
+  expect_equal(length(lp$A@x), 47476L)
 
   # one bound pair per row/column
   expect_length(lp$row_lo, nrow(lp$A))
@@ -114,8 +114,8 @@ test_that("write_mps round-trips through HiGHS to the same objective", {
 
   s <- highs::hi_new_solver(highs::highs_model(L = 0, lower = 0, upper = 0))
   highs::hi_solver_read_model(s, f)
-  expect_equal(highs::hi_solver_get_num_row(s), 18163L)
-  expect_equal(highs::hi_solver_get_num_col(s), 18298L)
+  expect_equal(highs::hi_solver_get_num_row(s), 19083L)
+  expect_equal(highs::hi_solver_get_num_col(s), 19218L)
 
   highs::hi_solver_run(s)
   expect_equal(highs::hi_solver_status_message(s), "Optimal")
