@@ -72,7 +72,7 @@ as_latex(
 )
 
 # S3 method for class 'sum'
-as_latex(x, brackets = NULL, ...)
+as_latex(x, brackets = NULL, use_index_aliases = FALSE, model = NULL, ...)
 
 # S3 method for class 'prod'
 as_latex(x, brackets = NULL, ...)

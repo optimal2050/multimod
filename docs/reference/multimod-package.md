@@ -19,3 +19,8 @@ Useful links:
 
 **Maintainer**: Oleg Lugovoy <olugovoy@optimalsolution.dev>
 ([ORCID](https://orcid.org/0000-0001-5546-9875))
+
+Authors:
+
+- Oleg Lugovoy <olugovoy@optimalsolution.dev>
+  ([ORCID](https://orcid.org/0000-0001-5546-9875))

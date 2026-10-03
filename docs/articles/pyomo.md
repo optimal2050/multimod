@@ -197,6 +197,7 @@ results = solver.solve(instance, tee=True)
 **From R:**
 
 ``` r
+
 solve_pyomo(model_dir = "tmp/model", solver = "highs")
 ```
 
@@ -216,6 +217,7 @@ os.environ['PYOMO_SOLVER'] = 'cplex'
 ## Prerequisites
 
 ``` r
+
 library(multimod)
 library(energyRt)  # For scenario data
 ```
@@ -231,6 +233,7 @@ library(energyRt)  # For scenario data
 **Easy Setup:**
 
 ``` r
+
 # Automatic setup with conda environment
 setup_python_environment(
   env_name = "multimod",
@@ -254,6 +257,7 @@ pip install highspy  # For HiGHS
 **Verify installation:**
 
 ``` r
+
 python_exec <- get_multimod_python()
 system2(python_exec, args = c("-c", "import pyomo.environ; print('Pyomo OK')"))
 ```
@@ -261,6 +265,7 @@ system2(python_exec, args = c("-c", "import pyomo.environ; print('Pyomo OK')"))
 ## Step 1: Read GAMS Model Structure
 
 ``` r
+
 # Path to GAMS model
 gams_file <- "C:/Users/admin/Documents/R/multimod/dev/scenarios/BASE_UTOPIA/script/gams_cbc/energyRt.gms"
 
@@ -280,6 +285,7 @@ cat("  Equations:", length(model_struct$equations), "\n")
 ## Step 2: Convert to Multimod Format
 
 ``` r
+
 cat("\nConverting to multimod...\n")
 model <- as_multimod(model_struct)
 
@@ -295,6 +301,7 @@ cat("\nModel ready for Pyomo export\n")
 ## Step 3: Load and Import Scenario Data
 
 ``` r
+
 # Load energyRt scenario
 cat("\nLoading energyRt scenario...\n")
 scen_file <- "C:/Users/admin/Documents/R/multimod/dev/scenarios/BASE_UTOPIA/scen.RData"
@@ -306,6 +313,7 @@ cat("Scenario class:", class(scen), "\n")
 ### Import with Comprehensive Logging
 
 ``` r
+
 # Import all data (sets, parameters, mappings, bounds)
 cat("\nImporting energyRt scenario data...\n")
 model <- import_energyRt_data(
@@ -331,6 +339,7 @@ cat("Parameters with data:", n_with_data, "/", n_params, "\n")
 Save the model data to disk for Pyomo to load:
 
 ``` r
+
 # Create output directory
 test_dir <- "tmp/utopia_pyomo"
 
@@ -354,6 +363,7 @@ cat("\nData saved to:", test_dir, "\n")
 ## Step 5: Generate Pyomo Code
 
 ``` r
+
 # Generate complete Pyomo project
 cat("\nGenerating Pyomo code...\n")
 write_pyomo(
@@ -377,6 +387,7 @@ print(list.files(pyomo_dir, recursive = FALSE))
 ### Write Options Explained
 
 ``` r
+
 # Minimal export (fastest)
 write_pyomo(model, model_dir = test_dir)
 
@@ -399,6 +410,7 @@ write_pyomo(model, model_dir = test_dir, split = TRUE)
 ### Inspect Generated Code
 
 ``` r
+
 # Show first 100 lines of model.py
 model_file <- file.path(pyomo_dir, "model.py")
 cat("\n=== model.py (first 100 lines) ===\n")
@@ -442,6 +454,7 @@ model.objective = Objective(
 ### Inspect Data Loading Code
 
 ``` r
+
 # Show data loading code
 data_file <- file.path(pyomo_dir, "data.py")
 cat("\n=== data.py (first 80 lines) ===\n")
@@ -491,6 +504,7 @@ file doesn’t exist)
 ### Option A: Solve from R (Recommended)
 
 ``` r
+
 # Solve using R interface
 cat("\n=== SOLVING WITH PYOMO ===\n\n")
 
@@ -540,6 +554,7 @@ exec(open('model.py').read())
 ### Solver Options
 
 ``` r
+
 # Use different solver
 solve_pyomo(model_dir = test_dir, solver = "gurobi")
 
@@ -562,6 +577,7 @@ solve_pyomo(
 ### Read Solution Status
 
 ``` r
+
 # Read solution status
 status_file <- file.path(pyomo_dir, "solution", "status.json")
 if (file.exists(status_file)) {
@@ -577,6 +593,7 @@ if (file.exists(status_file)) {
 ### Read Solution Values
 
 ``` r
+
 # Read variable values (if export_vars=TRUE)
 var_file <- file.path(pyomo_dir, "solution", "variables.json")
 if (file.exists(var_file)) {
@@ -607,6 +624,7 @@ if (file.exists(var_file)) {
 If you exported MPS format, you can compare with other solvers:
 
 ``` r
+
 mps_file <- file.path(pyomo_dir, "model.mps")
 if (file.exists(mps_file)) {
   cat("\nMPS file created:", mps_file, "\n")
@@ -625,6 +643,7 @@ if (file.exists(mps_file)) {
 ### Verify Data Export (if enabled)
 
 ``` r
+
 # If export_data=TRUE, check exported data
 data_export_dir <- file.path(pyomo_dir, "data_export")
 if (dir.exists(data_export_dir)) {
@@ -647,6 +666,7 @@ if (dir.exists(data_export_dir)) {
 ## Step 8: Load Results Back to R
 
 ``` r
+
 # TODO: Implement result loading function
 # result_model <- load_pyomo_solution(model, test_dir)
 
@@ -675,6 +695,7 @@ if (file.exists(var_file)) {
 ### Python/Pyomo Not Found
 
 ``` r
+
 # Check Python configuration
 get_multimod_python()
 multimod_config_show()
@@ -686,6 +707,7 @@ setup_python_environment()
 ### Solver Not Found
 
 ``` r
+
 # Install solver in Python environment
 python_exec <- get_multimod_python()
 system2(python_exec, args = c("-m", "pip", "install", "highspy"))
@@ -694,6 +716,7 @@ system2(python_exec, args = c("-m", "pip", "install", "highspy"))
 ### Model Generation Errors
 
 ``` r
+
 # Check model structure
 str(model$sets, max.level = 1)
 str(model$parameters, max.level = 1)
@@ -705,6 +728,7 @@ summary(model)
 ### Infeasible Model
 
 ``` r
+
 # Export MPS and compare with JuMP/GMPL
 write_pyomo(model, model_dir = test_dir, export_mps = TRUE)
 write_jump(model, model_dir = test_dir, export_mps = TRUE)
@@ -747,6 +771,7 @@ write_jump(model, model_dir = test_dir, export_mps = TRUE)
 Complete Pyomo workflow:
 
 ``` r
+
 library(multimod)
 library(energyRt)
 

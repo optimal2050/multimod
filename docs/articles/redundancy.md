@@ -1,6 +1,7 @@
 # Model Redundancy Elimination: Trimming and Folding
 
 ``` r
+
 library(multimod)
 ```
 
@@ -77,6 +78,7 @@ When equations reference the folded parameter, the dimension is omitted:
 ### Diagnostic: Identify Folding Opportunities
 
 ``` r
+
 # Load UTOPIA model
 data(demo_model, package = "multimod")
 
@@ -104,6 +106,7 @@ redundancy <- analyze_parameter_redundancy(demo_model, verbose = TRUE)
 Most common case - technologies don’t vary by time-slice:
 
 ``` r
+
 # Create fold specification for slice dimension
 fold_spec_1x <- create_fold_spec_energyRt(
   demo_model,
@@ -145,6 +148,7 @@ reduction (8,640 → 810 rows) - Equations automatically updated
 For single-region models, fold both slice AND region:
 
 ``` r
+
 fold_spec_2x <- create_fold_spec_energyRt(
   demo_model,
   fold_dims = list(
@@ -179,6 +183,7 @@ cumulative compression - 86% file size reduction
 For representative year models, fold all three:
 
 ``` r
+
 fold_spec_3x <- create_fold_spec_energyRt(
   demo_model,
   fold_dims = list(
@@ -243,6 +248,7 @@ utopia_fold_3x <- fold_model(demo_model, fold_spec = fold_spec_3x, verbose = TRU
 ### Folding Statistics
 
 ``` r
+
 # Get detailed statistics
 get_fold_summary(utopia_fold_3x, format = "text")
 ```
@@ -299,6 +305,7 @@ needed.
 ### Trimming Unfolded UTOPIA
 
 ``` r
+
 # Trim the original (unfolded) UTOPIA model
 utopia_trimmed <- trim_model(demo_model, verbose = TRUE)
 ```
@@ -331,6 +338,7 @@ However, it still has **data redundancy** (folding candidates).
 ### Trimming 1x-Folded UTOPIA (Slice)
 
 ``` r
+
 # Fold first, then trim
 utopia_fold_1x <- fold_model(demo_model, fold_spec_1x, verbose = FALSE)
 utopia_fold_trim_1x <- trim_model(utopia_fold_1x, verbose = TRUE)
@@ -356,6 +364,7 @@ utopia_fold_trim_1x <- trim_model(utopia_fold_1x, verbose = TRUE)
 ### Trimming 2x-Folded UTOPIA (Slice + Region)
 
 ``` r
+
 utopia_fold_2x <- fold_model(demo_model, fold_spec_2x, verbose = FALSE)
 utopia_fold_trim_2x <- trim_model(utopia_fold_2x, verbose = TRUE)
 ```
@@ -378,6 +387,7 @@ trade irrelevant).
 ### Trimming 3x-Folded UTOPIA (Slice + Region + Year)
 
 ``` r
+
 utopia_fold_3x <- fold_model(demo_model, fold_spec_3x, verbose = FALSE)
 utopia_fold_trim_3x <- trim_model(utopia_fold_3x, verbose = TRUE)
 ```
@@ -403,6 +413,7 @@ constraints become irrelevant in single-year model.
 ### Trimming Statistics by Folding Level
 
 ``` r
+
 # Compare trimming results across folding levels
 data.frame(
   Model = c("Unfolded", "1x Fold (slice)", "2x Fold (slice+region)", "3x Fold (slice+region+year)"),
@@ -441,6 +452,7 @@ data.frame(
 ### UTOPIA Results Summary
 
 ``` r
+
 # Comprehensive comparison table
 data.frame(
   Transformation = c(
@@ -506,6 +518,7 @@ opportunities)
 ### GMPL (GLPK) Workflow
 
 ``` r
+
 # Fold and trim
 model_optimized <- demo_model %>%
   fold_model(fold_spec_3x, verbose = FALSE) %>%
@@ -550,6 +563,7 @@ cat("Solve time:", result$solve_time, "sec\n")
 ### JuMP (Julia) Workflow
 
 ``` r
+
 # Fold and trim (same as above)
 model_optimized <- demo_model %>%
   fold_model(fold_spec_3x, verbose = FALSE) %>%
@@ -607,6 +621,7 @@ seamlessly
 Always start with diagnostic analysis:
 
 ``` r
+
 # Before any transformation
 redundancy <- analyze_parameter_redundancy(model, verbose = TRUE)
 
@@ -622,6 +637,7 @@ trim_summary <- get_trim_summary(model_trimmed, format = "text")
 Start conservative, verify, then increase:
 
 ``` r
+
 # Step 1: Fold most common dimension (slice)
 model_1x <- fold_model(model, fold_spec_1x)
 verify_objective(model, model_1x)  # Check match
@@ -640,6 +656,7 @@ verify_objective(model, model_3x)
 Folding exposes trimming opportunities:
 
 ``` r
+
 # Fold first
 model_folded <- fold_model(model, fold_spec)
 
@@ -654,6 +671,7 @@ model_optimized <- trim_model(model_folded)
 Always compare objectives:
 
 ``` r
+
 # Helper function
 verify_transformation <- function(original_model, transformed_model, 
                                    description, tolerance = 1e-6) {
@@ -684,6 +702,7 @@ verify_transformation(utopia_fold_2x, utopia_fold_trim_2x, "2x Fold + Trim")
 Save fold/trim specifications for reproducibility:
 
 ``` r
+
 # Save fold specification
 saveRDS(fold_spec_2x, "fold_spec_slice_region.rds")
 
@@ -700,6 +719,7 @@ model <- fold_model(base_model, fold_spec)
 Track transformations in metadata:
 
 ``` r
+
 model_optimized$misc$transformations <- list(
   folded = list(
     dimensions = c("slice", "region"),
@@ -823,6 +843,7 @@ Scenario-specific auto-optimization
 ### Summary Table
 
 ``` r
+
 data.frame(
   Technique = c("Folding", "Trimming", "Combined"),
   Primary_Target = c("Data redundancy", "Structural redundancy", "Both"),

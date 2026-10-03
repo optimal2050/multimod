@@ -1,38 +1,15 @@
-#' Read GMPL/MathProg Model File
+#' Register an index alias for a set
 #'
-#' Parse a GLPK/MathProg (GMPL) model file and return a model_structure object.
-#' This is the intermediate representation that can be converted to multimod format
-#' using as_multimod().
+#' Adds `alias_name` to a named alias collection under `set_name`. Skips empty
+#' values, an alias already registered for that set, and set names that are
+#' themselves alias values (which would chain `l` to `l1`).
 #'
-#' @param model_file Path to GMPL model file (.txt or .mod), or a character vector
-#'   containing the model code lines (for in-memory parsing)
-#' @param data_file Optional path to separate .dat data file, or character vector
-#'   containing data lines (not yet implemented for parsing, but can be provided)
-#' @param as_multimod Logical. If TRUE (default), convert directly to multimod_model object.
-#'   If FALSE, return model_structure object.
-#' @param verbose Logical. If TRUE, print parsing progress (default FALSE)
+#' @param collection Named character vector of aliases (set name -> alias).
+#' @param set_name Name of the set to alias.
+#' @param alias_name Alias to register.
 #'
-#' @return A model_structure object (or multimod_model if as_multimod=TRUE)
+#' @returns The collection with the alias appended, or unchanged.
 #' @export
-#'
-#' @examples
-#' \dontrun{
-#' # From file paths
-#' mod_struct <- read_gmpl("osemosys.txt", as_multimod = FALSE)
-#'
-#' # From in-memory character vectors (e.g., package data)
-#' data(example_models)
-#' model <- read_gmpl(
-#'   model_file = example_models$OSeMOSYS$gmpl$model,
-#'   data_file = example_models$OSeMOSYS$gmpl$data
-#' )
-#'
-#' # Convert to multimod
-#' model <- as_multimod(mod_struct)
-#'
-#' # Or directly
-#' model <- read_gmpl("osemosys.txt", as_multimod = TRUE)
-#' }
 register_index_alias <- function(collection, set_name, alias_name) {
   if (is.null(set_name) || is.null(alias_name)) {
     return(collection)
@@ -590,7 +567,7 @@ parse_gmpl_param <- function(stmt, model, verbose = FALSE) {
 #' @keywords internal
 parse_gmpl_var <- function(stmt, model, verbose = FALSE) {
   # Pattern: var NAME [indexing] [>= lb] [<= ub] [binary|integer];
-  # Example: "var RateOfDemand{r in REGION, l in TIMESLICE, f in FUEL, y in YEAR} >= 0;"
+  # Example: "var vName{i in I, j in J} >= 0;"
 
   # Remove "var" keyword
   stmt <- sub("^var\\s+", "", stmt, ignore.case = TRUE)
@@ -710,8 +687,7 @@ parse_gmpl_var <- function(stmt, model, verbose = FALSE) {
 #' @keywords internal
 parse_gmpl_equation <- function(stmt, model, verbose = FALSE) {
   # Pattern: s.t. NAME [indexing]: [condition:] expr sense expr;
-  # Example: "s.t. EQ_SpecifiedDemand{r in REGION, l in TIMESLICE, f in FUEL, y in YEAR: SpecifiedAnnualDemand[r,f,y] <> 0}: lhs = rhs;"
-  # browser()
+  # Example: "s.t. eqName{i in I, j in J: p[i,j] <> 0}: lhs = rhs;"
   # Remove "s.t." keyword
   stmt <- sub("^s\\.t\\.\\s+", "", stmt, ignore.case = TRUE)
 
@@ -1794,7 +1770,6 @@ parse_gmpl_equation_to_ast <- function(eqn_info, symbols = list()) {
 #' @keywords internal
 parse_if_then_else_expr <- function(expr) {
   # Find 'if', 'then', 'else' keywords at depth 0
-  # if (grepl("else if", expr)) browser()
   chars <- strsplit(expr, "")[[1]]
   depth <- 0
   if_pos <- then_pos <- else_pos <- NULL
@@ -2580,14 +2555,10 @@ parse_list_format <- function(name, text, default_val) {
 #' @examples
 #' \dontrun{
 #' # Read model structure
-#' model <- read_gmpl("osemosys.txt", as_multimod = TRUE)
+#' model <- read_gmpl("model.mod", as_multimod = TRUE)
 #'
 #' # Import data from file
-#' model <- import_gmpl_data(model, gmpl_data = "utopia.txt")
-#'
-#' # Import from character vector (e.g., package data)
-#' data(example_models)
-#' model <- import_gmpl_data(model, gmpl_data = example_models$OSeMOSYS$gmpl$data)
+#' model <- import_gmpl_data(model, gmpl_data = "data.dat")
 #'
 #' # Or import pre-parsed data
 #' data <- read_gmpl_data("utopia.txt")

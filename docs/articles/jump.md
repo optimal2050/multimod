@@ -122,6 +122,7 @@ constraint complexity
 ## Prerequisites
 
 ``` r
+
 library(multimod)
 library(energyRt)  # For scenario data
 ```
@@ -144,6 +145,7 @@ Pkg.add(["JuMP", "HiGHS", "Arrow", "DataFrames", "CSV", "Dates"])
 ## Step 1: Read GAMS Model Structure
 
 ``` r
+
 # Path to GAMS model
 gams_file <- "C:/Users/admin/Documents/R/multimod/dev/scenarios/BASE_UTOPIA/script/gams_cbc/energyRt.gms"
 
@@ -163,6 +165,7 @@ cat("  Equations:", length(model_struct$equations), "\n")
 ## Step 2: Convert to Multimod Format
 
 ``` r
+
 cat("\nConverting to multimod...\n")
 model <- as_multimod(model_struct)
 
@@ -188,6 +191,7 @@ end
 ## Step 3: Load and Import Scenario Data
 
 ``` r
+
 # Load energyRt scenario
 cat("\nLoading energyRt scenario...\n")
 scen_file <- "C:/Users/admin/Documents/R/multimod/dev/scenarios/BASE_UTOPIA/scen.RData"
@@ -199,6 +203,7 @@ cat("Scenario class:", class(scen), "\n")
 ### Import with Comprehensive Logging
 
 ``` r
+
 # Import all data (sets, parameters, mappings, bounds)
 cat("\nImporting energyRt scenario data...\n")
 model <- import_energyRt_data(
@@ -224,6 +229,7 @@ cat("Parameters with data:", n_with_data, "/", n_params, "\n")
 The importer automatically splits bounds parameters:
 
 ``` r
+
 # Show bounds mapping
 show_bounds_mapping(model)
 
@@ -237,6 +243,7 @@ show_bounds_mapping(model)
 Save the model data to disk for Julia to load:
 
 ``` r
+
 # Create output directory
 test_dir <- "tmp/utopia_jump"
 
@@ -260,6 +267,7 @@ cat("\nData saved to:", test_dir, "\n")
 ## Step 5: Generate JuMP Code
 
 ``` r
+
 # Generate complete JuMP project
 cat("\nGenerating JuMP code...\n")
 write_jump(model, model_dir = test_dir)
@@ -275,6 +283,7 @@ print(list.files(julia_dir, recursive = FALSE))
 ### Inspect Generated Code
 
 ``` r
+
 # Show first 100 lines of model.jl
 model_file <- file.path(julia_dir, "model.jl")
 cat("\n=== model.jl (first 100 lines) ===\n")
@@ -285,6 +294,7 @@ cat(paste(model_lines, collapse = "\n"), "\n")
 ### Inspect Data Loading Code
 
 ``` r
+
 # Show data loading code
 data_file <- file.path(julia_dir, "data.jl")
 cat("\n=== data.jl (first 80 lines) ===\n")
@@ -328,6 +338,7 @@ tuple) - ✅ `get(pTechStock, (h, y), 0.0)` works with tuples
 ### Option A: Run from R
 
 ``` r
+
 # Execute Julia model from R
 cat("\n=== SOLVING WITH JULIA/JUMP ===\n\n")
 
@@ -358,6 +369,7 @@ julia model.jl
 ### Read Diagnostic CSVs
 
 ``` r
+
 # Read constraint statistics
 constraint_csv <- file.path(julia_dir, "constraint_stats.csv")
 if (file.exists(constraint_csv)) {
@@ -384,6 +396,7 @@ if (file.exists(constraint_csv)) {
 ```
 
 ``` r
+
 # Read variable statistics
 variable_csv <- file.path(julia_dir, "variable_stats.csv")
 if (file.exists(variable_csv)) {
@@ -414,6 +427,7 @@ The Julia script prints solution information to console. You can capture
 it:
 
 ``` r
+
 # Run and capture output
 output <- system2("julia", 
                   args = file.path(julia_dir, "model.jl"),
@@ -447,6 +461,7 @@ if (length(time_line) > 0) {
 Compare with the original energyRt translation if available:
 
 ``` r
+
 # Load reference model results
 ref_con_stats <- "dev/scenarios/BASE_UTOPIA/script/julia_highs/constraint_stats.csv"
 if (file.exists(ref_con_stats)) {
@@ -528,6 +543,7 @@ end
 Arrow is 3-5x faster than CSV for loading:
 
 ``` r
+
 # Benchmark data loading
 library(microbenchmark)
 
@@ -597,6 +613,7 @@ println("Test get: ", get(pTechStock, ("E01", "2025"), 0.0))
 If constraints have unexpected nonzero counts:
 
 ``` r
+
 # In R, before generating code:
 cat("\nChecking constraint dimensions:\n")
 for (eq in model$equations[1:5]) {
@@ -618,6 +635,7 @@ for (map_name in names(model$parameters)[1:10]) {
 Compare with GAMS output if available:
 
 ``` r
+
 # Read GAMS solution
 gams_gdx <- "path/to/gams_solution.gdx"
 # ... use gdxrrw or other tools to read GDX
@@ -629,6 +647,7 @@ gams_gdx <- "path/to/gams_solution.gdx"
 Here’s the complete end-to-end workflow:
 
 ``` r
+
 library(multimod)
 library(energyRt)
 
@@ -704,5 +723,6 @@ original model structure exactly.
 ## Session Info
 
 ``` r
+
 sessionInfo()
 ```

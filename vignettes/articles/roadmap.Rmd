@@ -63,7 +63,6 @@ The package has progressed significantly beyond initial roadmap milestones:
   - CSV (human-readable, portable)
 - **Data Sources**:
   - Import from `energyRt` package structures
-  - Import OSeMOSYS model data
   - Link to external Arrow/Parquet datasets for lazy loading
 - **Model Export Modes**:
   - **Embedded data**: For small models (data included in generated code)
@@ -75,7 +74,7 @@ The package has progressed significantly beyond initial roadmap milestones:
 - **LaTeX Generation**: Publication-ready mathematical documentation with annotations
 - **Expression Visualization**: Interactive AST visualization with visNetwork
 - **Comprehensive Vignettes**: 10+ vignettes covering major features
-- **Example Models**: Unified dataset with energyRt and OSeMOSYS examples
+- **Example Models**: Unified `example_models` dataset
 
 ---
 
@@ -87,7 +86,7 @@ The package has progressed significantly beyond initial roadmap milestones:
   - Nonlinear expressions have basic AST support but limited implementation
   - Integer/binary variables supported in AST but not all writers
   
-- **Model Scope**: Designed around energy system models (`energyRt`, OSeMOSYS structures)
+- **Model Scope**: Designed around energy system models (`energyRt` structures)
   - Can handle general LP models but may require adaptation
   
 - **Parser Completeness**: 

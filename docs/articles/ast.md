@@ -1,6 +1,7 @@
 # Abstract Syntax Tree
 
 ``` r
+
 library(multimod)
 library(lobstr)
 library(visNetwork)
@@ -9,6 +10,7 @@ library(visNetwork)
 ## Example equation \#1
 
 ``` r
+
 model_info <- example_model$model_info #|> as_multimod()
 mm <- as_multimod(
   x = model_info, 
@@ -25,6 +27,7 @@ names(eq)
 ### Full tree structure
 
 ``` r
+
 depth(eq)
 tree(eq, max_depth = 5)
 ```
@@ -32,6 +35,7 @@ tree(eq, max_depth = 5)
 ### Network representation
 
 ``` r
+
 eq_net <- multimod::get_network_data(eq)
 visNetwork(eq_net$nodes, eq_net$edges) |>
   visOptions(highlightNearest = TRUE, nodesIdSelection = TRUE) |>
@@ -41,6 +45,7 @@ visNetwork(eq_net$nodes, eq_net$edges) |>
 ### LaTeX output
 
 ``` r
+
 eq_latex <- as_latex(eq)
 cat(eq_latex)
 write_latex(eq, file = "tmp/test.tex")
@@ -49,6 +54,7 @@ write_latex(eq, file = "tmp/test.tex")
 ## Example equation \#2
 
 ``` r
+
 # eq <- example_model$multimod$equations$eqTechAInp
 eq <- mm$equations$eqTechAInp
 eq <- mm$equations$eqTechCap
@@ -73,12 +79,14 @@ print(eq$name); print(eq$desc)
 ### Partial tree structure
 
 ``` r
+
 tree(eq, max_depth = 3)
 ```
 
 ### Network representation
 
 ``` r
+
 eq_net <- get_network_data(eq, show_dims = TRUE)
 visNetwork(eq_net$nodes, eq_net$edges) |>
   visOptions(highlightNearest = TRUE, nodesIdSelection = TRUE) |>
@@ -87,6 +95,7 @@ visNetwork(eq_net$nodes, eq_net$edges) |>
 ```
 
 ``` r
+
 as_visNetwork(eq$lhs) |>
   visOptions(highlightNearest = TRUE, nodesIdSelection = TRUE) |>
   visInteraction(navigationButtons = TRUE) |>
@@ -96,6 +105,7 @@ as_visNetwork(eq$lhs) |>
 ### LaTeX output
 
 ``` r
+
 eq_w <- remap_ast_elements(eq) 
 # eq_latex <- as_latex(eq_w)
 # eq_latex <- 

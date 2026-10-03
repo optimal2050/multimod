@@ -1,6 +1,7 @@
 # Configuring Solver Paths in multimod
 
 ``` r
+
 library(multimod)
 ```
 
@@ -37,6 +38,7 @@ This vignette explains how to configure paths to these executables so
 Use the setter functions for easy configuration:
 
 ``` r
+
 # Configure Python
 set_multimod_python("C:/Python310/python.exe")
 
@@ -50,6 +52,7 @@ set_multimod_glpsol("C:/glpk-5.0/bin/glpsol.exe")
 ### Get Current Configuration
 
 ``` r
+
 # Get individual solver paths
 get_multimod_python()
 get_multimod_julia()
@@ -64,6 +67,7 @@ multimod_config_show()
 **Windows:**
 
 ``` r
+
 set_multimod_python("C:/Users/username/.conda/envs/multimod/python.exe")
 set_multimod_julia("C:/Program Files/Julia-1.10.0/bin/julia.exe")
 set_multimod_glpsol("C:/Program Files/GnuWin32/bin/glpsol.exe")
@@ -72,6 +76,7 @@ set_multimod_glpsol("C:/Program Files/GnuWin32/bin/glpsol.exe")
 **macOS:**
 
 ``` r
+
 set_multimod_python("/Users/username/miniconda3/envs/multimod/bin/python")
 set_multimod_julia("/Applications/Julia-1.10.app/Contents/Resources/julia/bin/julia")
 set_multimod_glpsol("/usr/local/bin/glpsol")
@@ -80,6 +85,7 @@ set_multimod_glpsol("/usr/local/bin/glpsol")
 **Linux:**
 
 ``` r
+
 set_multimod_python("/home/username/miniconda3/envs/multimod/bin/python")
 set_multimod_julia("/usr/local/bin/julia")
 set_multimod_glpsol("/usr/bin/glpsol")
@@ -91,6 +97,7 @@ For settings that persist across R sessions, add configuration to your
 `.Rprofile`:
 
 ``` r
+
 # Edit your .Rprofile
 usethis::edit_r_profile()
 ```
@@ -98,6 +105,7 @@ usethis::edit_r_profile()
 Add these lines:
 
 ``` r
+
 # multimod solver configuration
 options(
   multimod.python_path = "C:/Users/me/.conda/envs/multimod/python.exe",
@@ -114,6 +122,7 @@ Create a `.Rprofile` in your project directory for project-specific
 settings:
 
 ``` r
+
 # In your project's .Rprofile
 options(
   multimod.python_path = "venv/Scripts/python.exe",  # Relative to project
@@ -152,6 +161,7 @@ Then reload: `source ~/.bashrc`
 ### Check Environment Variables in R
 
 ``` r
+
 Sys.getenv("MULTIMOD_PYTHON")
 Sys.getenv("MULTIMOD_JULIA")
 Sys.getenv("MULTIMOD_GLPSOL")
@@ -164,6 +174,7 @@ For teams or reproducible workflows, use a YAML config file:
 ### Create Config File
 
 ``` r
+
 # User-level config (affects all projects)
 multimod_config_write(
   config = list(
@@ -194,6 +205,7 @@ multimod_config_write(
 ### Read Config File
 
 ``` r
+
 # Read configuration
 config <- multimod_config_read()
 print(config)
@@ -238,6 +250,7 @@ environments).
 Let `multimod` handle everything:
 
 ``` r
+
 # Creates conda environment "multimod" with Pyomo and HiGHS solver
 setup_python_environment()
 ```
@@ -251,6 +264,7 @@ environment
 If you have an existing Python environment:
 
 ``` r
+
 # Point to your Python executable
 set_multimod_python("/path/to/your/python")
 
@@ -265,6 +279,7 @@ setup_python_environment(
 ### Verify Python Configuration
 
 ``` r
+
 # Check what Python will be used
 get_multimod_python()
 
@@ -289,6 +304,7 @@ Pkg.add("HiGHS")
 ### Configure Path
 
 ``` r
+
 # Windows
 set_multimod_julia("C:/Program Files/Julia-1.10.0/bin/julia.exe")
 
@@ -302,6 +318,7 @@ set_multimod_julia("/usr/local/bin/julia")
 ### Verify Julia Configuration
 
 ``` r
+
 # Check configured path
 get_multimod_julia()
 
@@ -332,6 +349,7 @@ sudo apt-get install glpk-utils
 ### Configure Path
 
 ``` r
+
 # Windows
 set_multimod_glpsol("C:/Program Files/GnuWin32/bin/glpsol.exe")
 
@@ -345,6 +363,7 @@ set_multimod_glpsol("/usr/bin/glpsol")
 ### Verify glpsol Configuration
 
 ``` r
+
 # Check configured path
 get_multimod_glpsol()
 
@@ -358,6 +377,7 @@ system2(glpsol_exec, args = "--version")
 ### Check All Configuration
 
 ``` r
+
 multimod_config_show()
 ```
 
@@ -367,6 +387,7 @@ values - Environment variable values - YAML config file location
 ### Python Not Found
 
 ``` r
+
 # Check search order
 get_multimod_python()  # Shows what's being used
 
@@ -380,6 +401,7 @@ setup_python_environment(env_name = "multimod")
 ### Julia Not Found
 
 ``` r
+
 # Check if Julia is in PATH
 Sys.which("julia")
 
@@ -390,6 +412,7 @@ set_multimod_julia("C:/Julia-1.10/bin/julia.exe")
 ### glpsol Not Found
 
 ``` r
+
 # Check if glpsol is in PATH
 Sys.which("glpsol")
 
@@ -400,6 +423,7 @@ set_multimod_glpsol("C:/glpk/bin/glpsol.exe")
 ### Clear Configuration
 
 ``` r
+
 # Clear R options
 set_multimod_python(NULL)
 set_multimod_julia(NULL)
@@ -441,6 +465,7 @@ ENV MULTIMOD_GLPSOL=/usr/bin/glpsol
 Store your personal solver paths in `~/.Rprofile`:
 
 ``` r
+
 options(
   multimod.python_path = "/Users/me/miniconda3/envs/multimod/bin/python"
 )
@@ -491,6 +516,7 @@ source("config.R")  # Sets up multimod solver paths
 Complete example of setting up and using multimod:
 
 ``` r
+
 library(multimod)
 
 # 1. Configure solvers (one-time setup)

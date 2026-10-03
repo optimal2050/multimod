@@ -119,7 +119,6 @@ plot_d.ast <- function(x, ...) {
 
 with_dims <- function(name, dims, brackets = c("[", "]"), collapse = ",",
                       show_dims = TRUE) {
-  # browser()
   if (length(dims) == 0 || !show_dims) {
     return(name)
   }

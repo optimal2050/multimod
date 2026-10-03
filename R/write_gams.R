@@ -24,7 +24,6 @@ write_gams <- function(model, file = NULL, format_expr = TRUE, ...) {
 #' @method write_gams model
 #' @export
 write_gams.model <- function(model, file = NULL, format_expr = TRUE, ...) {
-  # browser()
   stopifnot(inherits(model, "model"))
 
   lines <- character()
@@ -125,7 +124,6 @@ write_gams.model <- function(model, file = NULL, format_expr = TRUE, ...) {
 
 format_gams_expression <- function(gams_lines, indent = 4) {
   `%+%` <- function(a, b) paste0(a, b)
-  # browser()
 
   extract_sum_parts <- function(part) {
     inside <- sub("^sum\\((.*)\\)$", "\\1", part)
@@ -155,7 +153,6 @@ format_gams_expression <- function(gams_lines, indent = 4) {
   }
 
   split_recursive <- function(expr, current_indent) {
-    # browser()
     chars <- strsplit(expr, "")[[1]]
     depth <- 0; buffer <- ""; parts <- character(); i <- 1
     while (i <= length(chars)) {

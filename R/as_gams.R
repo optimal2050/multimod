@@ -98,7 +98,6 @@ as_gams.symbol <- function(x, ...) {
 #' @export
 #' @method as_gams sum
 as_gams.sum <- function(x, ...) {
-  # browser()
   idx_brackets <- ifelse(isTRUE(length(x$index$then) > 1), "[]", "")
   idx <- as_gams(x$index, brackets = idx_brackets, ...)
   val <- as_gams(x$value, ...)
@@ -185,7 +184,6 @@ as_gams.expression <- function(x, ...) {
 #' @export
 #' @method as_gams unary
 as_gams.unary <- function(x, ...) {
-  # browser()
   stopifnot(inherits(x, "unary"))
   op <- x$op
   if (op == "-") {
@@ -201,7 +199,6 @@ as_gams.unary <- function(x, ...) {
 #' @export
 #' @method as_gams equation
 as_gams.equation <- function(x, ...) {
-  # browser()
   eqname <- x$name
   index <- as_gams(x$dims, ...)
   domain <- if (!is.null(x$domain)) paste0("$", as_gams(x$domain, ...)) else ""

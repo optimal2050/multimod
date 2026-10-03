@@ -23,13 +23,13 @@ create_fold_spec_energyRt(model, fold_dims, tolerance = 1e-10, verbose = TRUE)
   [`create_fold_spec()`](https://optimal2050.github.io/multimod/reference/create_fold_spec.md).
   Can be:
 
-  - Character vector: dimension names (e.g., `c("slice")`)
+  - Character vector: dimension names (e.g., `c("timeslice")`)
 
   - Named list (simple): dimension → mapping (e.g.,
-    `list(slice = "mCommSlice")`)
+    `list(timeslice = "mCommTimeslice")`)
 
   - Named list (advanced): dimension → entity-specific mappings (e.g.,
-    `list(slice = list(tech = "mTechSlice", comm = "mCommSlice"))`)
+    `list(timeslice = list(tech = "mTechTimeslice", comm = "mCommTimeslice"))`)
 
 - tolerance:
 
@@ -46,11 +46,18 @@ can_fold, reason
 
 ## Details
 
-**Note**: This function has the SAME functionality as
-[`create_fold_spec()`](https://optimal2050.github.io/multimod/reference/create_fold_spec.md).
-The only difference is naming - this version emphasizes it's designed
-for energyRt models, but both functions support all features
-(entity-specific mappings, chains, etc.).
+**Deprecated.** This is now a thin alias for
+[`create_fold_spec()`](https://optimal2050.github.io/multimod/reference/create_fold_spec.md),
+which does the work and is not energyRt-specific. Use that instead.
+
+Until 2026-09-24 this name was defined *twice* in this file. The first
+definition delegated to
+[`create_fold_spec()`](https://optimal2050.github.io/multimod/reference/create_fold_spec.md),
+which delegated straight back - infinite mutual recursion, avoided only
+because the second definition silently overrode the first and carried
+the real implementation. The implementation now lives under
+[`create_fold_spec()`](https://optimal2050.github.io/multimod/reference/create_fold_spec.md)
+and this name forwards to it.
 
 Mapping priority (for entity-specific configuration):
 
@@ -67,15 +74,16 @@ Mapping priority (for entity-specific configuration):
 - Else → NA (no validation)
 
 Mapping chains join mappings by common columns: Example:
-`stg = c("mStorageComm", "mCommSlice")`
+`stg = c("mStorageComm", "mCommTimeslice")`
 
-- `mStorageComm[stg, comm]` ⨝ `mCommSlice[comm, slice]` → `[stg, slice]`
+- `mStorageComm[stg, comm]` ⨝ `mCommTimeslice[comm, timeslice]` →
+  `[stg, timeslice]`
 
 For derived mappings (chains), mappings are joined in sequence by common
-columns. Example: `stg = c("mStorageComm", "mCommSlice")`
+columns. Example: `stg = c("mStorageComm", "mCommTimeslice")`
 
-- `mStorageComm[stg, comm]` inner_join `mCommSlice[comm, slice]` →
-  `[stg, slice]`
+- `mStorageComm[stg, comm]` inner_join `mCommTimeslice[comm, timeslice]`
+  → `[stg, timeslice]`
 
 ## Examples
 
@@ -84,13 +92,13 @@ if (FALSE) { # \dontrun{
 # Explicit configuration for energyRt models
 fold_spec <- create_fold_spec_energyRt(model, 
   fold_dims = list(
-    slice = list(
-      tech = "mTechSlice",
-      sup = "mSupSlice", 
-      comm = "mCommSlice",
-      stg = c("mStorageComm", "mCommSlice"),
-      trade = c("mTradeComm", "mCommSlice"),
-      imp = c("mImportComm", "mCommSlice")
+    timeslice = list(
+      tech = "mTechTimeslice",
+      sup = "mSupTimeslice", 
+      comm = "mCommTimeslice",
+      stg = c("mStorageComm", "mCommTimeslice"),
+      trade = c("mTradeComm", "mCommTimeslice"),
+      imp = c("mImportComm", "mCommTimeslice")
     )
   ))
 

@@ -47,7 +47,7 @@ items.
   `vignette("model_workspace")`.
 * `import_energyRt_data()`, `populate_sets_from_scenario()` and
   `link_scenario_data()` import energyRt structures and link Arrow/Parquet
-  files for lazy loading; OSeMOSYS example data is supported.
+  files for lazy loading.
 * Generated code carries data either embedded in the code (small models) or
   read from an Arrow repository (large models).
 * Constructors are also available under the cross-language names used by the
@@ -119,8 +119,8 @@ items.
 * JuMP: 1-dimensional mappings loaded as `Set{Tuple{String}}`, so membership
   checks silently failed and constraints lost terms. They now load as
   `Set{String}`, and generated models reproduce the reference results.
-* `export_model_source()`, `export_osemosys()` and `export_energyrt()` work
-  with the consolidated `example_models`.
+* `export_model_source()` and `export_energyrt()` work with the consolidated
+  `example_models`.
 * `DESCRIPTION` no longer carries a `Collate` field: it had fallen out of date,
   and files absent from it are silently not sourced.
 

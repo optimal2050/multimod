@@ -19,7 +19,6 @@ as_multimod.default <- function(x, ...) {
 #' @export
 as_multimod.model_structure <- function(x, index_aliases = NULL, ...) {
   stopifnot(inherits(x, "model_structure"))
-  # browser()
   args <- list(...)
 
   if (!is.null(args$name)) {

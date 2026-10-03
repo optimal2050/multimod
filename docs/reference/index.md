@@ -17,14 +17,20 @@ Data structures to represent mathematical expressions.
   : Create an equation AST node
 - [`ast_expression()`](https://optimal2050.github.io/multimod/reference/ast_expression.md)
   : Create an expression AST node
+- [`ast_from_json()`](https://optimal2050.github.io/multimod/reference/ast_from_json.md)
+  : Rebuild an AST node from a language-neutral list
 - [`ast_func()`](https://optimal2050.github.io/multimod/reference/ast_func.md)
   : Create a function AST node
+- [`ast_json_schema()`](https://optimal2050.github.io/multimod/reference/ast_json_schema.md)
+  : Emit a JSON Schema for the multimod AST
 - [`ast_mapping()`](https://optimal2050.github.io/multimod/reference/ast_mapping.md)
   : Create a mapping AST node
 - [`ast_parameter()`](https://optimal2050.github.io/multimod/reference/ast_parameter.md)
   : Create a parameter AST node
 - [`ast_prod()`](https://optimal2050.github.io/multimod/reference/ast_prod.md)
   : Create a product AST node
+- [`ast_schema()`](https://optimal2050.github.io/multimod/reference/ast_schema.md)
+  : The multimod AST schema
 - [`ast_setmax()`](https://optimal2050.github.io/multimod/reference/ast_setmax.md)
   : Create a set maximum AST node
 - [`ast_setmin()`](https://optimal2050.github.io/multimod/reference/ast_setmin.md)
@@ -35,6 +41,8 @@ Data structures to represent mathematical expressions.
   : Create a summation AST node
 - [`ast_symbol()`](https://optimal2050.github.io/multimod/reference/ast_symbol.md)
   : Create a symbol AST node (for unclassified identifiers)
+- [`ast_to_json()`](https://optimal2050.github.io/multimod/reference/ast_to_json.md)
+  : Convert an AST node to a language-neutral list
 - [`ast_unary()`](https://optimal2050.github.io/multimod/reference/ast_unary.md)
   : Create a unary expression AST node
 - [`ast_variable()`](https://optimal2050.github.io/multimod/reference/ast_variable.md)
@@ -95,10 +103,6 @@ Generic methods for multimod classes.
   : Print methods for AST classes
 - [`print(`*`<variable_comparison>`*`)`](https://optimal2050.github.io/multimod/reference/print.variable_comparison.md)
   : Print method for variable comparison results
-- [`show_bounds_mapping()`](https://optimal2050.github.io/multimod/reference/show_bounds_mapping.md)
-  : Show bounds parameter mapping
-- [`show_unmatched()`](https://optimal2050.github.io/multimod/reference/show_unmatched.md)
-  : Show unmatched elements
 - [`as.character(`*`<expression>`*`)`](https://optimal2050.github.io/multimod/reference/as.character.expression.md)
   : Convert AST expression to character
 
@@ -129,6 +133,10 @@ Functions to read GAMS models and convert multimod objects to GAMS code.
 
 - [`read_gams()`](https://optimal2050.github.io/multimod/reference/read_gams.md)
   : Read GAMS model file and parse its core structure.
+- [`parse_equation_header()`](https://optimal2050.github.io/multimod/reference/parse_equation_header.md)
+  : Parse a GAMS equation header
+- [`remove_ontext_offtext()`](https://optimal2050.github.io/multimod/reference/remove_ontext_offtext.md)
+  : Strip GAMS block comments
 - [`as_gams()`](https://optimal2050.github.io/multimod/reference/as_gams.md)
   : Convert multimod object to GAMS syntax
 - [`write_gams(`*`<model>`*`)`](https://optimal2050.github.io/multimod/reference/write_gams.model.md)
@@ -225,7 +233,7 @@ Functions for parameter folding to reduce model size by eliminating
 redundant dimensions.
 
 - [`create_fold_spec()`](https://optimal2050.github.io/multimod/reference/create_fold_spec.md)
-  : Create fold specification for parameters (generic interface)
+  : Create a fold specification for a model's parameters
 - [`create_fold_spec_energyRt()`](https://optimal2050.github.io/multimod/reference/create_fold_spec_energyRt.md)
   : Create fold specification for energyRt models (convenience wrapper)
 - [`analyze_parameter_redundancy()`](https://optimal2050.github.io/multimod/reference/analyze_parameter_redundancy.md)
@@ -270,22 +278,113 @@ multiple data formats.
   : Update mapping data
 - [`save_parameter()`](https://optimal2050.github.io/multimod/reference/save_parameter.md)
   : Save parameter data to disk and free memory
-- [`import_energyRt_data()`](https://optimal2050.github.io/multimod/reference/import_energyRt_data.md)
-  : Import energyRt scenario data into a multimod model
-- [`populate_sets_from_scenario()`](https://optimal2050.github.io/multimod/reference/populate_sets_from_scenario.md)
-  : Populate sets from energyRt scenario
-- [`link_scenario_data()`](https://optimal2050.github.io/multimod/reference/link_scenario_data.md)
-  : Link energyRt scenario data to model
-- [`import_osemosys_data()`](https://optimal2050.github.io/multimod/reference/import_osemosys_data.md)
-  : Import OSeMOSYS data into multimod model
-- [`export_osemosys_to_csv()`](https://optimal2050.github.io/multimod/reference/export_osemosys_to_csv.md)
-  : Export OSeMOSYS data to CSV files
 - [`export_model_source()`](https://optimal2050.github.io/multimod/reference/export_model_source.md)
   : Export Model Source Files
 - [`add_set_data()`](https://optimal2050.github.io/multimod/reference/add_set_data.md)
   : Add data to a set
-- [`export_import_log_from_model()`](https://optimal2050.github.io/multimod/reference/export_import_log_from_model.md)
-  : Export import log to CSV
+
+## Direct matrix and MPS backend
+
+Assemble a model straight into LP arrays, bypassing the symbolic layer,
+and solve it or write it out as MPS.
+
+- [`model_to_lp()`](https://optimal2050.github.io/multimod/reference/model_to_lp.md)
+  : Assemble a model into LP arrays
+
+- [`build_col_index()`](https://optimal2050.github.io/multimod/reference/build_col_index.md)
+  : Build the LP column index
+
+- [`build_row_index()`](https://optimal2050.github.io/multimod/reference/build_row_index.md)
+  : Build the LP row index
+
+- [`build_triplets()`](https://optimal2050.github.io/multimod/reference/build_triplets.md)
+  : Extract (row, column, coefficient) triplets from a model
+
+- [`check_matrix_numbers()`](https://optimal2050.github.io/multimod/reference/check_matrix_numbers.md)
+  : Report the magnitude spectrum of an assembled LP
+
+- [`mm_session()`](https://optimal2050.github.io/multimod/reference/mm_session.md)
+  : Create a solver session
+
+- [`solve_highs()`](https://optimal2050.github.io/multimod/reference/solve_highs.md)
+  : Solve a model in-process with HiGHS
+
+- [`solve_mps()`](https://optimal2050.github.io/multimod/reference/solve_mps.md)
+  : Solve a written MPS file locally and emit a HiGHS solution file
+
+- [`write_mps()`](https://optimal2050.github.io/multimod/reference/write_mps.md)
+  : Write a model to MPS, with the index tables needed to read results
+  back
+
+- [`read_mps_solution()`](https://optimal2050.github.io/multimod/reference/read_mps_solution.md)
+  : Map a solved MPS back onto model symbols
+
+- [`read_highs_solution()`](https://optimal2050.github.io/multimod/reference/read_highs_solution.md)
+  : Parse a HiGHS solution file
+
+- [`read_cuopt_solution()`](https://optimal2050.github.io/multimod/reference/read_cuopt_solution.md)
+  : Parse a cuOpt solution file
+
+- [`read_solver_solution()`](https://optimal2050.github.io/multimod/reference/read_solver_solution.md)
+  : Read a solution file, whichever solver wrote it
+
+- [`write_solution()`](https://optimal2050.github.io/multimod/reference/write_solution.md)
+  : Write a solution as one table per variable
+
+- [`write_energyrt_output()`](https://optimal2050.github.io/multimod/reference/write_energyrt_output.md)
+  :
+
+  Write a solution in energyRt's `output/` layout
+
+## Schema and serialisation
+
+The AST’s node shapes, declared once, plus the language-neutral JSON
+form a non-R reader can consume.
+
+- [`ast_schema()`](https://optimal2050.github.io/multimod/reference/ast_schema.md)
+  : The multimod AST schema
+- [`schema_type()`](https://optimal2050.github.io/multimod/reference/schema_type.md)
+  : Schema node type of an AST node
+- [`schema_node_types()`](https://optimal2050.github.io/multimod/reference/schema_node_types.md)
+  : Node types known to the schema
+- [`validate_ast()`](https://optimal2050.github.io/multimod/reference/validate_ast.md)
+  : Validate an AST node or model against the schema
+- [`ast_json_schema()`](https://optimal2050.github.io/multimod/reference/ast_json_schema.md)
+  : Emit a JSON Schema for the multimod AST
+- [`model_to_json()`](https://optimal2050.github.io/multimod/reference/model_to_json.md)
+  : Serialise a model to JSON
+- [`model_from_json()`](https://optimal2050.github.io/multimod/reference/model_from_json.md)
+  : Rebuild a model from JSON
+- [`ast_to_json()`](https://optimal2050.github.io/multimod/reference/ast_to_json.md)
+  : Convert an AST node to a language-neutral list
+- [`ast_from_json()`](https://optimal2050.github.io/multimod/reference/ast_from_json.md)
+  : Rebuild an AST node from a language-neutral list
+- [`Set()`](https://optimal2050.github.io/multimod/reference/multimod-constructors.md)
+  [`Mapping()`](https://optimal2050.github.io/multimod/reference/multimod-constructors.md)
+  [`Parameter()`](https://optimal2050.github.io/multimod/reference/multimod-constructors.md)
+  [`Variable()`](https://optimal2050.github.io/multimod/reference/multimod-constructors.md)
+  [`Equation()`](https://optimal2050.github.io/multimod/reference/multimod-constructors.md)
+  [`SetRef()`](https://optimal2050.github.io/multimod/reference/multimod-constructors.md)
+  [`MappingRef()`](https://optimal2050.github.io/multimod/reference/multimod-constructors.md)
+  [`ParameterRef()`](https://optimal2050.github.io/multimod/reference/multimod-constructors.md)
+  [`VariableRef()`](https://optimal2050.github.io/multimod/reference/multimod-constructors.md)
+  [`Symbol()`](https://optimal2050.github.io/multimod/reference/multimod-constructors.md)
+  [`Dims()`](https://optimal2050.github.io/multimod/reference/multimod-constructors.md)
+  [`Constant()`](https://optimal2050.github.io/multimod/reference/multimod-constructors.md)
+  [`Expression()`](https://optimal2050.github.io/multimod/reference/multimod-constructors.md)
+  [`Unary()`](https://optimal2050.github.io/multimod/reference/multimod-constructors.md)
+  [`When()`](https://optimal2050.github.io/multimod/reference/multimod-constructors.md)
+  [`Func()`](https://optimal2050.github.io/multimod/reference/multimod-constructors.md)
+  [`Sum()`](https://optimal2050.github.io/multimod/reference/multimod-constructors.md)
+  [`Prod()`](https://optimal2050.github.io/multimod/reference/multimod-constructors.md)
+  [`SetMin()`](https://optimal2050.github.io/multimod/reference/multimod-constructors.md)
+  [`SetMax()`](https://optimal2050.github.io/multimod/reference/multimod-constructors.md)
+  [`Shift()`](https://optimal2050.github.io/multimod/reference/multimod-constructors.md)
+  [`Call()`](https://optimal2050.github.io/multimod/reference/multimod-constructors.md)
+  [`Where()`](https://optimal2050.github.io/multimod/reference/multimod-constructors.md)
+  : Constructors under the cross-language names
+- [`is_declaration()`](https://optimal2050.github.io/multimod/reference/is_declaration.md)
+  : Is this node a declaration rather than a reference?
 
 ## Solver integration
 
@@ -342,8 +441,6 @@ Functions for managing index aliases and domain extraction.
   : Add index aliases to a multimod model
 - [`has_index_aliases()`](https://optimal2050.github.io/multimod/reference/has_index_aliases.md)
   : Check if model has index aliases
-- [`en_extract_domains_from_comments()`](https://optimal2050.github.io/multimod/reference/en_extract_domains_from_comments.md)
-  : Extract energyRt domain mappings from GAMS file comments
 
 ## Parameter evaluation and analysis
 
@@ -374,7 +471,7 @@ Functions for converting AST to R code.
 Example datasets and models.
 
 - [`example_models`](https://optimal2050.github.io/multimod/reference/example_models.md)
-  : Example Models in Multiple Formats
+  : Example Model in Multiple Formats
 
 ## Utility functions
 
@@ -388,14 +485,10 @@ Utility functions for multimod.
   : Get data from model (with optional lazy loading)
 - [`get_data_path()`](https://optimal2050.github.io/multimod/reference/get_data_path.md)
   : Get data path for a parameter or mapping
-- [`get_energyrt_defvals()`](https://optimal2050.github.io/multimod/reference/get_energyrt_defvals.md)
-  : Get default values from energyRt modInp
 - [`get_fold_summary()`](https://optimal2050.github.io/multimod/reference/get_fold_summary.md)
   : Get folding statistics summary
 - [`get_glpk_model_stats()`](https://optimal2050.github.io/multimod/reference/get_glpk_model_stats.md)
   : Get GLPK model statistics without solving
-- [`get_import_log()`](https://optimal2050.github.io/multimod/reference/get_import_log.md)
-  : Get data import log from model
 - [`get_index_alias()`](https://optimal2050.github.io/multimod/reference/get_index_alias.md)
   : Get index alias for a set
 - [`get_lazy_data()`](https://optimal2050.github.io/multimod/reference/get_lazy_data.md)
@@ -419,6 +512,8 @@ Utility functions for multimod.
   : Configuration management for multimod solver paths
 - [`set_data_path()`](https://optimal2050.github.io/multimod/reference/set_data_path.md)
   : Set data path for a parameter or mapping
+- [`is_declaration()`](https://optimal2050.github.io/multimod/reference/is_declaration.md)
+  : Is this node a declaration rather than a reference?
 - [`is_folded()`](https://optimal2050.github.io/multimod/reference/is_folded.md)
   : Check if a parameter or model is folded
 - [`is_gams_expression()`](https://optimal2050.github.io/multimod/reference/is_gams_expression.md)
@@ -435,10 +530,16 @@ Utility functions for multimod.
   : Check if a string is a word (alphabetic characters only)
 - [`is_word_num()`](https://optimal2050.github.io/multimod/reference/is_word_num.md)
   : Check if a string is alphanumeric (letters, digits, or underscores)
+- [`check_matrix_numbers()`](https://optimal2050.github.io/multimod/reference/check_matrix_numbers.md)
+  : Report the magnitude spectrum of an assembled LP
+- [`validate_ast()`](https://optimal2050.github.io/multimod/reference/validate_ast.md)
+  : Validate an AST node or model against the schema
 - [`validate_fold()`](https://optimal2050.github.io/multimod/reference/validate_fold.md)
   : Validate fold integrity
 - [`validate_index_aliases()`](https://optimal2050.github.io/multimod/reference/validate_index_aliases.md)
   : Validate index_aliases for a model
+- [`parse_equation_header()`](https://optimal2050.github.io/multimod/reference/parse_equation_header.md)
+  : Parse a GAMS equation header
 - [`parse_gams_equation()`](https://optimal2050.github.io/multimod/reference/parse_gams_equation.md)
   : Parse a GAMS equation into an AST object.
 - [`format_latex_aligned()`](https://optimal2050.github.io/multimod/reference/format_latex_aligned.md)
@@ -473,6 +574,8 @@ Utility functions for multimod.
   : Replace AST elements with "ast_where" nodes
 - [`resolve_full_name()`](https://optimal2050.github.io/multimod/reference/resolve_full_name.md)
   : Resolve alias to full set name
+- [`schema_node_types()`](https://optimal2050.github.io/multimod/reference/schema_node_types.md)
+  : Node types known to the schema
 - [`split_at_top_level_operators()`](https://optimal2050.github.io/multimod/reference/split_at_top_level_operators.md)
   : Split LaTeX math string at top-level operators
 - [`split_top_level_args()`](https://optimal2050.github.io/multimod/reference/split_top_level_args.md)
@@ -492,8 +595,6 @@ Internal functions and helpers (typically not called directly by users).
   : Load mapping data into memory
 - [`load_model()`](https://optimal2050.github.io/multimod/reference/load_model.md)
   : Load multimod model from disk
-- [`load_osemosys_from_csv()`](https://optimal2050.github.io/multimod/reference/load_osemosys_from_csv.md)
-  : Load OSeMOSYS data from CSV directory
 - [`load_parameter()`](https://optimal2050.github.io/multimod/reference/load_parameter.md)
   : Load parameter data into memory
 - [`save_all_mappings()`](https://optimal2050.github.io/multimod/reference/save_all_mappings.md)
@@ -510,12 +611,8 @@ Internal functions and helpers (typically not called directly by users).
   : Log solution loading from solver to variables directory
 - [`restore_ast()`](https://optimal2050.github.io/multimod/reference/restore_ast.md)
   : Restore AST from preserved copies
-- [`populate_defvals_from_energyrt()`](https://optimal2050.github.io/multimod/reference/populate_defvals_from_energyrt.md)
-  : Update model parameters with default values from energyRt
 - [`populate_sets_from_data()`](https://optimal2050.github.io/multimod/reference/populate_sets_from_data.md)
   : Populate sets from model's own mappings and parameters
-- [`populate_sets_from_scenario()`](https://optimal2050.github.io/multimod/reference/populate_sets_from_scenario.md)
-  : Populate sets from energyRt scenario
 - [`register_index_alias()`](https://optimal2050.github.io/multimod/reference/register_index_alias.md)
   : Read GMPL/MathProg Model File
 - [`make_valid()`](https://optimal2050.github.io/multimod/reference/make_valid.md)
@@ -524,10 +621,6 @@ Internal functions and helpers (typically not called directly by users).
   : Quick comparison showing first few differences
 - [`mps_matrix_long()`](https://optimal2050.github.io/multimod/reference/mps_matrix_long.md)
   : Extract the sparse constraint matrix of an MPS file
-- [`osemosys_dat_to_model()`](https://optimal2050.github.io/multimod/reference/osemosys_dat_to_model.md)
-  : Convert OSeMOSYS .dat to CSV and import into model
-- [`read_osemosys_dat()`](https://optimal2050.github.io/multimod/reference/read_osemosys_dat.md)
-  : Read OSeMOSYS data files
 - [`read_csv_results()`](https://optimal2050.github.io/multimod/reference/read_csv_results.md)
   : Read CSV results from GMPL solver solution directory and save to
   model variables

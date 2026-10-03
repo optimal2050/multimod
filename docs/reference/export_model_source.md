@@ -1,14 +1,14 @@
 # Export Model Source Files
 
-Export model source code from package datasets (osemosys_source or
-energyRt_source) to files in a specified directory. This is useful for
-testing parsers, running models, or inspecting model code.
+Export model source code from the bundled `example_models` dataset to
+files in a specified directory. This is useful for testing parsers,
+running models, or inspecting model code.
 
 ## Usage
 
 ``` r
 export_model_source(
-  dataset = c("osemosys", "energyrt"),
+  dataset = c("energyrt"),
   dir,
   format = "all",
   overwrite = FALSE,
@@ -20,7 +20,7 @@ export_model_source(
 
 - dataset:
 
-  Name of the dataset to export. Either "osemosys" or "energyrt".
+  Name of the dataset to export. Currently only "energyrt".
 
 - dir:
 
@@ -29,8 +29,8 @@ export_model_source(
 
 - format:
 
-  For energyrt dataset, which format to export: "gams", "gmpl", "jump",
-  "pyomo", or "all" (default). Ignored for osemosys dataset.
+  Which format to export: "gams", "gmpl", "jump", "pyomo", or "all"
+  (default).
 
 - overwrite:
 
@@ -45,14 +45,6 @@ export_model_source(
 Invisible list of file paths that were created.
 
 ## Details
-
-### OSeMOSYS Export
-
-For the OSeMOSYS dataset, exports:
-
-- `osemosys.txt`: Model code
-
-- `utopia.txt`: Data file
 
 ### energyRt Export
 
@@ -98,9 +90,7 @@ For the energyRt dataset, exports files based on the `format` argument:
 
 ``` r
 if (FALSE) { # \dontrun{
-# Export OSeMOSYS to temporary directory
 tmp_dir <- tempdir()
-export_model_source("osemosys", file.path(tmp_dir, "osemosys"))
 
 # Export energyRt GMPL format
 export_model_source("energyrt", file.path(tmp_dir, "energyrt"),
@@ -111,7 +101,8 @@ export_model_source("energyrt", file.path(tmp_dir, "energyrt_all"),
                     format = "all")
 
 # Use exported files
-osemosys_dir <- file.path(tmp_dir, "osemosys")
-model <- read_gmpl(file.path(osemosys_dir, "osemosys.txt"))
+gmpl_dir <- file.path(tmp_dir, "energyrt")
+model <- read_gmpl(file.path(gmpl_dir, "model.mod"),
+                   file.path(gmpl_dir, "data.dat"))
 } # }
 ```

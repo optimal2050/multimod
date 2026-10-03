@@ -10,7 +10,6 @@
 #'
 get_network_data <- function(x, alias_map = NULL, show_dims = TRUE) {
   eq <- x
-  # browser()
   id_counter <- 0
   nodes <- list()
   edges <- list()
@@ -106,7 +105,6 @@ get_network_data <- function(x, alias_map = NULL, show_dims = TRUE) {
     } else if (node_type(expr) == "unary") {
       walk_ast(expr$rhs, my_id)
     } else if (node_type(expr) %in% c("func", "sum", "prod", "when", "logic", "compare")) {
-      # browser()
       if (!is.null(expr$domain)) {
         walk_ast(expr$domain, my_id)
       }
@@ -123,16 +121,13 @@ get_network_data <- function(x, alias_map = NULL, show_dims = TRUE) {
         walk_ast(expr$condition, my_id, label_prx = "cond: ")
       }
       if (!is.null(expr$then)) {
-        # browser()
         walk_ast(expr$then, my_id, label_prx = "then: ")
       }
       if (!is.null(expr$index)) {
         if (node_type(expr$index) == "dims") {
           # nothing to do
-          # browser()
           # walk_ast(expr$index, my_id, label_prx = "index: ")
         } else {
-          # browser()
           walk_ast(expr$index, my_id, label_prx = "index: ")
         }
         # walk_ast(expr$index, my_id, label_prx = "index: ")

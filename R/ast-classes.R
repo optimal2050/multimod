@@ -88,7 +88,6 @@ ast_set <- function(name) {
 #' ast_dims(list(ast_set("tech"), ast_set("region")))
 #' ast_dims(ast_symbol("t"))
 ast_dims <- function(...) {
-  # browser()
   args <- list(...)
   if (!is.null(args$symbols)) {
     symb_list <- args$symbols
@@ -154,7 +153,6 @@ ast_dims <- function(...) {
   }
 
   dims <- lapply(dims, function(x) {
-    # browser()
     if (inherits(x, "ast")) {
       return(x)
     }
@@ -308,7 +306,6 @@ ast_constant <- function(value, ...) {
 #'   then = ast_variable("x", c("i"))
 #' )
 ast_when <- function(condition, then, otherwise = NULL, ...) {
-  # browser()
   stopifnot(inherits(then, "ast") || is.null(then))
   stopifnot(inherits(condition, "ast"))
 
@@ -363,7 +360,6 @@ ast_prod <- function(index, value, domain = NULL) {
 #' @return An `ast` object of class `function`.
 #' @export
 ast_func <- function(name, value, index = NULL, ...) {
-  # browser()
   stopifnot(is.character(name), length(name) == 1)
 
   # index must be NULL or a single ast (like ast_dims or ast_when)

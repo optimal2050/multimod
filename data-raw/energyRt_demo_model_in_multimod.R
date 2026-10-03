@@ -151,5 +151,3 @@ cat("\n✓ UTOPIA test data created successfully!\n")
 cat("\nUsage:\n")
 cat("  data(energyRt_demo)\n")
 cat("  # Model is ready with structure and data\n")
-
-cat("=== Creating OSeMOSYS-UTOPIA test data ===\n\n")

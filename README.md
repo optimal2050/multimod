@@ -102,7 +102,7 @@ print(eq)
 #> <AST equation> eqObjective
 #>   relation:  == 
 #>   lhs:  vObjective 
-#>   rhs:  sum(if (mvTotalCost[region,year]) {[region,year]}, *, pDiscountFactorMileStone[region,year], vTotalCost[region,year], FALSE)
+#>   rhs:  sum(if (mvTotalCost[region,year]) {[region,year]}, *, vTotalCost[region,year] * pPeriodLen[year], pDiscountFactor[region,year], FALSE)
 ```
 
 #### Render an equation to LaTeX
@@ -111,9 +111,7 @@ print(eq)
 as_latex(eq) |> cat()
 ```
 
-$$
-\textit{vObjective} = \sum_{{r,y} \in \textsf{mvTotalCost}_{r,y}} {\textit{vTotalCost}_{r,y}  \cdot  \textsf{pPeriodLen}_{y}  \cdot  \textsf{pDiscountFactor}_{r,y}}
-$$
+$$\textit{vObjective} = \sum_{{r,y} \in \textsf{mvTotalCost}_{r,y}} {\textit{vTotalCost}_{r,y}  \cdot  \textsf{pPeriodLen}_{y}  \cdot  \textsf{pDiscountFactor}_{r,y}}$$
 
 #### Render a specific equation to GAMS or Julia/JuMP
 
@@ -121,12 +119,12 @@ $$
 as_gams(eq) |> cat()
 #> eqObjective..
 #>   vObjective =e=
-#>   sum(([region,year])$mvTotalCost[region,year], pDiscountFactorMileStone[region,year] * vTotalCost[region,year]);
+#>   sum(([region,year])$mvTotalCost[region,year], vTotalCost[region,year] * pPeriodLen[year] * pDiscountFactor[region,year]);
 as_jump(eq) |> cat()
 #> @constraint(
 #>     model,
 #>     eqObjective,
-#>     vObjective == sum(get(pDiscountFactorMileStone, (region, year), pDiscountFactorMileStoneDef) * vTotalCost[region, year] for (region, year) in mvTotalCost)
+#>     vObjective == sum(vTotalCost[region, year] * get(pPeriodLen, year, pPeriodLenDef) * get(pDiscountFactor, (region, year), pDiscountFactorDef) for (region, year) in mvTotalCost)
 #> )
 ```
 
@@ -183,7 +181,6 @@ write_gams(mod, file = "my_multimod_model.gms")
 
 Apache License 2.0 — see `LICENSE.md`.
 
-The bundled `example_models` dataset includes third-party model source:
-OSeMOSYS (Apache-2.0) and energyRt-generated source (AGPL-3.0). Those licenses
-apply to that data only, not to the multimod package code. See `LICENSE.note`
-for the full terms and the OSeMOSYS citation.
+The bundled `example_models` dataset includes model source generated
+from energyRt. Its third-party terms apply to that data only, not to the
+multimod package code — see `LICENSE.note`.

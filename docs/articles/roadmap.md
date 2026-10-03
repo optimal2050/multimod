@@ -74,8 +74,7 @@ milestones: - \[✓\] Configuration system for solver paths
 - **Functions**:
   [`save_model()`](https://optimal2050.github.io/multimod/reference/save_model.md),
   [`load_model()`](https://optimal2050.github.io/multimod/reference/load_model.md),
-  [`import_energyRt_data()`](https://optimal2050.github.io/multimod/reference/import_energyRt_data.md),
-  [`link_scenario_data()`](https://optimal2050.github.io/multimod/reference/link_scenario_data.md)
+  `import_energyRt_data()`, `link_scenario_data_with_log()`
 
 ### Documentation & Visualization
 

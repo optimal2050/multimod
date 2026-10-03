@@ -43,7 +43,6 @@ new_mapping <- function(name,
                                  auto_fold = FALSE,
                                  symbols = NULL) {
   stopifnot(is.character(name), length(name) == 1)
-  # browser()
   obj <- structure(
     list(
       name = name,
@@ -213,12 +212,8 @@ new_equation <- function(
     comment = NULL,
     dims_index_aliases = NULL,
     symbols = NULL) {
-  # browser()
   stopifnot(relation %in% c("==", "<=", ">="))
-  # if (!inherits(rhs, "expression")) browser()
   stopifnot(inherits(lhs, "ast"), inherits(rhs, "ast"))
-
-  # if (name == "eqTechSng2Grp") browser()
 
   obj <- structure(
     list(

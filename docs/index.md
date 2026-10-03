@@ -68,6 +68,7 @@ Status: [✓] implemented | [~] and { } developing | [ ] and {{ }} considering
 ## Installation and Example Workflow
 
 ``` r
+
 # install.packages("pak")
 pak::pkg_install("optimal2050/multimod")
 ```
@@ -75,6 +76,7 @@ pak::pkg_install("optimal2050/multimod")
 ### Load a GAMS model and parse
 
 ``` r
+
 library(multimod)
 model_info <- read_gams("my_model.gms")
 class(model_info) # "model_structure"
@@ -87,6 +89,7 @@ class(model_info) # "model_structure"
 #### AST elements: an example equation
 
 ``` r
+
 eq <- mod$equations[["eqObjective"]]
 print(eq)
 #> <AST equation> eqObjective
@@ -98,17 +101,18 @@ print(eq)
 #### Render an equation to LaTeX
 
 ``` r
+
 as_latex(eq) |> cat()
 ```
 
 ``` math
-
 \textit{vObjective} = \sum_{{r,y} \in \textsf{mvTotalCost}_{r,y}} {\textit{vTotalCost}_{r,y}  \cdot  \textsf{pPeriodLen}_{y}  \cdot  \textsf{pDiscountFactor}_{r,y}}
 ```
 
 #### Render a specific equation to GAMS or Julia/JuMP
 
 ``` r
+
 as_gams(eq) |> cat()
 #> eqObjective..
 #>   vObjective =e=
@@ -124,6 +128,7 @@ as_jump(eq) |> cat()
 #### Visualize equation tree
 
 ``` r
+
 library(visNetwork)
 as_visNetwork(eq)
 ```
@@ -131,6 +136,7 @@ as_visNetwork(eq)
 #### Write the entire model to LaTeX
 
 ``` r
+
 write_latex(mod, 
             file = "my_multimod_model.tex",
             title = "My multimod model equations",
@@ -141,6 +147,7 @@ tinytex::pdflatex("my_multimod_model.tex")
 #### Write JuMP/Julia model
 
 ``` r
+
 # Complete workflow: save data and generate JuMP code
 save_model(mod, "my_model_dir", format = "ipc")  # Arrow format
 write_jump(mod, model_dir = "my_model_dir")      # Generate Julia code
@@ -152,6 +159,7 @@ solve_jump(model_dir = "my_model_dir")
 #### Write & solve GMPL model
 
 ``` r
+
 write_gmpl(mod, model_dir = "my_model_dir")
 solve_gmpl(mod, model_dir = "my_model_dir")
 ```
@@ -159,6 +167,7 @@ solve_gmpl(mod, model_dir = "my_model_dir")
 #### Write & solve Python/Pyomo model
 
 ``` r
+
 write_pyomo(mod, model_dir = "my_model_dir")
 solve_pyomo(mod, model_dir = "my_model_dir")
 ```
@@ -166,10 +175,16 @@ solve_pyomo(mod, model_dir = "my_model_dir")
 #### {Write GAMS model}
 
 ``` r
+
 # in progress
 write_gams(mod, file = "my_multimod_model.gms")
 ```
 
 ## License
 
-MIT License
+Apache License 2.0 — see `LICENSE.md`.
+
+The bundled `example_models` dataset includes third-party model source:
+OSeMOSYS (Apache-2.0) and energyRt-generated source (AGPL-3.0). Those
+licenses apply to that data only, not to the multimod package code. See
+`LICENSE.note` for the full terms and the OSeMOSYS citation.

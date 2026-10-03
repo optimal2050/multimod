@@ -1,6 +1,7 @@
 # Model Workspace and Data Management
 
 ``` r
+
 library(multimod)
 ```
 
@@ -68,6 +69,7 @@ Arrow/CSV) - Atomic updates (one model.rds contains all structure)
 ### CSV (Universal)
 
 ``` r
+
 # Default format - human-readable, works everywhere
 model <- save_model(
   model,
@@ -83,6 +85,7 @@ model <- save_model(
 ### IPC/Arrow (Recommended)
 
 ``` r
+
 # Recommended format - fast and compact
 model <- save_model(
   model,
@@ -102,6 +105,7 @@ smaller than CSV) - Cross-language (Python, Julia, R) - Column-oriented
 ### Parquet (Compact)
 
 ``` r
+
 # Most compact but slower
 model <- save_model(
   model,
@@ -122,6 +126,7 @@ support
 ### 1. Save a Model
 
 ``` r
+
 library(multimod)
 
 # Load or create a model
@@ -140,6 +145,7 @@ model <- save_model(
 ### 2. Load a Model
 
 ``` r
+
 # Load complete model with all data
 model <- load_model(
   path = "models/utopia",
@@ -154,6 +160,7 @@ demand <- model$parameters$pDemand$data
 ### 3. Update Parameters
 
 ``` r
+
 # Modify parameter data
 new_demand <- demand
 new_demand$value <- new_demand$value * 1.1  # 10% increase
@@ -176,6 +183,7 @@ model <- save_model(model, path = "models/utopia", overwrite = TRUE)
 For large models, load structure without data:
 
 ``` r
+
 # Load only model structure (no data in memory)
 model <- load_model(
   path = "models/utopia",
@@ -197,6 +205,7 @@ demand_data2 <- get_data(model, "pDemand", type = "parameter")  # From cache
 ### Auto-Save on Update
 
 ``` r
+
 # Load model from disk
 model <- load_model("models/utopia")
 
@@ -214,6 +223,7 @@ model <- update_parameter(
 ### Memory Management
 
 ``` r
+
 # Save model and free data from memory
 model <- save_model(
   model,
@@ -233,6 +243,7 @@ demand <- get_data(model, "pDemand", type = "parameter")
 The package provides integrated solution storage for solver results:
 
 ``` r
+
 # Solve model and load results
 result <- solve_jump(
   model = demo_model,
@@ -270,6 +281,7 @@ directory - Audit trail: log tracks all solution loads with timestamps -
 Clean workspace: no proliferation of timestamped directories - Overwrite
 behavior: easy to re-run and update solutions
 
+
     ## Working with Folded Data
 
     Models with folded parameters store both regular and folded data:
@@ -300,6 +312,7 @@ behavior: easy to re-run and update solutions
 ### From R
 
 ``` r
+
 # Save in Arrow IPC format
 save_model(model, "models/shared", format = "ipc")
 ```
@@ -332,6 +345,7 @@ df = DataFrame(demand)
 ## Complete Example
 
 ``` r
+
 library(multimod)
 
 # 1. Create or load model
@@ -429,6 +443,7 @@ compatibility.
 ### Large Models
 
 ``` r
+
 # Use lazy loading
 model <- load_model("models/large_model", load_data = FALSE)
 
@@ -444,6 +459,7 @@ for (param_name in names(model$parameters)) {
 ### Disk Space
 
 ``` r
+
 # Use Parquet for maximum compression
 save_model(model, "models/compact", format = "parquet")
 
@@ -454,6 +470,7 @@ model <- save_model(model, "models/compact", keep_in_memory = FALSE)
 ### Corrupted Files
 
 ``` r
+
 # Model structure is separate from data
 # If data file corrupted, structure is still in model.rds
 

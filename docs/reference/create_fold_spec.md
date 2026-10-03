@@ -1,8 +1,9 @@
-# Create fold specification for parameters (generic interface)
+# Create a fold specification for a model's parameters
 
-Generic interface for creating fold specifications. Supports all the
-same features as `create_fold_spec_energyRt` but without
-energyRt-specific defaults.
+Scans a model's parameters and reports, for each, whether a dimension
+can be folded away - that is, whether the parameter's values are
+constant along it within tolerance - together with the mapping that
+should be used to validate the fold.
 
 ## Usage
 
@@ -14,50 +15,60 @@ create_fold_spec(model, fold_dims, tolerance = 1e-10, verbose = TRUE)
 
 - model:
 
-  A multimod model object
+  A multimod model object.
 
 - fold_dims:
 
-  Dimension configuration. Can be:
+  Dimension configuration. Either:
 
-  - Character vector: dimension names (e.g., `c("slice")`)
+  - a character vector of dimension names (e.g. `c("timeslice")`);
 
-  - Named list (simple): dimension → mapping (e.g.,
-    `list(slice = "mCommSlice")`)
+  - a named list mapping dimension to validation mapping (e.g.
+    `list(timeslice = "mCommTimeslice")`);
 
-  - Named list (advanced): dimension → entity-specific mappings (e.g.,
-    `list(slice = list(tech = "mTechSlice", comm = "mCommSlice"))`)
+  - a named list mapping dimension to entity-specific mappings (e.g.
+    `list(timeslice = list(tech = "mTechTimeslice", stg = c("mStorageComm", "mCommTimeslice")))`),
+    where a character vector is a chain.
 
 - tolerance:
 
-  Numeric tolerance for detecting constant values (default: 1e-10)
+  Numeric tolerance for detecting constant values.
 
 - verbose:
 
-  Logical; print progress messages (default: TRUE)
+  Logical; print progress.
 
 ## Value
 
-Data frame with fold specification for each parameter
+A data frame with one row per parameter/dimension pair: `param_name`,
+`dim_to_fold`, `validation_mapping`, `validation_mapping_raw`,
+`can_fold` and `reason`.
+
+## Details
+
+Nothing here is energyRt-specific: the function walks `model$parameters`
+and the `fold_dims` configuration it is given. Only the *default*
+mapping names (`mTechTimeslice` and friends) follow energyRt's
+conventions, and those are supplied by the caller.
+
+## See also
+
+`fold_model()`,
+[`create_fold_spec_energyRt()`](https://optimal2050.github.io/multimod/reference/create_fold_spec_energyRt.md)
 
 ## Examples
 
 ``` r
 if (FALSE) { # \dontrun{
-# Simple: fold slice dimension
-fold_spec <- create_fold_spec(model, fold_dims = "slice")
+fold_spec <- create_fold_spec(model, fold_dims = "timeslice")
 
-# With single validation mapping
-fold_spec <- create_fold_spec(model, fold_dims = list(slice = "mCommSlice"))
-
-# Entity-specific (advanced)
 fold_spec <- create_fold_spec(
   model,
   fold_dims = list(
-    slice = list(
-      tech = "mTechSlice",
-      comm = "mCommSlice",
-      stg = c("mStorageComm", "mCommSlice")  # Chain
+    timeslice = list(
+      tech = "mTechTimeslice",
+      comm = "mCommTimeslice",
+      stg  = c("mStorageComm", "mCommTimeslice")   # a chain
     )
   )
 )

@@ -1,7 +1,7 @@
 Package: multimod
 Title: Define and Render Mathematical Models Across Multiple Optimization Languages.
-Version: 0.4.2.9000
-Date: 2026-09-15
+Version: 0.4.3.9000
+Date: 2026-09-24
 Authors@R: 
   c(person(given = "Oleg", 
           family = "Lugovoy", 
@@ -39,4 +39,4 @@ Suggests:
 VignetteBuilder: knitr
 LazyData: true
 Config/Needs/website: rmarkdown
-Config/roxygen2/version: 8.0.0
+Config/roxygen2/version: 8.1.0
