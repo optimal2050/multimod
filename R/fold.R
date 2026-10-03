@@ -1,71 +1,3 @@
-#' Create fold specification for energyRt models (convenience wrapper)
-#'
-#' Convenience wrapper around the generic \code{create_fold_spec()} function.
-#' Uses the same underlying implementation but provides energyRt-specific defaults
-#' for entity-to-mapping associations.
-#'
-#' @param model A multimod model object (from energyRt)
-#' @param fold_dims Dimension configuration. Same format as \code{create_fold_spec()}.
-#'   Can be:
-#'   - Character vector: dimension names (e.g., \code{c("timeslice")})  
-#'   - Named list (simple): dimension → mapping (e.g., \code{list(timeslice = "mCommTimeslice")})
-#'   - Named list (advanced): dimension → entity-specific mappings
-#'     (e.g., \code{list(timeslice = list(tech = "mTechTimeslice", comm = "mCommTimeslice"))})
-#' @param tolerance Numeric tolerance for considering values equal (default: 1e-10)
-#' @param verbose Logical; print progress messages (default: TRUE)
-#'
-#' @return Data frame with columns: param_name, dim_to_fold, validation_mapping,
-#'   can_fold, reason
-#'   
-#' @details
-#' **Deprecated.** This is now a thin alias for [create_fold_spec()], which does
-#' the work and is not energyRt-specific. Use that instead.
-#'
-#' Mapping priority (for entity-specific configuration):
-#' - Uses FIRST matching entity dimension
-#' - If parameter has "tech" → use tech mapping
-#' - Else if has "sup" → use sup mapping  
-#' - Else if has "comm" → use comm mapping
-#' - Else if has "stg" → use stg mapping
-#' - Else → NA (no validation)
-#' 
-#' Mapping chains join mappings by common columns:
-#' Example: \code{stg = c("mStorageComm", "mCommTimeslice")}
-#' - \code{mStorageComm[stg, comm]} ⨝ \code{mCommTimeslice[comm, timeslice]} → \code{[stg, timeslice]}
-#' 
-#' For derived mappings (chains), mappings are joined in sequence by common columns.
-#' Example: \code{stg = c("mStorageComm", "mCommTimeslice")}
-#' - \code{mStorageComm[stg, comm]} inner_join \code{mCommTimeslice[comm, timeslice]} → \code{[stg, timeslice]}
-#'
-#' @examples
-#' \dontrun{
-#' # Explicit configuration for energyRt models
-#' fold_spec <- create_fold_spec_energyRt(model, 
-#'   fold_dims = list(
-#'     timeslice = list(
-#'       tech = "mTechTimeslice",
-#'       sup = "mSupTimeslice", 
-#'       comm = "mCommTimeslice",
-#'       stg = c("mStorageComm", "mCommTimeslice"),
-#'       trade = c("mTradeComm", "mCommTimeslice"),
-#'       imp = c("mImportComm", "mCommTimeslice")
-#'     )
-#'   ))
-#' 
-#' # Review and edit
-#' View(fold_spec)
-#' 
-#' # Use edited specification
-#' model <- fold_model(model, fold_spec = fold_spec)
-#' }
-#' @export
-create_fold_spec_energyRt <- function(model,
-                                       fold_dims,
-                                       tolerance = 1e-10,
-                                       verbose = TRUE) {
-  create_fold_spec(model, fold_dims, tolerance, verbose)
-}
-
 #' Get active dimensions from a parameter
 #'
 #' Returns the dimensions that are actually present in a parameter's data.
@@ -358,7 +290,18 @@ is_folded.default <- function(x) {
 #' @return A data frame with one row per parameter/dimension pair: `param_name`,
 #'   `dim_to_fold`, `validation_mapping`, `validation_mapping_raw`, `can_fold`
 #'   and `reason`.
-#' @seealso [fold_model()], [create_fold_spec_energyRt()]
+#'
+#' @details
+#' With an entity-specific configuration, the **first** matching entity
+#' dimension wins: `tech`, then `sup`, then `comm`, then `stg`; a parameter
+#' matching none gets `NA` and is not validated.
+#'
+#' A character vector is a **mapping chain**, joined in sequence on the columns
+#' the mappings share. For `stg = c("mStorageComm", "mCommTimeslice")`:
+#' `mStorageComm[stg, comm]` joined with `mCommTimeslice[comm, timeslice]`
+#' yields `[stg, timeslice]`.
+#'
+#' @seealso [fold_model()]
 #' @export
 #' @examples
 #' \dontrun{

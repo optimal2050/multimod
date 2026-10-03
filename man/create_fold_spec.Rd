@@ -39,6 +39,15 @@ Nothing here is energyRt-specific: the function walks \code{model$parameters} an
 the \code{fold_dims} configuration it is given. Only the \emph{default} mapping names
 (\code{mTechTimeslice} and friends) follow energyRt's conventions, and those are
 supplied by the caller.
+
+With an entity-specific configuration, the \strong{first} matching entity
+dimension wins: \code{tech}, then \code{sup}, then \code{comm}, then \code{stg}; a parameter
+matching none gets \code{NA} and is not validated.
+
+A character vector is a \strong{mapping chain}, joined in sequence on the columns
+the mappings share. For \code{stg = c("mStorageComm", "mCommTimeslice")}:
+\code{mStorageComm[stg, comm]} joined with \code{mCommTimeslice[comm, timeslice]}
+yields \verb{[stg, timeslice]}.
 }
 \examples{
 \dontrun{
@@ -57,5 +66,5 @@ fold_spec <- create_fold_spec(
 }
 }
 \seealso{
-\code{\link[=fold_model]{fold_model()}}, \code{\link[=create_fold_spec_energyRt]{create_fold_spec_energyRt()}}
+\code{\link[=fold_model]{fold_model()}}
 }
