@@ -1,6 +1,6 @@
 Package: multimod
 Title: Define and Render Mathematical Models Across Multiple Optimization Languages.
-Version: 0.4.4.9000
+Version: 0.4.4.9001
 Date: 2026-10-03
 Authors@R: 
   c(person(given = "Oleg", 

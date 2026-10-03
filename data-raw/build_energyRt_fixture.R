@@ -3,7 +3,7 @@
 ## Builds the multimod fixture from the CURRENT energyRt sources.
 ##
 ##   structure : energyRt/gams/energyRt.gms  (read with include = FALSE)
-##   data      : energyRt::interpolate_model() on a UTOPIA kit
+##   data      : energyRt::interpolate_model() on a TOPIA kit
 ##
 ## GAMS is the source of truth for structure: the GMPL/JuMP/Pyomo templates are
 ## still being edited. energyRt itself is never modified by this script.
@@ -17,14 +17,9 @@
 ENERGYRT_GMS <- "C:/Users/admin/Documents/R/energyRt/gams/energyRt.gms"
 
 ## ---------------------------------------------------------------------------
-## `energyrt_gates_var()`, `fill_variable_domains()` and
-## `multimod_from_energyRt()` now live in the PACKAGE (R/energyrt_pipeline.R),
-## exported. They were here while this file was the only caller, but
-## data-raw/ is .Rbuildignore'd, so an installed multimod could not reproduce
-## the pipeline - and fill_variable_domains() is not optional (without it 24
-## of 93 variables get no domain and contribute no columns).
-##
-## Nothing to define here any more; pkgload::load_all(".") supplies them.
+## `multimod_from_energyRt()` (with `fill_variable_domains()` and the gate
+## inventory) lives in ENERGYRT (R/multimod-import.R) since multimod dropped
+## its energyRt dependency (2026-09-24); it is called from there below.
 ## ---------------------------------------------------------------------------
 
 ## ---------------------------------------------------------------------------
@@ -94,19 +89,20 @@ build_energyRt_fixture <- function(kit = c("R7", "R1", "R3", "R11"),
   ## data, from an interpolated energyRt scenario
   energyRt::set_scenarios_path(file.path(tempdir(), "mm_fixture"))
   energyRt::set_registry_file(file.path(tempdir(), "mm_fixture", "registry.csv"))
-  utopia <- energyRt::utopia
-  um  <- utopia$modules$electricity[[kit]]
+  topia <- energyRt::topia
+  um  <- topia$modules$electricity[[kit]]
   mod <- energyRt::newModel(
     kit,
     data     = um$repo,
-    calendar = utopia$modules$calendars$utopia_seasons,
+    calendar = topia$modules$calendars$topia_seasons,
     region   = um$regions,
-    horizon  = utopia$modules$horizons$base,
+    horizon  = topia$modules$horizons$base,
     discount = 0.05
   )
   scen <- energyRt::interpolate_model(mod, name = "BASE")
 
-  m <- multimod_from_energyRt(scen, gms = gms, prefer = prefer, verbose = verbose)
+  m <- energyRt::multimod_from_energyRt(scen, gms = gms, prefer = prefer,
+                                         verbose = verbose)
   attr(m, "kit") <- kit
   m
 }
