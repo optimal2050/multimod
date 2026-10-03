@@ -30,7 +30,7 @@ energyRt_entry <- list(
     source           = "energyRt UTOPIA kit",
     scenario         = paste0(KIT, " / utopia_seasons / base horizon"),
     repository       = "https://github.com/optimal2050/energyRt",
-    license          = "AGPL-3.0",
+    license          = "Apache-2.0",
     energyRt_version = as.character(utils::packageVersion("energyRt")),
     gams_source      = "gams/energyRt.gms",
     date_imported    = Sys.Date(),

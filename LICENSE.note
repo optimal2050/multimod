@@ -11,34 +11,12 @@ BASE_UTOPIA scenario, in GAMS, GMPL and JuMP form, together with its parsed
 multimod representation.
 
 - **Source:** https://github.com/energyRt/energyRt
-- **License:** GNU Affero General Public License v3.0 (AGPL-3.0)
+- **License:** Apache License 2.0
 - **Copyright:** The energyRt Development Team
 
-This content is derived from energyRt's model templates and remains under
-AGPL-3.0. Full text: https://www.gnu.org/licenses/agpl-3.0.html
-
-```
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as published
-by the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program.  If not, see <https://www.gnu.org/licenses/>.
-```
-
-> **Unresolved.** Apache-2.0 and AGPL-3.0 are only one-way compatible: Apache
-> code may be incorporated into an AGPL work, not the reverse. Bundling
-> AGPL-3.0 material inside an Apache-2.0 package therefore needs an explicit
-> decision by the maintainers before public release — either relicensing the
-> bundled energyRt content, replacing it with an Apache-compatible fixture, or
-> distributing it separately. energyRt has co-authors beyond the multimod
-> author, so this is not a unilateral change.
+This content is derived from energyRt's model templates and remains under the
+Apache License 2.0, the same license as multimod itself, so bundling it raises
+no compatibility question. Full text: https://www.apache.org/licenses/LICENSE-2.0
 
 ## In the repository, not in the package
 

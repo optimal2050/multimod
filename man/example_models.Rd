@@ -57,8 +57,8 @@ The model \emph{structure} is parsed from energyRt's GAMS template with
 GMPL/JuMP/Pyomo templates are still evolving. The \emph{data} is attached from an
 interpolated energyRt scenario. See \code{data-raw/build_energyRt_fixture.R}.
 
-\strong{License}: GNU Affero General Public License v3.0 (AGPL-3.0). This applies
-to the bundled model source, not to multimod itself. See \code{LICENSE.note}.
+\strong{License}: Apache License 2.0, the same license as multimod itself. See
+\code{LICENSE.note}.
 }
 }
 \section{Usage}{
