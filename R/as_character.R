@@ -65,7 +65,6 @@ wrap_brackets <- function(x, brackets = NULL, ...) {
 #' @export
 #' @method as.character expression
 as.character.expression <- function(x, brackets = NULL, max_char = 50, ...) {
-  # browser()
   out <- paste0(as.character(x$lhs, max_char = NULL),
                 " ", x$op, " ",
                 as.character(x$rhs, max_char = NULL)

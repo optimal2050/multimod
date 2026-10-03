@@ -666,10 +666,16 @@ solve_glpk <- function(mod_file, dat_file, output_dir = NULL, glpsol_path = NULL
     glpsol_path <- get_multimod_glpsol()
   }
 
+  # glpsol runs in the model directory (below), so every path handed to it
+  # must be absolute or it would resolve against the wrong place.
+  mod_file <- normalizePath(mod_file, winslash = "/", mustWork = TRUE)
+  dat_file <- normalizePath(dat_file, winslash = "/", mustWork = TRUE)
+
   # Set output directory
   if (is.null(output_dir)) {
     output_dir <- dirname(mod_file)
   }
+  output_dir <- normalizePath(output_dir, winslash = "/", mustWork = TRUE)
 
   # Create output file path
   sol_file <- file.path(output_dir, "solution.sol")
@@ -681,9 +687,15 @@ solve_glpk <- function(mod_file, dat_file, output_dir = NULL, glpsol_path = NULL
     "-o", sol_file
   )
 
-  # Run glpsol
+  # Run glpsol from the model directory. The generated GMPL writes its
+  # diagnostics (constraint_stats.csv, variable_stats.csv) to bare relative
+  # filenames, which glpsol resolves against its own working directory.
   message("Solving with GLPK...")
+  old_dir <- getwd()
+  on.exit(setwd(old_dir), add = TRUE)
+  setwd(dirname(mod_file))
   result <- system2(glpsol_path, args = args, stdout = TRUE, stderr = TRUE)
+  setwd(old_dir)
 
   # Check if solution file was created
   if (!file.exists(sol_file)) {

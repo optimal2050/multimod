@@ -122,7 +122,6 @@ print.where <- function(x, ...) {
 #' @export
 #' @method print equation
 print.equation <- function(x, ...) {
-  # browser()
   cat("<AST equation> ", x$name, "\n", sep = "")
   if (!is.null(x$domain)) {
     cat("  domain: ", as.character(x$domain), "\n")

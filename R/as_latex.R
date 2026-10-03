@@ -536,7 +536,6 @@ as_latex.call <- function(x, brackets = NULL, ...) {
 #' @method as_latex set
 #' @rdname as_latex
 as_latex.set <- function(x, math_env = "text", ...) {
-  # browser()
   if (is.null(x$name)) {
     return("\\emptyset")
   } else {
@@ -551,7 +550,6 @@ as_latex.set <- function(x, math_env = "text", ...) {
 #' @method as_latex dims
 #' @rdname as_latex
 as_latex.dims <- function(x, brackets = NULL, subscript_dims = NULL, ...) {
-  # browser()
   if (is.null(x)) {
     return(x)
     # return("\\emptyset")
@@ -695,7 +693,7 @@ as_latex.variable <- function(x, brackets = NULL, subscript_dims = TRUE,
 as_latex.symbol <- function(x, ...) {
   base_name <- paste0("\\texttt{", x$name, "}")
 
-  # Handle indexed symbols (e.g., p[t,c] from semantic PyPSA extraction)
+  # Handle indexed symbols (e.g. p[t,c])
   if (!is.null(x$index) && inherits(x$index, "dims") && length(x$index) > 0) {
     # Render the index as subscripts
     index_parts <- sapply(x$index, function(idx) {
@@ -761,7 +759,6 @@ as_latex.unary <- function(x, brackets = NULL, ...) {
 #' @method as_latex expression
 #' @rdname as_latex
 as_latex.expression <- function(x, brackets = NULL, ...) {
-  # browser()
   lhs <- x$lhs
   rhs <- x$rhs
 
@@ -796,7 +793,6 @@ as_latex.expression <- function(x, brackets = NULL, ...) {
     out <- paste0(lhs, " ", op, " ", rhs)
   }
 
-  # browser()
   if (isTRUE(x$brackets)) {
     out <- latex_wrap_brackets(out, math = TRUE, autosize = TRUE,
                                content = out, context = x$op)
@@ -870,7 +866,6 @@ as_latex.when <- function(x,
 
   # Final format using: [ expr, {tuple} ∈ mapping ]
   if (!is.null(dims_tex) && !is.null(mapping_latex)) {
-    # browser()
     if (length(cond$content$dims) > 1 || length(cond$dims) > 1) {
       dims_tex <- latex_wrap_brackets(dims_tex, brackets = "{}")
     }
@@ -1009,7 +1004,6 @@ as_latex.func <- function(x, brackets = NULL, subscript_dims = TRUE, ...) {
     return(paste0("\\max\\left\\{", value_latex, "\\right\\}"))
   }
 
-  # browser()
   value_latex <- if (inherits(x$value, c("ast"))) {
       as_latex(x$value, brackets = brackets, subscript_dims = subscript_dims, ...)
     } else if (is.list(x$value)) {
@@ -1085,7 +1079,6 @@ as_latex.equation <- function(x,
                               subsection_number = FALSE,
                               max_len = 100,
                               ...) {
-  # browser()
   if (is.null(inline_where)) {
     inline_where <- getOption("multimod.render_where_inline", FALSE)
   }
@@ -1115,11 +1108,9 @@ as_latex.equation <- function(x,
   # Equation name and descriptor
   preamble <- character()
 
-  # browser()
-  # Construct preamble for equation output
-  # Use dims_index_aliases if available (iterator vars like r,l,f,y)
-  # Otherwise fall back to model$index_aliases if provided in ...
-  # Finally fall back to dims (set names like REGION, TIMESLICE)
+  # Construct preamble for equation output. Index naming falls back in order:
+  # dims_index_aliases (iterator variables), then model$index_aliases passed
+  # through `...`, then the dims themselves (set names).
   extra_args <- list(...)
   if (!is.null(x$dims_index_aliases) && length(x$dims_index_aliases) > 0) {
     # Create dims from iterator variable names from equation
@@ -1198,7 +1189,6 @@ as_latex.equation <- function(x,
   where_lines <- character()
   wh_len <- integer(0)
   where_cols <- 1
-  # browser()
   if (!inline_where) {
     where_map <- extract_where_nodes(x)
     # max lenth of where_map
@@ -1207,7 +1197,6 @@ as_latex.equation <- function(x,
       where_lines <- character()
       for (nm in names(where_map)) {
         def <- as_latex(where_map[[nm]]$content, inline_where = TRUE, ...)
-        # browser()
         # def <- replace_mapping_placeholders(def)
         # nm_greek <- replace_mapping_placeholders(nm)
         where_lines <- c(
@@ -1239,7 +1228,6 @@ as_latex.equation <- function(x,
       #                  # "\\end{flushleft}",
       #                  "\\end{multicols}")
     }
-    # browser()
   }
 
   # Final output
@@ -1281,7 +1269,6 @@ end_math_env <- function(envs) {
 #' @export
 estimate_latex_length <- function(latex_str) {
   if (is.null(latex_str) || !nzchar(latex_str)) return(0)
-  # browser()
 
   # Strip formatting wrappers
   s <- gsub("\\\\text(normal|bf|it)?\\{([^}]*)\\}", "\\2", latex_str)
@@ -1319,7 +1306,6 @@ format_index <- function(lhs) {
 #' @return Character string of the formatted LaTeX code
 # @export
 format_latex_aligned <- function(lhs, rhs, rel = "=", max_len = 90) {
-  # browser()
   lhs_len <- estimate_latex_length(lhs)
   rhs_len <- estimate_latex_length(rhs)
   full_len <- lhs_len + nchar(rel) + rhs_len
@@ -1394,7 +1380,6 @@ split_at_top_level_operators <- function(
     # indent_str = "&\\quad",
     max_len = 80
     ) {
-  # browser()
   if (is.null(latex_str) || !nzchar(latex_str)) return(NULL)
   if (is.null(operators) || length(operators) == 0) return(latex_str)
   if (estimate_latex_length(latex_str) <= max_len) return(latex_str)
@@ -1472,7 +1457,6 @@ replace_mapping_placeholders <- function(latex_str,
   }
 
 
-  # browser()
   for (i in 1:99) {
     # pattern <- paste0("\\mathsf\\{m", i, "\\}")
     pattern <- paste0("\\\\(texttt|mathsf)\\{m", i, "\\}")
@@ -1485,7 +1469,6 @@ replace_mapping_placeholders <- function(latex_str,
     # )
     latex_str <- gsub(pattern, repl_fun(i), latex_str, fixed = FALSE)
   }
-  # browser()
   latex_str
 }
 

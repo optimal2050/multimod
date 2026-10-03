@@ -2,9 +2,8 @@
 #'
 #' This helper mirrors `as_jump()` but emits Python/Pyomo-friendly strings.
 #' The implementation focuses on linear expressions (sum/prod, arithmetic
-#' operators, variable/parameter references) which cover the current OSeMOSYS
-#' workflow. Unsupported node types raise informative errors so we can extend
-#' coverage incrementally.
+#' operators, variable/parameter references). Unsupported node types raise
+#' informative errors so coverage can be extended incrementally.
 #'
 #' @param x An AST node (e.g. equation, expression, variable, parameter).
 #' @param ... Additional arguments used internally:
@@ -271,8 +270,8 @@ as_pyomo.variable <- function(x, model = NULL, var_names = NULL, scope = NULL, .
 # Expressions ------------------------------------------------------------------
 
 # Helper function to collect all symbol names referenced in an AST node
-# Returns both symbol names (like "l") and set names (like "TIMESLICE") 
-# since GMPL parsing may resolve iterator symbols to their set types
+# Returns both iterator symbol names and the set names they resolve to, since
+# GMPL parsing may resolve iterator symbols to their set types
 collect_symbols <- function(node) {
   if (is.null(node)) return(character(0))
   
@@ -386,8 +385,8 @@ as_pyomo.expression <- function(x, model = NULL, var_names = NULL, scope = NULL,
     
     # Get iterator variable names and their set names from the sum's index
     if (!is.null(sum_node$index) && inherits(sum_node$index, "dims")) {
-      iter_vars <- names(sum_node$index)  # e.g., "l"
-      # Also get the set names (e.g., "TIMESLICE") since parsing may resolve symbols to sets
+      iter_vars <- names(sum_node$index)
+      # Also get the set names, since parsing may resolve symbols to sets
       set_names <- character(0)
       for (idx in sum_node$index) {
         if (inherits(idx, "set")) {

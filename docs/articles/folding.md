@@ -1,14 +1,17 @@
 # Parameter Folding: Reducing Model Size Through Redundancy Elimination
 
 ``` r
+
 library(multimod)
 library(energyRt)
-#> energyRt version: 0.50.1-beta (2024-09-25)
+#> energyRt 0.90.0.9007-dev (2026-09-28)
+#> Development version, please report bugs/issues:
+#> https://github.com/optimal2050/energyRt/issues
 #> 
 #> Attaching package: 'energyRt'
-#> The following object is masked from 'package:multimod':
+#> The following objects are masked from 'package:multimod':
 #> 
-#>     get_data
+#>     load_model, save_model, update_parameter
 ```
 
 ## Overview
@@ -57,6 +60,7 @@ redundancy and would benefit from folding.
 ### Load Example Model
 
 ``` r
+
 # Read GAMS model structure
 gams_file <- 'dev/scenarios/BASE_UTOPIA/script/gams_cbc/energyRt.gms'
 model_struct <- read_gams(gams_file)
@@ -75,6 +79,7 @@ The
 function calculates redundancy metrics for all parameters:
 
 ``` r
+
 # Analyze redundancy before folding
 redundancy_before <- analyze_parameter_redundancy(
   model, 
@@ -116,6 +121,7 @@ For simple cases, use
 with dimension-to-mapping pairs:
 
 ``` r
+
 # Fold slice dimension using mCommSlice for validation
 fold_spec <- create_fold_spec(
   model,
@@ -129,6 +135,7 @@ For energyRt models with entity-specific mappings, use
 [`create_fold_spec_energyRt()`](https://optimal2050.github.io/multimod/reference/create_fold_spec_energyRt.md):
 
 ``` r
+
 fold_spec <- create_fold_spec_energyRt(
   model,
   fold_dims = list(
@@ -173,6 +180,7 @@ to check:
 ## Applying the Fold
 
 ``` r
+
 model_folded <- fold_model(model, fold_spec = fold_spec, verbose = TRUE)
 ```
 
@@ -208,6 +216,7 @@ Use
 to extract comprehensive folding statistics:
 
 ``` r
+
 # Get formatted text summary
 get_fold_summary(model_folded, format = "text")
 ```
@@ -229,6 +238,7 @@ get_fold_summary(model_folded, format = "text")
       ...
 
 ``` r
+
 # Get as data frame for analysis
 summary_df <- get_fold_summary(model_folded, format = "data.frame")
 print(summary_df[1:5, ])
@@ -242,6 +252,7 @@ print(summary_df[1:5, ])
     ...
 
 ``` r
+
 # Get as structured list for programmatic access
 stats <- get_fold_summary(model_folded, format = "list")
 cat("Folded:", stats$n_folded, "/", stats$n_total, "parameters\n")
@@ -259,6 +270,7 @@ cat("Example:", stats$parameters[[1]]$parameter,
 After folding, analyze the remaining redundancy:
 
 ``` r
+
 redundancy_after <- analyze_parameter_redundancy(
   model_folded,
   verbose = TRUE,
@@ -384,6 +396,7 @@ The folding algorithm consists of 5 steps:
 ## Writing Folded Models
 
 ``` r
+
 # Write folded model and data
 write_gmpl(model_folded, file = "tmp/model_folded.mod", include_solve = TRUE)
 write_gmpl_data(model_folded, file = "tmp/model_folded.dat", use_folded = TRUE)
@@ -407,6 +420,7 @@ cat("Folded data:   ", file.size("model_folded.dat"), "bytes\n")
 Folded models solve identically to unfolded models:
 
 ``` r
+
 # Solve unfolded
 result_unfolded <- execute_glpkAPI(
   model_dir = "tmp/",
@@ -440,6 +454,7 @@ cat("Match:", all.equal(result_unfolded$objective, result_folded$objective), "\n
 Use the helper functions to check folding status:
 
 ``` r
+
 # Check if model is folded
 is_folded(model_folded)
 # [1] TRUE
@@ -464,6 +479,7 @@ folded_dims <- get_active_dims(model_folded$parameters$pTechCinp2use, folded = T
 For detailed information about individual parameters:
 
 ``` r
+
 # Access fold metadata directly
 param <- model_folded$parameters$pTechCinp2use
 param$misc$fold_info$removed_dims      # [1] "slice"
@@ -508,6 +524,7 @@ remaining redundancy for further optimization opportunities
 Save fold specifications for reproducibility:
 
 ``` r
+
 # Save for later use
 saveRDS(fold_spec, "fold_spec_utopia.rds")
 
@@ -531,6 +548,7 @@ they contain redundant data. This is particularly useful for:
 For single-region models or parameters constant across regions:
 
 ``` r
+
 # Create fold spec for region dimension
 fold_spec_region <- create_fold_spec(
   model,
@@ -560,6 +578,7 @@ model_region_folded <- fold_model(model, fold_spec = fold_spec_region)
 For time-invariant parameters or representative year models:
 
 ``` r
+
 # Create fold spec for year dimension
 fold_spec_year <- create_fold_spec(
   model,
@@ -597,6 +616,7 @@ Fold multiple dimensions in a single call - the function applies them
 sequentially:
 
 ``` r
+
 # Fold slice, region, AND year in one specification
 # The function will apply them sequentially: slice → region → year
 fold_spec_multi <- create_fold_spec(
@@ -633,6 +653,7 @@ Always verify that multi-dimensional folding preserves model correctness
 by comparing objectives:
 
 ``` r
+
 # Export and solve both models
 write_gmpl(model, file = "tmp/model_unfolded.mod", include_solve = TRUE)
 write_gmpl(model_multi_folded, file = "tmp/model_folded.mod", include_solve = TRUE)
@@ -715,6 +736,7 @@ The implementation correctly handles parameters with repeated dimensions
 (e.g., `{region, region}` for trade parameters):
 
 ``` r
+
 # Uses position-based removal instead of set operations
 dim_names <- sapply(dims, function(d) d$name)
 dims_to_remove_match <- dim_names == dim_to_fold
@@ -727,6 +749,7 @@ Instead of mapping dimension names to column names (which fails for
 positional aliases), the implementation uses actual data columns:
 
 ``` r
+
 # Use all columns except 'value' and the folded dimension
 data_cols <- setdiff(names(param$data), c("value", dim_to_fold))
 folded_data <- param$data %>%

@@ -96,6 +96,8 @@ reference:
   desc:  Functions to read GAMS models and convert multimod objects to GAMS code.
   contents:
   - starts_with("read_gams")
+  - parse_equation_header
+  - remove_ontext_offtext
   - starts_with("as_gams")
   - starts_with("write_gams")
   - matches("gams")
@@ -168,6 +170,44 @@ reference:
   - save_parameter
   - export_model_source
   - add_set_data
+
+- title: Direct matrix and MPS backend
+  desc: >
+    Assemble a model straight into LP arrays, bypassing the symbolic layer, and
+    solve it or write it out as MPS.
+  contents:
+  - model_to_lp
+  - build_col_index
+  - build_row_index
+  - build_triplets
+  - check_matrix_numbers
+  - mm_session
+  - solve_highs
+  - solve_mps
+  - write_mps
+  - read_mps_solution
+  - read_highs_solution
+  - read_cuopt_solution
+  - read_solver_solution
+  - write_solution
+  - write_energyrt_output
+
+- title: Schema and serialisation
+  desc: >
+    The AST's node shapes, declared once, plus the language-neutral JSON form a
+    non-R reader can consume.
+  contents:
+  - ast_schema
+  - schema_type
+  - schema_node_types
+  - validate_ast
+  - ast_json_schema
+  - model_to_json
+  - model_from_json
+  - ast_to_json
+  - ast_from_json
+  - multimod-constructors
+  - is_declaration
 
 - title: Solver integration
   desc:  Functions for solving models and loading solutions.

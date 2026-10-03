@@ -12,8 +12,8 @@
 <link rel="icon" sizes="any" href="../favicon.ico">
 <link rel="manifest" href="../site.webmanifest">
 <script src="../lightswitch.js"></script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
+<script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="multimod to GMPL">
 <!-- Google tag (gtag.js) --><script async src="https://www.googletagmanager.com/gtag/js?id=G-LNY00P1MW7"></script><script>
@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.0.9007</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -96,7 +96,7 @@
                         <h4 data-toc-skip class="author">multimod
 Package</h4>
             
-            <h4 data-toc-skip class="date">2025-12-08</h4>
+            <h4 data-toc-skip class="date">2026-10-01</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/optimal2050/multimod/blob/HEAD/vignettes/gmpl.Rmd" class="external-link"><code>vignettes/gmpl.Rmd</code></a></small>
       <div class="d-none name"><code>gmpl.Rmd</code></div>
@@ -208,10 +208,10 @@ vectors</li>
 </ul>
 </div>
 <div class="section level4">
-<h4 id="link_scenario_datamodel-scenario">4. <code>link_scenario_data(model, scenario)</code><a class="anchor" aria-label="anchor" href="#link_scenario_datamodel-scenario"></a>
+<h4 id="link_scenario_data_with_logmodel-scenario">4. <code>link_scenario_data_with_log(model, scenario)</code><a class="anchor" aria-label="anchor" href="#link_scenario_data_with_logmodel-scenario"></a>
 </h4>
-<p>Links energyRt parameter data to model without loading into
-memory.</p>
+<p>Links energyRt parameter data to model without loading into memory,
+and records what matched in an import log.</p>
 <ul>
 <li>Distinguishes mappings (<code>@type == "map"</code>) from parameters
 (<code>@type == "numpar"</code>)</li>
@@ -351,12 +351,12 @@ The data is stored in Arrow/Parquet format on disk.</p>
 <div class="section level3">
 <h3 id="import-scenario-data-with-logging">Import Scenario Data with Logging<a class="anchor" aria-label="anchor" href="#import-scenario-data-with-logging"></a>
 </h3>
-<p>We use the comprehensive <code><a href="../reference/import_energyRt_data.html">import_energyRt_data()</a></code> function
+<p>We use the comprehensive <code>import_energyRt_data()</code> function
 that handles sets, parameters, mappings, and bounds parameters:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Import all data with detailed logging</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"\nImporting energyRt scenario data...\n"</span><span class="op">)</span></span>
-<span><span class="va">model</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/import_energyRt_data.html">import_energyRt_data</a></span><span class="op">(</span><span class="va">model</span>, <span class="va">scen</span>, inMemory <span class="op">=</span> <span class="cn">TRUE</span>, log_file <span class="op">=</span> <span class="st">"tmp/import_log.csv"</span><span class="op">)</span></span>
+<span><span class="va">model</span> <span class="op">&lt;-</span> <span class="fu">import_energyRt_data</span><span class="op">(</span><span class="va">model</span>, <span class="va">scen</span>, inMemory <span class="op">=</span> <span class="cn">TRUE</span>, log_file <span class="op">=</span> <span class="st">"tmp/import_log.csv"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Check what was imported</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"\nImport summary:\n"</span><span class="op">)</span></span>
@@ -372,15 +372,15 @@ that handles sets, parameters, mappings, and bounds parameters:</p>
 automatically split into separate Lo/Up parameters:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Show bounds mapping</span></span>
-<span><span class="fu"><a href="../reference/show_bounds_mapping.html">show_bounds_mapping</a></span><span class="op">(</span><span class="va">model</span><span class="op">)</span></span>
+<span><span class="fu">show_bounds_mapping</span><span class="op">(</span><span class="va">model</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Check for any import issues</span></span>
-<span><span class="fu"><a href="../reference/show_unmatched.html">show_unmatched</a></span><span class="op">(</span><span class="va">model</span><span class="op">)</span></span>
+<span><span class="fu">show_unmatched</span><span class="op">(</span><span class="va">model</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Access detailed import log</span></span>
-<span><span class="va">log</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_import_log.html">get_import_log</a></span><span class="op">(</span><span class="va">model</span><span class="op">)</span></span>
+<span><span class="va">log</span> <span class="op">&lt;-</span> <span class="fu">get_import_log</span><span class="op">(</span><span class="va">model</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"\nBounds processed:"</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">log</span><span class="op">$</span><span class="va">bounds</span><span class="op">)</span>, <span class="st">"\n"</span><span class="op">)</span></span></code></pre></div>
-<p>The <code><a href="../reference/import_energyRt_data.html">import_energyRt_data()</a></code> function:</p>
+<p>The <code>import_energyRt_data()</code> function:</p>
 <ol style="list-style-type: decimal">
 <li>
 <strong>Populates sets</strong> from scenario parameter
@@ -599,13 +599,13 @@ variables</li>
 <p>The lazy loading approach keeps memory usage low:</p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Before write_gmpl_data()</span></span>
-<span><span class="va">mem_before</span> <span class="op">&lt;-</span> <span class="fu">pryr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/pryr/man/mem_used.html" class="external-link">mem_used</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">mem_before</span> <span class="op">&lt;-</span> <span class="fu">pryr</span><span class="fu">::</span><span class="fu">mem_used</span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Write data file (loads from disk)</span></span>
 <span><span class="fu"><a href="../reference/write_gmpl_data.html">write_gmpl_data</a></span><span class="op">(</span><span class="va">model</span>, file <span class="op">=</span> <span class="va">dat_file</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># After (data eligible for GC)</span></span>
-<span><span class="va">mem_after</span> <span class="op">&lt;-</span> <span class="fu">pryr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/pryr/man/mem_used.html" class="external-link">mem_used</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">mem_after</span> <span class="op">&lt;-</span> <span class="fu">pryr</span><span class="fu">::</span><span class="fu">mem_used</span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Memory increase:"</span>, <span class="fu"><a href="https://rdrr.io/r/base/format.html" class="external-link">format</a></span><span class="op">(</span><span class="va">mem_after</span> <span class="op">-</span> <span class="va">mem_before</span>, units <span class="op">=</span> <span class="st">"MB"</span><span class="op">)</span>, <span class="st">"\n"</span><span class="op">)</span></span></code></pre></div>
 </div>
@@ -722,7 +722,7 @@ available:</p>
 <span><span class="va">model</span><span class="op">$</span><span class="va">base_path</span> <span class="op">&lt;-</span> <span class="st">"path/to/scenario"</span></span>
 <span></span>
 <span><span class="co"># Import all data (sets, parameters, mappings, bounds)</span></span>
-<span><span class="va">model</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/import_energyRt_data.html">import_energyRt_data</a></span><span class="op">(</span><span class="va">model</span>, <span class="va">scen</span>, inMemory <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">model</span> <span class="op">&lt;-</span> <span class="fu">import_energyRt_data</span><span class="op">(</span><span class="va">model</span>, <span class="va">scen</span>, inMemory <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># 3. Write GMPL files</span></span>
 <span><span class="va">output_dir</span> <span class="op">&lt;-</span> <span class="st">"path/to/output"</span></span>
@@ -932,7 +932,7 @@ documentation</a>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>

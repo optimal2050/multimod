@@ -15,10 +15,9 @@
 # Why it matters: first-order solvers (PDLP, and cuOpt's PSLP) judge tolerances
 # against global problem norms, so entries many orders below the typical
 # magnitude are either trampled or poison convergence. Presolve normally
-# scrubs them; a truncated presolve does not. Measured: `pWeather` dust at
-# 5e-11 diverged a 214M-nonzero solve, and an `eqTechAInp` /8760 unit
-# conversion put 1.2M entries at 5e-6..5e-5 into a full-year matrix. HiGHS
-# silently dropped 153,504 entries around 1e-13 from a PyPSA-Eur matrix.
+# scrubs them; a truncated presolve does not, and a solver may silently drop
+# entries near its own zero tolerance. Unit conversions are a common source:
+# dividing a coefficient by 8760 can push a whole equation family into 5e-6.
 #
 # The offender tables are the actionable part: not "there is a 5e-11
 # somewhere" but "841k entries below 1e-2, all in eqTechAfUp rows against

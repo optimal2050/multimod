@@ -12,8 +12,8 @@
 <link rel="icon" sizes="any" href="../favicon.ico">
 <link rel="manifest" href="../site.webmanifest">
 <script src="../lightswitch.js"></script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
+<script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Parameter Folding: Reducing Model Size Through Redundancy Elimination">
 <!-- Google tag (gtag.js) --><script async src="https://www.googletagmanager.com/gtag/js?id=G-LNY00P1MW7"></script><script>
@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.0.9007</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -104,12 +104,14 @@
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://optimal2050.github.io/multimod">multimod</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://energyRt.org" class="external-link">energyRt</a></span><span class="op">)</span></span>
-<span><span class="co">#&gt; energyRt version: 0.50.1-beta (2024-09-25)</span></span>
+<span><span class="co">#&gt; energyRt 0.90.0.9007-dev (2026-09-28)</span></span>
+<span><span class="co">#&gt; Development version, please report bugs/issues:</span></span>
+<span><span class="co">#&gt; https://github.com/optimal2050/energyRt/issues</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Attaching package: 'energyRt'</span></span>
-<span><span class="co">#&gt; The following object is masked from 'package:multimod':</span></span>
+<span><span class="co">#&gt; The following objects are masked from 'package:multimod':</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;     get_data</span></span></code></pre></div>
+<span><span class="co">#&gt;     load_model, save_model, update_parameter</span></span></code></pre></div>
 <div class="section level2">
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h2>
@@ -172,7 +174,7 @@ redundancy and would benefit from folding.</p>
 <span><span class="co"># Import scenario data</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/load.html" class="external-link">load</a></span><span class="op">(</span><span class="st">'dev/scenarios/BASE_UTOPIA/scen.RData'</span><span class="op">)</span></span>
 <span><span class="va">model</span><span class="op">$</span><span class="va">base_path</span> <span class="op">&lt;-</span> <span class="st">'dev/scenarios/BASE_UTOPIA'</span></span>
-<span><span class="va">model</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/import_energyRt_data.html">import_energyRt_data</a></span><span class="op">(</span><span class="va">model</span>, <span class="va">scen</span>, inMemory <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">model</span> <span class="op">&lt;-</span> <span class="fu">import_energyRt_data</span><span class="op">(</span><span class="va">model</span>, <span class="va">scen</span>, inMemory <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="analyze-redundancy">Analyze Redundancy<a class="anchor" aria-label="anchor" href="#analyze-redundancy"></a>
@@ -731,7 +733,7 @@ sequentially:</p>
 <span><span class="va">model_multi_folded</span> <span class="op">&lt;-</span> <span class="fu">fold_model</span><span class="op">(</span><span class="va">model</span>, fold_spec <span class="op">=</span> <span class="va">fold_spec_multi</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Analyze the result</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fold_spec_multi</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://energyRt.org/reference/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fold_spec_multi</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"Parameters folded: %d\n"</span>, <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">fold_spec_multi</span><span class="op">$</span><span class="va">can_fold</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"Dimensions: %s\n"</span>, <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">fold_spec_multi</span><span class="op">$</span><span class="va">dim_to_fold</span><span class="op">)</span>, collapse <span class="op">=</span> <span class="st">", "</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 </div>
@@ -895,7 +897,7 @@ validate results!</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>

@@ -1,6 +1,6 @@
-# Generate metadata CSV files for sets, mappings, and parameters
+# Internal function to write JuMP model
 
-Generate metadata CSV files for sets, mappings, and parameters
+Internal function to write JuMP model
 
 ## Usage
 

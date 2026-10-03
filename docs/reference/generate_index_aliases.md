@@ -33,7 +33,7 @@ Named character vector. Dummy variable names with set names as names
 ## Examples
 
 ``` r
-generate_index_aliases(c("tech", "region", "comm", "commp", "year", "slice"))
-#>   tech region   comm  commp   year  slice 
-#>    "h"    "r"    "c"   "cp"    "y"   "ts" 
+generate_index_aliases(c("tech", "region", "comm", "commp", "year", "timeslice"))
+#>      tech    region      comm     commp      year timeslice 
+#>       "h"       "r"       "c"      "cp"       "y"      "ts" 
 ```

@@ -107,10 +107,8 @@ model_to_lp <- function(model, col_index = NULL, row_index = NULL,
 #' Refuse (or report) equation rows that carry no coefficients
 #'
 #' A row with no entries reads `0 <op> rhs` and binds nothing, but the model
-#' assembles and the solver returns Optimal, so the failure is invisible: the
-#' 442M-nonzero EU41_N10_TRANS solved to 2.602e12 in 2026-09 while ignoring the
-#' CO2 path its rows declared. The detection itself already existed in
-#' [check_matrix_numbers()] but nothing called it.
+#' assembles and the solver returns Optimal, so the failure is invisible - a
+#' cap declared by such a row is silently absent from the problem.
 #' @keywords internal
 #' @noRd
 .check_empty_rows <- function(lp, on_empty_row) {

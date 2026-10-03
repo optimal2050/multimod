@@ -7,7 +7,7 @@ Reports which parameters could be folded and the potential compression.
 ``` r
 analyze_fold_opportunities(
   model,
-  fold_slice = TRUE,
+  fold_timeslice = TRUE,
   fold_region = FALSE,
   fold_year = FALSE,
   tolerance = 1e-10
@@ -20,9 +20,9 @@ analyze_fold_opportunities(
 
   A multimod model object
 
-- fold_slice:
+- fold_timeslice:
 
-  Logical; consider slice dimension
+  Logical; consider the timeslice dimension
 
 - fold_region:
 

@@ -320,7 +320,6 @@ remap_ast_elements <- function(obj,
                                latex_max = 10,
                                ...
                                ) {
-  # browser()
   if (is_empty(ast_type) || is_empty(obj)) return(obj)
 
   tmp_name <- "s"
@@ -389,7 +388,6 @@ replace_where_duplicates <- function(obj) {
     stringsAsFactors = FALSE
   )
   d$duplicates <- duplicated(d$hash)
-  # browser()
   if (nrow(d) == 0) return(obj)  # no duplicates, nothing to do
   d$new_name <- NA_character_
   d$new_name[!d$duplicates] <- paste0("m", seq_len(sum(!d$duplicates)))
@@ -402,11 +400,9 @@ replace_where_duplicates <- function(obj) {
 
   # replace names in obj with d$new_name
   rename_fun <- function(x) {
-    # browser()
     if (is_empty(x)) return(x)
     # message(as.character(x))
     if (inherits(x, "where") && isTRUE(x$name %in% d$name)) {
-      # browser()
       new_name <- d$new_name[d$name == x$name][1]
       x$name <- new_name
       # Recurse into subfields
@@ -689,15 +685,9 @@ extract_ast_names <- function(ast, types = c("variable", "parameter", "mapping")
     #
     # An AST node IS a list of its children, so this generic walk already
     # reaches `lhs`/`rhs`/`value`/`domain`/`index`/`operands` and everything
-    # else. There used to be a per-class branch above this one that walked the
-    # known children by name, and because it was not an `else` the generic walk
-    # then visited those same children AGAIN - 2^depth visits for a tree of
-    # depth d. `eqCost` is a flat sum of 21 `+` terms, which nests 21 levels
-    # right-associatively, and `trim.R` calls this six times per equation: that
-    # was the `trim_model()` hang (a single pass over 152 equations ran >10 min
-    # with no error). The per-class branch was pure duplication - it reached a
-    # strict subset of what this loop reaches - so it is gone rather than
-    # `else`-ed, which would have stopped `sum`'s `index` being walked at all.
+    # else. Do not add a per-class branch that walks named children: it reaches
+    # a strict subset of this loop, and unless it returns, these children are
+    # visited twice per level - 2^depth visits for a tree of depth d.
     if (is.list(node) && !is.data.frame(node)) {
       for (elem in node) {
         if (!is.null(elem) && (inherits(elem, "ast") || is.list(elem))) {

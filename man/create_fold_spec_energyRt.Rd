@@ -35,13 +35,6 @@ for entity-to-mapping associations.
 \strong{Deprecated.} This is now a thin alias for \code{\link[=create_fold_spec]{create_fold_spec()}}, which does
 the work and is not energyRt-specific. Use that instead.
 
-Until 2026-09-24 this name was defined \emph{twice} in this file. The first
-definition delegated to \code{create_fold_spec()}, which delegated straight back -
-infinite mutual recursion, avoided only because the second definition
-silently overrode the first and carried the real implementation. The
-implementation now lives under \code{create_fold_spec()} and this name forwards
-to it.
-
 Mapping priority (for entity-specific configuration):
 \itemize{
 \item Uses FIRST matching entity dimension

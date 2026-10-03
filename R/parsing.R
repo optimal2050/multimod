@@ -22,7 +22,6 @@ known_operators <- names(operator_precedence)
 sort_by_precedence <- function(ops,
                                precedence = operator_precedence,
                                descending = FALSE) {
-  # browser()
   if (is.null(precedence)) {
     return(ops)
   }
@@ -90,18 +89,11 @@ get_expression_level <- function(
 # Find and return the top-level operators in an expression
 find_top_level_operators <- function(
     expr,
-    # ops = c("+", "-", "*", "/", "<", "<=", ">=", "=", "==", "and", "or", "not")
     ops = gams_ops,
     precedence = operator_precedence,
     descending = FALSE,
     expr_lev = NULL,
-    # fixed = FALSE,
     full_table = FALSE) {
-  # browser()
-  # if (grepl("\\*\\*", expr)) {
-  #   browser()
-  # }
-  # ops <- ops[order(nchar(ops), decreasing = TRUE)]
   # expr_chars <- strsplit(expr, "")[[1]]
   # word_buffer <- ""
   if (is.null(expr_lev)) {
@@ -133,7 +125,6 @@ find_top_level_operators <- function(
       fixed <- TRUE
       op_sp <- op
     }
-    # browser()
     op_nn <- gregexpr(op_sp, expr, fixed = fixed, ignore.case = !fixed)[[1]]
     if (op_nn[1] == -1) next
     
@@ -153,21 +144,13 @@ find_top_level_operators <- function(
       }
     }
     
-    # DON'T modify expr - we need consistent positions throughout
-    # expr <- gsub(op_sp, " ", expr, fixed = fixed, ignore.case = !fixed)
-
-    # if (!is.null(precedence[[op]])) {
-    #   expr_lev$prec[op_nn] <- precedence[[op]]
-    # } else {
-    # Default precedence for unknown operators
-    # }
+    # `expr` is never modified here: positions must stay consistent throughout.
   }
 
   if (full_table) {
     return(expr_lev)
   }
 
-  # browser()
   expr_lev <- expr_lev[expr_lev$level == 0 & !is.na(expr_lev$op), ]
   expr_lev <- expr_lev[order(expr_lev$prec, decreasing = isTRUE(descending)), ]
   expr_lev <- expr_lev[, names(expr_lev) %in% c("op", "pos", "prec")]
@@ -182,7 +165,6 @@ split_top_level <- function(
     expr_lev = NULL,
     keep_op = TRUE,
     as_list = FALSE) {
-  # browser()
   if (is.null(expr_lev)) {
     expr_lev <- get_expression_level(expr, as_data_frame = TRUE)
   } else {
@@ -216,7 +198,6 @@ split_top_level <- function(
     # check if op is in the expression
     op_nn <- gregexpr(op_sp, expr, fixed = fixed, ignore.case = !fixed)[[1]]
     if (op_nn[1] == -1) next
-    # browser()
     for (i in seq_along(op_nn)) {
       expr_lev$op[op_nn[i]] <- op
       expr_lev$split[op_nn[i]:(op_nn[i] + nchar(op) - 1)] <- TRUE
@@ -227,10 +208,8 @@ split_top_level <- function(
 
   tokens <- list()
   ntoken <- 0
-  # browser()
   for (i in seq_along(expr_lev$char)) {
     if (expr_lev$split[i]) {
-      # browser()
       # split point
       if (i > 1 && !expr_lev$split[i - 1]) { # end of previous token
         stopifnot(ntoken > 0)
@@ -317,7 +296,6 @@ annotate_brackets <- function(expr, parent = NULL, side = NULL) {
 # Generic function parser
 parse_function_expr <- function(expr, symbols,
                                 known_funcs, known_funcs_indexed, ...) {
-  # browser()
   # Extract function name (before first parenthesis)
   fn_name <- sub("\\(.*", "", expr)
   fn_name_lower <- tolower(fn_name)
@@ -330,7 +308,6 @@ parse_function_expr <- function(expr, symbols,
 
   if (is_indexed) {
     # Indexed function: func(index, value)
-    # browser()
     parts <- split_indexed_operator(expr, func_name = fn_name)
     if (is.null(parts) || length(parts) != 2) return(NULL)
 
@@ -344,11 +321,9 @@ parse_function_expr <- function(expr, symbols,
                                   # known_funcs = known_funcs,
                                   # known_funcs_indexed = known_funcs_indexed,
                                   ...)
-    # browser()
     return(ast_func(fn_name, index = index, value = value_expr))
 
   } else {
-    # browser()
     # Scalar function: func(arg1, arg2, ...)
     # Extract string inside the outermost parentheses
     args_str <- sub("^[^(]*\\((.*)\\)$", "\\1", expr)
@@ -370,7 +345,6 @@ parse_function_expr <- function(expr, symbols,
 #' @param expr_str A string containing comma-separated expressions
 #' @return A character vector of top-level arguments
 split_top_level_args <- function(expr_str) {
-  # browser()
   chars <- strsplit(expr_str, "")[[1]]
   level <- 0
   start <- 1

@@ -21,13 +21,6 @@
 #' **Deprecated.** This is now a thin alias for [create_fold_spec()], which does
 #' the work and is not energyRt-specific. Use that instead.
 #'
-#' Until 2026-09-24 this name was defined *twice* in this file. The first
-#' definition delegated to `create_fold_spec()`, which delegated straight back -
-#' infinite mutual recursion, avoided only because the second definition
-#' silently overrode the first and carried the real implementation. The
-#' implementation now lives under `create_fold_spec()` and this name forwards
-#' to it.
-#'
 #' Mapping priority (for entity-specific configuration):
 #' - Uses FIRST matching entity dimension
 #' - If parameter has "tech" → use tech mapping
@@ -515,12 +508,6 @@ create_fold_spec <- function(model,
   
   return(spec_df)
 }
-
-
-# `guess_validation_mapping_energyRt()` was removed here on 2026-09-24. It had
-# no caller anywhere in R/, tests/ or vignettes/: the priority-based entity
-# selection it performed was inlined into create_fold_spec() above, and the
-# extracted helper was left orphaned. Deleted rather than moved to energyRt.
 
 
 #' Fold model dimensions to reduce data size

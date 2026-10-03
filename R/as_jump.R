@@ -568,7 +568,7 @@ as_jump.shift <- function(x, model = NULL, var_names = NULL, shifts_tracker = NU
   
   # Fall back to index_aliases for global scope
   if (is.null(set_name) && !is.null(model) && !is.null(model$index_aliases)) {
-    # index_aliases is a named vector: c(REGION="r", TIMESLICE="l", YEAR="y", ...)
+    # index_aliases is a named vector mapping set name -> iterator alias
     # Find the set name where the value matches our symbol
     matching_sets <- names(model$index_aliases)[model$index_aliases == symbol]
     if (length(matching_sets) > 0) {
@@ -653,9 +653,7 @@ as_jump.func <- function(x, model = NULL, in_filter = FALSE, ...) {
   
   # GAMS-specific function conversions
   if (tolower(x$name) == "val") {
-    # y.val -> parse(Int, string(y)) or just use ordinal value
-    # For OSeMOSYS, .val is typically used on YEAR which is numeric
-    # So we can convert y to its numeric value
+    # y.val -> the member's numeric value; `.val` applies to numeric sets
     val <- as_jump(x$value, model = model, in_filter = in_filter, ...)
     # In most cases, the value is already numeric from the set definition
     # But if it's a string, parse it
@@ -1599,8 +1597,8 @@ as_jump.equation <- function(x, model = NULL, ...) {
     # Check if equation has dims_index_aliases (equation-specific iterator names)
     if (!is.null(x$dims_index_aliases) && length(x$dims_index_aliases) > 0) {
       # Use equation-specific dims_index_aliases directly
-      # dims_index_aliases is a named character vector: c(REGION="r", REGION="rr", TIMESLICE="l", ...)
-      # When dimensions repeat, access by position, not by name
+      # dims_index_aliases is a named character vector mapping set name ->
+      # iterator alias. A set may repeat, so access by position, not by name.
       for (i in seq_along(domain_dim_names)) {
         # Access by position to handle duplicate dimension names correctly
         if (i <= length(x$dims_index_aliases)) {

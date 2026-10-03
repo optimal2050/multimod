@@ -295,7 +295,6 @@ write_latex.model <- function(x,
                               trimmed_color = "red",
                               verbose = FALSE,
                               ...) {
-  # browser()
   # Auto-detect model_view default
   if (missing(model_view)) {
     is_optimized <- is_folded(x) || is_trimmed(x)
@@ -333,7 +332,6 @@ write_latex.model <- function(x,
     # Convert named vector to list if needed
     alias_map <- if (is.list(x$index_aliases)) x$index_aliases else as.list(x$index_aliases)
   }
-  # browser()
   if (!is_empty(eq_substitute)) {
     # Substitute elements in the AST
     x$equations <- lapply(x$equations, remap_ast_elements,
@@ -502,7 +500,6 @@ write_latex.model <- function(x,
 
   if (include_aliases && !is.null(model$aliases)) {
     lines <- c(lines, "", "\\section{Aliases}\\", "\\begin{flushleft}")
-    # browser()
     for (a in model$aliases) {
       if (is.character(a)) {
         b <- paste0("\\texttt{", a, "}", collapse = ", ")

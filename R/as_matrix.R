@@ -685,8 +685,8 @@
 #'
 #' A mapping the model never declared is a model error and must say so. A
 #' declared mapping holding no tuples is legitimate - it means the gated
-#' expression is empty - and returns a zero-row table. The two used to be
-#' conflated, and the second silently became "no map constrains this index".
+#' expression is empty - and returns a zero-row table. Keep the two apart:
+#' conflating them turns a missing map into "no map constrains this index".
 #' @keywords internal
 #' @noRd
 .mx_map_data <- function(nm, ctx) {
