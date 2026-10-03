@@ -17,3 +17,4 @@
 ^tmp$
 ^constraint_stats\.csv$
 ^variable_stats\.csv$
+^.*\.Rproj$

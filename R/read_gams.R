@@ -453,7 +453,8 @@ parse_gams_expr <- function(
     name <- sub("\\(.*", "", expr)
     dims <- gsub("[()]", "", sub("^[^(]+\\(", "", expr))
     dims <- trimws(strsplit(dims, ",")[[1]])
-    symbol_type <- detect_symbol_type(name, symbols, known_funcs)
+    symbol_type <- detect_symbol_type(name, symbols, known_funcs,
+                                      indexed = TRUE)
     dims <- ast_dims(dims, symbols = symbols)
     return(do.call(paste0("ast_", symbol_type), list(name, dims)))
   }
@@ -483,7 +484,8 @@ parse_gams_expr <- function(
     # assign
     symb <- symb |>
       lapply(function(x) {
-        sb <- detect_symbol_type(x, symbols = symbols, known_funcs = known_funcs)
+        sb <- detect_symbol_type(x, symbols = symbols,
+                                 known_funcs = known_funcs, indexed = FALSE)
         do.call(paste0("ast_", sb), list(x))
       })
     # return(ast_dims(symb))
@@ -783,6 +785,15 @@ read_gams <- function(
         inside <- sub("^[^(]+\\(([^)]+)\\).*", "\\1", line)
         dims <- trimws(unlist(strsplit(inside, ",")))
         mappings[[name]] <- list(name = name, desc = desc, dims = dims)
+        # A one-dimensional declaration over an already-declared set is a
+        # subset, and in GAMS a subset is itself a set: it carries members and
+        # is summed over as an index. Register it in BOTH lists -- as a mapping
+        # for the occurrences that gate an expression, and as a set for the
+        # bare ones. `detect_symbol_type(indexed =)` picks between them per
+        # occurrence; registering only one way breaks whichever use it is not.
+        if (length(dims) == 1L && dims %in% names(sets)) {
+          sets[[name]] <- list(name = name, desc = desc, dims = character(0))
+        }
       } else {
         name <- name_part
         sets[[name]] <- list(name = name, desc = desc, dims = character(0))
