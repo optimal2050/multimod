@@ -4,7 +4,7 @@
 ## and combines include files into single model and data files for each format.
 ##
 ## Source: energyRt package BASE_UTOPIA scenario
-## License: AGPL-3.0 (energyRt); multimod itself is Apache-2.0
+## License: Apache-2.0 (energyRt), the same license as multimod itself
 
 library(usethis)
 
@@ -344,7 +344,7 @@ energyRt_source <- list(
     source = "energyRt package",
     scenario = "BASE_UTOPIA (Utopia test case)",
     repository = "https://github.com/energyRt/energyRt",
-    license = "AGPL-3.0",
+    license = "Apache-2.0",
     date_imported = Sys.Date(),
     note = paste(
       "energyRt is an R package for energy systems modeling.",

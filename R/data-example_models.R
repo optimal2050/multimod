@@ -41,8 +41,8 @@
 #' GMPL/JuMP/Pyomo templates are still evolving. The *data* is attached from an
 #' interpolated energyRt scenario. See \code{data-raw/build_energyRt_fixture.R}.
 #'
-#' **License**: GNU Affero General Public License v3.0 (AGPL-3.0). This applies
-#' to the bundled model source, not to multimod itself. See `LICENSE.note`.
+#' **License**: Apache License 2.0, the same license as multimod itself. See
+#' `LICENSE.note`.
 #'
 #' @section Usage:
 #'
