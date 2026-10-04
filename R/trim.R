@@ -187,12 +187,25 @@ trim_model <- function(model, strategy = "unused", verbose = TRUE, .progress = "
 #' @keywords internal
 mark_empty_data <- function(model, verbose = FALSE) {
   n_trimmed <- 0
-  
+
+  # A subset declaration registers ONE symbol on both sides, and only one
+  # side carries the members, so judging each side alone always trims the
+  # other. A folded equation names such a symbol parenthesised, as a mapping
+  # gate, where the unfolded one names it bare - which is why trimming a live
+  # process subset only shows up through use_folded = TRUE.
+  dual <- dual_registered_symbols(model)
+  dual_has_data <- function(nm) {
+    s <- model$sets[[nm]]$data
+    m <- model$mappings[[nm]]$data
+    (!is.null(s) && length(s) > 0) || (!is.null(m) && nrow(m) > 0)
+  }
+
   # Check sets
   if (!is.null(model$sets) && length(model$sets) > 0) {
     for (set_name in names(model$sets)) {
       set_obj <- model$sets[[set_name]]
       if (is.null(set_obj$data) || length(set_obj$data) == 0) {
+        if (set_name %in% dual && dual_has_data(set_name)) next
         model$sets[[set_name]]$trimmed <- TRUE
         n_trimmed <- n_trimmed + 1
         if (verbose) message("    Trimmed set: ", set_name)
@@ -219,6 +232,7 @@ mark_empty_data <- function(model, verbose = FALSE) {
     for (mapping_name in names(model$mappings)) {
       mapping_obj <- model$mappings[[mapping_name]]
       if (is.null(mapping_obj$data) || nrow(mapping_obj$data) == 0) {
+        if (mapping_name %in% dual && dual_has_data(mapping_name)) next
         model$mappings[[mapping_name]]$trimmed <- TRUE
         n_trimmed <- n_trimmed + 1
         if (verbose) message("    Trimmed mapping: ", mapping_name)

@@ -7,7 +7,8 @@
 generate_index_aliases(
   set_names,
   all_set_names = set_names,
-  all_symbols = NULL
+  all_symbols = NULL,
+  used_names = character(0)
 )
 }
 \arguments{
@@ -16,6 +17,9 @@ generate_index_aliases(
 \item{all_set_names}{Character vector. All set names in model (for alias detection)}
 
 \item{all_symbols}{List. All symbols in model (from build_symbols_list)}
+
+\item{used_names}{Character vector. Iterator names already taken elsewhere
+in the model, so a partial regeneration does not reissue one.}
 }
 \value{
 Named character vector. Dummy variable names with set names as names
