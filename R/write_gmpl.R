@@ -210,9 +210,17 @@ write_gmpl_internal <- function(model, file = NULL, format_expr = FALSE, include
 
   # Mappings (sets with dimen N)
   if (!is.null(model$mappings) && length(model$mappings) > 0) {
+    subset_symbols <- dual_registered_symbols(model)
     for (m in model$mappings) {
       # Skip trimmed mappings
       if (isTRUE(m$trimmed)) {
+        next
+      }
+
+      # Already declared as a flat set above. MathProg has no subset form
+      # here - energyRt's own backend writes `set sup;` - and a second
+      # declaration of the same name does not compile.
+      if (!is.null(m$name) && m$name %in% subset_symbols) {
         next
       }
 
@@ -1163,9 +1171,16 @@ write_gmpl_data <- function(model, file = NULL, use_folded = TRUE, INF = 1e20) {
 
   # Write mappings (multi-dimensional sets)
   if (!is.null(model$mappings) && length(model$mappings) > 0) {
+    subset_symbols <- dual_registered_symbols(model)
     for (m in model$mappings) {
       # Skip trimmed mappings
       if (isTRUE(m$trimmed)) {
+        next
+      }
+
+      # Members already emitted in the set section above; a second
+      # `set sup := ...` is a "sup already defined" data-section error.
+      if (!is.null(m$name) && m$name %in% subset_symbols) {
         next
       }
 

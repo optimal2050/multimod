@@ -37,7 +37,12 @@ as_multimod.model_structure <- function(x, index_aliases = NULL, ...) {
 
   # Convert sets and aliases
   sets <- lapply(x$sets, function(s) {
-    new_set(name = s$name, desc = s$desc, subset_of = s$subset_of)
+    # `data` carries the members of a hand-built or already-populated
+    # model_structure. Dropping it left every set memberless, so a writer
+    # emitted no declaration for it; parsed GAMS/GMPL sets have no `$data` and
+    # are unaffected.
+    new_set(name = s$name, desc = s$desc, subset_of = s$subset_of,
+            data = s$data)
   })
 
   # Reorganize aliases: combine all aliases by base set name

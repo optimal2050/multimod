@@ -708,7 +708,7 @@ update_mapping <- function(model, name, data, auto_save = FALSE) {
 }
 # Does this object claim data that lives somewhere other than $data?
 #
-# energyRt::convert_energyrt_parameter() records an on-disk source as misc$path /
+# energyRt's convert_parameter() records an on-disk source as misc$path /
 # misc$onDisk and leaves $data empty, but get_data() only ever looked in $data
 # and in model$storage -- two conventions that never met. The consequence was
 # silent: every parameter fell through to its scalar default and the model

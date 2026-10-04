@@ -222,9 +222,11 @@ write_jump.model_structure <- function(model, file = NULL, model_dir = NULL, sol
   params_csv <- file.path(base_dir, "parameters", "parameters.csv")
 
   # Load sets
+  set_names <- character(0)
   data_lines <- c(data_lines, "# Load sets (fundamental dimensions)")
   if (file.exists(sets_csv)) {
     sets_df <- read.csv(sets_csv, stringsAsFactors = FALSE)
+    set_names <- sets_df$name
     for (i in 1:nrow(sets_df)) {
       set_name <- sets_df$name[i]
       desc <- sanitize_description(sets_df$desc[i], set_name)
@@ -291,6 +293,14 @@ write_jump.model_structure <- function(model, file = NULL, model_dir = NULL, sol
     mappings_df <- read.csv(mappings_csv, stringsAsFactors = FALSE)
     for (i in 1:nrow(mappings_df)) {
       mapping_name <- mappings_df$name[i]
+      # A subset declaration registers its name in BOTH sets and mappings, so
+      # bare and parenthesised usage each resolve. Only one side carries the
+      # members; emitting both loaders lets the second assignment win, and the
+      # one whose directory is empty returns Set() - blanking the symbol.
+      if (mapping_name %in% set_names &&
+          length(Sys.glob(file.path(base_dir, "mappings", mapping_name, "data.*"))) == 0L) {
+        next
+      }
       desc <- sanitize_description(mappings_df$desc[i], mapping_name)
       data_lines <- c(data_lines, sprintf("%s = _load_mapping_file(\"%s\")  # %s", mapping_name, mapping_name, desc))
     }

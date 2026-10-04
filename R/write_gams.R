@@ -38,8 +38,13 @@ write_gams.model <- function(model, file = NULL, format_expr = TRUE, ...) {
   lines <- c(lines, "")
 
   # Sets
+  subset_symbols <- dual_registered_symbols(model)
   lines <- c(lines, "sets")
   for (s in model$sets) {
+    # GAMS keeps the subset form, so the declaration comes from the mapping
+    # block below as `sup(process)`. Declaring the bare name here as well is
+    # a "symbol declared twice" error.
+    if (!is.null(s$name) && s$name %in% subset_symbols) next
     lines <- c(lines, as_gams(s, desc = TRUE))
   }
   lines <- c(lines, ";")
