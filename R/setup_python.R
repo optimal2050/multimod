@@ -1,6 +1,10 @@
-#' Configure a Python environment for multimod
+#' Set up the Python environment for multimod
 #'
-#' This helper bootstraps a Conda environment (named "multimod" by default)
+#' This is the installer: one Conda environment, shared by the whole stack.
+#' energyRt resolves its Python through [get_multimod_python()], so there is
+#' one environment and one source of truth rather than a per-package env.
+#'
+#' It bootstraps a Conda environment (named "multimod" by default)
 #' using the [reticulate](https://rstudio.github.io/reticulate/) toolkit. It
 #' ensures `reticulate::install_miniconda()` has been invoked (unless disabled),
 #' creates the target environment when missing, installs the requested Python
@@ -14,11 +18,12 @@
 #' @param env_name Name of the Conda environment to manage. Defaults to
 #'   "multimod" so the generated Pyomo artifacts have a predictable runtime.
 #' @param packages Character vector of Python packages to install once the
-#'   environment exists. Defaults to both `"pyomo"` and `"highspy"` so a
-#'   usable solver backend is available immediately. Set to `NULL` or
+#'   environment exists. The default covers every route multimod writes:
+#'   `pyomo` and `highspy` to build and solve, `pyarrow` and `pandas` to read
+#'   the Arrow data `save_model(format = "ipc")` writes. Set to `NULL` or
 #'   `character(0)` to skip installation.
-#' @param python_version Optional Python version spec passed to
-#'   [reticulate::conda_create()]. If `NULL`, reticulate's default is used.
+#' @param python_version Python version spec passed to
+#'   [reticulate::conda_create()]. Use `NULL` for reticulate's default.
 #' @param ensure_miniconda Logical flag controlling whether
 #'   [reticulate::install_miniconda()] should run when no Conda binary is
 #'   detected on the system. Defaults to `TRUE` to minimize user setup.
@@ -33,10 +38,10 @@
 #' @return Invisibly returns the environment name once configured.
 #' @seealso [get_multimod_python()], [set_multimod_python()]
 #' @export
-setup_python_environment <- function(
+mm_setup_python <- function(
     env_name = "multimod",
-  packages = c("pyomo", "highspy"),
-    python_version = NULL,
+    packages = c("pyomo", "highspy", "pyarrow", "pandas"),
+    python_version = "3.14",
     ensure_miniconda = TRUE,
     reinstall = FALSE,
   pip = TRUE,
@@ -106,6 +111,3 @@ setup_python_environment <- function(
   invisible(env_name)
 }
 
-#' @rdname setup_python_environment
-#' @export
-setup_multimod_python <- setup_python_environment

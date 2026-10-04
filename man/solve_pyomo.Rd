@@ -10,7 +10,7 @@ solve_pyomo(
   solver_dir = "pyomo",
   env_name = "multimod",
   ensure_env = TRUE,
-  packages = c("pyomo"),
+  packages = NULL,
   python_version = NULL,
   ensure_miniconda = TRUE,
   reinstall_env = FALSE,
@@ -35,19 +35,20 @@ Must contain \verb{solvers/<solver_dir>/solve.py} (generated via \code{write_pyo
 Defaults to "pyomo" to match \code{write_pyomo()}.}
 
 \item{env_name}{Name of the Conda environment handled by
-\code{setup_python_environment()}. Defaults to "multimod".}
+\code{mm_setup_python()}. Defaults to "multimod".}
 
 \item{ensure_env}{Logical; when \code{TRUE} (default) the helper
-\code{setup_python_environment()} runs to create/activate the environment. Set to
+\code{mm_setup_python()} runs to create/activate the environment. Set to
 \code{FALSE} if you want to manage activation yourself.}
 
 \item{packages}{Character vector of Python packages to request when the
-helper runs. Defaults to \code{"pyomo"}.}
+helper runs. \code{NULL} (default) uses \code{\link[=mm_setup_python]{mm_setup_python()}}'s own list, so the
+environment contents have a single owner.}
 
 \item{python_version}{Optional Python version passed through to
-\code{setup_python_environment()}.}
+\code{mm_setup_python()}.}
 
-\item{ensure_miniconda}{Forwarded to \code{setup_python_environment()}.}
+\item{ensure_miniconda}{Forwarded to \code{mm_setup_python()}.}
 
 \item{reinstall_env}{When \code{TRUE}, asks the helper to recreate the Conda
 environment before solving.}
@@ -71,7 +72,7 @@ output, \code{FALSE} = quiet) or one of \code{"buffer"}, \code{"stream"}, \code{
 \item{timeout}{Optional timeout (in seconds). Requires the \code{processx}
 package.}
 
-\item{...}{Additional arguments forwarded to \code{\link[=setup_python_environment]{setup_python_environment()}}.}
+\item{...}{Additional arguments forwarded to \code{\link[=mm_setup_python]{mm_setup_python()}}.}
 }
 \value{
 A list describing the solver run (exit code, success flag, elapsed
@@ -81,7 +82,7 @@ details).
 \description{
 Executes the generated \code{solve.py} script inside \verb{solvers/pyomo/} after
 ensuring a Python environment exists. By default the helper
-\code{\link[=setup_python_environment]{setup_python_environment()}} is invoked so that a Conda environment named
+\code{\link[=mm_setup_python]{mm_setup_python()}} is invoked so that a Conda environment named
 "multimod" (configurable) is created, populated with Pyomo, and activated via
 the \code{reticulate} toolkit. Once the environment is ready the solver script is
 executed with \code{system2()} or \code{processx} and basic status information is
