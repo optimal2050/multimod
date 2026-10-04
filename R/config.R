@@ -91,6 +91,49 @@ get_multimod_python <- function(env_name = "multimod") {
   "python"
 }
 
+#' Report on the Python environment multimod would use
+#'
+#' Resolves the interpreter the way [get_multimod_python()] does and reports
+#' whether it exists and carries the packages a route needs. [solve_pyomo()]
+#' calls this before bootstrapping, so an environment that is already usable
+#' is not reinstalled on every solve.
+#'
+#' @param env_name Conda environment to look for. Defaults to `"multimod"`.
+#' @param packages Python packages that must import. Defaults to `"pyomo"`.
+#' @param python Optional explicit interpreter, bypassing resolution.
+#'
+#' @return A list with `ok`, `path`, `version` and `missing`.
+#' @seealso [mm_setup_python()], [set_multimod_python()]
+#' @export
+mm_check_python <- function(env_name = "multimod", packages = "pyomo",
+                            python = NULL) {
+  path <- python %||% get_multimod_python(env_name = env_name)
+  out <- list(ok = FALSE, path = path, version = NA_character_,
+              missing = as.character(packages))
+  if (is.null(path) || is.na(path) || !nzchar(path)) return(out)
+
+  ver <- tryCatch(
+    suppressWarnings(system2(path, c("-c", shQuote("import sys; print(sys.version.split()[0])")),
+                             stdout = TRUE, stderr = FALSE)),
+    error = function(e) character(0))
+  if (length(ver) == 0 || !grepl("^[0-9]", ver[1])) return(out)
+  out$version <- ver[1]
+
+  missing <- character(0)
+  for (p in packages) {
+    probe <- tryCatch(
+      suppressWarnings(system2(path, c("-c", shQuote(paste0("import ", p))),
+                               stdout = TRUE, stderr = TRUE)),
+      error = function(e) "error")
+    if (!is.null(attr(probe, "status")) && attr(probe, "status") != 0) {
+      missing <- c(missing, p)
+    }
+  }
+  out$missing <- missing
+  out$ok <- length(missing) == 0
+  out
+}
+
 # Julia configuration ---------------------------------------------------------
 
 #' @rdname multimod-config

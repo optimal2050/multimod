@@ -2,6 +2,12 @@
 
 ## Breaking changes
 
+* `setup_python_environment()` and `setup_multimod_python()` are now
+  `mm_setup_python()`, with no aliases. Its `packages` default gains `pyarrow`
+  and `pandas`, so the environment can read the Arrow data
+  `save_model(format = "ipc")` writes, and `python_version` defaults to 3.14.
+  `solve_pyomo(packages = )` now defaults to `NULL` and defers to it, so the
+  environment contents have one owner.
 * `analyze_fold_opportunities()`: `fold_slice` is now `fold_timeslice`, and the
   `slice` dimension is spelled `timeslice` throughout, matching energyRt. The
   old spelling was dead code, so the timeslice-coverage check never ran.

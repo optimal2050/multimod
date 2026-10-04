@@ -2,7 +2,7 @@
 #'
 #' Executes the generated `solve.py` script inside `solvers/pyomo/` after
 #' ensuring a Python environment exists. By default the helper
-#' [setup_python_environment()] is invoked so that a Conda environment named
+#' [mm_setup_python()] is invoked so that a Conda environment named
 #' "multimod" (configurable) is created, populated with Pyomo, and activated via
 #' the `reticulate` toolkit. Once the environment is ready the solver script is
 #' executed with `system2()` or `processx` and basic status information is
@@ -17,15 +17,16 @@
 #' @param solver_dir Name of the solver sub-directory inside `model_dir/solvers`.
 #'   Defaults to "pyomo" to match `write_pyomo()`.
 #' @param env_name Name of the Conda environment handled by
-#'   `setup_python_environment()`. Defaults to "multimod".
-#' @param ensure_env Logical; when `TRUE` (default) the helper
-#'   `setup_python_environment()` runs to create/activate the environment. Set to
-#'   `FALSE` if you want to manage activation yourself.
+#'   `mm_setup_python()`. Defaults to "multimod".
+#' @param ensure_env Logical; when `TRUE` (default) the environment is checked
+#'   with [mm_check_python()] and `mm_setup_python()` runs only if it is not
+#'   usable. Set to `FALSE` if you want to manage activation yourself.
 #' @param packages Character vector of Python packages to request when the
-#'   helper runs. Defaults to `"pyomo"`.
+#'   helper runs. `NULL` (default) uses [mm_setup_python()]'s own list, so the
+#'   environment contents have a single owner.
 #' @param python_version Optional Python version passed through to
-#'   `setup_python_environment()`.
-#' @param ensure_miniconda Forwarded to `setup_python_environment()`.
+#'   `mm_setup_python()`.
+#' @param ensure_miniconda Forwarded to `mm_setup_python()`.
 #' @param reinstall_env When `TRUE`, asks the helper to recreate the Conda
 #'   environment before solving.
 #' @param python Optional path to a Python executable. When omitted the Python
@@ -41,7 +42,7 @@
 #'   output, `FALSE` = quiet) or one of `"buffer"`, `"stream"`, `"quiet"`.
 #' @param timeout Optional timeout (in seconds). Requires the `processx`
 #'   package.
-#' @param ... Additional arguments forwarded to [setup_python_environment()].
+#' @param ... Additional arguments forwarded to [mm_setup_python()].
 #'
 #' @return A list describing the solver run (exit code, success flag, elapsed
 #'   time, raw output, parsed status metadata when available, and environment
@@ -52,7 +53,7 @@ solve_pyomo <- function(model = NULL,
                         solver_dir = "pyomo",
                         env_name = "multimod",
                         ensure_env = TRUE,
-                        packages = c("pyomo"),
+                        packages = NULL,
                         python_version = NULL,
                         ensure_miniconda = TRUE,
                         reinstall_env = FALSE,
@@ -82,14 +83,23 @@ solve_pyomo <- function(model = NULL,
   }
 
   if (ensure_env) {
-    setup_python_environment(
+    # Bootstrapping on every solve reinstalls an environment that already
+    # works, which is slow and shells out to conda for nothing.
+    usable <- isTRUE(mm_check_python(env_name = env_name, python = python)$ok)
+    setup_args <- list(
       env_name = env_name,
-      packages = packages,
       python_version = python_version,
       ensure_miniconda = ensure_miniconda,
       reinstall = reinstall_env,
       ...
     )
+    # Omitted rather than passed as NULL: NULL means "install nothing".
+    if (!is.null(packages)) setup_args$packages <- packages
+    if (isTRUE(reinstall_env) || !usable) {
+      do.call(mm_setup_python, setup_args)
+    } else if (!is.null(env_name) && requireNamespace("reticulate", quietly = TRUE)) {
+      reticulate::use_condaenv(env_name, required = FALSE)
+    }
   } else if (!is.null(env_name) && requireNamespace("reticulate", quietly = TRUE)) {
     reticulate::use_condaenv(env_name, required = FALSE)
   }
