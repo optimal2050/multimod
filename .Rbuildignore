@@ -18,3 +18,5 @@
 ^constraint_stats\.csv$
 ^variable_stats\.csv$
 ^.*\.Rproj$
+^Project\.toml$
+^Manifest\.toml$

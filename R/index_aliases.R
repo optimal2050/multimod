@@ -76,10 +76,13 @@ add_index_aliases <- function(model, index_aliases = NULL, overwrite = FALSE) {
     # Generate index_aliases for remaining sets
     remaining_sets <- setdiff(set_names, names(index_aliases))
     if (length(remaining_sets) > 0) {
+      # Seed with the supplied iterators, or a regenerated set can reissue one
+      # that is already in use (imp -> m and mMilestoneFirst -> m).
       auto_aliases <- generate_index_aliases(
         remaining_sets,
         all_set_names = set_names,
-        all_symbols = all_symbols
+        all_symbols = all_symbols,
+        used_names = unname(index_aliases)
       )
       index_aliases <- c(index_aliases, auto_aliases)
     # } else {
@@ -297,11 +300,15 @@ generate_index_alias <- function(set_name, used_names = character(0),
 #' @param set_names Character vector. Names of the sets
 #' @param all_set_names Character vector. All set names in model (for alias detection)
 #' @param all_symbols List. All symbols in model (from build_symbols_list)
+#' @param used_names Character vector. Iterator names already taken elsewhere
+#'   in the model, so a partial regeneration does not reissue one.
 #' @return Named character vector. Dummy variable names with set names as names
 #' @examples
 #' generate_index_aliases(c("tech", "region", "comm", "commp", "year", "timeslice"))
 #' @export
-generate_index_aliases <- function(set_names, all_set_names = set_names, all_symbols = NULL) {
+generate_index_aliases <- function(set_names, all_set_names = set_names,
+                                   all_symbols = NULL,
+                                   used_names = character(0)) {
   stopifnot(is.character(set_names))
 
   if (length(set_names) == 0) {
@@ -310,7 +317,7 @@ generate_index_aliases <- function(set_names, all_set_names = set_names, all_sym
 
   index_aliases <- character(length(set_names))
   names(index_aliases) <- set_names
-  used_names <- character(0)
+  used_names <- unname(as.character(used_names))
 
   for (i in seq_along(set_names)) {
     index_aliases[i] <- generate_index_alias(set_names[i], used_names, all_set_names, all_symbols)

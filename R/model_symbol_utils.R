@@ -1,4 +1,28 @@
 # Symbol analysis utilities -------------------------------------------------
+#' Names registered as both a set and a mapping
+#'
+#' A subset declaration over a known set (`sup(process)`) is written exactly
+#' like a single-dimension mapping (`mUpComm(comm)`), so [read_gams()]
+#' registers such a name on both sides and resolves each occurrence by usage -
+#' bare as a set, parenthesised as a mapping. Both registrations name ONE
+#' symbol, so a writer declares it once.
+#'
+#' @param model A `multimod` model
+#' @return Character vector of names.
+#' @keywords internal
+dual_registered_symbols <- function(model) {
+  if (is.null(model$sets) || is.null(model$mappings)) return(character(0))
+  dual <- intersect(names(model$sets), names(model$mappings))
+  if (length(dual) == 0) return(character(0))
+  keep <- vapply(dual, function(nm) {
+    dims <- model$mappings[[nm]]$dims
+    if (length(dims) != 1L) return(FALSE)
+    parent <- dims[[1]]$name %||% dims[[1]]
+    is.character(parent) && length(parent) == 1L && parent %in% names(model$sets)
+  }, logical(1))
+  dual[keep]
+}
+
 
 #' Collect declared symbols from a model object
 #'
@@ -129,6 +153,17 @@ collect_model_symbols <- function(model,
     split(primary[dup_mask, , drop = FALSE], primary$lower[dup_mask])
   } else {
     list()
+  }
+
+  # A set/mapping pair for one subset declaration is deliberate, not a clash.
+  if (length(collisions) > 0) {
+    subset_lower <- tolower(dual_registered_symbols(model))
+    exempt <- vapply(names(collisions), function(lower_name) {
+      rows <- collisions[[lower_name]]
+      lower_name %in% subset_lower && nrow(rows) == 2L &&
+        setequal(rows$type, c("set", "mapping"))
+    }, logical(1))
+    collisions <- collisions[!exempt]
   }
 
   result <- list(

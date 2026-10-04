@@ -153,9 +153,14 @@ pyomo_render_sets <- function(model) {
 pyomo_render_mappings <- function(model) {
   if (is.null(model$mappings) || length(model$mappings) == 0) return(character(0))
   lines <- c("# Mappings (sets of tuples)")
+  subset_symbols <- dual_registered_symbols(model)
   for (mapping_name in names(model$mappings)) {
     mapping <- model$mappings[[mapping_name]]
     if (isTRUE(mapping$trimmed)) next
+
+    # Declared once among the sets. Assigning model.<name> twice makes Pyomo
+    # replace the component, keeping the empty second declaration.
+    if (mapping_name %in% subset_symbols) next
     dims <- pyomo_collect_dim_names(mapping$dims)
     desc <- sanitize_description(mapping$desc, mapping_name)
     dimen <- max(length(dims), 1)

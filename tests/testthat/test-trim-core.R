@@ -375,11 +375,9 @@ test_that("write_gmpl skips trimmed elements", {
       vEmpty = new_variable("vEmpty", dims = "empty_tech", vtype = "continuous")
     )
   )
-  # KNOWN BUG: as_multimod() drops $data from sets, so `region` arrives with
-  # zero members and trim_model() then correctly trims it as empty. That is
-  # why the 'set region is declared' assertion below fails. The failure is
-  # real and in as_multimod(), not in this test -- it was hidden until now
-  # behind a validation error that fired first.
+  # `as_multimod()` must carry `$data` across, or `region` arrives memberless,
+  # `trim_model()` trims it as empty, and no writer declares it. That is what
+  # the two assertions below pin down.
   model <- as_multimod(model)
 
   # Trim
