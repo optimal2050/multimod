@@ -1125,8 +1125,40 @@ analyze_dimension_redundancy <- function(param, dim_to_test, model,
     }
   }
   
-  # Dimension is redundant - values are constant within EVERY group
-  # AND (for timeslice) data covers ALL applicable slices for each entity
+  # Step 5b: the broadcast hazard above is not specific to timeslice. A
+  # parameter carrying rows for only SOME members of the folded dimension
+  # relies on the default for the rest, and folding replaces that default
+  # with the stored value for every member.
+  #
+  # pTechStockNew (exogenous capacity commissioned at a milestone) holds one
+  # row per tech-region, in 2020 only, with defVal 0. Its values are
+  # trivially constant along year, so Step 4 passes - but folding made the
+  # capacity arrive in all four years and scaled the whole solution by 2.8.
+  dim_col <- intersect(c(dim_to_test, alias_map[[dim_to_test]]), names(data))
+  members <- model$sets[[dim_to_test]]$data
+  if (length(dim_col) > 0 && !is.null(members) && length(members) > 1) {
+    grp_cols <- intersect(other_dims, names(data))
+    key <- if (length(grp_cols) > 0) {
+      do.call(paste, c(as.list(data[grp_cols]), sep = ""))
+    } else {
+      rep("", nrow(data))
+    }
+    cover <- tapply(as.character(data[[dim_col[1]]]), key,
+                    function(v) length(unique(v)))
+    short <- sum(cover < length(members), na.rm = TRUE)
+    if (short > 0) {
+      return(list(
+        can_fold = FALSE,
+        reason = sprintf(paste0("Incomplete %s coverage: %d of %d groups carry ",
+                                "fewer than %d members, so folding would broadcast ",
+                                "a stored value where the default applies"),
+                         dim_to_test, short, length(cover), length(members))
+      ))
+    }
+  }
+
+  # Dimension is redundant - values are constant within EVERY group, and the
+  # data covers every member of it, so no default is being overwritten.
   # This means the parameter value doesn't actually depend on this dimension,
   # even though it's indexed by it. Safe to fold.
   return(list(
