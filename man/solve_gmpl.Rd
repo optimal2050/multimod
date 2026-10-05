@@ -7,10 +7,10 @@
 solve_gmpl(
   model = NULL,
   model_dir,
-  method = "glpkAPI",
+  method = "glpsol",
   verbose = TRUE,
   load_results = !is.null(model),
-  glpsol_path = "glpsol",
+  glpsol_path = get_multimod_glpsol(),
   timeout = NULL
 )
 }
@@ -19,13 +19,16 @@ solve_gmpl(
 
 \item{model_dir}{Directory containing model files (model.mod, data.dat, etc.)}
 
-\item{method}{Solver method: "glpkAPI" (default, uses execute_glpkAPI), "glpsol" (uses system2 with glpsol executable)}
+\item{method}{Solver method: "glpsol" (default) runs the \code{glpsol}
+executable, which ships with GLPK and is found by
+\code{\link[=get_multimod_glpsol]{get_multimod_glpsol()}}. "glpkAPI" uses the glpkAPI package, which is no
+longer on CRAN; it still works where it is installed.}
 
 \item{verbose}{Logical; print progress messages (default: TRUE)}
 
 \item{load_results}{Logical; load solution CSV results back into model object (default: !is.null(model))}
 
-\item{glpsol_path}{Path to glpsol executable (default: "glpsol", only used if method="glpsol")}
+\item{glpsol_path}{Path to the glpsol executable; defaults to \code{\link[=get_multimod_glpsol]{get_multimod_glpsol()}}.}
 
 \item{timeout}{Numeric; timeout in seconds (default: NULL, no timeout)}
 }

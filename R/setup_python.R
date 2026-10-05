@@ -22,6 +22,9 @@
 #'   `pyomo` and `highspy` to build and solve, `pyarrow` and `pandas` to read
 #'   the Arrow data `save_model(format = "ipc")` writes. Set to `NULL` or
 #'   `character(0)` to skip installation.
+#' @param conda_packages Character vector installed with conda rather than
+#'   `pip`. `glpk` by default: the MathProg route needs the `glpsol`
+#'   executable, which pip does not ship.
 #' @param python_version Python version spec passed to
 #'   [reticulate::conda_create()]. Use `NULL` for reticulate's default.
 #' @param ensure_miniconda Logical flag controlling whether
@@ -41,6 +44,7 @@
 mm_setup_python <- function(
     env_name = "multimod",
     packages = c("pyomo", "highspy", "pyarrow", "pandas"),
+    conda_packages = "glpk",
     python_version = "3.14",
     ensure_miniconda = TRUE,
     reinstall = FALSE,
@@ -105,6 +109,17 @@ mm_setup_python <- function(
       }
       stop(e)
     })
+  }
+
+  # glpsol is a binary, so it has to come through conda even when the Python
+  # packages are installed with pip.
+  if (!is.null(conda_packages) && length(conda_packages) > 0) {
+    tryCatch(
+      reticulate::conda_install(env_name, packages = conda_packages, pip = FALSE),
+      error = function(e) {
+        message("Note: could not install ", paste(conda_packages, collapse = ", "),
+                " via conda: ", conditionMessage(e))
+      })
   }
 
   reticulate::use_condaenv(env_name, required = TRUE)

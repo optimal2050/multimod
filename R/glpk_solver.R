@@ -759,19 +759,22 @@ solve_glpk <- function(mod_file, dat_file, output_dir = NULL, glpsol_path = NULL
 #'
 #' @param model Optional model object (for loading results back)
 #' @param model_dir Directory containing model files (model.mod, data.dat, etc.)
-#' @param method Solver method: "glpkAPI" (default, uses execute_glpkAPI), "glpsol" (uses system2 with glpsol executable)
+#' @param method Solver method: "glpsol" (default) runs the `glpsol`
+#'   executable, which ships with GLPK and is found by
+#'   [get_multimod_glpsol()]. "glpkAPI" uses the glpkAPI package, which is no
+#'   longer on CRAN; it still works where it is installed.
 #' @param verbose Logical; print progress messages (default: TRUE)
 #' @param load_results Logical; load solution CSV results back into model object (default: !is.null(model))
-#' @param glpsol_path Path to glpsol executable (default: "glpsol", only used if method="glpsol")
+#' @param glpsol_path Path to the glpsol executable; defaults to [get_multimod_glpsol()].
 #' @param timeout Numeric; timeout in seconds (default: NULL, no timeout)
 #' @return List with: model (if load_results=TRUE), success, objective, solve_time, status
 #' @export
 solve_gmpl <- function(model = NULL,
                        model_dir,
-                       method = "glpkAPI",
+                       method = "glpsol",
                        verbose = TRUE,
                        load_results = !is.null(model),
-                       glpsol_path = "glpsol",
+                       glpsol_path = get_multimod_glpsol(),
                        timeout = NULL) {
 
   # Validate paths

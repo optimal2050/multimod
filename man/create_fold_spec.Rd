@@ -25,8 +25,12 @@ is a chain.
 }
 \value{
 A data frame with one row per parameter/dimension pair: \code{param_name},
-\code{dim_to_fold}, \code{validation_mapping}, \code{validation_mapping_raw}, \code{can_fold}
-and \code{reason}.
+\code{dim_to_fold}, \code{validation_mapping}, \code{validation_mapping_raw}, \code{can_fold},
+\code{unproven} and \code{reason}. \code{unproven} marks a dimension refused for want of
+a validation mapping rather than because folding was shown to be wrong:
+constancy holds over the data present, but nothing proves the data covers
+every applicable member, so folding could broadcast a value where the
+default applies. Supplying the mapping settles it either way.
 }
 \description{
 Scans a model's parameters and reports, for each, whether a dimension can be

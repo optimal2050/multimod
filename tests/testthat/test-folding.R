@@ -49,7 +49,8 @@ test_that("fold_model accumulates removed dimensions across sequential folds", {
   fold_spec <- create_fold_spec(
     demo_model,
     fold_dims = list(
-      timeslice = list(tech = "mTechTimeslice"),
+      timeslice = list(tech = "mTechTimeslice", sup = "mSupTimeslice",
+                       comm = "mCommTimeslice"),
       region = "region",
       year = "year"
     ),
@@ -217,7 +218,8 @@ test_that("fold_equations updates parameter references in AST", {
   fold_spec <- create_fold_spec(
     demo_model,
     fold_dims = list(
-      timeslice = list(tech = "mTechTimeslice"),
+      timeslice = list(tech = "mTechTimeslice", sup = "mSupTimeslice",
+                       comm = "mCommTimeslice"),
       region = "region"
     ),
     verbose = FALSE
@@ -327,7 +329,8 @@ test_that("JuMP code generation with multi-dimension folding produces correct co
   fold_spec <- create_fold_spec(
     demo_model,
     fold_dims = list(
-      timeslice = list(tech = "mTechTimeslice"),
+      timeslice = list(tech = "mTechTimeslice", sup = "mSupTimeslice",
+                       comm = "mCommTimeslice"),
       region = "region",
       year = "year"
     ),
@@ -404,7 +407,8 @@ test_that("JuMP folded and unfolded models produce same objective", {
   fold_spec <- create_fold_spec(
     demo_model,
     fold_dims = list(
-      timeslice = list(tech = "mTechTimeslice"),
+      timeslice = list(tech = "mTechTimeslice", sup = "mSupTimeslice",
+                       comm = "mCommTimeslice"),
       region = "region"
     ),
     verbose = FALSE
@@ -541,7 +545,8 @@ test_that("compression ratios are calculated correctly", {
   fold_spec <- create_fold_spec(
     demo_model,
     fold_dims = list(
-      timeslice = list(tech = "mTechTimeslice"),
+      timeslice = list(tech = "mTechTimeslice", sup = "mSupTimeslice",
+                       comm = "mCommTimeslice"),
       region = "region",
       year = "year"
     ),
@@ -620,3 +625,67 @@ test_that("as_jump respects parameter dims from equation AST", {
   }
 })
 
+
+test_that("a dimension the parameter carries twice is refused", {
+  data(example_models, package = "multimod")
+  demo_model <- example_models$energyRt$multimod
+
+  # pTimesliceAgg(year, timeslice, timeslicep) is the parent-from-child
+  # aggregation weight. Both the declaration rewrite and fold_ast_node() drop
+  # EVERY matching dim, so folding `timeslice` would collapse the pair into one
+  # subscript - GMPL then reports "pTimesliceAgg[2020] already defined",
+  # because the data still carries a row per (year, timeslice, timeslicep).
+  res <- analyze_dimension_redundancy(
+    demo_model$parameters[["pTimesliceAgg"]], "timeslice", demo_model)
+
+  expect_false(res$can_fold)
+  expect_match(res$reason, "appears 2 times")
+
+  # The same dimension on a parameter that carries it once still folds.
+  ok <- analyze_dimension_redundancy(
+    demo_model$parameters[["pTimesliceWeight"]], "timeslice", demo_model)
+  expect_true(ok$can_fold)
+
+  # ... and the gate reaches the spec.
+  spec <- create_fold_spec(
+    demo_model,
+    fold_dims = list(timeslice = list(tech = "mTechTimeslice",
+                                      sup = "mSupTimeslice",
+                                      comm = "mCommTimeslice")),
+    verbose = FALSE
+  )
+  spec_df <- as.data.frame(spec)
+  expect_false(spec_df$can_fold[spec_df$param_name == "pTimesliceAgg"])
+  expect_true(spec_df$can_fold[spec_df$param_name == "pTimesliceWeight"])
+})
+
+test_that("foldability without a validation mapping is reported as unproven", {
+  data(example_models, package = "multimod")
+  demo_model <- example_models$energyRt$multimod
+
+  # No mapping for sup/comm: constancy holds over the data that is present, but
+  # nothing proves the data covers every applicable slice, so folding would
+  # broadcast values onto slices that should take the default. Refused, and
+  # flagged so the caller can see it is a missing proof rather than a
+  # counter-example.
+  spec_df <- as.data.frame(create_fold_spec(
+    demo_model,
+    fold_dims = list(timeslice = list(tech = "mTechTimeslice")),
+    verbose = FALSE
+  ))
+
+  unproven <- spec_df$param_name[spec_df$unproven]
+  expect_true("pSupCost" %in% unproven)
+  expect_true(all(!spec_df$can_fold[spec_df$unproven]))
+
+  # Supplying the mappings proves it and lets the fold through.
+  proven_df <- as.data.frame(create_fold_spec(
+    demo_model,
+    fold_dims = list(timeslice = list(tech = "mTechTimeslice",
+                                      sup = "mSupTimeslice",
+                                      comm = "mCommTimeslice")),
+    verbose = FALSE
+  ))
+  expect_true(proven_df$can_fold[proven_df$param_name == "pSupCost"])
+  expect_false(proven_df$unproven[proven_df$param_name == "pSupCost"])
+})

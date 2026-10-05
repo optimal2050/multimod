@@ -8,6 +8,9 @@
   `save_model(format = "ipc")` writes, and `python_version` defaults to 3.14.
   `solve_pyomo(packages = )` now defaults to `NULL` and defers to it, so the
   environment contents have one owner.
+  `conda_packages` defaults to `"glpk"`, installed with conda rather than
+  `pip`, because the MathProg route needs the `glpsol` executable;
+  `get_multimod_glpsol()` now also looks inside the environment.
 * `analyze_fold_opportunities()`: `fold_slice` is now `fold_timeslice`, and the
   `slice` dimension is spelled `timeslice` throughout, matching energyRt. The
   old spelling was dead code, so the timeslice-coverage check never ran.
@@ -15,7 +18,62 @@
   `example_models$energyRt$multimod` in place of the removed `utopia_multimod`
   and its siblings.
 
+## Bug fixes
+
+* A symbol declared as a subset (`sup(process)`) is registered as both a set
+  and a mapping, and only one side carries its members. Every writer now
+  emits it from the side that has them. Previously the MathProg data section
+  and the GDX took the empty side, so gates such as `mLoComm` were written
+  empty and the equations using them were silently inert.
+
+* Pyomo: a gated `sum` kept its condition, a mapping in condition position is
+  a membership test rather than a truthy `Set`, `ord()`/`card()` resolve to a
+  position parameter, and rule iterators are taken from the equation's domain
+  mapping, so an alias such as `dst` is bound. `solve_pyomo()` passes
+  environment variables through `Sys.setenv()` rather than `system2(env =)`,
+  which Windows ignores, so `solver =` is no longer silently dropped.
+
+* `save_model(format = "ipc")` now works with Pyomo: the generated loader
+  reads each file directly instead of through `DataPortal`, which has no
+  reader for Arrow or Parquet.
+
+* GAMS output compiles: `$` conditions are bracketed, descriptions containing
+  a comma are quoted, a dims tuple is not double-wrapped, equation headers
+  bind the domain's dims, and a unary operator reads its operand from `$rhs`.
+
+* `fold_model()` refuses to fold a dimension when the parameter never indexes
+  some of its members and no validation mapping shows they are unreachable.
+  Folding one broadcast a stored value where the default applied.
+
+* `fold_equations()` now rewrites parameter references inside a unary
+  operator. `vExportRowCost = -sum{...}` and two of the three terms of
+  `eqSubsCost` kept the unfolded arity, which MathProg rejects and which
+  JuMP and Pyomo accepted while silently substituting the default weight.
+
+* `fold_model()` refuses a dimension the parameter carries more than once,
+  such as `timeslice` in `pTimesliceAgg(year, timeslice, timeslicep)` or
+  `region` in the `pTradeIr*` family. Both the declaration rewrite and the
+  reference rewrite drop every matching dimension, so folding collapsed the
+  pair into one subscript.
+
 ## New features
+
+### GAMS
+
+* `write_gams_data()` writes a model's data to a GDX, and
+  `write_gams(gdx =, include_solve =)` emits the matching `$load` block and
+  the `model` / `solve` statements, so a GAMS job can be assembled without a
+  GAMS licence and solved elsewhere. Zero-valued parameter records are written
+  as `EPS`: a GDX stores no zeros, and GAMS has no per-parameter default, so
+  the default assigned after loading would otherwise overwrite a stored zero.
+  This route is exercised against an older GDX library and gdxtools 0.7,
+  which does not install on R >= 4.6, with the solve run on NEOS;
+  contributions testing newer pipelines are welcome.
+
+* `mm_check_python()` reports the interpreter multimod would use and whether
+  it carries the needed packages. `solve_pyomo()` calls it before
+  bootstrapping, so a usable environment is no longer reinstalled on every
+  solve.
 
 ### Direct matrix / MPS backend
 

@@ -176,7 +176,7 @@ test_that("solve_pyomo handles missing Python gracefully", {
   skip_on_cran()
   
   # Temporarily override Python path to non-existent
-  withr::local_options(list(multimod.python = "/nonexistent/python"))
+  withr::local_options(list(multimod.python_path = "/nonexistent/python"))
   
   data(example_models, package = "multimod")
   model <- example_models$energyRt$multimod
@@ -249,8 +249,8 @@ test_that("write_pyomo generates valid Python code structure", {
   data_code <- readLines(file.path(pyomo_dir, "data.py"))
   expect_true(any(grepl("DataPortal", data_code)),
               label = "Should use DataPortal")
-  expect_true(any(grepl("def build_dataportal", data_code)),
-              label = "Should have build_dataportal function")
+  expect_true(any(grepl("def build_data", data_code)),
+              label = "Should have build_data function")
 })
 
 test_that("write_pyomo data_mode parameter works", {
@@ -274,7 +274,7 @@ test_that("write_pyomo data_mode parameter works", {
   # Should have external data loading
   expect_true(any(grepl("DATA_MODE = 'external'", data_code, fixed = TRUE)),
               label = "Should set DATA_MODE to 'external'")
-  expect_true(any(grepl("data.load\\(filename", data_code)),
-              label = "Should load from files")
+  expect_true(any(grepl("_read_rows(", data_code, fixed = TRUE)),
+              label = "Should read the data files directly")
 })
 

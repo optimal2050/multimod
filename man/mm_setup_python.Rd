@@ -7,6 +7,7 @@
 mm_setup_python(
   env_name = "multimod",
   packages = c("pyomo", "highspy", "pyarrow", "pandas"),
+  conda_packages = "glpk",
   python_version = "3.14",
   ensure_miniconda = TRUE,
   reinstall = FALSE,
@@ -23,6 +24,10 @@ environment exists. The default covers every route multimod writes:
 \code{pyomo} and \code{highspy} to build and solve, \code{pyarrow} and \code{pandas} to read
 the Arrow data \code{save_model(format = "ipc")} writes. Set to \code{NULL} or
 \code{character(0)} to skip installation.}
+
+\item{conda_packages}{Character vector installed with conda rather than
+\code{pip}. \code{glpk} by default: the MathProg route needs the \code{glpsol}
+executable, which pip does not ship.}
 
 \item{python_version}{Python version spec passed to
 \code{\link[reticulate:conda_create]{reticulate::conda_create()}}. Use \code{NULL} for reticulate's default.}

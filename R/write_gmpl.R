@@ -181,10 +181,31 @@ write_gmpl_internal <- function(model, file = NULL, format_expr = FALSE, include
   }
   lines <- c(lines, "")
 
+  # A trimmed symbol is declared, without data, when an equation still refers
+  # to it: the model has to compile, and an empty set is what makes its gates
+  # inert. One that nothing refers to is omitted, which is what trimming is
+  # for.
+  referenced_symbols <- local({
+    eqs <- c(model$equations %||% list(), model$folded_equations %||% list())
+    s <- character(0)
+    for (eq in eqs) {
+      for (fld in c("lhs", "rhs", "domain", "dims")) {
+        if (!is.null(eq[[fld]])) {
+          s <- c(s, tryCatch(collect_symbols(eq[[fld]]),
+                             error = function(e) character(0)))
+        }
+      }
+    }
+    unique(s)
+  })
+  keep_trimmed <- function(nm) !is.null(nm) && nm %in% referenced_symbols
+  set_declared <- function(nm) {
+    s <- model$sets[[nm]]
+    !is.null(s) && (!isTRUE(s$trimmed) || keep_trimmed(nm))
+  }
   # Sets (basic sets without dimensions)
   for (s in model$sets) {
-    # Skip trimmed sets
-    if (isTRUE(s$trimmed)) {
+    if (isTRUE(s$trimmed) && !keep_trimmed(s$name)) {
       next
     }
 
@@ -212,15 +233,15 @@ write_gmpl_internal <- function(model, file = NULL, format_expr = FALSE, include
   if (!is.null(model$mappings) && length(model$mappings) > 0) {
     subset_symbols <- dual_registered_symbols(model)
     for (m in model$mappings) {
-      # Skip trimmed mappings
-      if (isTRUE(m$trimmed)) {
+      if (isTRUE(m$trimmed) && !keep_trimmed(m$name)) {
         next
       }
 
-      # Already declared as a flat set above. MathProg has no subset form
-      # here - energyRt's own backend writes `set sup;` - and a second
-      # declaration of the same name does not compile.
-      if (!is.null(m$name) && m$name %in% subset_symbols) {
+      # Skipped only when the set side was actually declared: a second
+      # declaration of the same name does not compile, but if that side was
+      # trimmed away the mapping is the only declaration left.
+      if (!is.null(m$name) && m$name %in% subset_symbols &&
+          set_declared(m$name)) {
         next
       }
 
@@ -1154,11 +1175,25 @@ write_gmpl_data <- function(model, file = NULL, use_folded = TRUE, INF = 1e20) {
   lines <- c(lines, "set _IF_ := _IF_;")
   lines <- c(lines, "")
 
+  # A subset declaration is one symbol registered on both sides, and only one
+  # side carries the members. Emit from whichever side has them: emitting both
+  # is an "already defined" data error, and emitting the empty side leaves a
+  # gate that never fires.
+  subset_symbols <- dual_registered_symbols(model)
+  set_side_has_data <- function(nm) {
+    d <- model$sets[[nm]]$data
+    !is.null(d) && length(d) > 0
+  }
+
   # Write basic sets (1-dimensional)
   if (!is.null(model$sets) && length(model$sets) > 0) {
     for (s in model$sets) {
       # Skip trimmed sets
       if (isTRUE(s$trimmed)) {
+        next
+      }
+      if (!is.null(s$name) && s$name %in% subset_symbols &&
+          !set_side_has_data(s$name)) {
         next
       }
 
@@ -1171,16 +1206,15 @@ write_gmpl_data <- function(model, file = NULL, use_folded = TRUE, INF = 1e20) {
 
   # Write mappings (multi-dimensional sets)
   if (!is.null(model$mappings) && length(model$mappings) > 0) {
-    subset_symbols <- dual_registered_symbols(model)
     for (m in model$mappings) {
       # Skip trimmed mappings
       if (isTRUE(m$trimmed)) {
         next
       }
 
-      # Members already emitted in the set section above; a second
-      # `set sup := ...` is a "sup already defined" data-section error.
-      if (!is.null(m$name) && m$name %in% subset_symbols) {
+      # Emitted in the set section above when that side carries the members.
+      if (!is.null(m$name) && m$name %in% subset_symbols &&
+          set_side_has_data(m$name)) {
         next
       }
 
