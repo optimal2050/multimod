@@ -4,7 +4,15 @@
 \alias{write_gams.model}
 \title{Write a full GAMS model file from a multimod object}
 \usage{
-\method{write_gams}{model}(model, file = NULL, format_expr = TRUE, ...)
+\method{write_gams}{model}(
+  model,
+  file = NULL,
+  format_expr = TRUE,
+  gdx = NULL,
+  include_solve = FALSE,
+  objective = "vObjective",
+  ...
+)
 }
 \arguments{
 \item{model}{A \code{multimod} model object}
@@ -12,6 +20,16 @@
 \item{file}{Output file path (optional)}
 
 \item{format_expr}{logical; whether to format expressions with line breaks}
+
+\item{gdx}{Name of a GDX to \verb{$load} the data from, as written by
+\code{\link[=write_gams_data]{write_gams_data()}}. \code{NULL} (default) emits declarations and equations
+only. NEOS decodes its input GDX to \code{in.gdx}, so that is the useful
+name for a NEOS job.}
+
+\item{include_solve}{Logical; append the \code{model} / \code{solve} statements.
+Needed for a runnable job, and harmless otherwise.}
+
+\item{objective}{Name of the variable to minimise.}
 
 \item{...}{Additional arguments passed to formatting functions}
 }

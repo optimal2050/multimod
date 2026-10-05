@@ -4,6 +4,26 @@
 #' @param x A `multimod` object.
 #' @param ... Additional arguments (not used).
 #' @returns A character string with valid GAMS syntax.
+#' Quote GAMS explanatory text when it needs it
+#'
+#' A description is free text after the symbol, and GAMS reads a comma in it
+#' as the separator before the next declaration - `ratio,hours,lower bound`
+#' declared symbols named `hours` and `lower`. Quoting keeps it one token.
+#'
+#' @param x Description text.
+#' @return The text, quoted if it carries a comma, semicolon or quote.
+#' @keywords internal
+gams_desc <- function(x) {
+  if (is.null(x) || length(x) == 0 || is.na(x[1]) || !nzchar(x[1])) return("")
+  txt <- as.character(x[1])
+  if (grepl("[,;'\"]", txt)) {
+    txt <- gsub("'", "", txt, fixed = TRUE)
+    txt <- gsub('"', "", txt, fixed = TRUE)
+    return(paste0("'", txt, "'"))
+  }
+  txt
+}
+
 #' @export
 as_gams <- function(x, ...) {
   UseMethod("as_gams", x)
@@ -36,9 +56,9 @@ as_gams.character <- function(x, ...) {
 as_gams.set <- function(x, declaration = FALSE, desc = declaration, ...) {
   stopifnot(inherits(x, "set"))
   if (declaration) {
-    paste0("set ", x$name, ifelse(desc, paste0("  ", x$desc), ""),";")
+    paste0("set ", x$name, ifelse(desc, paste0("  ", gams_desc(x$desc)), ""),";")
   } else {
-    paste(x$name, ifelse(desc, x$desc, ""), sep = "  ")
+    paste(x$name, ifelse(desc, gams_desc(x$desc), ""), sep = "  ")
   }
 }
 
@@ -47,9 +67,9 @@ as_gams.set <- function(x, declaration = FALSE, desc = declaration, ...) {
 as_gams.mapping <- function(x, declaration = FALSE, desc = declaration, ...) {
   stopifnot(inherits(x, "mapping"))
   if (declaration) {
-    paste0("set ", as.character(x), ifelse(desc, paste0("  ", x$desc), ""), ";")
+    paste0("set ", as.character(x), ifelse(desc, paste0("  ", gams_desc(x$desc)), ""), ";")
   } else {
-    paste0(as.character(x), ifelse(desc, paste0("  ", x$desc), ""))
+    paste0(as.character(x), ifelse(desc, paste0("  ", gams_desc(x$desc)), ""))
   }
 }
 
@@ -65,9 +85,9 @@ as_gams.dims <- function(x, ...) {
 as_gams.parameter <- function(x, declaration = FALSE, desc = declaration, ...) {
   stopifnot(inherits(x, "parameter"))
   if (declaration) {
-    paste0("parameter ", as.character(x), ifelse(desc, paste0("  ", x$desc), ""), ";")
+    paste0("parameter ", as.character(x), ifelse(desc, paste0("  ", gams_desc(x$desc)), ""), ";")
   } else {
-    paste0(as.character(x), ifelse(desc, paste0("  ", x$desc), ""))
+    paste0(as.character(x), ifelse(desc, paste0("  ", gams_desc(x$desc)), ""))
   }
 }
 
@@ -77,9 +97,9 @@ as_gams.variable <- function(x, declaration = FALSE, desc = declaration, ...) {
   stopifnot(inherits(x, "variable"))
   if (declaration) {
     paste0("variable ", as.character(x),
-                  ifelse(desc, paste0("  ", x$desc), ""), ";")
+                  ifelse(desc, paste0("  ", gams_desc(x$desc)), ""), ";")
   } else {
-    paste0(as.character(x), ifelse(desc, paste0("  ", x$desc), ""))
+    paste0(as.character(x), ifelse(desc, paste0("  ", gams_desc(x$desc)), ""))
   }
 }
 
@@ -141,7 +161,10 @@ as_gams.func <- function(x, ...) {
 as_gams.when <- function(x, ...) {
   then <- as_gams(x$then, ...)
   cond <- as_gams(x$condition, ...)
-  paste0("(", then, ")$", cond)
+  # GAMS binds `$` tighter than `and`/`or`, so the condition is bracketed.
+  # A dims node is already a bracketed tuple and is not wrapped again.
+  lhs <- if (inherits(x$then, "dims")) then else paste0("(", then, ")")
+  paste0(lhs, "$(", cond, ")")
 }
 
 #' @export
@@ -186,10 +209,13 @@ as_gams.expression <- function(x, ...) {
 as_gams.unary <- function(x, ...) {
   stopifnot(inherits(x, "unary"))
   op <- x$op
+  # The operand of a unary node is in $rhs.
+  operand <- as_gams(x$rhs, ...)
   if (op == "-") {
-    paste0("-", as_gams(x$expr, ...))
+    # GAMS refuses two operators in a row, so a compound operand is bracketed.
+    if (grepl("[-+]", operand)) paste0("-(", operand, ")") else paste0("-", operand)
   } else if (op == "not") {
-    paste0("not ", as_gams(x$expr, ...))
+    paste0("not (", operand, ")")
   } else {
     stop("Unrecognized unary operator for GAMS export: ", op)
   }
@@ -200,7 +226,14 @@ as_gams.unary <- function(x, ...) {
 #' @method as_gams equation
 as_gams.equation <- function(x, ...) {
   eqname <- x$name
-  index <- as_gams(x$dims, ...)
+  # The equation is indexed by its domain mapping, so the header binds the
+  # domain's dims rather than the base sets carried by x$dims.
+  index_dims <- x$dims
+  if (inherits(x$domain, "mapping") && !is.null(x$domain$dims) &&
+      length(x$domain$dims) == length(x$dims)) {
+    index_dims <- x$domain$dims
+  }
+  index <- as_gams(index_dims, ...)
   domain <- if (!is.null(x$domain)) paste0("$", as_gams(x$domain, ...)) else ""
   lhs <- as_gams(x$lhs, ...)
   rhs <- as_gams(x$rhs, ...)

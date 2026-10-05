@@ -159,10 +159,20 @@ run_pyomo_process <- function(python_exec, script, verbose = c("buffer", "stream
   verbose <- match.arg(verbose)
   args <- c(script)
   env_named <- env
-  env_vector <- if (length(env_named)) {
-    sprintf("%s=%s", names(env_named), env_named)
-  } else {
-    NULL
+
+  # `system2(env=)` is not supported on Windows: the name=value strings are
+  # passed as ARGUMENTS, so python is handed "PYOMO_SOLVER=highs" as a file
+  # to open and exits 2. Setting the variables in this process and restoring
+  # them afterwards works on every platform.
+  if (length(env_named)) {
+    previous <- Sys.getenv(names(env_named), unset = NA_character_, names = TRUE)
+    do.call(Sys.setenv, as.list(env_named))
+    on.exit({
+      keep <- previous[!is.na(previous)]
+      if (length(keep)) do.call(Sys.setenv, as.list(keep))
+      gone <- names(previous)[is.na(previous)]
+      if (length(gone)) Sys.unsetenv(gone)
+    }, add = TRUE)
   }
 
   use_processx <- !is.null(timeout) || identical(verbose, "stream")
@@ -184,9 +194,12 @@ run_pyomo_process <- function(python_exec, script, verbose = c("buffer", "stream
       echo = identical(verbose, "stream"),
       echo_cmd = FALSE,
       spinner = FALSE,
-      timeout = timeout,
+      # processx requires a time interval; NULL fails its assertion, so the
+      # streaming path (timeout unset) needs an explicit Inf.
+      timeout = timeout %||% Inf,
       error_on_status = FALSE,
-      env = env_named
+      # processx REPLACES the environment unless "current" is included.
+      env = if (length(env_named)) c("current", env_named) else NULL
     )
     exit_code <- px$status %||% 0
     if (isTRUE(px$timeout)) {
@@ -198,8 +211,7 @@ run_pyomo_process <- function(python_exec, script, verbose = c("buffer", "stream
       python_exec,
       args = args,
       stdout = TRUE,
-      stderr = TRUE,
-      env = env_vector
+      stderr = TRUE
     )
     exit_code <- attr(output, "status") %||% 0
     output_lines <- output %||% character(0)

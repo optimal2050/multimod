@@ -288,8 +288,12 @@ is_folded.default <- function(x) {
 #' @param verbose Logical; print progress.
 #'
 #' @return A data frame with one row per parameter/dimension pair: `param_name`,
-#'   `dim_to_fold`, `validation_mapping`, `validation_mapping_raw`, `can_fold`
-#'   and `reason`.
+#'   `dim_to_fold`, `validation_mapping`, `validation_mapping_raw`, `can_fold`,
+#'   `unproven` and `reason`. `unproven` marks a dimension refused for want of
+#'   a validation mapping rather than because folding was shown to be wrong:
+#'   constancy holds over the data present, but nothing proves the data covers
+#'   every applicable member, so folding could broadcast a value where the
+#'   default applies. Supplying the mapping settles it either way.
 #'
 #' @details
 #' With an entity-specific configuration, the **first** matching entity
@@ -421,6 +425,7 @@ create_fold_spec <- function(model,
         validation_mapping = validation_mapping_display,
         validation_mapping_raw = I(list(validation_mapping_raw)),  # Wrap in list() here
         can_fold = result$can_fold,
+        unproven = isTRUE(result$unproven),
         reason = result$reason,
         stringsAsFactors = FALSE
       )
@@ -446,6 +451,11 @@ create_fold_spec <- function(model,
     cat("Total entries:", nrow(spec_df), "\n")
     cat("Can fold:", sum(spec_df$can_fold), "\n")
     cat("Cannot fold:", sum(!spec_df$can_fold), "\n")
+    nu <- sum(spec_df$unproven %in% TRUE)
+    if (nu > 0) {
+      cat("  of which unproven -- a validation mapping would allow them:", nu, "
+")
+    }
     cat("\nREVIEW CAREFULLY: validation_mapping may be incorrect for non-standard models\n\n")
   }
   
@@ -872,6 +882,25 @@ analyze_dimension_redundancy <- function(param, dim_to_test, model,
     return(list(can_fold = FALSE, reason = "Dimension not in data"))
   }
   
+  # Step 2b: refuse a dimension the parameter carries more than once.
+  # `fold_ast_node()` and the declaration rewrite both drop EVERY dim whose
+  # resolved name matches, so folding `region` on pTradeIrEff(trade, region,
+  # region, year, timeslice) would collapse source and destination into one
+  # subscript - a model that still assembles, with the wrong contents. 18 of
+  # the energyRt parameters carry such a repeat (comm,comm / region,region /
+  # timeslice,timeslice). Folding one position only is possible but needs the
+  # analysis to prove constancy per position, which it does not do.
+  resolved_dims <- vapply(dims, resolve_alias_to_set, character(1), model = model)
+  n_occur <- sum(resolved_dims == resolve_alias_to_set(dim_to_test, model))
+  if (n_occur > 1L) {
+    return(list(
+      can_fold = FALSE,
+      reason = sprintf(
+        "Dimension appears %d times in the parameter (%s); folding would remove all of them",
+        n_occur, paste(dims, collapse = ", "))
+    ))
+  }
+  
   # Step 3: For timeslice dimension, get timeframe mapping for coverage validation
   # This is CRITICAL: we need to verify that data covers ALL applicable slices
   # for each entity. Otherwise folding would broadcast values to slices that
@@ -893,13 +922,12 @@ analyze_dimension_redundancy <- function(param, dim_to_test, model,
         if (mapping_name %in% names(model$mappings)) {
           timeframe_mapping <- model$mappings[[mapping_name]]$data
           
-          # Extract entity dimension from mapping name
-          entity_mapping <- c(
-            "mTechTimeslice" = "tech",
-            "mCommTimeslice" = "comm",
-            "mSupTimeslice" = "sup"
-          )
-          entity_dim <- entity_mapping[mapping_name]
+          # The entity is whichever column of the mapping is not the folded
+          # dimension. Derived rather than looked up in a table, so mImpTimeslice,
+          # mExpTimeslice, mTradeTimeslice and the region/year mappings work too;
+          # a name absent from the table used to yield NA and crash the coverage
+          # check below.
+          entity_dim <- setdiff(names(timeframe_mapping), dim_to_test)[1]
           
           # Verify this entity dimension is actually in the parameter
           if (!is.na(entity_dim) && !(entity_dim %in% dims)) {
@@ -1067,7 +1095,8 @@ analyze_dimension_redundancy <- function(param, dim_to_test, model,
   # - If we fold: pPeakCost[COAL,R1,2025]=100 broadcasts to ALL 3 slices
   # - But MID and BASE should use default (0), not 100!
   # - Therefore: CANNOT FOLD
-  if (dim_to_test == "timeslice" && !is.null(timeframe_mapping) && !is.null(entity_dim)) {
+  if (!is.null(timeframe_mapping) && !is.null(entity_dim) &&
+      !is.na(entity_dim) && entity_dim %in% other_dims) {
     
     # Build map of dimension names to actual column names in data (handling aliases)
     dim_to_col <- setNames(other_dims, other_dims)
@@ -1125,35 +1154,40 @@ analyze_dimension_redundancy <- function(param, dim_to_test, model,
     }
   }
   
-  # Step 5b: the broadcast hazard above is not specific to timeslice. A
-  # parameter carrying rows for only SOME members of the folded dimension
-  # relies on the default for the rest, and folding replaces that default
-  # with the stored value for every member.
+  # Step 5b: the broadcast hazard above is not specific to timeslice, but
+  # without a mapping there is nothing to say which members a group SHOULD
+  # carry, so per-group gaps cannot be judged - a supply process legitimately
+  # priced in three of seven regions is not a defect. What is always wrong is
+  # a parameter that never indexes some member of the folded dimension at
+  # all: those lookups resolve to the default today, and folding would
+  # replace it with the stored value.
   #
   # pTechStockNew (exogenous capacity commissioned at a milestone) holds one
   # row per tech-region, in 2020 only, with defVal 0. Its values are
   # trivially constant along year, so Step 4 passes - but folding made the
   # capacity arrive in all four years and scaled the whole solution by 2.8.
-  dim_col <- intersect(c(dim_to_test, alias_map[[dim_to_test]]), names(data))
-  members <- model$sets[[dim_to_test]]$data
-  if (length(dim_col) > 0 && !is.null(members) && length(members) > 1) {
-    grp_cols <- intersect(other_dims, names(data))
-    key <- if (length(grp_cols) > 0) {
-      do.call(paste, c(as.list(data[grp_cols]), sep = ""))
-    } else {
-      rep("", nrow(data))
-    }
-    cover <- tapply(as.character(data[[dim_col[1]]]), key,
-                    function(v) length(unique(v)))
-    short <- sum(cover < length(members), na.rm = TRUE)
-    if (short > 0) {
-      return(list(
-        can_fold = FALSE,
-        reason = sprintf(paste0("Incomplete %s coverage: %d of %d groups carry ",
-                                "fewer than %d members, so folding would broadcast ",
-                                "a stored value where the default applies"),
-                         dim_to_test, short, length(cover), length(members))
-      ))
+  if (is.null(timeframe_mapping)) {
+    dim_col <- intersect(c(dim_to_test, alias_map[[dim_to_test]]), names(data))
+    members <- model$sets[[dim_to_test]]$data
+    if (length(dim_col) > 0 && !is.null(members) && length(members) > 1) {
+      present <- unique(as.character(data[[dim_col[1]]]))
+      absent <- setdiff(as.character(members), present)
+      if (length(absent) > 0) {
+        # The values do not vary, so this is a fold CANDIDATE; what is missing
+        # is evidence that the uncovered members are never queried. Reported
+        # apart from a genuine conflict so an analysis can list what a mapping
+        # would unlock, while fold_model() still declines to apply it.
+        return(list(
+          can_fold = FALSE,
+          unproven = TRUE,
+          reason = sprintf(paste0("Values are constant, but the parameter never ",
+                                  "indexes %d of %d %s members (%s), which resolve ",
+                                  "to the default. Supply a validation mapping for ",
+                                  "this dimension to confirm they are unreachable."),
+                           length(absent), length(members), dim_to_test,
+                           paste(utils::head(absent, 3), collapse = ", "))
+        ))
+      }
     }
   }
 
@@ -1624,6 +1658,16 @@ fold_ast_node <- function(node, folded_params, model = NULL, debug = FALSE) {
     }
   }
   
+  # A unary node (-x, not x) holds its operand in `rhs` and its class is
+  # c("unary", "ast") - it does NOT inherit "expression", so the branch above
+  # does not reach it. Measured on the energyRt model: the subtrees under the
+  # 2 unary nodes held 4 parameter references the rewriter never visited, so a
+  # folded parameter kept its original arity there - a GMPL error, and a silent
+  # default substitution on JuMP and Pyomo.
+  if (inherits(node, "unary") && !is.null(node$rhs)) {
+    node$rhs <- fold_ast_node(node$rhs, folded_params, model, debug)
+  }
+
   # Handle function nodes (like prod, sum)
   if (inherits(node, "func")) {
     if (!is.null(node$value)) {

@@ -119,7 +119,7 @@ build_pyomo_model_lines <- function(model, model_name = "model", use_folded = TR
       "import csv",
       "from pathlib import Path",
       "from pyomo.opt import SolverFactory",
-      "from data import DATA_MODE, build_dataportal"
+      "from data import DATA_MODE, build_data"
     )
   }
   lines <- c(header, "", sprintf("%s = AbstractModel()", model_name), "")
@@ -330,7 +330,6 @@ build_pyomo_loader_external <- function(model, use_folded = TRUE) {
     "from __future__ import annotations",
     "from pathlib import Path",
     "from typing import Iterable, Sequence",
-    "from pyomo.dataportal import DataPortal",
     "from pyomo.environ import *",
     "",
     "DATA_MODE = 'external'",
@@ -350,22 +349,70 @@ build_pyomo_loader_external <- function(model, use_folded = TRUE) {
     "        return '.parquet'",
     "    return '.csv'",
     "",
-    "def build_dataportal(model, base_dir: Path) -> DataPortal:",
-    "    data = DataPortal()",
-    "    data_format = _read_format(base_dir)",
-    "    ext = _extension(data_format)",
+    "def _read_rows(path: Path, ext: str):",
+    "    # DataPortal has no reader for .arrow or .parquet, so each file is read",
+    "    # here and handed to create_instance() as a plain data dictionary.",
+    "    if ext == '.csv':",
+    "        import csv as _csv",
+    "        with open(path, newline='') as fh:",
+    "            rdr = _csv.reader(fh)",
+    "            next(rdr, None)",
+    "            return [tuple(r) for r in rdr if r]",
+    "    if ext == '.parquet':",
+    "        import pyarrow.parquet as _pq",
+    "        tbl = _pq.read_table(str(path))",
+    "    else:",
+    "        from pyarrow import feather as _feather",
+    "        tbl = _feather.read_table(str(path))",
+    "    cols = [c.to_pylist() for c in tbl.columns]",
+    "    return list(zip(*cols))",
+    "",
+    "def _coerce(v):",
+    "    # DataPortal turns a numeric-looking CSV field into a number, and the",
+    "    # set members it builds are matched against parameter index entries, so",
+    "    # both paths have to agree on type.",
+    "    if isinstance(v, str):",
+    "        try:",
+    "            return int(v)",
+    "        except ValueError:",
+    "            try:",
+    "                return float(v)",
+    "            except ValueError:",
+    "                return v",
+    "    return v",
+    "",
+    "def _param_dict(rows):",
+    "    # The file declares its own shape; a one-dimensional parameter takes a",
+    "    # scalar key, not a one-tuple.",
+    "    if not rows:",
+    "        return {}",
+    "    n_key = len(rows[0]) - 1",
+    "    if n_key <= 0:",
+    "        return {None: float(rows[0][-1])}",
+    "    if n_key == 1:",
+    "        return {_coerce(r[0]): float(r[-1]) for r in rows}",
+    "    return {tuple(_coerce(v) for v in r[:n_key]): float(r[-1]) for r in rows}",
+    "",
+    "def build_data(model, base_dir: Path) -> dict:",
+    "    ext = _extension(_read_format(base_dir))",
+    "    out = {}",
     "    # Sets",
     paste0("    set_names = ", pyomo_python_list(set_names)),
     "    for name in set_names:",
     "        path = base_dir / 'sets' / name / f'data{ext}'",
     "        if path.exists():",
-    "            data.load(filename=str(path), set=getattr(model, name))",
+    "            rows = _read_rows(path, ext)",
+    "            out[name] = {None: [_coerce(r[0]) for r in rows]}",
     "    # Mappings",
     paste0("    mappings = ", pyomo_python_list(map_names)),
     "    for name in mappings:",
     "        path = base_dir / 'mappings' / name / f'data{ext}'",
     "        if path.exists():",
-    "            data.load(filename=str(path), set=getattr(model, name))",
+    "            rows = _read_rows(path, ext)",
+    "            if rows and len(rows[0]) == 1:",
+    "                out[name] = {None: [_coerce(r[0]) for r in rows]}",
+    "            else:",
+    "                out[name] = {None: [tuple(_coerce(v) for v in r) for r in rows]}",
     "    # Parameters"
   )
 
@@ -387,11 +434,12 @@ build_pyomo_loader_external <- function(model, use_folded = TRUE) {
     }
     lines <- c(lines,
       "    if file_path.exists():",
-      sprintf("        data.load(filename=str(file_path), param=getattr(model, '%s')%s)", spec$name, index_clause)
+      sprintf("        out[%s] = _param_dict(_read_rows(file_path, ext))",
+              pyomo_quote(spec$name))
     )
   }
 
-  lines <- c(lines, "    return data", "")
+  lines <- c(lines, "    return {None: out}", "")
   lines
 }
 
@@ -424,7 +472,7 @@ build_pyomo_solve_lines <- function(solver = "highs", data_mode = c("external", 
     "from pyomo.environ import *",
     "from pyomo.opt import SolverFactory",
     "from model import model",
-    "from data_loader import DATA_MODE, build_dataportal" ,
+    "from data_loader import DATA_MODE, build_data" ,
     "",
     pyomo_runner_body(solver = solver, solver_dir = solver_dir)
   )
@@ -438,7 +486,7 @@ pyomo_runner_body <- function(solver = "highs", solver_dir = "pyomo", export_var
     "    base_dir = Path(__file__).resolve().parents[2]",
     "    if DATA_MODE != 'external':",
     "        raise RuntimeError('Only external data mode is supported right now.')",
-    "    data = build_dataportal(model, base_dir)"
+    "    data = build_data(model, base_dir)"
   )
   
   # Export data as CSV files after loading data but BEFORE creating instance (like write_gmpl and write_jump)

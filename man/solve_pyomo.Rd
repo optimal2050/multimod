@@ -37,9 +37,9 @@ Defaults to "pyomo" to match \code{write_pyomo()}.}
 \item{env_name}{Name of the Conda environment handled by
 \code{mm_setup_python()}. Defaults to "multimod".}
 
-\item{ensure_env}{Logical; when \code{TRUE} (default) the helper
-\code{mm_setup_python()} runs to create/activate the environment. Set to
-\code{FALSE} if you want to manage activation yourself.}
+\item{ensure_env}{Logical; when \code{TRUE} (default) the environment is checked
+with \code{\link[=mm_check_python]{mm_check_python()}} and \code{mm_setup_python()} runs only if it is not
+usable. Set to \code{FALSE} if you want to manage activation yourself.}
 
 \item{packages}{Character vector of Python packages to request when the
 helper runs. \code{NULL} (default) uses \code{\link[=mm_setup_python]{mm_setup_python()}}'s own list, so the
