@@ -337,27 +337,33 @@ param pDemand :=
 
 ## Step 6: Solve with GLPK
 
-Now we solve the model using GLPK via the glpkAPI interface.
+Now we solve the model with GLPK's `glpsol` executable. `glpsol` is an
+external program rather than an R package, so `get_multimod_glpsol()` resolves
+it and the chunk below skips the solve when it is absent.
 
 ```{r solve}
 cat("\n=== SOLVING WITH GLPK ===\n\n")
 
-# Execute GLPK solver
-result <- execute_glpkAPI(
-  model_dir = output_dir,
-  mod_file = "utopia.mod",
-  dat_file = "utopia.dat",
-  verbose = TRUE,
-  save_solution = TRUE
-)
+glpsol <- get_multimod_glpsol()
+have_glpsol <- nzchar(Sys.which(glpsol)) || file.exists(glpsol)
 
-# Display results
-cat("\n=== SOLUTION SUMMARY ===\n")
-cat("Status:", result$status_message, "\n")
-cat("Objective value:", format(result$objective, big.mark = ",", scientific = FALSE), "\n")
-cat("Variables:", result$n_variables, "\n")
-cat("Constraints:", result$n_constraints, "\n")
-cat("Non-zero variables:", nrow(result$solution_nonzero), "\n")
+if (have_glpsol) {
+  result <- solve_glpk(
+    mod_file   = file.path(output_dir, "utopia.mod"),
+    dat_file   = file.path(output_dir, "utopia.dat"),
+    output_dir = output_dir
+  )
+
+  cat("\n=== SOLUTION SUMMARY ===\n")
+  cat("Status:", result$status, "\n")
+  cat("Objective value:",
+      format(result$objective, big.mark = ",", scientific = FALSE), "\n")
+  cat("Variables reported:", nrow(result$variables), "\n")
+} else {
+  cat("glpsol not found - skipping the solve.\n")
+  cat("Install GLPK and point multimod at it; mm_setup_python() places it in\n")
+  cat("the 'multimod' conda environment, which get_multimod_glpsol() searches.\n")
+}
 ```
 
 ### Solution Output
