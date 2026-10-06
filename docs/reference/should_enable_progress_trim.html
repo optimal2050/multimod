@@ -17,7 +17,7 @@ mappings, variables, and equations with $trimmed = TRUE. Code generators
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.3.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.4.9003</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -122,7 +122,7 @@ solver code generation.</p>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
 <span class="r-in"><span><span class="co"># Typical workflow</span></span></span>
-<span class="r-in"><span><span class="va">model</span> <span class="op">&lt;-</span> <span class="fu">fold_model</span><span class="op">(</span><span class="va">model</span><span class="op">)</span>  <span class="co"># Reduce dimensions first</span></span></span>
+<span class="r-in"><span><span class="va">model</span> <span class="op">&lt;-</span> <span class="fu"><a href="fold_model.html">fold_model</a></span><span class="op">(</span><span class="va">model</span><span class="op">)</span>  <span class="co"># Reduce dimensions first</span></span></span>
 <span class="r-in"><span><span class="va">model</span> <span class="op">&lt;-</span> <span class="fu">trim_model</span><span class="op">(</span><span class="va">model</span><span class="op">)</span>  <span class="co"># Then remove dead branches</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="write_jump.html">write_jump</a></span><span class="op">(</span><span class="va">model</span>, <span class="st">"model.jl"</span><span class="op">)</span>  <span class="co"># Trimmed elements excluded</span></span></span>
 <span class="r-in"><span></span></span>

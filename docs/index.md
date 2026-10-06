@@ -47,20 +47,24 @@ implementation status and future plans.
    │ • Sets & Aliases       │  →      • save_model()        [✓]
    │ • Parameters           │         • as_visNetwork()     [✓]
    │ • Variables            │  ←      • model statistics    [✓]
-   │ • Equations            │         {{auto-mapping}}      [ ]
-   │ • Mappings             │         {{symbolic simplify}} [ ]
-   └────────────────────────┘
-              ↓
-┌─────────────────────────────────┐
-│      Output Formats             │
-├─────────────────────────────────┤
-│ LaTeX  (stable)           [✓]   │ → write_latex()
-│ {GMPL} (testing)          [~]   │ → write_gmpl()
-│ {JuMP} (testing)          [~]   │ → write_jump()
-│ {Pyomo} (testing)         [~]   │ → write_pyomo()
-│ {{GAMS}} (planned)        [ ]   │ → {{write_gams()}}
-│ {{AMPL, MPS, LP, ...}}    [ ]   │ → {{...}}
-└─────────────────────────────────┘
+   │ • Equations            │         • model_to_json()     [✓]
+   │ • Mappings             │         {{auto-mapping}}      [ ]
+   └────────────────────────┘         {{symbolic simplify}} [ ]
+                 ↓                                     ↓
+┌──────────────────────────────────┐  ┌──────────────────────────────────┐
+│ Output: model code               │  │ Output: LP matrix                │
+├──────────────────────────────────┤  ├──────────────────────────────────┤
+│ LaTeX    write_latex()       [✓] │  │ model_to_lp()               [✓]  │
+│ GMPL     write_gmpl()        [✓] │  │ write_mps()                 [✓]  │
+│ JuMP     write_jump()        [✓] │  │ solve_highs()               [✓]  │
+│ Pyomo    write_pyomo()       [✓] │  │ solve_mps()                 [✓]  │
+│ GAMS     write_gams() +      [✓] │  │ read_mps_solution()         [✓]  │
+│          write_gams_data()       │  │                                  │
+│ {{AMPL, ...}}                [ ] │  │ no generated model text, so      │
+│                                  │  │ no model-build step - the        │
+│ then an external solver:         │  │ time and memory wall on          │
+│ glpsol, Julia, Python, NEOS      │  │ large models                     │
+└──────────────────────────────────┘  └──────────────────────────────────┘
 
 Status: [✓] implemented | [~] and { } developing | [ ] and {{ }} considering
 ```
@@ -95,7 +99,7 @@ print(eq)
 #> <AST equation> eqObjective
 #>   relation:  == 
 #>   lhs:  vObjective 
-#>   rhs:  sum(if (mvTotalCost[region,year]) {[region,year]}, *, pDiscountFactorMileStone[region,year], vTotalCost[region,year], FALSE)
+#>   rhs:  sum(if (mvTotalCost[region,year]) {[region,year]}, *, vTotalCost[region,year] * pPeriodLen[year], pDiscountFactor[region,year], FALSE)
 ```
 
 #### Render an equation to LaTeX
@@ -116,12 +120,12 @@ as_latex(eq) |> cat()
 as_gams(eq) |> cat()
 #> eqObjective..
 #>   vObjective =e=
-#>   sum(([region,year])$mvTotalCost[region,year], pDiscountFactorMileStone[region,year] * vTotalCost[region,year]);
+#>   sum([region,year]$(mvTotalCost[region,year]), vTotalCost[region,year] * pPeriodLen[year] * pDiscountFactor[region,year]);
 as_jump(eq) |> cat()
 #> @constraint(
 #>     model,
 #>     eqObjective,
-#>     vObjective == sum(get(pDiscountFactorMileStone, (region, year), pDiscountFactorMileStoneDef) * vTotalCost[region, year] for (region, year) in mvTotalCost)
+#>     vObjective == sum(vTotalCost[region, year] * get(pPeriodLen, year, pPeriodLenDef) * get(pDiscountFactor, (region, year), pDiscountFactorDef) for (region, year) in mvTotalCost)
 #> )
 ```
 
@@ -184,7 +188,6 @@ write_gams(mod, file = "my_multimod_model.gms")
 
 Apache License 2.0 — see `LICENSE.md`.
 
-The bundled `example_models` dataset includes third-party model source:
-OSeMOSYS (Apache-2.0) and energyRt-generated source (AGPL-3.0). Those
-licenses apply to that data only, not to the multimod package code. See
-`LICENSE.note` for the full terms and the OSeMOSYS citation.
+The bundled `example_models` dataset includes model source generated
+from energyRt. Its third-party terms apply to that data only, not to the
+multimod package code — see `LICENSE.note`.

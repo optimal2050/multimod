@@ -23,12 +23,12 @@ print(demo_model)
 #> Model: 
 #> Source:  C:/Users/admin/Documents/R/energyRt/gams/energyRt.gms 
 #> Language:  GAMS 
-#> Sets:  13 
-#> Mappings:  316 
+#> Sets:  27 
+#> Mappings:  324 
 #> Aliases:  7 
 #> Parameters:  218 
 #> Variables:  93 
-#> Equations:  152
+#> Equations:  153
 ```
 
 ## Basic LaTeX Generation
@@ -108,9 +108,9 @@ fold_spec <- create_fold_spec(
 )
 #> 
 #> === Fold Specification Generated ===
-#> Total entries: 24 
+#> Total entries: 23 
 #> Can fold: 20 
-#> Cannot fold: 4 
+#> Cannot fold: 3 
 #> 
 #> REVIEW CAREFULLY: validation_mapping may be incorrect for non-standard models
 
@@ -119,7 +119,7 @@ model_folded <- fold_model(demo_model, fold_spec)
 #> 
 #> === Folding Model ===
 #> Using provided fold specification
-#> Parameters specified: 24 
+#> Parameters specified: 23 
 #> 
 #> ✓ pTechOlife: 2D → 1D (44 → 7 rows, 6.3x)
 #> ✓ pTechCinp2use: 5D → 4D (1344 → 192 rows, 7.0x)
@@ -144,7 +144,7 @@ model_folded <- fold_model(demo_model, fold_spec)
 #> 
 #> === Fold Summary ===
 #> Parameters folded: 20
-#> Parameters skipped: 4
+#> Parameters skipped: 3
 #> Total parameters: 218
 #> 
 #> === Folding Equations ===
@@ -170,7 +170,7 @@ model_folded <- fold_model(demo_model, fold_spec)
 #>   pTradeInvcost: removed region
 #>   pTradeEac: removed region
 #> 
-#> Equations scanned: 152
+#> Equations scanned: 153
 #> Equations with folded params: 23
 
 # Check folding summary
@@ -188,6 +188,12 @@ model_optimized <- trim_model(model_folded)
 #> Starting model trimming...
 #>   Phase 1: Identifying empty sets, parameters, and mappings...
 #>     Trimmed set: group
+#>     Trimmed set: mTechRetirement
+#>     Trimmed set: mUpComm
+#>     Trimmed set: mFxComm
+#>     Trimmed set: mDiscountZero
+#>     Trimmed set: mTradeOlifeInf
+#>     Trimmed set: mTradeCapacityVariable
 #>     Trimmed parameter: pDiscountFactorMileStone
 #>     Trimmed mapping: mStartMilestone
 #>     Trimmed mapping: mEndMilestone
@@ -402,7 +408,7 @@ model_optimized <- trim_model(model_folded)
 #>     Trimmed mapping: mTechNCap2AOut
 #>     Trimmed mapping: mTechCinp2AOut
 #>     Trimmed mapping: mTechCout2AOut
-#>     Total empty data elements: 215
+#>     Total empty data elements: 221
 #>   Phase 2: Identifying variables with empty domains...
 #>     Trimmed variable (empty domain mapping): vTechRetiredStock
 #>     Trimmed variable (empty domain mapping): vTechRetiredNewCap
@@ -548,7 +554,8 @@ model_optimized <- trim_model(model_folded)
 #>     Trimmed equation (empty domain mapping): eqDummyExportCost
 #>     Trimmed equation (empty domain mapping): eqTaxCost
 #>     Trimmed equation (empty domain mapping): eqSubsCost
-#>     Total equations with empty domains: 102
+#>     Trimmed equation (empty domain mapping): eqTotalUserCosts
+#>     Total equations with empty domains: 103
 #>   Phase 4: Verifying required elements...
 #>     Untrimmed variable (used in equation): vTechRetiredNewCap
 #>     Untrimmed variable (used in equation): vTechRetiredStock
@@ -638,24 +645,24 @@ model_optimized <- trim_model(model_folded)
 #>   Synced trim flags to folded equations
 #> 
 #> === NET Trim Results (after Phase 4) ===
-#>   Sets trimmed:       0
+#>   Sets trimmed:       6
 #>   Parameters trimmed: 1
 #>   Mappings trimmed:   160
 #>   Variables trimmed:  10
-#>   Equations trimmed:  102
-#>   TOTAL trimmed:      273
+#>   Equations trimmed:  103
+#>   TOTAL trimmed:      280
 #> 
 #> Model Trimming Summary
 #> ======================
-#> sets: 0/13 trimmed (0.0%), 13 remaining
+#> sets: 6/27 trimmed (22.2%), 21 remaining
 #> parameters: 1/218 trimmed (0.5%), 217 remaining
-#> mappings: 160/316 trimmed (50.6%), 156 remaining
+#> mappings: 160/324 trimmed (49.4%), 164 remaining
 #> variables: 10/93 trimmed (10.8%), 83 remaining
-#> equations: 102/152 trimmed (67.1%), 50 remaining
+#> equations: 103/153 trimmed (67.3%), 50 remaining
 
 # Check trimming summary
 get_trim_summary(model_optimized, format = "text")
-#> [1] "Model Trimming Summary\n======================\nsets: 0/13 trimmed (0.0%), 13 remaining\nparameters: 1/218 trimmed (0.5%), 217 remaining\nmappings: 160/316 trimmed (50.6%), 156 remaining\nvariables: 10/93 trimmed (10.8%), 83 remaining\nequations: 102/152 trimmed (67.1%), 50 remaining"
+#> [1] "Model Trimming Summary\n======================\nsets: 6/27 trimmed (22.2%), 21 remaining\nparameters: 1/218 trimmed (0.5%), 217 remaining\nmappings: 160/324 trimmed (49.4%), 164 remaining\nvariables: 10/93 trimmed (10.8%), 83 remaining\nequations: 103/153 trimmed (67.3%), 50 remaining"
 ```
 
 ### LaTeX with Optimization Summary

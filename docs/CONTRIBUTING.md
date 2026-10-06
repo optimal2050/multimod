@@ -80,10 +80,9 @@ changed index or coefficient is a bug.
 
 By contributing you agree that your contributions are licensed under the
 Apache License. See
-[LICENSE.md](https://optimal2050.github.io/multimod/LICENSE.md). Note
-that other packages in the stack are Apache-2.0 or AGPL-3 — do not copy
-code or data across that boundary without an explicit maintainer
-decision.
+[LICENSE.md](https://optimal2050.github.io/multimod/LICENSE.md). Other
+packages in the stack may carry different licenses — check before
+copying code or data across a package boundary.
 
 ## Code of Conduct
 

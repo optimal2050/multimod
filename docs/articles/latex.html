@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.3.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.4.9003</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -121,12 +121,12 @@ models with proper annotations.</p>
 <span><span class="co">#&gt; Model: </span></span>
 <span><span class="co">#&gt; Source:  C:/Users/admin/Documents/R/energyRt/gams/energyRt.gms </span></span>
 <span><span class="co">#&gt; Language:  GAMS </span></span>
-<span><span class="co">#&gt; Sets:  13 </span></span>
-<span><span class="co">#&gt; Mappings:  316 </span></span>
+<span><span class="co">#&gt; Sets:  27 </span></span>
+<span><span class="co">#&gt; Mappings:  324 </span></span>
 <span><span class="co">#&gt; Aliases:  7 </span></span>
 <span><span class="co">#&gt; Parameters:  218 </span></span>
 <span><span class="co">#&gt; Variables:  93 </span></span>
-<span><span class="co">#&gt; Equations:  152</span></span></code></pre></div>
+<span><span class="co">#&gt; Equations:  153</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="basic-latex-generation">Basic LaTeX Generation<a class="anchor" aria-label="anchor" href="#basic-latex-generation"></a>
@@ -198,18 +198,18 @@ with uniform values:</p>
 <span><span class="op">)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; === Fold Specification Generated ===</span></span>
-<span><span class="co">#&gt; Total entries: 24 </span></span>
+<span><span class="co">#&gt; Total entries: 23 </span></span>
 <span><span class="co">#&gt; Can fold: 20 </span></span>
-<span><span class="co">#&gt; Cannot fold: 4 </span></span>
+<span><span class="co">#&gt; Cannot fold: 3 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; REVIEW CAREFULLY: validation_mapping may be incorrect for non-standard models</span></span>
 <span></span>
 <span><span class="co"># Apply folding</span></span>
-<span><span class="va">model_folded</span> <span class="op">&lt;-</span> <span class="fu">fold_model</span><span class="op">(</span><span class="va">demo_model</span>, <span class="va">fold_spec</span><span class="op">)</span></span>
+<span><span class="va">model_folded</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/fold_model.html">fold_model</a></span><span class="op">(</span><span class="va">demo_model</span>, <span class="va">fold_spec</span><span class="op">)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; === Folding Model ===</span></span>
 <span><span class="co">#&gt; Using provided fold specification</span></span>
-<span><span class="co">#&gt; Parameters specified: 24 </span></span>
+<span><span class="co">#&gt; Parameters specified: 23 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; ✓ pTechOlife: 2D → 1D (44 → 7 rows, 6.3x)</span></span>
 <span><span class="co">#&gt; ✓ pTechCinp2use: 5D → 4D (1344 → 192 rows, 7.0x)</span></span>
@@ -234,7 +234,7 @@ with uniform values:</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; === Fold Summary ===</span></span>
 <span><span class="co">#&gt; Parameters folded: 20</span></span>
-<span><span class="co">#&gt; Parameters skipped: 4</span></span>
+<span><span class="co">#&gt; Parameters skipped: 3</span></span>
 <span><span class="co">#&gt; Total parameters: 218</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; === Folding Equations ===</span></span>
@@ -260,7 +260,7 @@ with uniform values:</p>
 <span><span class="co">#&gt;   pTradeInvcost: removed region</span></span>
 <span><span class="co">#&gt;   pTradeEac: removed region</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Equations scanned: 152</span></span>
+<span><span class="co">#&gt; Equations scanned: 153</span></span>
 <span><span class="co">#&gt; Equations with folded params: 23</span></span>
 <span></span>
 <span><span class="co"># Check folding summary</span></span>
@@ -276,6 +276,12 @@ with uniform values:</p>
 <span><span class="co">#&gt; Starting model trimming...</span></span>
 <span><span class="co">#&gt;   Phase 1: Identifying empty sets, parameters, and mappings...</span></span>
 <span><span class="co">#&gt;     Trimmed set: group</span></span>
+<span><span class="co">#&gt;     Trimmed set: mTechRetirement</span></span>
+<span><span class="co">#&gt;     Trimmed set: mUpComm</span></span>
+<span><span class="co">#&gt;     Trimmed set: mFxComm</span></span>
+<span><span class="co">#&gt;     Trimmed set: mDiscountZero</span></span>
+<span><span class="co">#&gt;     Trimmed set: mTradeOlifeInf</span></span>
+<span><span class="co">#&gt;     Trimmed set: mTradeCapacityVariable</span></span>
 <span><span class="co">#&gt;     Trimmed parameter: pDiscountFactorMileStone</span></span>
 <span><span class="co">#&gt;     Trimmed mapping: mStartMilestone</span></span>
 <span><span class="co">#&gt;     Trimmed mapping: mEndMilestone</span></span>
@@ -490,7 +496,7 @@ with uniform values:</p>
 <span><span class="co">#&gt;     Trimmed mapping: mTechNCap2AOut</span></span>
 <span><span class="co">#&gt;     Trimmed mapping: mTechCinp2AOut</span></span>
 <span><span class="co">#&gt;     Trimmed mapping: mTechCout2AOut</span></span>
-<span><span class="co">#&gt;     Total empty data elements: 215</span></span>
+<span><span class="co">#&gt;     Total empty data elements: 221</span></span>
 <span><span class="co">#&gt;   Phase 2: Identifying variables with empty domains...</span></span>
 <span><span class="co">#&gt;     Trimmed variable (empty domain mapping): vTechRetiredStock</span></span>
 <span><span class="co">#&gt;     Trimmed variable (empty domain mapping): vTechRetiredNewCap</span></span>
@@ -636,7 +642,8 @@ with uniform values:</p>
 <span><span class="co">#&gt;     Trimmed equation (empty domain mapping): eqDummyExportCost</span></span>
 <span><span class="co">#&gt;     Trimmed equation (empty domain mapping): eqTaxCost</span></span>
 <span><span class="co">#&gt;     Trimmed equation (empty domain mapping): eqSubsCost</span></span>
-<span><span class="co">#&gt;     Total equations with empty domains: 102</span></span>
+<span><span class="co">#&gt;     Trimmed equation (empty domain mapping): eqTotalUserCosts</span></span>
+<span><span class="co">#&gt;     Total equations with empty domains: 103</span></span>
 <span><span class="co">#&gt;   Phase 4: Verifying required elements...</span></span>
 <span><span class="co">#&gt;     Untrimmed variable (used in equation): vTechRetiredNewCap</span></span>
 <span><span class="co">#&gt;     Untrimmed variable (used in equation): vTechRetiredStock</span></span>
@@ -726,24 +733,24 @@ with uniform values:</p>
 <span><span class="co">#&gt;   Synced trim flags to folded equations</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; === NET Trim Results (after Phase 4) ===</span></span>
-<span><span class="co">#&gt;   Sets trimmed:       0</span></span>
+<span><span class="co">#&gt;   Sets trimmed:       6</span></span>
 <span><span class="co">#&gt;   Parameters trimmed: 1</span></span>
 <span><span class="co">#&gt;   Mappings trimmed:   160</span></span>
 <span><span class="co">#&gt;   Variables trimmed:  10</span></span>
-<span><span class="co">#&gt;   Equations trimmed:  102</span></span>
-<span><span class="co">#&gt;   TOTAL trimmed:      273</span></span>
+<span><span class="co">#&gt;   Equations trimmed:  103</span></span>
+<span><span class="co">#&gt;   TOTAL trimmed:      280</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Model Trimming Summary</span></span>
 <span><span class="co">#&gt; ======================</span></span>
-<span><span class="co">#&gt; sets: 0/13 trimmed (0.0%), 13 remaining</span></span>
+<span><span class="co">#&gt; sets: 6/27 trimmed (22.2%), 21 remaining</span></span>
 <span><span class="co">#&gt; parameters: 1/218 trimmed (0.5%), 217 remaining</span></span>
-<span><span class="co">#&gt; mappings: 160/316 trimmed (50.6%), 156 remaining</span></span>
+<span><span class="co">#&gt; mappings: 160/324 trimmed (49.4%), 164 remaining</span></span>
 <span><span class="co">#&gt; variables: 10/93 trimmed (10.8%), 83 remaining</span></span>
-<span><span class="co">#&gt; equations: 102/152 trimmed (67.1%), 50 remaining</span></span>
+<span><span class="co">#&gt; equations: 103/153 trimmed (67.3%), 50 remaining</span></span>
 <span></span>
 <span><span class="co"># Check trimming summary</span></span>
 <span><span class="fu"><a href="../reference/get_trim_summary.html">get_trim_summary</a></span><span class="op">(</span><span class="va">model_optimized</span>, format <span class="op">=</span> <span class="st">"text"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "Model Trimming Summary\n======================\nsets: 0/13 trimmed (0.0%), 13 remaining\nparameters: 1/218 trimmed (0.5%), 217 remaining\nmappings: 160/316 trimmed (50.6%), 156 remaining\nvariables: 10/93 trimmed (10.8%), 83 remaining\nequations: 102/152 trimmed (67.1%), 50 remaining"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "Model Trimming Summary\n======================\nsets: 6/27 trimmed (22.2%), 21 remaining\nparameters: 1/218 trimmed (0.5%), 217 remaining\nmappings: 160/324 trimmed (49.4%), 164 remaining\nvariables: 10/93 trimmed (10.8%), 83 remaining\nequations: 103/153 trimmed (67.3%), 50 remaining"</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="latex-with-optimization-summary">LaTeX with Optimization Summary<a class="anchor" aria-label="anchor" href="#latex-with-optimization-summary"></a>
@@ -903,7 +910,7 @@ document:</p>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Apply folding and trimming</span></span>
-<span><span class="va">model_folded</span> <span class="op">&lt;-</span> <span class="fu">fold_model</span><span class="op">(</span><span class="va">demo_model</span>, <span class="va">fold_spec</span><span class="op">)</span></span>
+<span><span class="va">model_folded</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/fold_model.html">fold_model</a></span><span class="op">(</span><span class="va">demo_model</span>, <span class="va">fold_spec</span><span class="op">)</span></span>
 <span><span class="va">model_optimized</span> <span class="op">&lt;-</span> <span class="fu">trim_model</span><span class="op">(</span><span class="va">model_folded</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Generate comprehensive LaTeX document</span></span>

@@ -108,7 +108,6 @@ reference:
   - starts_with("read_gmpl")
   - starts_with("as_gmpl")
   - starts_with("write_gmpl")
-  - export_glpk_model
   - matches("gmpl")
 
 - title: JuMP/Julia-related functions
@@ -136,14 +135,14 @@ reference:
   - set_multimod_julia
   - set_multimod_glpsol
   - starts_with("multimod_config")
-  - setup_python_environment
+  - mm_setup_python
+  - mm_check_python
 
 - title: Folding functions
   desc:  Functions for parameter folding to reduce model size by eliminating redundant dimensions.
   contents:
   - starts_with("fold_")
   - create_fold_spec
-  - create_fold_spec_energyRt
   - analyze_parameter_redundancy
   - analyze_dimension_redundancy
   - get_fold_summary
@@ -279,7 +278,6 @@ reference:
   - starts_with("register_")
   - make_valid
   - quick_compare
-  - mps_matrix_long
   - read_csv_results
 
 - title: visualization

@@ -1,9 +1,4 @@
 
-#' @title Convert multimod object to GAMS syntax
-#' @description Render a `multimod` object as a GAMS code string.
-#' @param x A `multimod` object.
-#' @param ... Additional arguments (not used).
-#' @returns A character string with valid GAMS syntax.
 #' Quote GAMS explanatory text when it needs it
 #'
 #' A description is free text after the symbol, and GAMS reads a comma in it
@@ -24,6 +19,11 @@ gams_desc <- function(x) {
   txt
 }
 
+#' @title Convert multimod object to GAMS syntax
+#' @description Render a `multimod` object as a GAMS code string.
+#' @param x A `multimod` object.
+#' @param ... Additional arguments (not used).
+#' @returns A character string with valid GAMS syntax.
 #' @export
 as_gams <- function(x, ...) {
   UseMethod("as_gams", x)

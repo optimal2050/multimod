@@ -52,27 +52,31 @@ implementation status and future plans.
 │ {{AMPL, MPS, ...}}          │ → {{...}}
 └─────────────────────────────┘
               ↓
-   ┌────────────────────────┐  
+   ┌────────────────────────┐
    │   multimod Core        │        Analysis & Manipulation:
    │ (Abstract Syntax Tree) │         • fold_model()        [✓]
    ├────────────────────────┤         • trim_model()        [✓]
    │ • Sets & Aliases       │  →      • save_model()        [✓]
    │ • Parameters           │         • as_visNetwork()     [✓]
    │ • Variables            │  ←      • model statistics    [✓]
-   │ • Equations            │         {{auto-mapping}}      [ ]
-   │ • Mappings             │         {{symbolic simplify}} [ ]
-   └────────────────────────┘
-              ↓
-┌─────────────────────────────────┐
-│      Output Formats             │
-├─────────────────────────────────┤
-│ LaTeX  (stable)           [✓]   │ → write_latex()
-│ {GMPL} (testing)          [~]   │ → write_gmpl()
-│ {JuMP} (testing)          [~]   │ → write_jump()
-│ {Pyomo} (testing)         [~]   │ → write_pyomo()
-│ {{GAMS}} (planned)        [ ]   │ → {{write_gams()}}
-│ {{AMPL, MPS, LP, ...}}    [ ]   │ → {{...}}
-└─────────────────────────────────┘
+   │ • Equations            │         • model_to_json()     [✓]
+   │ • Mappings             │         {{auto-mapping}}      [ ]
+   └────────────────────────┘         {{symbolic simplify}} [ ]
+                 ↓                                     ↓
+┌──────────────────────────────────┐  ┌──────────────────────────────────┐
+│ Output: model code               │  │ Output: LP matrix                │
+├──────────────────────────────────┤  ├──────────────────────────────────┤
+│ LaTeX    write_latex()       [✓] │  │ model_to_lp()               [✓]  │
+│ GMPL     write_gmpl()        [✓] │  │ write_mps()                 [✓]  │
+│ JuMP     write_jump()        [✓] │  │ solve_highs()               [✓]  │
+│ Pyomo    write_pyomo()       [✓] │  │ solve_mps()                 [✓]  │
+│ GAMS     write_gams() +      [✓] │  │ read_mps_solution()         [✓]  │
+│          write_gams_data()       │  │                                  │
+│ {{AMPL, ...}}                [ ] │  │ no generated model text, so      │
+│                                  │  │ no model-build step - the        │
+│ then an external solver:         │  │ time and memory wall on          │
+│ glpsol, Julia, Python, NEOS      │  │ large models                     │
+└──────────────────────────────────┘  └──────────────────────────────────┘
 
 Status: [✓] implemented | [~] and { } developing | [ ] and {{ }} considering
 ```
@@ -119,7 +123,7 @@ $$\textit{vObjective} = \sum_{{r,y} \in \textsf{mvTotalCost}_{r,y}} {\textit{vTo
 as_gams(eq) |> cat()
 #> eqObjective..
 #>   vObjective =e=
-#>   sum(([region,year])$mvTotalCost[region,year], vTotalCost[region,year] * pPeriodLen[year] * pDiscountFactor[region,year]);
+#>   sum([region,year]$(mvTotalCost[region,year]), vTotalCost[region,year] * pPeriodLen[year] * pDiscountFactor[region,year]);
 as_jump(eq) |> cat()
 #> @constraint(
 #>     model,

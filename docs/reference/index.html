@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.3.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.4.9003</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -475,6 +475,13 @@
 
         <dt>
 
+          <code><a href="write_gams_data.html">write_gams_data()</a></code>
+
+        </dt>
+        <dd>Write a model's data to a GDX for GAMS</dd>
+
+        <dt>
+
           <code><a href="is_gams_expression.html">is_gams_expression()</a></code>
 
         </dt>
@@ -544,13 +551,6 @@
 
         </dt>
         <dd>Write GMPL data file from multimod model</dd>
-
-        <dt>
-
-          <code><a href="export_glpk_model.html">export_glpk_model()</a></code>
-
-        </dt>
-        <dd>Export GLPK model to MPS or CPLEX LP format</dd>
 
         <dt>
 
@@ -665,10 +665,17 @@
 
         <dt>
 
-          <code><a href="setup_python_environment.html">setup_python_environment()</a></code> <code><a href="setup_python_environment.html">setup_multimod_python()</a></code>
+          <code><a href="mm_setup_python.html">mm_setup_python()</a></code>
 
         </dt>
-        <dd>Configure a Python environment for multimod</dd>
+        <dd>Set up the Python environment for multimod</dd>
+
+        <dt>
+
+          <code><a href="mm_check_python.html">mm_check_python()</a></code>
+
+        </dt>
+        <dd>Report on the Python environment multimod would use</dd>
       </dl></div><div class="section level2">
       <h2 id="folding-functions">Folding functions<a class="anchor" aria-label="anchor" href="#folding-functions"></a></h2>
 
@@ -681,17 +688,17 @@
 
       <dl><dt>
 
+          <code><a href="fold_model.html">fold_model()</a></code>
+
+        </dt>
+        <dd>Fold model dimensions to reduce data size</dd>
+
+        <dt>
+
           <code><a href="create_fold_spec.html">create_fold_spec()</a></code>
 
         </dt>
         <dd>Create a fold specification for a model's parameters</dd>
-
-        <dt>
-
-          <code><a href="create_fold_spec_energyRt.html">create_fold_spec_energyRt()</a></code>
-
-        </dt>
-        <dd>Create fold specification for energyRt models (convenience wrapper)</dd>
 
         <dt>
 
@@ -1059,13 +1066,6 @@
 
         </dt>
         <dd>Solve GLPK model using glpsol command line tool</dd>
-
-        <dt>
-
-          <code><a href="execute_glpkAPI.html">execute_glpkAPI()</a></code>
-
-        </dt>
-        <dd>Solve GLPK model using glpkAPI</dd>
       </dl></div><div class="section level2">
       <h2 id="model-comparison-and-debugging">Model comparison and debugging<a class="anchor" aria-label="anchor" href="#model-comparison-and-debugging"></a></h2>
 
@@ -1110,20 +1110,6 @@
 
         </dt>
         <dd>Compare JuMP model constraint statistics between two model directories</dd>
-
-        <dt>
-
-          <code><a href="compare_lp.html">compare_lp()</a></code>
-
-        </dt>
-        <dd>Compare two LP files and report differences</dd>
-
-        <dt>
-
-          <code><a href="compare_mps.html">compare_mps()</a></code>
-
-        </dt>
-        <dd>Compare two MPS files and report differences</dd>
 
         <dt>
 
@@ -1302,13 +1288,6 @@
 
         </dt>
         <dd>Get folding statistics summary</dd>
-
-        <dt>
-
-          <code><a href="get_glpk_model_stats.html">get_glpk_model_stats()</a></code>
-
-        </dt>
-        <dd>Get GLPK model statistics without solving</dd>
 
         <dt>
 
@@ -1695,7 +1674,7 @@
           <code><a href="register_index_alias.html">register_index_alias()</a></code>
 
         </dt>
-        <dd>Read GMPL/MathProg Model File</dd>
+        <dd>Register an index alias for a set</dd>
 
         <dt>
 
@@ -1710,13 +1689,6 @@
 
         </dt>
         <dd>Quick comparison showing first few differences</dd>
-
-        <dt>
-
-          <code><a href="mps_matrix_long.html">mps_matrix_long()</a></code>
-
-        </dt>
-        <dd>Extract the sparse constraint matrix of an MPS file</dd>
 
         <dt>
 

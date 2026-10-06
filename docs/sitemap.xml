@@ -120,6 +120,7 @@
 <url><loc>https://optimal2050.github.io/multimod/reference/dot-load_variable_data.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/dot-save_dataframe.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/dot-solve_gmpl_glpsol.html</loc></url>
+<url><loc>https://optimal2050.github.io/multimod/reference/dual_registered_symbols.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/ensure_parameter_defval.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/en_apply_domain_hints.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/en_extract_domains_from_comments.html</loc></url>
@@ -154,10 +155,14 @@
 <url><loc>https://optimal2050.github.io/multimod/reference/find_unmatched_elements.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/fold_ast_node.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/fold_equations.html</loc></url>
+<url><loc>https://optimal2050.github.io/multimod/reference/fold_model.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/fold_model_loop.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/format_gmpl_expression.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/format_latex_aligned.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/format_set_elements.html</loc></url>
+<url><loc>https://optimal2050.github.io/multimod/reference/gams_desc.html</loc></url>
+<url><loc>https://optimal2050.github.io/multimod/reference/gams_gdx_records.html</loc></url>
+<url><loc>https://optimal2050.github.io/multimod/reference/gams_gdx_tables.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/generate_index_alias.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/generate_index_aliases.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/generate_variable_output.html</loc></url>
@@ -218,7 +223,9 @@
 <url><loc>https://optimal2050.github.io/multimod/reference/mark_empty_variables.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/matching_paren.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/materialize_parameter_values.html</loc></url>
+<url><loc>https://optimal2050.github.io/multimod/reference/mm_check_python.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/mm_session.html</loc></url>
+<url><loc>https://optimal2050.github.io/multimod/reference/mm_setup_python.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/model_from_json.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/model_storage.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/model_to_json.html</loc></url>
@@ -292,6 +299,8 @@
 <url><loc>https://optimal2050.github.io/multimod/reference/print.variable_comparison.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/print_import_summary.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/process_bounds_with_log.html</loc></url>
+<url><loc>https://optimal2050.github.io/multimod/reference/pyomo_condition.html</loc></url>
+<url><loc>https://optimal2050.github.io/multimod/reference/pyomo_ord_card.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/quick_compare.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/read_csv_results.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/read_cuopt_solution.html</loc></url>
@@ -323,6 +332,7 @@
 <url><loc>https://optimal2050.github.io/multimod/reference/save_parameter.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/schema_node_types.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/schema_type.html</loc></url>
+<url><loc>https://optimal2050.github.io/multimod/reference/setup_multimod_python.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/setup_python_environment.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/set_data_path.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/should_enable_progress_fold.html</loc></url>
@@ -355,6 +365,7 @@
 <url><loc>https://optimal2050.github.io/multimod/reference/write_energyrt_output.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/write_gams.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/write_gams.model.html</loc></url>
+<url><loc>https://optimal2050.github.io/multimod/reference/write_gams_data.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/write_gmpl.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/write_gmpl.model.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/reference/write_gmpl_data.html</loc></url>

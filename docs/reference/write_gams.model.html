@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.3.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.4.9003</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -72,7 +72,15 @@
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="co"># S3 method for class 'model'</span></span>
-<span><span class="fu"><a href="write_gams.html">write_gams</a></span><span class="op">(</span><span class="va">model</span>, file <span class="op">=</span> <span class="cn">NULL</span>, format_expr <span class="op">=</span> <span class="cn">TRUE</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="write_gams.html">write_gams</a></span><span class="op">(</span></span>
+<span>  <span class="va">model</span>,</span>
+<span>  file <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  format_expr <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  gdx <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  include_solve <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  objective <span class="op">=</span> <span class="st">"vObjective"</span>,</span>
+<span>  <span class="va">...</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -89,6 +97,22 @@
 
 <dt id="arg-format-expr">format_expr<a class="anchor" aria-label="anchor" href="#arg-format-expr"></a></dt>
 <dd><p>logical; whether to format expressions with line breaks</p></dd>
+
+
+<dt id="arg-gdx">gdx<a class="anchor" aria-label="anchor" href="#arg-gdx"></a></dt>
+<dd><p>Name of a GDX to <code>$load</code> the data from, as written by
+<code><a href="write_gams_data.html">write_gams_data()</a></code>. <code>NULL</code> (default) emits declarations and equations
+only. NEOS decodes its input GDX to <code>in.gdx</code>, so that is the useful
+name for a NEOS job.</p></dd>
+
+
+<dt id="arg-include-solve">include_solve<a class="anchor" aria-label="anchor" href="#arg-include-solve"></a></dt>
+<dd><p>Logical; append the <code>model</code> / <code>solve</code> statements.
+Needed for a runnable job, and harmless otherwise.</p></dd>
+
+
+<dt id="arg-objective">objective<a class="anchor" aria-label="anchor" href="#arg-objective"></a></dt>
+<dd><p>Name of the variable to minimise.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>

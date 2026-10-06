@@ -252,7 +252,7 @@ Let `multimod` handle everything:
 ``` r
 
 # Creates conda environment "multimod" with Pyomo and HiGHS solver
-setup_python_environment()
+mm_setup_python()
 ```
 
 This will: 1. Install Miniconda if needed 2. Create a conda environment
@@ -269,7 +269,7 @@ If you have an existing Python environment:
 set_multimod_python("/path/to/your/python")
 
 # Or configure via environment
-setup_python_environment(
+mm_setup_python(
   env_name = "my_pyomo_env",
   packages = c("pyomo", "highspy"),
   reinstall = FALSE
@@ -395,7 +395,7 @@ get_multimod_python()  # Shows what's being used
 set_multimod_python("C:/Python310/python.exe")
 
 # Or use setup helper
-setup_python_environment(env_name = "multimod")
+mm_setup_python(env_name = "multimod")
 ```
 
 ### Julia Not Found
@@ -520,7 +520,7 @@ Complete example of setting up and using multimod:
 library(multimod)
 
 # 1. Configure solvers (one-time setup)
-setup_python_environment()  # Auto-setup Python/Pyomo
+mm_setup_python()  # Auto-setup Python/Pyomo
 set_multimod_julia("C:/Julia-1.10/bin/julia.exe")
 set_multimod_glpsol("C:/glpk/bin/glpsol.exe")
 

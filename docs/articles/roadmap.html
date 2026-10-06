@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.3.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.4.9003</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -106,7 +106,7 @@
 development. This document outlines current capabilities, design scope,
 limitations, and roadmap for future enhancements.</p>
 <div class="section level2">
-<h2 id="current-status-december-2025">Current Status (December 2025)<a class="anchor" aria-label="anchor" href="#current-status-december-2025"></a>
+<h2 id="current-status-october-2026">Current Status (October 2026)<a class="anchor" aria-label="anchor" href="#current-status-october-2026"></a>
 </h2>
 <p><strong>Version 0.4+ (Development)</strong> - Core features
 implemented, API stabilization in progress</p>
@@ -140,15 +140,24 @@ missing some language features</li>
 </ul>
 </li>
 <li>
-<strong>Writers</strong> (in testing):
+<strong>Writers</strong>:
 <ul>
-<li>GAMS: Not yet implemented</li>
-<li>GMPL: Implemented, active testing</li>
-<li>JuMP: Implemented, active testing</li>
-<li>Pyomo: Implemented, active testing</li>
+<li>GAMS: Implemented. <code><a href="../reference/write_gams.html">write_gams()</a></code> plus
+<code><a href="../reference/write_gams_data.html">write_gams_data()</a></code> (data as a GDX)</li>
+<li>GMPL: Implemented; reproduces the reference objective</li>
+<li>JuMP: Implemented; reproduces the reference objective</li>
+<li>Pyomo: Implemented; reproduces the reference objective</li>
 <li>LaTeX: Implemented, functional</li>
 </ul>
 </li>
+<li>
+<strong>Direct matrix route</strong>: assemble the LP straight from
+the AST, with no generated model text in between -
+<code><a href="../reference/model_to_lp.html">model_to_lp()</a></code>, <code><a href="../reference/write_mps.html">write_mps()</a></code>,
+<code><a href="../reference/solve_highs.html">solve_highs()</a></code> / <code><a href="../reference/solve_mps.html">solve_mps()</a></code>,
+<code><a href="../reference/read_mps_solution.html">read_mps_solution()</a></code>. This skips the model-build step that
+dominates time and memory on large models, and is intended to become the
+default for linear problems.</li>
 <li>
 <strong>AST</strong>: Complete abstract syntax tree representation
 for linear models</li>
@@ -194,7 +203,6 @@ character vectors</li>
 <strong>Data Sources</strong>:
 <ul>
 <li>Import from <code>energyRt</code> package structures</li>
-<li>Import OSeMOSYS model data</li>
 <li>Link to external Arrow/Parquet datasets for lazy loading</li>
 </ul>
 </li>
@@ -231,8 +239,8 @@ visualization with visNetwork</li>
 <strong>Comprehensive Vignettes</strong>: 10+ vignettes covering
 major features</li>
 <li>
-<strong>Example Models</strong>: Unified dataset with energyRt and
-OSeMOSYS examples</li>
+<strong>Example Models</strong>: Unified <code>example_models</code>
+dataset</li>
 </ul>
 <hr>
 </div>
@@ -244,8 +252,8 @@ OSeMOSYS examples</li>
 to change</p>
 <ul>
 <li>
-<strong>Optimization Types</strong>: Primarily designed for linear
-programming (LP) models
+<p><strong>Optimization Types</strong>: Primarily designed for
+linear programming (LP) models</p>
 <ul>
 <li>Nonlinear expressions have basic AST support but limited
 implementation</li>
@@ -253,14 +261,14 @@ implementation</li>
 </ul>
 </li>
 <li>
-<strong>Model Scope</strong>: Designed around energy system models
-(<code>energyRt</code>, OSeMOSYS structures)
+<p><strong>Model Scope</strong>: Designed around energy system
+models (<code>energyRt</code> structures)</p>
 <ul>
 <li>Can handle general LP models but may require adaptation</li>
 </ul>
 </li>
 <li>
-<strong>Parser Completeness</strong>:
+<p><strong>Parser Completeness</strong>:</p>
 <ul>
 <li>
 <strong>GAMS</strong>: Basic reader for linear models, many advanced
@@ -275,20 +283,25 @@ missing language features</li>
 </ul>
 </li>
 <li>
-<strong>Writer Maturity</strong>:
+<p><strong>Writer Maturity</strong>:</p>
 <ul>
 <li>
-<strong>GAMS</strong>: Not yet implemented</li>
+<strong>GAMS</strong>: Implemented; writing the data needs a GDX, so
+<code>gdxtools</code> and a GAMS installation (no licence required)</li>
 <li>
-<strong>GMPL/JuMP/Pyomo</strong>: In active testing, edge cases
-remain</li>
+<strong>GMPL/JuMP/Pyomo</strong>: Solve-verified on the reference
+model; edge cases remain</li>
 <li>
 <strong>LaTeX</strong>: Stable</li>
 </ul>
 </li>
-<li>
-<strong>API Stability</strong>: Function signatures and class
-structures may change as we stabilize the architecture</li>
+<li><p><strong>API Stability</strong>: Function signatures and class
+structures may change as we stabilize the architecture</p></li>
+<li><p><strong>GMPL solving</strong> needs GLPK’s <code>glpsol</code>
+executable. The <code>glpkAPI</code> route was retired when that package
+left CRAN; it was the only R package that both bundled GLPK and exposed
+GLPK’s MathProg translator, and neither <code>Rglpk</code> nor
+<code>highs</code> replaces it.</p></li>
 </ul>
 <hr>
 </div>
@@ -346,7 +359,8 @@ with structured data formats</li>
 <h3 id="immediate-priorities-v0-6-0-8">Immediate Priorities (v0.6-0.8)<a class="anchor" aria-label="anchor" href="#immediate-priorities-v0-6-0-8"></a>
 </h3>
 <p><strong>Architecture &amp; API Stabilization</strong>: - [~]
-Migration from S3 to R6/S7 class system<br>
+Migration from S3 to R6/S7 class system. An R6 session wrapper
+(<code><a href="../reference/mm_session.html">mm_session()</a></code>) is in; the wider S7 move is deferred<br>
 - [~] Front-end API design and stabilization<br>
 - [~] Finalize function naming conventions</p>
 <p><strong>API Revision, Unification &amp; Simplification</strong>: - [
@@ -376,12 +390,21 @@ namespace)<br>
 - [ ] Design fluent API patterns for common workflows (e.g., model
 %&gt;% fold_model() %&gt;% trim_model())</p>
 <p><strong>Reader/Writer Completion</strong>:<br>
-- [ ] Basic GAMS reader - [ ] Implement GAMS writer<br>
+- [✓] Basic GAMS reader (linear models, including subset declarations) -
+[✓] Implement GAMS writer (<code><a href="../reference/write_gams.html">write_gams()</a></code> +
+<code><a href="../reference/write_gams_data.html">write_gams_data()</a></code>)<br>
 - [ ] Implement JuMP reader<br>
 - [ ] Implement Pyomo reader<br>
 - [ ] Finalize GMPL reader (handle set expressions, missing
 features)<br>
-- [~] Complete testing of GMPL/JuMP/Pyomo writers</p>
+- [✓] Complete testing of GMPL/JuMP/Pyomo writers - each reproduces the
+reference objective</p>
+<p><strong>Direct Matrix Route</strong>: - [✓] Assemble the LP from the
+AST (<code><a href="../reference/model_to_lp.html">model_to_lp()</a></code>), write MPS, solve in process - [ ] Make
+it the default for linear problems, with the symbolic writers kept for
+interoperability, inspection and documentation - [ ] Expose row/column
+names in the MPS as an option (they are positional today, which is what
+keeps the file small)</p>
 <p><strong>Core Improvements</strong>: - [ ] Enhanced parser error
 messages and diagnostics - [ ] Performance optimization for large models
 - [ ] Extended test coverage (&gt;80% goal)</p>

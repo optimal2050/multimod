@@ -4,7 +4,7 @@
 
 library(multimod)
 library(energyRt)
-#> energyRt 0.90.0.9007-dev (2026-09-28)
+#> energyRt 0.90.0.9014-dev (2026-10-05)
 #> Development version, please report bugs/issues:
 #> https://github.com/optimal2050/energyRt/issues
 #> 
@@ -132,11 +132,11 @@ fold_spec <- create_fold_spec(
 ### Option 2: energyRt-Specific Interface
 
 For energyRt models with entity-specific mappings, use
-[`create_fold_spec_energyRt()`](https://optimal2050.github.io/multimod/reference/create_fold_spec_energyRt.md):
+[`create_fold_spec()`](https://optimal2050.github.io/multimod/reference/create_fold_spec.md):
 
 ``` r
 
-fold_spec <- create_fold_spec_energyRt(
+fold_spec <- create_fold_spec(
   model,
   fold_dims = list(
     slice = list(

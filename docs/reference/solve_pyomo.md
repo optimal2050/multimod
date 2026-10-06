@@ -2,7 +2,7 @@
 
 Executes the generated `solve.py` script inside `solvers/pyomo/` after
 ensuring a Python environment exists. By default the helper
-[`setup_python_environment()`](https://optimal2050.github.io/multimod/reference/setup_python_environment.md)
+[`mm_setup_python()`](https://optimal2050.github.io/multimod/reference/mm_setup_python.md)
 is invoked so that a Conda environment named "multimod" (configurable)
 is created, populated with Pyomo, and activated via the `reticulate`
 toolkit. Once the environment is ready the solver script is executed
@@ -20,7 +20,7 @@ solve_pyomo(
   solver_dir = "pyomo",
   env_name = "multimod",
   ensure_env = TRUE,
-  packages = c("pyomo"),
+  packages = NULL,
   python_version = NULL,
   ensure_miniconda = TRUE,
   reinstall_env = FALSE,
@@ -58,30 +58,34 @@ solve_pyomo(
 - env_name:
 
   Name of the Conda environment handled by
-  [`setup_python_environment()`](https://optimal2050.github.io/multimod/reference/setup_python_environment.md).
+  [`mm_setup_python()`](https://optimal2050.github.io/multimod/reference/mm_setup_python.md).
   Defaults to "multimod".
 
 - ensure_env:
 
-  Logical; when `TRUE` (default) the helper
-  [`setup_python_environment()`](https://optimal2050.github.io/multimod/reference/setup_python_environment.md)
-  runs to create/activate the environment. Set to `FALSE` if you want to
-  manage activation yourself.
+  Logical; when `TRUE` (default) the environment is checked with
+  [`mm_check_python()`](https://optimal2050.github.io/multimod/reference/mm_check_python.md)
+  and
+  [`mm_setup_python()`](https://optimal2050.github.io/multimod/reference/mm_setup_python.md)
+  runs only if it is not usable. Set to `FALSE` if you want to manage
+  activation yourself.
 
 - packages:
 
   Character vector of Python packages to request when the helper runs.
-  Defaults to `"pyomo"`.
+  `NULL` (default) uses
+  [`mm_setup_python()`](https://optimal2050.github.io/multimod/reference/mm_setup_python.md)'s
+  own list, so the environment contents have a single owner.
 
 - python_version:
 
   Optional Python version passed through to
-  [`setup_python_environment()`](https://optimal2050.github.io/multimod/reference/setup_python_environment.md).
+  [`mm_setup_python()`](https://optimal2050.github.io/multimod/reference/mm_setup_python.md).
 
 - ensure_miniconda:
 
   Forwarded to
-  [`setup_python_environment()`](https://optimal2050.github.io/multimod/reference/setup_python_environment.md).
+  [`mm_setup_python()`](https://optimal2050.github.io/multimod/reference/mm_setup_python.md).
 
 - reinstall_env:
 
@@ -122,7 +126,7 @@ solve_pyomo(
 - ...:
 
   Additional arguments forwarded to
-  [`setup_python_environment()`](https://optimal2050.github.io/multimod/reference/setup_python_environment.md).
+  [`mm_setup_python()`](https://optimal2050.github.io/multimod/reference/mm_setup_python.md).
 
 ## Value
 

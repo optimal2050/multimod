@@ -19,10 +19,9 @@ solve_gmpl(
 
 \item{model_dir}{Directory containing model files (model.mod, data.dat, etc.)}
 
-\item{method}{Solver method: "glpsol" (default) runs the \code{glpsol}
-executable, which ships with GLPK and is found by
-\code{\link[=get_multimod_glpsol]{get_multimod_glpsol()}}. "glpkAPI" uses the glpkAPI package, which is no
-longer on CRAN; it still works where it is installed.}
+\item{method}{Retained for compatibility; only \code{"glpsol"} is supported.
+\code{"glpkAPI"} was retired when glpkAPI left CRAN - see
+\code{drafts/glpkAPI-retired.R}.}
 
 \item{verbose}{Logical; print progress messages (default: TRUE)}
 
@@ -36,5 +35,11 @@ longer on CRAN; it still works where it is installed.}
 List with: model (if load_results=TRUE), success, objective, solve_time, status
 }
 \description{
-Solves an optimization model using GLPK solver (glpkAPI or glpsol)
+Solves an optimization model by running GLPK's \code{glpsol} executable.
+}
+\details{
+\code{glpsol} must be on the system: \code{\link[=get_multimod_glpsol]{get_multimod_glpsol()}} resolves it from
+\code{options("multimod.glpsol_path")}, \code{MULTIMOD_GLPSOL}, the YAML config, the
+conda environment \code{mm_setup_python()} installs GLPK into, and finally the
+bare name \code{"glpsol"} on \code{PATH}.
 }

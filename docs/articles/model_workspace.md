@@ -281,7 +281,6 @@ directory - Audit trail: log tracks all solution loads with timestamps -
 Clean workspace: no proliferation of timestamped directories - Overwrite
 behavior: easy to re-run and update solutions
 
-
     ## Working with Folded Data
 
     Models with folded parameters store both regular and folded data:

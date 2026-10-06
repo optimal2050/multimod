@@ -108,7 +108,7 @@ Most common case - technologies don’t vary by time-slice:
 ``` r
 
 # Create fold specification for slice dimension
-fold_spec_1x <- create_fold_spec_energyRt(
+fold_spec_1x <- create_fold_spec(
   demo_model,
   fold_dims = list(
     slice = list(
@@ -149,7 +149,7 @@ For single-region models, fold both slice AND region:
 
 ``` r
 
-fold_spec_2x <- create_fold_spec_energyRt(
+fold_spec_2x <- create_fold_spec(
   demo_model,
   fold_dims = list(
     slice = list(tech = "mTechSlice", comm = "mCommSlice"),
@@ -184,7 +184,7 @@ For representative year models, fold all three:
 
 ``` r
 
-fold_spec_3x <- create_fold_spec_energyRt(
+fold_spec_3x <- create_fold_spec(
   demo_model,
   fold_dims = list(
     slice = list(tech = "mTechSlice"),
@@ -808,7 +808,7 @@ data) - File I/O (data files unchanged)
        └─ analyze_parameter_redundancy()
 
     2. Create fold specification (start with slice)
-       └─ create_fold_spec_energyRt()
+       └─ create_fold_spec()
 
     3. Apply folding
        └─ fold_model()

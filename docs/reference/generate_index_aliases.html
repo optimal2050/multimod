@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.3.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.4.9003</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -74,7 +74,8 @@
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">generate_index_aliases</span><span class="op">(</span></span>
 <span>  <span class="va">set_names</span>,</span>
 <span>  all_set_names <span class="op">=</span> <span class="va">set_names</span>,</span>
-<span>  all_symbols <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  all_symbols <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  used_names <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -92,6 +93,11 @@
 
 <dt id="arg-all-symbols">all_symbols<a class="anchor" aria-label="anchor" href="#arg-all-symbols"></a></dt>
 <dd><p>List. All symbols in model (from build_symbols_list)</p></dd>
+
+
+<dt id="arg-used-names">used_names<a class="anchor" aria-label="anchor" href="#arg-used-names"></a></dt>
+<dd><p>Character vector. Iterator names already taken elsewhere
+in the model, so a partial regeneration does not reissue one.</p></dd>
 
 </dl></div>
     <div class="section level2">

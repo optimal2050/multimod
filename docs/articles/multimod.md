@@ -114,12 +114,12 @@ print(mod)
     #> Model: 
     #> Source:  C:/Users/admin/Documents/R/energyRt/gams/energyRt.gms 
     #> Language:  GAMS 
-    #> Sets:  13 
-    #> Mappings:  316 
+    #> Sets:  27 
+    #> Mappings:  324 
     #> Aliases:  7 
     #> Parameters:  218 
     #> Variables:  93 
-    #> Equations:  152
+    #> Equations:  153
 
 Equations are stored in `$equations` list, and can be accessed by their
 names. Each equation is an object of class `equation`, which contains

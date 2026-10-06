@@ -42,7 +42,12 @@ create_fold_spec(model, fold_dims, tolerance = 1e-10, verbose = TRUE)
 
 A data frame with one row per parameter/dimension pair: `param_name`,
 `dim_to_fold`, `validation_mapping`, `validation_mapping_raw`,
-`can_fold` and `reason`.
+`can_fold`, `unproven` and `reason`. `unproven` marks a dimension
+refused for want of a validation mapping rather than because folding was
+shown to be wrong: constancy holds over the data present, but nothing
+proves the data covers every applicable member, so folding could
+broadcast a value where the default applies. Supplying the mapping
+settles it either way.
 
 ## Details
 
@@ -51,10 +56,18 @@ and the `fold_dims` configuration it is given. Only the *default*
 mapping names (`mTechTimeslice` and friends) follow energyRt's
 conventions, and those are supplied by the caller.
 
+With an entity-specific configuration, the **first** matching entity
+dimension wins: `tech`, then `sup`, then `comm`, then `stg`; a parameter
+matching none gets `NA` and is not validated.
+
+A character vector is a **mapping chain**, joined in sequence on the
+columns the mappings share. For
+`stg = c("mStorageComm", "mCommTimeslice")`: `mStorageComm[stg, comm]`
+joined with `mCommTimeslice[comm, timeslice]` yields `[stg, timeslice]`.
+
 ## See also
 
-`fold_model()`,
-[`create_fold_spec_energyRt()`](https://optimal2050.github.io/multimod/reference/create_fold_spec_energyRt.md)
+[`fold_model()`](https://optimal2050.github.io/multimod/reference/fold_model.md)
 
 ## Examples
 

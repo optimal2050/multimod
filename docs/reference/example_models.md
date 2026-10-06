@@ -17,22 +17,22 @@ A list with 1 element:
 
 - energyRt:
 
-  energyRt Utopia test case with components:
+  energyRt TOPIA test case with components:
 
   gams
 
-  :   List with `model`: energyRt's GAMS template source
-      (`gams/energyRt.gms`) as a character vector, ready for
-      `read_gams(include = FALSE)`
+  : List with `model`: energyRt's GAMS template source
+    (`gams/energyRt.gms`) as a character vector, ready for
+    `read_gams(include = FALSE)`
 
   multimod
 
-  :   Parsed multimod model object with energyRt data attached
+  : Parsed multimod model object with energyRt data attached
 
   metadata
 
-  :   List with source, scenario, repository, license, energyRt_version,
-      gams_source, date_imported, note
+  : List with source, scenario, repository, license, energyRt_version,
+    gams_source, date_imported, note
 
 ## Source
 
@@ -58,8 +58,8 @@ etc. without writing temporary files.
 ### energyRt Test Case
 
 The energyRt package is an R-based energy systems modeling framework.
-The UTOPIA R7 kit is a small 7-region, multi-timeslice test case used
-for validation.
+The TOPIA R7 kit is a small 7-region, multi-timeslice test case used for
+validation.
 
 The model *structure* is parsed from energyRt's GAMS template with
 `read_gams(include = FALSE)`; GAMS is the source of truth because the
@@ -67,9 +67,8 @@ GMPL/JuMP/Pyomo templates are still evolving. The *data* is attached
 from an interpolated energyRt scenario. See
 `data-raw/build_energyRt_fixture.R`.
 
-**License**: GNU Affero General Public License v3.0 (AGPL-3.0). This
-applies to the bundled model source, not to multimod itself. See
-`LICENSE.note`.
+**License**: Apache License 2.0, the same license as multimod itself.
+See `LICENSE.note`.
 
 ## Usage
 
@@ -108,25 +107,25 @@ names(example_models$energyRt)
 # Check metadata
 example_models$energyRt$metadata
 #> $source
-#> [1] "energyRt UTOPIA kit"
+#> [1] "energyRt TOPIA kit"
 #> 
 #> $scenario
-#> [1] "R7 / utopia_seasons / base horizon"
+#> [1] "R7 / topia_seasons / base horizon"
 #> 
 #> $repository
 #> [1] "https://github.com/optimal2050/energyRt"
 #> 
 #> $license
-#> [1] "AGPL-3.0"
+#> [1] "Apache-2.0"
 #> 
 #> $energyRt_version
-#> [1] "0.89.5.9002"
+#> [1] "0.90.0.9012"
 #> 
 #> $gams_source
 #> [1] "gams/energyRt.gms"
 #> 
 #> $date_imported
-#> [1] "2026-09-08"
+#> [1] "2026-10-04"
 #> 
 #> $note
 #> [1] "Model structure parsed from energyRt's GAMS template with read_gams(include = FALSE); data attached from an interpolated energyRt scenario. See data-raw/build_energyRt_fixture.R."
@@ -137,17 +136,17 @@ summary(example_models$energyRt$multimod)
 #>               Length Class  Mode     
 #> name            0    -none- NULL     
 #> desc            0    -none- NULL     
-#> sets           13    -none- list     
+#> sets           27    -none- list     
 #> aliases         7    -none- list     
-#> mappings      316    -none- list     
+#> mappings      324    -none- list     
 #> parameters    218    -none- list     
 #> variables      93    -none- list     
-#> equations     152    -none- list     
+#> equations     153    -none- list     
 #> inMemory        1    -none- logical  
 #> base_path       0    -none- NULL     
 #> metadata        2    -none- list     
 #> objectives      1    -none- list     
-#> index_aliases  30    -none- character
+#> index_aliases  44    -none- character
 #> misc            2    -none- list     
 
 if (FALSE) { # \dontrun{

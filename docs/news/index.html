@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.3.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.4.9003</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -69,11 +69,28 @@
 <div class="section level3">
 <h3 id="breaking-changes-development-version">Breaking changes<a class="anchor" aria-label="anchor" href="#breaking-changes-development-version"></a></h3>
 <ul><li>
+<code>setup_python_environment()</code> and <code>setup_multimod_python()</code> are now <code><a href="../reference/mm_setup_python.html">mm_setup_python()</a></code>, with no aliases. Its <code>packages</code> default gains <code>pyarrow</code> and <code>pandas</code>, so the environment can read the Arrow data <code>save_model(format = "ipc")</code> writes, and <code>python_version</code> defaults to 3.14. <code>solve_pyomo(packages = )</code> now defaults to <code>NULL</code> and defers to it, so the environment contents have one owner. <code>conda_packages</code> defaults to <code>"glpk"</code>, installed with conda rather than <code>pip</code>, because the MathProg route needs the <code>glpsol</code> executable; <code><a href="../reference/multimod-config.html">get_multimod_glpsol()</a></code> now also looks inside the environment.</li>
+<li>
 <code><a href="../reference/analyze_fold_opportunities.html">analyze_fold_opportunities()</a></code>: <code>fold_slice</code> is now <code>fold_timeslice</code>, and the <code>slice</code> dimension is spelled <code>timeslice</code> throughout, matching energyRt. The old spelling was dead code, so the timeslice-coverage check never ran.</li>
 <li>Example models are consolidated into <code>example_models</code>: use <code>example_models$energyRt$multimod</code> in place of the removed <code>utopia_multimod</code> and its siblings.</li>
 </ul></div>
 <div class="section level3">
+<h3 id="bug-fixes-development-version">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-development-version"></a></h3>
+<ul><li><p>A symbol declared as a subset (<code>sup(process)</code>) is registered as both a set and a mapping, and only one side carries its members. Every writer now emits it from the side that has them. Previously the MathProg data section and the GDX took the empty side, so gates such as <code>mLoComm</code> were written empty and the equations using them were silently inert.</p></li>
+<li><p>Pyomo: a gated <code>sum</code> kept its condition, a mapping in condition position is a membership test rather than a truthy <code>Set</code>, <code>ord()</code>/<code>card()</code> resolve to a position parameter, and rule iterators are taken from the equation’s domain mapping, so an alias such as <code>dst</code> is bound. <code><a href="../reference/solve_pyomo.html">solve_pyomo()</a></code> passes environment variables through <code><a href="https://rdrr.io/r/base/Sys.setenv.html" class="external-link">Sys.setenv()</a></code> rather than <code>system2(env =)</code>, which Windows ignores, so <code>solver =</code> is no longer silently dropped.</p></li>
+<li><p><code>save_model(format = "ipc")</code> now works with Pyomo: the generated loader reads each file directly instead of through <code>DataPortal</code>, which has no reader for Arrow or Parquet.</p></li>
+<li><p>GAMS output compiles: <code>$</code> conditions are bracketed, descriptions containing a comma are quoted, a dims tuple is not double-wrapped, equation headers bind the domain’s dims, and a unary operator reads its operand from <code>$rhs</code>.</p></li>
+<li><p><code><a href="../reference/fold_model.html">fold_model()</a></code> refuses to fold a dimension when the parameter never indexes some of its members and no validation mapping shows they are unreachable. Folding one broadcast a stored value where the default applied.</p></li>
+<li><p><code><a href="../reference/fold_equations.html">fold_equations()</a></code> now rewrites parameter references inside a unary operator. <code>vExportRowCost = -sum{...}</code> and two of the three terms of <code>eqSubsCost</code> kept the unfolded arity, which MathProg rejects and which JuMP and Pyomo accepted while silently substituting the default weight.</p></li>
+<li><p><code><a href="../reference/fold_model.html">fold_model()</a></code> refuses a dimension the parameter carries more than once, such as <code>timeslice</code> in <code>pTimesliceAgg(year, timeslice, timeslicep)</code> or <code>region</code> in the <code>pTradeIr*</code> family. Both the declaration rewrite and the reference rewrite drop every matching dimension, so folding collapsed the pair into one subscript.</p></li>
+</ul></div>
+<div class="section level3">
 <h3 id="new-features-development-version">New features<a class="anchor" aria-label="anchor" href="#new-features-development-version"></a></h3>
+<div class="section level4">
+<h4 id="gams-development-version">GAMS<a class="anchor" aria-label="anchor" href="#gams-development-version"></a></h4>
+<ul><li><p><code><a href="../reference/write_gams_data.html">write_gams_data()</a></code> writes a model’s data to a GDX, and <code>write_gams(gdx =, include_solve =)</code> emits the matching <code>$load</code> block and the <code>model</code> / <code>solve</code> statements, so a GAMS job can be assembled without a GAMS licence and solved elsewhere. Zero-valued parameter records are written as <code>EPS</code>: a GDX stores no zeros, and GAMS has no per-parameter default, so the default assigned after loading would otherwise overwrite a stored zero. This route is exercised against an older GDX library and gdxtools 0.7, which does not install on R &gt;= 4.6, with the solve run on NEOS; contributions testing newer pipelines are welcome.</p></li>
+<li><p><code><a href="../reference/mm_check_python.html">mm_check_python()</a></code> reports the interpreter multimod would use and whether it carries the needed packages. <code><a href="../reference/solve_pyomo.html">solve_pyomo()</a></code> calls it before bootstrapping, so a usable environment is no longer reinstalled on every solve.</p></li>
+</ul></div>
 <div class="section level4">
 <h4 id="direct-matrix--mps-backend-development-version">Direct matrix / MPS backend<a class="anchor" aria-label="anchor" href="#direct-matrix--mps-backend-development-version"></a></h4>
 <ul><li>Assemble a model straight into LP arrays, bypassing the symbolic layer: <code><a href="../reference/model_to_lp.html">model_to_lp()</a></code>, <code><a href="../reference/build_col_index.html">build_col_index()</a></code>, <code><a href="../reference/build_row_index.html">build_row_index()</a></code>, <code><a href="../reference/build_triplets.html">build_triplets()</a></code>.</li>
@@ -99,7 +116,7 @@
 <ul><li>
 <code><a href="../reference/save_model.html">save_model()</a></code> / <code><a href="../reference/load_model.html">load_model()</a></code> store a model workspace as Arrow IPC, Parquet or CSV, with lazy loading for large datasets. See <code><a href="../articles/model_workspace.html">vignette("model_workspace")</a></code>.</li>
 <li>
-<code>import_energyRt_data()</code>, <code>populate_sets_from_scenario()</code> and <code>link_scenario_data()</code> import energyRt structures and link Arrow/Parquet files for lazy loading; OSeMOSYS example data is supported.</li>
+<code>import_energyRt_data()</code>, <code>populate_sets_from_scenario()</code> and <code>link_scenario_data()</code> import energyRt structures and link Arrow/Parquet files for lazy loading.</li>
 <li>Generated code carries data either embedded in the code (small models) or read from an Arrow repository (large models).</li>
 <li>Constructors are also available under the cross-language names used by the planned C++ and Python bindings: <code><a href="../reference/multimod-constructors.html">Set()</a></code>, <code><a href="../reference/multimod-constructors.html">Parameter()</a></code>, <code><a href="../reference/multimod-constructors.html">Equation()</a></code>, <code><a href="../reference/multimod-constructors.html">SetRef()</a></code> and so on. These are aliases; the <code>new_*()</code> and <code>ast_*()</code> names are unchanged. <code><a href="../reference/is_declaration.html">is_declaration()</a></code> replaces <code>inherits(x, "multimod")</code>.</li>
 <li>AST nodes are validated against the schema when constructed, so a malformed node is refused where it is built rather than surfacing later as a renderer that emits nothing. Disable with <code>options(multimod.validate = FALSE)</code>.</li>
@@ -121,13 +138,13 @@
 <div class="section level4">
 <h4 id="model-optimization-development-version">Model optimization<a class="anchor" aria-label="anchor" href="#model-optimization-development-version"></a></h4>
 <ul><li>
-<code>fold_model()</code> reduces the dimensionality of uniform parameters; <code><a href="../reference/create_fold_spec.html">create_fold_spec()</a></code> and <code><a href="../reference/get_fold_summary.html">get_fold_summary()</a></code> support it. See <code><a href="../articles/folding.html">vignette("folding")</a></code>.</li>
+<code><a href="../reference/fold_model.html">fold_model()</a></code> reduces the dimensionality of uniform parameters; <code><a href="../reference/create_fold_spec.html">create_fold_spec()</a></code> and <code><a href="../reference/get_fold_summary.html">get_fold_summary()</a></code> support it. See <code><a href="../articles/folding.html">vignette("folding")</a></code>.</li>
 <li>
 <code>trim_model()</code> removes unused sets, parameters, variables and equations, and <code><a href="../reference/get_trim_summary.html">get_trim_summary()</a></code> reports what went.</li>
 </ul></div>
 </div>
 <div class="section level3">
-<h3 id="bug-fixes-development-version">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-development-version"></a></h3>
+<h3 id="bug-fixes-development-version-1">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-development-version-1"></a></h3>
 <ul><li>A constraint summing over more than one index was silently dropped from the model: the index list in <code>sum((region, timeslice)$map, ...)</code> kept the comma’s whitespace, so the second index matched no set and the sum bound nothing. The row still assembled, with its bounds and no coefficients, and solved to Optimal.</li>
 <li>Numeric literals in scientific notation with a signed exponent (<code>1e-20</code>, <code>3.6888e+08</code>) failed to parse.</li>
 <li>A decimal literal in an equation body (<code>=l= 3201.976</code>) was read as dot-access and became <code>val(y)</code>, building a wrong matrix.</li>
@@ -140,7 +157,7 @@
 <code><a href="../reference/get_data.html">get_data()</a></code> treated a legitimately empty on-disk table as unreadable and aborted the build. An empty table whose recorded path resolves nowhere now imports as empty.</li>
 <li>JuMP: 1-dimensional mappings loaded as <code>Set{Tuple{String}}</code>, so membership checks silently failed and constraints lost terms. They now load as <code>Set{String}</code>, and generated models reproduce the reference results.</li>
 <li>
-<code><a href="../reference/export_model_source.html">export_model_source()</a></code>, <code>export_osemosys()</code> and <code>export_energyrt()</code> work with the consolidated <code>example_models</code>.</li>
+<code><a href="../reference/export_model_source.html">export_model_source()</a></code> and <code>export_energyrt()</code> work with the consolidated <code>example_models</code>.</li>
 <li>
 <code>DESCRIPTION</code> no longer carries a <code>Collate</code> field: it had fallen out of date, and files absent from it are silently not sourced.</li>
 </ul></div>

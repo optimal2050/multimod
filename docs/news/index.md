@@ -4,6 +4,17 @@
 
 ### Breaking changes
 
+- `setup_python_environment()` and `setup_multimod_python()` are now
+  [`mm_setup_python()`](https://optimal2050.github.io/multimod/reference/mm_setup_python.md),
+  with no aliases. Its `packages` default gains `pyarrow` and `pandas`,
+  so the environment can read the Arrow data
+  `save_model(format = "ipc")` writes, and `python_version` defaults to
+  3.14. `solve_pyomo(packages = )` now defaults to `NULL` and defers to
+  it, so the environment contents have one owner. `conda_packages`
+  defaults to `"glpk"`, installed with conda rather than `pip`, because
+  the MathProg route needs the `glpsol` executable;
+  [`get_multimod_glpsol()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
+  now also looks inside the environment.
 - [`analyze_fold_opportunities()`](https://optimal2050.github.io/multimod/reference/analyze_fold_opportunities.md):
   `fold_slice` is now `fold_timeslice`, and the `slice` dimension is
   spelled `timeslice` throughout, matching energyRt. The old spelling
@@ -12,7 +23,75 @@
   `example_models$energyRt$multimod` in place of the removed
   `utopia_multimod` and its siblings.
 
+### Bug fixes
+
+- A symbol declared as a subset (`sup(process)`) is registered as both a
+  set and a mapping, and only one side carries its members. Every writer
+  now emits it from the side that has them. Previously the MathProg data
+  section and the GDX took the empty side, so gates such as `mLoComm`
+  were written empty and the equations using them were silently inert.
+
+- Pyomo: a gated `sum` kept its condition, a mapping in condition
+  position is a membership test rather than a truthy `Set`,
+  `ord()`/`card()` resolve to a position parameter, and rule iterators
+  are taken from the equation’s domain mapping, so an alias such as
+  `dst` is bound.
+  [`solve_pyomo()`](https://optimal2050.github.io/multimod/reference/solve_pyomo.md)
+  passes environment variables through
+  [`Sys.setenv()`](https://rdrr.io/r/base/Sys.setenv.html) rather than
+  `system2(env =)`, which Windows ignores, so `solver =` is no longer
+  silently dropped.
+
+- `save_model(format = "ipc")` now works with Pyomo: the generated
+  loader reads each file directly instead of through `DataPortal`, which
+  has no reader for Arrow or Parquet.
+
+- GAMS output compiles: `$` conditions are bracketed, descriptions
+  containing a comma are quoted, a dims tuple is not double-wrapped,
+  equation headers bind the domain’s dims, and a unary operator reads
+  its operand from `$rhs`.
+
+- [`fold_model()`](https://optimal2050.github.io/multimod/reference/fold_model.md)
+  refuses to fold a dimension when the parameter never indexes some of
+  its members and no validation mapping shows they are unreachable.
+  Folding one broadcast a stored value where the default applied.
+
+- [`fold_equations()`](https://optimal2050.github.io/multimod/reference/fold_equations.md)
+  now rewrites parameter references inside a unary operator.
+  `vExportRowCost = -sum{...}` and two of the three terms of
+  `eqSubsCost` kept the unfolded arity, which MathProg rejects and which
+  JuMP and Pyomo accepted while silently substituting the default
+  weight.
+
+- [`fold_model()`](https://optimal2050.github.io/multimod/reference/fold_model.md)
+  refuses a dimension the parameter carries more than once, such as
+  `timeslice` in `pTimesliceAgg(year, timeslice, timeslicep)` or
+  `region` in the `pTradeIr*` family. Both the declaration rewrite and
+  the reference rewrite drop every matching dimension, so folding
+  collapsed the pair into one subscript.
+
 ### New features
+
+#### GAMS
+
+- [`write_gams_data()`](https://optimal2050.github.io/multimod/reference/write_gams_data.md)
+  writes a model’s data to a GDX, and
+  `write_gams(gdx =, include_solve =)` emits the matching `$load` block
+  and the `model` / `solve` statements, so a GAMS job can be assembled
+  without a GAMS licence and solved elsewhere. Zero-valued parameter
+  records are written as `EPS`: a GDX stores no zeros, and GAMS has no
+  per-parameter default, so the default assigned after loading would
+  otherwise overwrite a stored zero. This route is exercised against an
+  older GDX library and gdxtools 0.7, which does not install on R \>=
+  4.6, with the solve run on NEOS; contributions testing newer pipelines
+  are welcome.
+
+- [`mm_check_python()`](https://optimal2050.github.io/multimod/reference/mm_check_python.md)
+  reports the interpreter multimod would use and whether it carries the
+  needed packages.
+  [`solve_pyomo()`](https://optimal2050.github.io/multimod/reference/solve_pyomo.md)
+  calls it before bootstrapping, so a usable environment is no longer
+  reinstalled on every solve.
 
 #### Direct matrix / MPS backend
 
@@ -73,8 +152,7 @@ open items.
   [`vignette("model_workspace")`](https://optimal2050.github.io/multimod/articles/model_workspace.md).
 - `import_energyRt_data()`, `populate_sets_from_scenario()` and
   `link_scenario_data()` import energyRt structures and link
-  Arrow/Parquet files for lazy loading; OSeMOSYS example data is
-  supported.
+  Arrow/Parquet files for lazy loading.
 - Generated code carries data either embedded in the code (small models)
   or read from an Arrow repository (large models).
 - Constructors are also available under the cross-language names used by
@@ -141,7 +219,8 @@ open items.
 
 #### Model optimization
 
-- `fold_model()` reduces the dimensionality of uniform parameters;
+- [`fold_model()`](https://optimal2050.github.io/multimod/reference/fold_model.md)
+  reduces the dimensionality of uniform parameters;
   [`create_fold_spec()`](https://optimal2050.github.io/multimod/reference/create_fold_spec.md)
   and
   [`get_fold_summary()`](https://optimal2050.github.io/multimod/reference/get_fold_summary.md)
@@ -184,9 +263,8 @@ open items.
   membership checks silently failed and constraints lost terms. They now
   load as `Set{String}`, and generated models reproduce the reference
   results.
-- [`export_model_source()`](https://optimal2050.github.io/multimod/reference/export_model_source.md),
-  `export_osemosys()` and `export_energyrt()` work with the consolidated
-  `example_models`.
+- [`export_model_source()`](https://optimal2050.github.io/multimod/reference/export_model_source.md)
+  and `export_energyrt()` work with the consolidated `example_models`.
 - `DESCRIPTION` no longer carries a `Collate` field: it had fallen out
   of date, and files absent from it are silently not sourced.
 
