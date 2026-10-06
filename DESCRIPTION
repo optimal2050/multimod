@@ -26,9 +26,10 @@ Imports:
     digest,
     magrittr,
     jsonlite
-Suggests: 
+Suggests:
     R6,
     highs,
+    glpsol,
     withr,
     reticulate (>= 1.28),
     tidync,

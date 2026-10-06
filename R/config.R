@@ -192,7 +192,15 @@ get_multimod_glpsol <- function() {
   yaml_path <- .get_config_value("glpsol", "path")
   if (!is.null(yaml_path)) return(normalizePath(yaml_path, mustWork = FALSE))
   
-  # 4. The conda environment, whose bin directory is not on PATH unless it
+  # 4. The glpsol package, which ships the executable itself. Preferred over
+  #    the ambient copies below: its version is known and it needs no separate
+  #    GLPK installation.
+  if (requireNamespace("glpsol", quietly = TRUE)) {
+    hit <- tryCatch(glpsol::glpsol_path(), error = function(e) NULL)
+    if (!is.null(hit) && nzchar(hit) && file.exists(hit)) return(hit)
+  }
+
+  # 5. The conda environment, whose bin directory is not on PATH unless it
   #    has been activated. mm_setup_python() installs glpk there.
   py <- tryCatch(get_multimod_python(), error = function(e) NULL)
   if (!is.null(py) && nzchar(py) && py != "python" && file.exists(py)) {
@@ -204,7 +212,7 @@ get_multimod_glpsol <- function() {
     if (length(hit) > 0) return(normalizePath(hit[1], winslash = "/"))
   }
 
-  # 5. Fall back to system glpsol
+  # 6. Fall back to system glpsol
   "glpsol"
 }
 
