@@ -1,4 +1,15 @@
 url: https://optimal2050.github.io/multimod/
+home:
+  sidebar:
+    structure: [links, license, community, citation, dev]
+
+footer:
+  structure:
+    left: built_with
+    right: blank
+  components:
+    blank: ""
+
 template:
   bootstrap: 5
   light-switch: true
