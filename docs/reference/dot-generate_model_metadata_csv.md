@@ -59,7 +59,6 @@ Modified model object with storage metadata
 
 Directory structure created:
 
-
     model_path/
       model.rds              # Model structure (thinned if keep_in_memory=FALSE)
       metadata.json          # Human-readable metadata

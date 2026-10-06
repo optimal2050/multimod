@@ -2,26 +2,19 @@
 % Please edit documentation in R/as_gams.R
 \name{gams_desc}
 \alias{gams_desc}
-\title{Convert multimod object to GAMS syntax}
+\title{Quote GAMS explanatory text when it needs it}
 \usage{
 gams_desc(x)
 }
 \arguments{
 \item{x}{Description text.}
-
-\item{...}{Additional arguments (not used).}
 }
 \value{
-A character string with valid GAMS syntax.
-Quote GAMS explanatory text when it needs it
-
-A description is free text after the symbol, and GAMS reads a comma in it
-as the separator before the next declaration - \verb{ratio,hours,lower bound}
-declared symbols named \code{hours} and \code{lower}. Quoting keeps it one token.
-
 The text, quoted if it carries a comma, semicolon or quote.
 }
 \description{
-Render a \code{multimod} object as a GAMS code string.
+A description is free text after the symbol, and GAMS reads a comma in it
+as the separator before the next declaration - \verb{ratio,hours,lower bound}
+declared symbols named \code{hours} and \code{lower}. Quoting keeps it one token.
 }
 \keyword{internal}

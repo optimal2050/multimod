@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.3.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.4.9003</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -96,7 +96,7 @@
                         <h4 data-toc-skip class="author">multimod
 Package</h4>
             
-            <h4 data-toc-skip class="date">2026-10-01</h4>
+            <h4 data-toc-skip class="date">2026-10-06</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/optimal2050/multimod/blob/HEAD/vignettes/pyomo.Rmd" class="external-link"><code>vignettes/pyomo.Rmd</code></a></small>
       <div class="d-none name"><code>pyomo.Rmd</code></div>
@@ -354,7 +354,7 @@ variable:</p>
 <p><strong>Easy Setup:</strong></p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Automatic setup with conda environment</span></span>
-<span><span class="fu"><a href="../reference/setup_python_environment.html">setup_python_environment</a></span><span class="op">(</span></span>
+<span><span class="fu"><a href="../reference/mm_setup_python.html">mm_setup_python</a></span><span class="op">(</span></span>
 <span>  env_name <span class="op">=</span> <span class="st">"multimod"</span>,</span>
 <span>  packages <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"pyomo"</span>, <span class="st">"highspy"</span><span class="op">)</span>  <span class="co"># Includes HiGHS solver</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -806,7 +806,7 @@ parameters (skips if file doesn’t exist)</p>
 <span><span class="fu"><a href="../reference/multimod-config.html">multimod_config_show</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Set up environment</span></span>
-<span><span class="fu"><a href="../reference/setup_python_environment.html">setup_python_environment</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/mm_setup_python.html">mm_setup_python</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="solver-not-found">Solver Not Found<a class="anchor" aria-label="anchor" href="#solver-not-found"></a>
@@ -924,7 +924,7 @@ scikit-learn)</li>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://energyRt.org" class="external-link">energyRt</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># 1. Setup Python environment (one-time)</span></span>
-<span><span class="fu"><a href="../reference/setup_python_environment.html">setup_python_environment</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/mm_setup_python.html">mm_setup_python</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># 2. Load and convert model</span></span>
 <span><span class="va">model_struct</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_gams.html">read_gams</a></span><span class="op">(</span><span class="st">"path/to/model.gms"</span><span class="op">)</span></span>

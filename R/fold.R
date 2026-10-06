@@ -463,6 +463,38 @@ create_fold_spec <- function(model,
 }
 
 
+#' Decide whether to show a progress bar while folding
+#'
+#' @param model A multimod model object.
+#' @param fold_spec The fold specification.
+#' @param param_threshold Parameter count above which to enable progress.
+#' @param row_threshold Total data rows above which to enable progress.
+#' @return Logical.
+#' @keywords internal
+should_enable_progress_fold <- function(model, fold_spec, 
+                                        param_threshold = 30,
+                                        row_threshold = 50000) {
+  if (!requireNamespace("progressr", quietly = TRUE)) {
+    return(FALSE)
+  }
+  
+  # Count parameters in spec that have data
+  params_with_data <- sum(vapply(fold_spec$param_name, function(pname) {
+    pname %in% names(model$parameters) && 
+      !is.null(model$parameters[[pname]]$data) &&
+      nrow(model$parameters[[pname]]$data) > 0
+  }, logical(1)))
+  
+  if (params_with_data > param_threshold) return(TRUE)
+  
+  # Check total data size (proxy for processing time)
+  total_rows <- sum(vapply(model$parameters, function(p) {
+    if (!is.null(p$data)) nrow(p$data) else 0L
+  }, integer(1)))
+  
+  return(total_rows > row_threshold)
+}
+
 #' Fold model dimensions to reduce data size
 #'
 #' Reduces redundant dimensions in parameters where data is constant across
@@ -522,31 +554,6 @@ create_fold_spec <- function(model,
 #' model <- fold_model(model, fold_spec = fold_spec)
 #' }
 #' 
-#' @keywords internal
-should_enable_progress_fold <- function(model, fold_spec, 
-                                        param_threshold = 30,
-                                        row_threshold = 50000) {
-  if (!requireNamespace("progressr", quietly = TRUE)) {
-    return(FALSE)
-  }
-  
-  # Count parameters in spec that have data
-  params_with_data <- sum(vapply(fold_spec$param_name, function(pname) {
-    pname %in% names(model$parameters) && 
-      !is.null(model$parameters[[pname]]$data) &&
-      nrow(model$parameters[[pname]]$data) > 0
-  }, logical(1)))
-  
-  if (params_with_data > param_threshold) return(TRUE)
-  
-  # Check total data size (proxy for processing time)
-  total_rows <- sum(vapply(model$parameters, function(p) {
-    if (!is.null(p$data)) nrow(p$data) else 0L
-  }, integer(1)))
-  
-  return(total_rows > row_threshold)
-}
-
 #' @export
 fold_model <- function(model, 
                        fold_spec,

@@ -4,8 +4,8 @@ This helper mirrors
 [`as_jump()`](https://optimal2050.github.io/multimod/reference/as_jump.md)
 but emits Python/Pyomo-friendly strings. The implementation focuses on
 linear expressions (sum/prod, arithmetic operators, variable/parameter
-references) which cover the current OSeMOSYS workflow. Unsupported node
-types raise informative errors so we can extend coverage incrementally.
+references). Unsupported node types raise informative errors so coverage
+can be extended incrementally.
 
 ## Usage
 

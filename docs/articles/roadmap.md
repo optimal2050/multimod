@@ -4,7 +4,7 @@ The `multimod` package is under active but experimental development.
 This document outlines current capabilities, design scope, limitations,
 and roadmap for future enhancements.
 
-## Current Status (December 2025)
+## Current Status (October 2026)
 
 **Version 0.4+ (Development)** - Core features implemented, API
 stabilization in progress
@@ -13,11 +13,11 @@ stabilization in progress
 may change, edge cases remain
 
 The package has progressed significantly beyond initial roadmap
-milestones: - \[✓\] Configuration system for solver paths  
-- \[✓\] Model storage (CSV, IPC, Parquet formats)  
-- \[✓\] Parameter folding and model trimming  
-- \[✓\] Comprehensive vignettes and documentation  
-- \[~\] Readers/writers implementation and testing  
+milestones: - \[✓\] Configuration system for solver paths\
+- \[✓\] Model storage (CSV, IPC, Parquet formats)\
+- \[✓\] Parameter folding and model trimming\
+- \[✓\] Comprehensive vignettes and documentation\
+- \[~\] Readers/writers implementation and testing\
 - \[~\] API stabilization and architecture decisions
 
 ------------------------------------------------------------------------
@@ -32,12 +32,27 @@ milestones: - \[✓\] Configuration system for solver paths
     missing some language features
   - JuMP: Not yet implemented
   - Pyomo: Not yet implemented
-- **Writers** (in testing):
-  - GAMS: Not yet implemented
-  - GMPL: Implemented, active testing
-  - JuMP: Implemented, active testing
-  - Pyomo: Implemented, active testing
+- **Writers**:
+  - GAMS: Implemented.
+    [`write_gams()`](https://optimal2050.github.io/multimod/reference/write_gams.md)
+    plus
+    [`write_gams_data()`](https://optimal2050.github.io/multimod/reference/write_gams_data.md)
+    (data as a GDX)
+  - GMPL: Implemented; reproduces the reference objective
+  - JuMP: Implemented; reproduces the reference objective
+  - Pyomo: Implemented; reproduces the reference objective
   - LaTeX: Implemented, functional
+- **Direct matrix route**: assemble the LP straight from the AST, with
+  no generated model text in between -
+  [`model_to_lp()`](https://optimal2050.github.io/multimod/reference/model_to_lp.md),
+  [`write_mps()`](https://optimal2050.github.io/multimod/reference/write_mps.md),
+  [`solve_highs()`](https://optimal2050.github.io/multimod/reference/solve_highs.md)
+  /
+  [`solve_mps()`](https://optimal2050.github.io/multimod/reference/solve_mps.md),
+  [`read_mps_solution()`](https://optimal2050.github.io/multimod/reference/read_mps_solution.md).
+  This skips the model-build step that dominates time and memory on
+  large models, and is intended to become the default for linear
+  problems.
 - **AST**: Complete abstract syntax tree representation for linear
   models
 - **Solvers**: Integration with GLPK, CBC, HiGHS, CPLEX, Gurobi (via
@@ -63,7 +78,6 @@ milestones: - \[✓\] Configuration system for solver paths
   - CSV (human-readable, portable)
 - **Data Sources**:
   - Import from `energyRt` package structures
-  - Import OSeMOSYS model data
   - Link to external Arrow/Parquet datasets for lazy loading
 - **Model Export Modes**:
   - **Embedded data**: For small models (data included in generated
@@ -83,8 +97,7 @@ milestones: - \[✓\] Configuration system for solver paths
 - **Expression Visualization**: Interactive AST visualization with
   visNetwork
 - **Comprehensive Vignettes**: 10+ vignettes covering major features
-- **Example Models**: Unified dataset with energyRt and OSeMOSYS
-  examples
+- **Example Models**: Unified `example_models` dataset
 
 ------------------------------------------------------------------------
 
@@ -94,25 +107,40 @@ milestones: - \[✓\] Configuration system for solver paths
 
 - **Optimization Types**: Primarily designed for linear programming (LP)
   models
+
   - Nonlinear expressions have basic AST support but limited
     implementation
   - Integer/binary variables supported in AST but not all writers
-- **Model Scope**: Designed around energy system models (`energyRt`,
-  OSeMOSYS structures)
+
+- **Model Scope**: Designed around energy system models (`energyRt`
+  structures)
+
   - Can handle general LP models but may require adaptation
+
 - **Parser Completeness**:
+
   - **GAMS**: Basic reader for linear models, many advanced features not
     supported
   - **GMPL**: Cannot parse expressions in set definitions, missing
     language features
   - **JuMP**: Reader not yet implemented
   - **Pyomo**: Reader not yet implemented
+
 - **Writer Maturity**:
-  - **GAMS**: Not yet implemented
-  - **GMPL/JuMP/Pyomo**: In active testing, edge cases remain
+
+  - **GAMS**: Implemented; writing the data needs a GDX, so `gdxtools`
+    and a GAMS installation (no licence required)
+  - **GMPL/JuMP/Pyomo**: Solve-verified on the reference model; edge
+    cases remain
   - **LaTeX**: Stable
+
 - **API Stability**: Function signatures and class structures may change
   as we stabilize the architecture
+
+- **GMPL solving** needs GLPK’s `glpsol` executable. The `glpkAPI` route
+  was retired when that package left CRAN; it was the only R package
+  that both bundled GLPK and exposed GLPK’s MathProg translator, and
+  neither `Rglpk` nor `highs` replaces it.
 
 ------------------------------------------------------------------------
 
@@ -156,42 +184,55 @@ especially during development, testing, or educational use.
 ### Immediate Priorities (v0.6-0.8)
 
 **Architecture & API Stabilization**: - \[~\] Migration from S3 to R6/S7
-class system  
-- \[~\] Front-end API design and stabilization  
+class system. An R6 session wrapper
+([`mm_session()`](https://optimal2050.github.io/multimod/reference/mm_session.md))
+is in; the wider S7 move is deferred\
+- \[~\] Front-end API design and stabilization\
 - \[~\] Finalize function naming conventions
 
 **API Revision, Unification & Simplification**: - \[ \] Consolidate
-overlapping functions with inconsistent interfaces  
+overlapping functions with inconsistent interfaces\
 - \[ \] Establish unified parameter naming conventions across all
-functions  
+functions\
 - \[ \] Simplify data format handling (reduce format-specific function
-variants)  
+variants)\
 - \[ \] Create consistent return value structures (standardize output
-formats)  
+formats)\
 - \[ \] Design clear separation between user-facing and internal
-functions  
+functions\
 - \[ \] Implement `@keywords internal` for internal helpers to clean up
-documentation  
-- \[ \] Unify error/warning messaging patterns across the package  
-- \[ \] Standardize default argument values and behavior  
-- \[ \] Create function families with predictable naming patterns:  
-- `read_*()` / `write_*()` for I/O operations  
-- `as_*()` for format conversion  
-- `load_*()` / `save_*()` for data persistence  
-- `parse_*()` for parsing operations  
-- `validate_*()` for validation checks  
+documentation\
+- \[ \] Unify error/warning messaging patterns across the package\
+- \[ \] Standardize default argument values and behavior\
+- \[ \] Create function families with predictable naming patterns:\
+- `read_*()` / `write_*()` for I/O operations\
+- `as_*()` for format conversion\
+- `load_*()` / `save_*()` for data persistence\
+- `parse_*()` for parsing operations\
+- `validate_*()` for validation checks\
 - \[ \] Reduce exported function count (move internal utilities to
-package namespace)  
+package namespace)\
 - \[ \] Design fluent API patterns for common workflows (e.g., model
 %\>% fold_model() %\>% trim_model())
 
-**Reader/Writer Completion**:  
-- \[ \] Basic GAMS reader - \[ \] Implement GAMS writer  
-- \[ \] Implement JuMP reader  
-- \[ \] Implement Pyomo reader  
-- \[ \] Finalize GMPL reader (handle set expressions, missing
-features)  
-- \[~\] Complete testing of GMPL/JuMP/Pyomo writers
+**Reader/Writer Completion**:\
+- \[✓\] Basic GAMS reader (linear models, including subset
+declarations) - \[✓\] Implement GAMS writer
+([`write_gams()`](https://optimal2050.github.io/multimod/reference/write_gams.md) +
+[`write_gams_data()`](https://optimal2050.github.io/multimod/reference/write_gams_data.md))\
+- \[ \] Implement JuMP reader\
+- \[ \] Implement Pyomo reader\
+- \[ \] Finalize GMPL reader (handle set expressions, missing features)\
+- \[✓\] Complete testing of GMPL/JuMP/Pyomo writers - each reproduces
+the reference objective
+
+**Direct Matrix Route**: - \[✓\] Assemble the LP from the AST
+([`model_to_lp()`](https://optimal2050.github.io/multimod/reference/model_to_lp.md)),
+write MPS, solve in process - \[ \] Make it the default for linear
+problems, with the symbolic writers kept for interoperability,
+inspection and documentation - \[ \] Expose row/column names in the MPS
+as an option (they are positional today, which is what keeps the file
+small)
 
 **Core Improvements**: - \[ \] Enhanced parser error messages and
 diagnostics - \[ \] Performance optimization for large models - \[ \]

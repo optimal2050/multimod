@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.3.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.4.9003</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -214,7 +214,7 @@ candidates.</p>
 <p>Most common case - technologies don’t vary by time-slice:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Create fold specification for slice dimension</span></span>
-<span><span class="va">fold_spec_1x</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/create_fold_spec_energyRt.html">create_fold_spec_energyRt</a></span><span class="op">(</span></span>
+<span><span class="va">fold_spec_1x</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/create_fold_spec.html">create_fold_spec</a></span><span class="op">(</span></span>
 <span>  <span class="va">demo_model</span>,</span>
 <span>  fold_dims <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>    slice <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
@@ -227,7 +227,7 @@ candidates.</p>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Apply folding</span></span>
-<span><span class="va">utopia_fold_1x</span> <span class="op">&lt;-</span> <span class="fu">fold_model</span><span class="op">(</span><span class="va">demo_model</span>, fold_spec <span class="op">=</span> <span class="va">fold_spec_1x</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">utopia_fold_1x</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/fold_model.html">fold_model</a></span><span class="op">(</span><span class="va">demo_model</span>, fold_spec <span class="op">=</span> <span class="va">fold_spec_1x</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 <p><strong>Output:</strong></p>
 <pre><code>=== Folding Model ===
 Parameters to analyze: 94
@@ -251,7 +251,7 @@ updated</p>
 </h3>
 <p>For single-region models, fold both slice AND region:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">fold_spec_2x</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/create_fold_spec_energyRt.html">create_fold_spec_energyRt</a></span><span class="op">(</span></span>
+<code class="sourceCode R"><span><span class="va">fold_spec_2x</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/create_fold_spec.html">create_fold_spec</a></span><span class="op">(</span></span>
 <span>  <span class="va">demo_model</span>,</span>
 <span>  fold_dims <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>    slice <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>tech <span class="op">=</span> <span class="st">"mTechSlice"</span>, comm <span class="op">=</span> <span class="st">"mCommSlice"</span><span class="op">)</span>,</span>
@@ -259,7 +259,7 @@ updated</p>
 <span>  <span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">utopia_fold_2x</span> <span class="op">&lt;-</span> <span class="fu">fold_model</span><span class="op">(</span><span class="va">demo_model</span>, fold_spec <span class="op">=</span> <span class="va">fold_spec_2x</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">utopia_fold_2x</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/fold_model.html">fold_model</a></span><span class="op">(</span><span class="va">demo_model</span>, fold_spec <span class="op">=</span> <span class="va">fold_spec_2x</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 <p><strong>Output:</strong></p>
 <pre><code>=== Folding Model ===
 
@@ -281,7 +281,7 @@ region - 32x cumulative compression - 86% file size reduction</p>
 </h3>
 <p>For representative year models, fold all three:</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">fold_spec_3x</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/create_fold_spec_energyRt.html">create_fold_spec_energyRt</a></span><span class="op">(</span></span>
+<code class="sourceCode R"><span><span class="va">fold_spec_3x</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/create_fold_spec.html">create_fold_spec</a></span><span class="op">(</span></span>
 <span>  <span class="va">demo_model</span>,</span>
 <span>  fold_dims <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>    slice <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>tech <span class="op">=</span> <span class="st">"mTechSlice"</span><span class="op">)</span>,</span>
@@ -319,7 +319,7 @@ region - 32x cumulative compression - 86% file size reduction</p>
 <span>    verbose <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span>  <span class="op">)</span></span>
 <span></span>
-<span><span class="va">utopia_fold_3x</span> <span class="op">&lt;-</span> <span class="fu">fold_model</span><span class="op">(</span><span class="va">demo_model</span>, fold_spec <span class="op">=</span> <span class="va">fold_spec_3x</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">utopia_fold_3x</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/fold_model.html">fold_model</a></span><span class="op">(</span><span class="va">demo_model</span>, fold_spec <span class="op">=</span> <span class="va">fold_spec_3x</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 <p><strong>Output:</strong></p>
 <pre><code>=== Folding Model ===
 
@@ -437,7 +437,7 @@ candidates).</p>
 </h3>
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Fold first, then trim</span></span>
-<span><span class="va">utopia_fold_1x</span> <span class="op">&lt;-</span> <span class="fu">fold_model</span><span class="op">(</span><span class="va">demo_model</span>, <span class="va">fold_spec_1x</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="va">utopia_fold_1x</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/fold_model.html">fold_model</a></span><span class="op">(</span><span class="va">demo_model</span>, <span class="va">fold_spec_1x</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="va">utopia_fold_trim_1x</span> <span class="op">&lt;-</span> <span class="fu">trim_model</span><span class="op">(</span><span class="va">utopia_fold_1x</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 <p><strong>Output:</strong></p>
 <pre><code>Starting model trimming...
@@ -459,7 +459,7 @@ be trimmed.</p>
 <h3 id="trimming-2x-folded-utopia-slice-region">Trimming 2x-Folded UTOPIA (Slice + Region)<a class="anchor" aria-label="anchor" href="#trimming-2x-folded-utopia-slice-region"></a>
 </h3>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">utopia_fold_2x</span> <span class="op">&lt;-</span> <span class="fu">fold_model</span><span class="op">(</span><span class="va">demo_model</span>, <span class="va">fold_spec_2x</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">utopia_fold_2x</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/fold_model.html">fold_model</a></span><span class="op">(</span><span class="va">demo_model</span>, <span class="va">fold_spec_2x</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="va">utopia_fold_trim_2x</span> <span class="op">&lt;-</span> <span class="fu">trim_model</span><span class="op">(</span><span class="va">utopia_fold_2x</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 <p><strong>Output:</strong></p>
 <pre><code>=== NET Trim Results ===
@@ -478,7 +478,7 @@ Trimmed elements:
 <h3 id="trimming-3x-folded-utopia-slice-region-year">Trimming 3x-Folded UTOPIA (Slice + Region + Year)<a class="anchor" aria-label="anchor" href="#trimming-3x-folded-utopia-slice-region-year"></a>
 </h3>
 <div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">utopia_fold_3x</span> <span class="op">&lt;-</span> <span class="fu">fold_model</span><span class="op">(</span><span class="va">demo_model</span>, <span class="va">fold_spec_3x</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">utopia_fold_3x</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/fold_model.html">fold_model</a></span><span class="op">(</span><span class="va">demo_model</span>, <span class="va">fold_spec_3x</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="va">utopia_fold_trim_3x</span> <span class="op">&lt;-</span> <span class="fu">trim_model</span><span class="op">(</span><span class="va">utopia_fold_3x</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 <p><strong>Output:</strong></p>
 <pre><code>=== NET Trim Results ===
@@ -645,7 +645,7 @@ may create new trim opportunities)</p>
 <div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Fold and trim</span></span>
 <span><span class="va">model_optimized</span> <span class="op">&lt;-</span> <span class="va">demo_model</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu">fold_model</span><span class="op">(</span><span class="va">fold_spec_3x</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>  <span class="fu"><a href="../reference/fold_model.html">fold_model</a></span><span class="op">(</span><span class="va">fold_spec_3x</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
 <span>  <span class="fu">trim_model</span><span class="op">(</span>verbose <span class="op">=</span> <span class="cn">T</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Save to directory</span></span>
@@ -687,7 +687,7 @@ Solving with glpkAPI...
 <div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Fold and trim (same as above)</span></span>
 <span><span class="va">model_optimized</span> <span class="op">&lt;-</span> <span class="va">demo_model</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu">fold_model</span><span class="op">(</span><span class="va">fold_spec_3x</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>  <span class="fu"><a href="../reference/fold_model.html">fold_model</a></span><span class="op">(</span><span class="va">fold_spec_3x</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
 <span>  <span class="fu">trim_model</span><span class="op">(</span>verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Save to directory (Arrow IPC format)</span></span>
@@ -755,15 +755,15 @@ seamlessly</p>
 <p>Start conservative, verify, then increase:</p>
 <div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Step 1: Fold most common dimension (slice)</span></span>
-<span><span class="va">model_1x</span> <span class="op">&lt;-</span> <span class="fu">fold_model</span><span class="op">(</span><span class="va">model</span>, <span class="va">fold_spec_1x</span><span class="op">)</span></span>
+<span><span class="va">model_1x</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/fold_model.html">fold_model</a></span><span class="op">(</span><span class="va">model</span>, <span class="va">fold_spec_1x</span><span class="op">)</span></span>
 <span><span class="fu">verify_objective</span><span class="op">(</span><span class="va">model</span>, <span class="va">model_1x</span><span class="op">)</span>  <span class="co"># Check match</span></span>
 <span></span>
 <span><span class="co"># Step 2: Add region if applicable</span></span>
-<span><span class="va">model_2x</span> <span class="op">&lt;-</span> <span class="fu">fold_model</span><span class="op">(</span><span class="va">model</span>, <span class="va">fold_spec_2x</span><span class="op">)</span></span>
+<span><span class="va">model_2x</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/fold_model.html">fold_model</a></span><span class="op">(</span><span class="va">model</span>, <span class="va">fold_spec_2x</span><span class="op">)</span></span>
 <span><span class="fu">verify_objective</span><span class="op">(</span><span class="va">model</span>, <span class="va">model_2x</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Step 3: Add year only if needed</span></span>
-<span><span class="va">model_3x</span> <span class="op">&lt;-</span> <span class="fu">fold_model</span><span class="op">(</span><span class="va">model</span>, <span class="va">fold_spec_3x</span><span class="op">)</span></span>
+<span><span class="va">model_3x</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/fold_model.html">fold_model</a></span><span class="op">(</span><span class="va">model</span>, <span class="va">fold_spec_3x</span><span class="op">)</span></span>
 <span><span class="fu">verify_objective</span><span class="op">(</span><span class="va">model</span>, <span class="va">model_3x</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
@@ -772,7 +772,7 @@ seamlessly</p>
 <p>Folding exposes trimming opportunities:</p>
 <div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Fold first</span></span>
-<span><span class="va">model_folded</span> <span class="op">&lt;-</span> <span class="fu">fold_model</span><span class="op">(</span><span class="va">model</span>, <span class="va">fold_spec</span><span class="op">)</span></span>
+<span><span class="va">model_folded</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/fold_model.html">fold_model</a></span><span class="op">(</span><span class="va">model</span>, <span class="va">fold_spec</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Then trim (may find new empty elements)</span></span>
 <span><span class="va">model_optimized</span> <span class="op">&lt;-</span> <span class="fu">trim_model</span><span class="op">(</span><span class="va">model_folded</span><span class="op">)</span></span>
@@ -821,7 +821,7 @@ seamlessly</p>
 <span></span>
 <span><span class="co"># Later: load and apply</span></span>
 <span><span class="va">fold_spec</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="st">"fold_spec_slice_region.rds"</span><span class="op">)</span></span>
-<span><span class="va">model</span> <span class="op">&lt;-</span> <span class="fu">fold_model</span><span class="op">(</span><span class="va">base_model</span>, <span class="va">fold_spec</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">model</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/fold_model.html">fold_model</a></span><span class="op">(</span><span class="va">base_model</span>, <span class="va">fold_spec</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="version-control">6. Version Control<a class="anchor" aria-label="anchor" href="#version-control"></a>
@@ -949,7 +949,7 @@ folding with verification</li>
    └─ analyze_parameter_redundancy()
 
 2. Create fold specification (start with slice)
-   └─ create_fold_spec_energyRt()
+   └─ create_fold_spec()
 
 3. Apply folding
    └─ fold_model()

@@ -143,6 +143,8 @@ Functions to read GAMS models and convert multimod objects to GAMS code.
   : Write a full GAMS model file from a multimod object
 - [`write_gams()`](https://optimal2050.github.io/multimod/reference/write_gams.md)
   : Write a GAMS model file from a multimod object
+- [`write_gams_data()`](https://optimal2050.github.io/multimod/reference/write_gams_data.md)
+  : Write a model's data to a GDX for GAMS
 - [`is_gams_expression()`](https://optimal2050.github.io/multimod/reference/is_gams_expression.md)
   : Check if a string is a compound expression
 - [`parse_gams_equation()`](https://optimal2050.github.io/multimod/reference/parse_gams_equation.md)
@@ -166,8 +168,6 @@ Functions to read GMPL models and convert multimod objects to GMPL code.
   : Write a GMPL/MathProg model file from a multimod object
 - [`write_gmpl_data()`](https://optimal2050.github.io/multimod/reference/write_gmpl_data.md)
   : Write GMPL data file from multimod model
-- [`export_glpk_model()`](https://optimal2050.github.io/multimod/reference/export_glpk_model.md)
-  : Export GLPK model to MPS or CPLEX LP format
 - [`export_data_gmpl()`](https://optimal2050.github.io/multimod/reference/export_data_gmpl.md)
   : Generate GMPL code to export all sets and parameters to CSV files
 - [`import_gmpl_data()`](https://optimal2050.github.io/multimod/reference/import_gmpl_data.md)
@@ -223,19 +223,20 @@ Functions for configuring solver paths and Python/Julia environments.
   [`multimod_config_path()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
   [`multimod_config_show()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
   : Configuration management for multimod solver paths
-- [`setup_python_environment()`](https://optimal2050.github.io/multimod/reference/setup_python_environment.md)
-  [`setup_multimod_python()`](https://optimal2050.github.io/multimod/reference/setup_python_environment.md)
-  : Configure a Python environment for multimod
+- [`mm_setup_python()`](https://optimal2050.github.io/multimod/reference/mm_setup_python.md)
+  : Set up the Python environment for multimod
+- [`mm_check_python()`](https://optimal2050.github.io/multimod/reference/mm_check_python.md)
+  : Report on the Python environment multimod would use
 
 ## Folding functions
 
 Functions for parameter folding to reduce model size by eliminating
 redundant dimensions.
 
+- [`fold_model()`](https://optimal2050.github.io/multimod/reference/fold_model.md)
+  : Fold model dimensions to reduce data size
 - [`create_fold_spec()`](https://optimal2050.github.io/multimod/reference/create_fold_spec.md)
   : Create a fold specification for a model's parameters
-- [`create_fold_spec_energyRt()`](https://optimal2050.github.io/multimod/reference/create_fold_spec_energyRt.md)
-  : Create fold specification for energyRt models (convenience wrapper)
 - [`analyze_parameter_redundancy()`](https://optimal2050.github.io/multimod/reference/analyze_parameter_redundancy.md)
   : Analyze parameter redundancy in model
 - [`analyze_dimension_redundancy()`](https://optimal2050.github.io/multimod/reference/analyze_dimension_redundancy.md)
@@ -401,9 +402,6 @@ Functions for solving models and loading solutions.
 - [`solve_glpk()`](https://optimal2050.github.io/multimod/reference/solve_glpk.md)
   : Solve GLPK model using glpsol command line tool
 
-- [`execute_glpkAPI()`](https://optimal2050.github.io/multimod/reference/execute_glpkAPI.md)
-  : Solve GLPK model using glpkAPI
-
 ## Model comparison and debugging
 
 Functions for comparing models, solutions, and debugging model
@@ -420,10 +418,6 @@ generation.
 - [`compare_jump_stats()`](https://optimal2050.github.io/multimod/reference/compare_jump_stats.md)
   : Compare JuMP model constraint statistics between two model
   directories
-- [`compare_lp()`](https://optimal2050.github.io/multimod/reference/compare_lp.md)
-  : Compare two LP files and report differences
-- [`compare_mps()`](https://optimal2050.github.io/multimod/reference/compare_mps.md)
-  : Compare two MPS files and report differences
 - [`compare_solution()`](https://optimal2050.github.io/multimod/reference/compare_solution.md)
   : Compare solutions from different solver outputs
 - [`compare_variables()`](https://optimal2050.github.io/multimod/reference/compare_variables.md)
@@ -487,8 +481,6 @@ Utility functions for multimod.
   : Get data path for a parameter or mapping
 - [`get_fold_summary()`](https://optimal2050.github.io/multimod/reference/get_fold_summary.md)
   : Get folding statistics summary
-- [`get_glpk_model_stats()`](https://optimal2050.github.io/multimod/reference/get_glpk_model_stats.md)
-  : Get GLPK model statistics without solving
 - [`get_index_alias()`](https://optimal2050.github.io/multimod/reference/get_index_alias.md)
   : Get index alias for a set
 - [`get_lazy_data()`](https://optimal2050.github.io/multimod/reference/get_lazy_data.md)
@@ -614,13 +606,11 @@ Internal functions and helpers (typically not called directly by users).
 - [`populate_sets_from_data()`](https://optimal2050.github.io/multimod/reference/populate_sets_from_data.md)
   : Populate sets from model's own mappings and parameters
 - [`register_index_alias()`](https://optimal2050.github.io/multimod/reference/register_index_alias.md)
-  : Read GMPL/MathProg Model File
+  : Register an index alias for a set
 - [`make_valid()`](https://optimal2050.github.io/multimod/reference/make_valid.md)
   : Make a multimod model valid by reconciling symbols
 - [`quick_compare()`](https://optimal2050.github.io/multimod/reference/quick_compare.md)
   : Quick comparison showing first few differences
-- [`mps_matrix_long()`](https://optimal2050.github.io/multimod/reference/mps_matrix_long.md)
-  : Extract the sparse constraint matrix of an MPS file
 - [`read_csv_results()`](https://optimal2050.github.io/multimod/reference/read_csv_results.md)
   : Read CSV results from GMPL solver solution directory and save to
   model variables

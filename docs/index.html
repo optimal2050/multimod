@@ -35,7 +35,7 @@
 
     <a class="navbar-brand me-2" href="index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.3.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.4.9003</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -126,20 +126,24 @@
    │ • Sets &amp; Aliases       │  →      • save_model()        [✓]
    │ • Parameters           │         • as_visNetwork()     [✓]
    │ • Variables            │  ←      • model statistics    [✓]
-   │ • Equations            │         {{auto-mapping}}      [ ]
-   │ • Mappings             │         {{symbolic simplify}} [ ]
-   └────────────────────────┘
-              ↓
-┌─────────────────────────────────┐
-│      Output Formats             │
-├─────────────────────────────────┤
-│ LaTeX  (stable)           [✓]   │ → write_latex()
-│ {GMPL} (testing)          [~]   │ → write_gmpl()
-│ {JuMP} (testing)          [~]   │ → write_jump()
-│ {Pyomo} (testing)         [~]   │ → write_pyomo()
-│ {{GAMS}} (planned)        [ ]   │ → {{write_gams()}}
-│ {{AMPL, MPS, LP, ...}}    [ ]   │ → {{...}}
-└─────────────────────────────────┘
+   │ • Equations            │         • model_to_json()     [✓]
+   │ • Mappings             │         {{auto-mapping}}      [ ]
+   └────────────────────────┘         {{symbolic simplify}} [ ]
+                 ↓                                     ↓
+┌──────────────────────────────────┐  ┌──────────────────────────────────┐
+│ Output: model code               │  │ Output: LP matrix                │
+├──────────────────────────────────┤  ├──────────────────────────────────┤
+│ LaTeX    write_latex()       [✓] │  │ model_to_lp()               [✓]  │
+│ GMPL     write_gmpl()        [✓] │  │ write_mps()                 [✓]  │
+│ JuMP     write_jump()        [✓] │  │ solve_highs()               [✓]  │
+│ Pyomo    write_pyomo()       [✓] │  │ solve_mps()                 [✓]  │
+│ GAMS     write_gams() +      [✓] │  │ read_mps_solution()         [✓]  │
+│          write_gams_data()       │  │                                  │
+│ {{AMPL, ...}}                [ ] │  │ no generated model text, so      │
+│                                  │  │ no model-build step - the        │
+│ then an external solver:         │  │ time and memory wall on          │
+│ glpsol, Julia, Python, NEOS      │  │ large models                     │
+└──────────────────────────────────┘  └──────────────────────────────────┘
 
 Status: [✓] implemented | [~] and { } developing | [ ] and {{ }} considering</code></pre>
 </div>
@@ -166,16 +170,14 @@ Status: [✓] implemented | [~] and { } developing | [ ] and {{ }} considering</
 <span><span class="co">#&gt; &lt;AST equation&gt; eqObjective</span></span>
 <span><span class="co">#&gt;   relation:  == </span></span>
 <span><span class="co">#&gt;   lhs:  vObjective </span></span>
-<span><span class="co">#&gt;   rhs:  sum(if (mvTotalCost[region,year]) {[region,year]}, *, pDiscountFactorMileStone[region,year], vTotalCost[region,year], FALSE)</span></span></code></pre></div>
+<span><span class="co">#&gt;   rhs:  sum(if (mvTotalCost[region,year]) {[region,year]}, *, vTotalCost[region,year] * pPeriodLen[year], pDiscountFactor[region,year], FALSE)</span></span></code></pre></div>
 </div>
 <div class="section level4">
 <h4 id="render-an-equation-to-latex">Render an equation to LaTeX<a class="anchor" aria-label="anchor" href="#render-an-equation-to-latex"></a>
 </h4>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/as_latex.html">as_latex</a></span><span class="op">(</span><span class="va">eq</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mtext mathvariant="italic">𝑣𝑂𝑏𝑗𝑒𝑐𝑡𝑖𝑣𝑒</mtext><mo>=</mo><munder><mo>∑</mo><mrow><mrow><mi>r</mi><mo>,</mo><mi>y</mi></mrow><mo>∈</mo><msub><mtext mathvariant="sans-serif">𝗆𝗏𝖳𝗈𝗍𝖺𝗅𝖢𝗈𝗌𝗍</mtext><mrow><mi>r</mi><mo>,</mo><mi>y</mi></mrow></msub></mrow></munder><mrow><msub><mtext mathvariant="italic">𝑣𝑇𝑜𝑡𝑎𝑙𝐶𝑜𝑠𝑡</mtext><mrow><mi>r</mi><mo>,</mo><mi>y</mi></mrow></msub><mo>⋅</mo><msub><mtext mathvariant="sans-serif">𝗉𝖯𝖾𝗋𝗂𝗈𝖽𝖫𝖾𝗇</mtext><mi>y</mi></msub><mo>⋅</mo><msub><mtext mathvariant="sans-serif">𝗉𝖣𝗂𝗌𝖼𝗈𝗎𝗇𝗍𝖥𝖺𝖼𝗍𝗈𝗋</mtext><mrow><mi>r</mi><mo>,</mo><mi>y</mi></mrow></msub></mrow></mrow><annotation encoding="application/x-tex">
-\textit{vObjective} = \sum_{{r,y} \in \textsf{mvTotalCost}_{r,y}} {\textit{vTotalCost}_{r,y}  \cdot  \textsf{pPeriodLen}_{y}  \cdot  \textsf{pDiscountFactor}_{r,y}}
-</annotation></semantics></math></p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mtext mathvariant="italic">𝑣𝑂𝑏𝑗𝑒𝑐𝑡𝑖𝑣𝑒</mtext><mo>=</mo><munder><mo>∑</mo><mrow><mrow><mi>r</mi><mo>,</mo><mi>y</mi></mrow><mo>∈</mo><msub><mtext mathvariant="sans-serif">𝗆𝗏𝖳𝗈𝗍𝖺𝗅𝖢𝗈𝗌𝗍</mtext><mrow><mi>r</mi><mo>,</mo><mi>y</mi></mrow></msub></mrow></munder><mrow><msub><mtext mathvariant="italic">𝑣𝑇𝑜𝑡𝑎𝑙𝐶𝑜𝑠𝑡</mtext><mrow><mi>r</mi><mo>,</mo><mi>y</mi></mrow></msub><mo>⋅</mo><msub><mtext mathvariant="sans-serif">𝗉𝖯𝖾𝗋𝗂𝗈𝖽𝖫𝖾𝗇</mtext><mi>y</mi></msub><mo>⋅</mo><msub><mtext mathvariant="sans-serif">𝗉𝖣𝗂𝗌𝖼𝗈𝗎𝗇𝗍𝖥𝖺𝖼𝗍𝗈𝗋</mtext><mrow><mi>r</mi><mo>,</mo><mi>y</mi></mrow></msub></mrow></mrow><annotation encoding="application/x-tex">\textit{vObjective} = \sum_{{r,y} \in \textsf{mvTotalCost}_{r,y}} {\textit{vTotalCost}_{r,y}  \cdot  \textsf{pPeriodLen}_{y}  \cdot  \textsf{pDiscountFactor}_{r,y}}</annotation></semantics></math></p>
 </div>
 <div class="section level4">
 <h4 id="render-a-specific-equation-to-gams-or-juliajump">Render a specific equation to GAMS or Julia/JuMP<a class="anchor" aria-label="anchor" href="#render-a-specific-equation-to-gams-or-juliajump"></a>
@@ -184,12 +186,12 @@ Status: [✓] implemented | [~] and { } developing | [ ] and {{ }} considering</
 <code class="sourceCode R"><span><span class="fu"><a href="reference/as_gams.html">as_gams</a></span><span class="op">(</span><span class="va">eq</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; eqObjective..</span></span>
 <span><span class="co">#&gt;   vObjective =e=</span></span>
-<span><span class="co">#&gt;   sum(([region,year])$mvTotalCost[region,year], pDiscountFactorMileStone[region,year] * vTotalCost[region,year]);</span></span>
+<span><span class="co">#&gt;   sum([region,year]$(mvTotalCost[region,year]), vTotalCost[region,year] * pPeriodLen[year] * pDiscountFactor[region,year]);</span></span>
 <span><span class="fu"><a href="reference/as_jump.html">as_jump</a></span><span class="op">(</span><span class="va">eq</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; @constraint(</span></span>
 <span><span class="co">#&gt;     model,</span></span>
 <span><span class="co">#&gt;     eqObjective,</span></span>
-<span><span class="co">#&gt;     vObjective == sum(get(pDiscountFactorMileStone, (region, year), pDiscountFactorMileStoneDef) * vTotalCost[region, year] for (region, year) in mvTotalCost)</span></span>
+<span><span class="co">#&gt;     vObjective == sum(vTotalCost[region, year] * get(pPeriodLen, year, pPeriodLenDef) * get(pDiscountFactor, (region, year), pDiscountFactorDef) for (region, year) in mvTotalCost)</span></span>
 <span><span class="co">#&gt; )</span></span></code></pre></div>
 </div>
 <div class="section level4">
@@ -247,7 +249,7 @@ Status: [✓] implemented | [~] and { } developing | [ ] and {{ }} considering</
 <h2 id="license">License<a class="anchor" aria-label="anchor" href="#license"></a>
 </h2>
 <p>Apache License 2.0 — see <code>LICENSE.md</code>.</p>
-<p>The bundled <code>example_models</code> dataset includes third-party model source: OSeMOSYS (Apache-2.0) and energyRt-generated source (AGPL-3.0). Those licenses apply to that data only, not to the multimod package code. See <code>LICENSE.note</code> for the full terms and the OSeMOSYS citation.</p>
+<p>The bundled <code>example_models</code> dataset includes model source generated from energyRt. Its third-party terms apply to that data only, not to the multimod package code — see <code>LICENSE.note</code>.</p>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="links">

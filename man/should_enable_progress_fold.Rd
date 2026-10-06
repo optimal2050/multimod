@@ -2,7 +2,7 @@
 % Please edit documentation in R/fold.R
 \name{should_enable_progress_fold}
 \alias{should_enable_progress_fold}
-\title{Fold model dimensions to reduce data size}
+\title{Decide whether to show a progress bar while folding}
 \usage{
 should_enable_progress_fold(
   model,
@@ -12,73 +12,18 @@ should_enable_progress_fold(
 )
 }
 \arguments{
-\item{model}{A multimod model object}
+\item{model}{A multimod model object.}
 
-\item{fold_spec}{Data frame specifying fold configuration. Must have columns:
-param_name, dim_to_fold, validation_mapping. Use \code{create_fold_spec()} to
-generate proper fold specification with entity-specific mappings.}
+\item{fold_spec}{The fold specification.}
 
-\item{tolerance}{Numeric tolerance for considering values equal (default: 1e-10)}
+\item{param_threshold}{Parameter count above which to enable progress.}
 
-\item{verbose}{Logical; print progress messages (default: TRUE)}
+\item{row_threshold}{Total data rows above which to enable progress.}
 }
 \value{
-Modified model with folded parameters
+Logical.
 }
 \description{
-Reduces redundant dimensions in parameters where data is constant across
-those dimensions. Only folds high-cardinality indexing dimensions (timeslice,
-optionally region/year) while preserving structural dimensions (tech, comm, etc.).
-}
-\details{
-The algorithm uses per-group validation: for each combination of OTHER dimensions,
-it checks if values are identical. This is an "all or nothing" approach - if ANY
-group shows variation, the dimension is not folded.
-
-Folding analyzes each parameter to identify dimensions that don't provide
-variation in the data. For each parameter, it groups by all OTHER dimensions
-and checks if values are constant within each group (within tolerance).
-
-Example: For \code{pStorageInpEff[stg, comm, region, year, timeslice]} testing timeslice:
-\itemize{
-\item Groups by \code{(stg, comm, region, year)}
-\item For each group, checks if ALL timeslice values are identical
-\item Only folds if EVERY group has constant values
-}
-
-This handles sparse data correctly - if a parameter only has values for
-peak hours (1 timeslice out of 17), that's fine. It only checks if the values
-that DO exist are constant within each group.
-
-The fold creates three slots per parameter:
-\itemize{
-\item \code{data}: Original complete data (preserved)
-\item \code{folded_data}: Collapsed data with reduced dimensions
-\item \code{active_dims}: Dimensions remaining after fold
-}
-
-Safety measures:
-\itemize{
-\item Only folds dimensions explicitly requested by user
-\item Never folds structural dimensions (tech, comm, sup, dem, stg, trade, etc.)
-\item Skips parameters where all dimensions would be folded (would become scalar)
-\item Validates consistency before folding
-\item Updates equation ASTs to match reduced dimensions
-}
-}
-\examples{
-\dontrun{
-# Specify fold dimensions with entity-specific mappings
-fold_dims <- list(
-  timeslice = list(sup = "mSupTimeslice", trade = "mTradeTimeslice",
-           stg = c("mStorageComm", "mCommTimeslice")),
-  region = c("mTechRegion", "mSupRegion", "mDemRegion", "mStorageRegion"),
-  year = c("mTechYear", "mSupYear", "mDemYear", "mStorageYear")
-)
-fold_spec <- create_fold_spec(model, fold_dims = fold_dims)
-# Review and edit fold_spec to ensure correct validation mappings
-model <- fold_model(model, fold_spec = fold_spec)
-}
-
+Decide whether to show a progress bar while folding
 }
 \keyword{internal}

@@ -235,7 +235,7 @@ library(energyRt)  # For scenario data
 ``` r
 
 # Automatic setup with conda environment
-setup_python_environment(
+mm_setup_python(
   env_name = "multimod",
   packages = c("pyomo", "highspy")  # Includes HiGHS solver
 )
@@ -701,7 +701,7 @@ get_multimod_python()
 multimod_config_show()
 
 # Set up environment
-setup_python_environment()
+mm_setup_python()
 ```
 
 ### Solver Not Found
@@ -776,7 +776,7 @@ library(multimod)
 library(energyRt)
 
 # 1. Setup Python environment (one-time)
-setup_python_environment()
+mm_setup_python()
 
 # 2. Load and convert model
 model_struct <- read_gams("path/to/model.gms")

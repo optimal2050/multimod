@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.3.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.4.9003</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -96,7 +96,7 @@
                         <h4 data-toc-skip class="author">multimod
 Package</h4>
             
-            <h4 data-toc-skip class="date">2026-10-01</h4>
+            <h4 data-toc-skip class="date">2026-10-06</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/optimal2050/multimod/blob/HEAD/vignettes/gmpl.Rmd" class="external-link"><code>vignettes/gmpl.Rmd</code></a></small>
       <div class="d-none name"><code>gmpl.Rmd</code></div>
@@ -538,26 +538,33 @@ param pDemand :=
 <div class="section level2">
 <h2 id="step-6-solve-with-glpk">Step 6: Solve with GLPK<a class="anchor" aria-label="anchor" href="#step-6-solve-with-glpk"></a>
 </h2>
-<p>Now we solve the model using GLPK via the glpkAPI interface.</p>
+<p>Now we solve the model with GLPK’s <code>glpsol</code> executable.
+<code>glpsol</code> is an external program rather than an R package, so
+<code><a href="../reference/multimod-config.html">get_multimod_glpsol()</a></code> resolves it and the chunk below skips
+the solve when it is absent.</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"\n=== SOLVING WITH GLPK ===\n\n"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Execute GLPK solver</span></span>
-<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/execute_glpkAPI.html">execute_glpkAPI</a></span><span class="op">(</span></span>
-<span>  model_dir <span class="op">=</span> <span class="va">output_dir</span>,</span>
-<span>  mod_file <span class="op">=</span> <span class="st">"utopia.mod"</span>,</span>
-<span>  dat_file <span class="op">=</span> <span class="st">"utopia.dat"</span>,</span>
-<span>  verbose <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  save_solution <span class="op">=</span> <span class="cn">TRUE</span></span>
-<span><span class="op">)</span></span>
+<span><span class="va">glpsol</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/multimod-config.html">get_multimod_glpsol</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">have_glpsol</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/nchar.html" class="external-link">nzchar</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Sys.which.html" class="external-link">Sys.which</a></span><span class="op">(</span><span class="va">glpsol</span><span class="op">)</span><span class="op">)</span> <span class="op">||</span> <span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.exists</a></span><span class="op">(</span><span class="va">glpsol</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Display results</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"\n=== SOLUTION SUMMARY ===\n"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Status:"</span>, <span class="va">result</span><span class="op">$</span><span class="va">status_message</span>, <span class="st">"\n"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Objective value:"</span>, <span class="fu"><a href="https://rdrr.io/r/base/format.html" class="external-link">format</a></span><span class="op">(</span><span class="va">result</span><span class="op">$</span><span class="va">objective</span>, big.mark <span class="op">=</span> <span class="st">","</span>, scientific <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>, <span class="st">"\n"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Variables:"</span>, <span class="va">result</span><span class="op">$</span><span class="va">n_variables</span>, <span class="st">"\n"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Constraints:"</span>, <span class="va">result</span><span class="op">$</span><span class="va">n_constraints</span>, <span class="st">"\n"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Non-zero variables:"</span>, <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">result</span><span class="op">$</span><span class="va">solution_nonzero</span><span class="op">)</span>, <span class="st">"\n"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="kw">if</span> <span class="op">(</span><span class="va">have_glpsol</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_glpk.html">solve_glpk</a></span><span class="op">(</span></span>
+<span>    mod_file   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">output_dir</span>, <span class="st">"utopia.mod"</span><span class="op">)</span>,</span>
+<span>    dat_file   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">output_dir</span>, <span class="st">"utopia.dat"</span><span class="op">)</span>,</span>
+<span>    output_dir <span class="op">=</span> <span class="va">output_dir</span></span>
+<span>  <span class="op">)</span></span>
+<span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"\n=== SOLUTION SUMMARY ===\n"</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Status:"</span>, <span class="va">result</span><span class="op">$</span><span class="va">status</span>, <span class="st">"\n"</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Objective value:"</span>,</span>
+<span>      <span class="fu"><a href="https://rdrr.io/r/base/format.html" class="external-link">format</a></span><span class="op">(</span><span class="va">result</span><span class="op">$</span><span class="va">objective</span>, big.mark <span class="op">=</span> <span class="st">","</span>, scientific <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>, <span class="st">"\n"</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Variables reported:"</span>, <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">result</span><span class="op">$</span><span class="va">variables</span><span class="op">)</span>, <span class="st">"\n"</span><span class="op">)</span></span>
+<span><span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"glpsol not found - skipping the solve.\n"</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Install GLPK and point multimod at it; mm_setup_python() places it in\n"</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"the 'multimod' conda environment, which get_multimod_glpsol() searches.\n"</span><span class="op">)</span></span>
+<span><span class="op">}</span></span></code></pre></div>
 <div class="section level3">
 <h3 id="solution-output">Solution Output<a class="anchor" aria-label="anchor" href="#solution-output"></a>
 </h3>
@@ -624,7 +631,7 @@ variables</li>
 <span></span>
 <span><span class="co"># Time the solve</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/system.time.html" class="external-link">system.time</a></span><span class="op">(</span><span class="op">{</span></span>
-<span>  <span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/execute_glpkAPI.html">execute_glpkAPI</a></span><span class="op">(</span><span class="va">output_dir</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span>  <span class="va">result</span> <span class="op">&lt;-</span> <span class="fu">execute_glpkAPI</span><span class="op">(</span><span class="va">output_dir</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="op">}</span><span class="op">)</span></span></code></pre></div>
 </div>
 </div>
@@ -736,7 +743,7 @@ available:</p>
 <span>                file <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">output_dir</span>, <span class="st">"model.dat"</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># 4. Solve with GLPK</span></span>
-<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/execute_glpkAPI.html">execute_glpkAPI</a></span><span class="op">(</span><span class="va">output_dir</span>, </span>
+<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu">execute_glpkAPI</span><span class="op">(</span><span class="va">output_dir</span>, </span>
 <span>                         mod_file <span class="op">=</span> <span class="st">"model.mod"</span>,</span>
 <span>                         dat_file <span class="op">=</span> <span class="st">"model.dat"</span>,</span>
 <span>                         verbose <span class="op">=</span> <span class="cn">TRUE</span>, </span>
@@ -776,8 +783,8 @@ scenarios.</p>
 <p>Compare solutions from different model runs or solvers:</p>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Compare two solved models</span></span>
-<span><span class="va">result1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/execute_glpkAPI.html">execute_glpkAPI</a></span><span class="op">(</span><span class="st">"path/to/model1"</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="va">result2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/execute_glpkAPI.html">execute_glpkAPI</a></span><span class="op">(</span><span class="st">"path/to/model2"</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="va">result1</span> <span class="op">&lt;-</span> <span class="fu">execute_glpkAPI</span><span class="op">(</span><span class="st">"path/to/model1"</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="va">result2</span> <span class="op">&lt;-</span> <span class="fu">execute_glpkAPI</span><span class="op">(</span><span class="st">"path/to/model2"</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">comparison</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compare_solution.html">compare_solution</a></span><span class="op">(</span><span class="va">result1</span>, <span class="va">result2</span><span class="op">)</span></span>
 <span></span>
@@ -800,14 +807,14 @@ scenarios.</p>
 or use with other solvers:</p>
 <div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Export to CPLEX LP format</span></span>
-<span><span class="fu"><a href="../reference/export_glpk_model.html">export_glpk_model</a></span><span class="op">(</span>model_dir <span class="op">=</span> <span class="va">output_dir</span>,</span>
+<span><span class="fu">export_glpk_model</span><span class="op">(</span>model_dir <span class="op">=</span> <span class="va">output_dir</span>,</span>
 <span>                 mod_file <span class="op">=</span> <span class="st">"model.mod"</span>,</span>
 <span>                 dat_file <span class="op">=</span> <span class="st">"model.dat"</span>,</span>
 <span>                 output_file <span class="op">=</span> <span class="st">"model.lp"</span>,</span>
 <span>                 format <span class="op">=</span> <span class="st">"CPLEX_LP"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Export to MPS format</span></span>
-<span><span class="fu"><a href="../reference/export_glpk_model.html">export_glpk_model</a></span><span class="op">(</span>model_dir <span class="op">=</span> <span class="va">output_dir</span>,</span>
+<span><span class="fu">export_glpk_model</span><span class="op">(</span>model_dir <span class="op">=</span> <span class="va">output_dir</span>,</span>
 <span>                 mod_file <span class="op">=</span> <span class="st">"model.mod"</span>,</span>
 <span>                 dat_file <span class="op">=</span> <span class="st">"model.dat"</span>,</span>
 <span>                 output_file <span class="op">=</span> <span class="st">"model.mps"</span>,</span>
@@ -825,10 +832,10 @@ etc.) - Compared between model versions for debugging</p>
 functions:</p>
 <div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Compare LP files constraint-by-constraint and variable-by-variable</span></span>
-<span><span class="va">lp_comparison</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compare_lp.html">compare_lp</a></span><span class="op">(</span><span class="st">"original.lp"</span>, <span class="st">"modified.lp"</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">lp_comparison</span> <span class="op">&lt;-</span> <span class="fu">compare_lp</span><span class="op">(</span><span class="st">"original.lp"</span>, <span class="st">"modified.lp"</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Compare MPS files</span></span>
-<span><span class="va">mps_comparison</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compare_mps.html">compare_mps</a></span><span class="op">(</span><span class="st">"original.mps"</span>, <span class="st">"modified.mps"</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">mps_comparison</span> <span class="op">&lt;-</span> <span class="fu">compare_mps</span><span class="op">(</span><span class="st">"original.mps"</span>, <span class="st">"modified.mps"</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Both functions:</span></span>
 <span><span class="co"># - Extract all constraints and variables to data frames</span></span>
@@ -837,7 +844,7 @@ functions:</p>
 <span><span class="co"># - Return rich comparison results</span></span>
 <span></span>
 <span><span class="co"># Control comparison behavior:</span></span>
-<span><span class="fu"><a href="../reference/compare_lp.html">compare_lp</a></span><span class="op">(</span><span class="st">"model1.lp"</span>, <span class="st">"model2.lp"</span>,</span>
+<span><span class="fu">compare_lp</span><span class="op">(</span><span class="st">"model1.lp"</span>, <span class="st">"model2.lp"</span>,</span>
 <span>          ignoreOrder <span class="op">=</span> <span class="cn">TRUE</span>,        <span class="co"># Default: ignore row/column ordering</span></span>
 <span>          ignoreNameCase <span class="op">=</span> <span class="cn">FALSE</span>,    <span class="co"># Default: names are case-sensitive</span></span>
 <span>          verbose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>            <span class="co"># Show progress during comparison</span></span></code></pre></div>
@@ -862,10 +869,10 @@ models</p>
 <span><span class="fu"><a href="../reference/write_gmpl.html">write_gmpl</a></span><span class="op">(</span><span class="va">model</span>, <span class="st">"model.mod"</span>, export_data <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># 2. Generate and solve model</span></span>
-<span><span class="va">result1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/execute_glpkAPI.html">execute_glpkAPI</a></span><span class="op">(</span><span class="va">output_dir</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">result1</span> <span class="op">&lt;-</span> <span class="fu">execute_glpkAPI</span><span class="op">(</span><span class="va">output_dir</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># 3. Export to LP format for archival/comparison</span></span>
-<span><span class="fu"><a href="../reference/export_glpk_model.html">export_glpk_model</a></span><span class="op">(</span><span class="va">output_dir</span>, <span class="st">"model.mod"</span>, <span class="st">"model.dat"</span>, </span>
+<span><span class="fu">export_glpk_model</span><span class="op">(</span><span class="va">output_dir</span>, <span class="st">"model.mod"</span>, <span class="st">"model.dat"</span>, </span>
 <span>                 output_file <span class="op">=</span> <span class="st">"baseline.lp"</span>, format <span class="op">=</span> <span class="st">"CPLEX_LP"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># 4. Make changes to model...</span></span>
@@ -874,15 +881,15 @@ models</p>
 <span><span class="co"># write_gmpl_data(model_modified, "model.dat")</span></span>
 <span></span>
 <span><span class="co"># 5. Solve modified model</span></span>
-<span><span class="va">result2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/execute_glpkAPI.html">execute_glpkAPI</a></span><span class="op">(</span><span class="va">output_dir</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">result2</span> <span class="op">&lt;-</span> <span class="fu">execute_glpkAPI</span><span class="op">(</span><span class="va">output_dir</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># 6. Export modified version</span></span>
-<span><span class="fu"><a href="../reference/export_glpk_model.html">export_glpk_model</a></span><span class="op">(</span><span class="va">output_dir</span>, <span class="st">"model.mod"</span>, <span class="st">"model.dat"</span>,</span>
+<span><span class="fu">export_glpk_model</span><span class="op">(</span><span class="va">output_dir</span>, <span class="st">"model.mod"</span>, <span class="st">"model.dat"</span>,</span>
 <span>                 output_file <span class="op">=</span> <span class="st">"modified.lp"</span>, format <span class="op">=</span> <span class="st">"CPLEX_LP"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># 7. Compare everything</span></span>
 <span><span class="fu"><a href="../reference/compare_solution.html">compare_solution</a></span><span class="op">(</span><span class="va">result1</span>, <span class="va">result2</span><span class="op">)</span>  <span class="co"># Compare solutions</span></span>
-<span><span class="fu"><a href="../reference/compare_lp.html">compare_lp</a></span><span class="op">(</span><span class="st">"baseline.lp"</span>, <span class="st">"modified.lp"</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>  <span class="co"># Deep model comparison</span></span></code></pre></div>
+<span><span class="fu">compare_lp</span><span class="op">(</span><span class="st">"baseline.lp"</span>, <span class="st">"modified.lp"</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>  <span class="co"># Deep model comparison</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level2">

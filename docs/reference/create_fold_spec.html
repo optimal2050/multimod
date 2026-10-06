@@ -19,7 +19,7 @@ the fold."><meta property="og:image" content="https://optimal2050.github.io/mult
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.3.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.4.9003</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -112,8 +112,12 @@ is a chain.</p></li>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A data frame with one row per parameter/dimension pair: <code>param_name</code>,
-<code>dim_to_fold</code>, <code>validation_mapping</code>, <code>validation_mapping_raw</code>, <code>can_fold</code>
-and <code>reason</code>.</p>
+<code>dim_to_fold</code>, <code>validation_mapping</code>, <code>validation_mapping_raw</code>, <code>can_fold</code>,
+<code>unproven</code> and <code>reason</code>. <code>unproven</code> marks a dimension refused for want of
+a validation mapping rather than because folding was shown to be wrong:
+constancy holds over the data present, but nothing proves the data covers
+every applicable member, so folding could broadcast a value where the
+default applies. Supplying the mapping settles it either way.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -121,10 +125,17 @@ and <code>reason</code>.</p>
 the <code>fold_dims</code> configuration it is given. Only the <em>default</em> mapping names
 (<code>mTechTimeslice</code> and friends) follow energyRt's conventions, and those are
 supplied by the caller.</p>
+<p>With an entity-specific configuration, the <strong>first</strong> matching entity
+dimension wins: <code>tech</code>, then <code>sup</code>, then <code>comm</code>, then <code>stg</code>; a parameter
+matching none gets <code>NA</code> and is not validated.</p>
+<p>A character vector is a <strong>mapping chain</strong>, joined in sequence on the columns
+the mappings share. For <code>stg = c("mStorageComm", "mCommTimeslice")</code>:
+<code>mStorageComm[stg, comm]</code> joined with <code>mCommTimeslice[comm, timeslice]</code>
+yields <code>[stg, timeslice]</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code>fold_model()</code>, <code><a href="create_fold_spec_energyRt.html">create_fold_spec_energyRt()</a></code></p></div>
+    <div class="dont-index"><p><code><a href="fold_model.html">fold_model()</a></code></p></div>
     </div>
 
     <div class="section level2">
