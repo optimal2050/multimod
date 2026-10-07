@@ -53,28 +53,27 @@
 #'   Note: Solution is always saved to solution/ directory regardless of this setting (required for load_results).
 #' @param export_lp logical or character; if TRUE, exports model to LP format; if character, specifies filename (default: FALSE)
 #' @param export_mps logical or character; if TRUE, exports model to MPS format; if character, specifies filename (default: FALSE)
+#' @param data_mode character; `"external"` (default) generates a data.jl that reads parameter data from files at run time, `"embedded"` writes the data into the Julia source
 #' @param ... Additional arguments (not used)
 #'
 #' @return Character vector of Julia code, or writes file if path is determined
 #' @export
 #'
 #' @examples
-#' \dontrun{
-#' # Write to model directory with default solver subdirectory
-#' write_jump(model, model_dir = "my_model")
-#' # -> my_model/solvers/jump/model.jl
+#' m <- example_models$energyRt$multimod
 #'
-#' # Specify custom solver directory
-#' write_jump(model, model_dir = "my_model", solver_dir = "jump-highs")
-#' # -> my_model/solvers/jump-highs/model.jl
+#' # Explicit file path
+#' write_jump(m, file = tempfile(fileext = ".jl"))
 #'
-#' # Override with explicit file path
-#' write_jump(model, file = "custom/path/model.jl")
-#' 
-#' # Use barrier method for large models
-#' write_jump(model, model_dir = "my_model", 
+#' # Into a saved model workspace: <model_dir>/solvers/<solver_dir>/model.jl
+#' ws <- file.path(tempdir(), "energyRt_ws")
+#' save_model(m, ws, verbose = FALSE)
+#' write_jump(m, model_dir = ws)
+#' write_jump(m, model_dir = ws, solver_dir = "jump-highs")
+#'
+#' # Barrier method for large models
+#' write_jump(m, model_dir = ws,
 #'            optimizer_attributes = list(solver = "ipm", parallel = "on"))
-#' }
 write_jump <- function(model, file = NULL, model_dir = NULL, solver_dir = "jump",
                        output_name = "model.jl", model_name = "model",
                        optimizer = "HiGHS.Optimizer", optimizer_attributes = NULL,
@@ -86,7 +85,7 @@ write_jump <- function(model, file = NULL, model_dir = NULL, solver_dir = "jump"
 }
 
 #' @export
-write_jump.model <- function(model, file = NULL, model_dir = NULL, solver_dir = "jump",
+write_jump.mm_model <- function(model, file = NULL, model_dir = NULL, solver_dir = "jump",
                               output_name = "model.jl", model_name = "model",
                               optimizer = "HiGHS.Optimizer", optimizer_attributes = NULL,
                               use_folded = TRUE, cleanup = TRUE,
@@ -132,6 +131,7 @@ write_jump.model_structure <- function(model, file = NULL, model_dir = NULL, sol
 }
 
 #' Generate data.jl file that loads all data upfront (energyRt.jl compatible)
+#' @return Invisibly, the path of the written `data.jl` file.
 #' @keywords internal
 .generate_data_jl <- function(model_dir, solver_dir, model = NULL, use_folded = FALSE, shifts_needed = NULL, export_data = FALSE, data_mode = c("external", "embedded")) {
   data_mode <- match.arg(data_mode)
@@ -700,6 +700,8 @@ write_jump.model_structure <- function(model, file = NULL, model_dir = NULL, sol
 
 #' Internal function to write JuMP model
 #'
+#' @return A character vector of Julia source lines, invisibly when `file` is
+#'   given (the lines are also written to it).
 #' @keywords internal
 write_jump_internal <- function(model, file = NULL, model_dir = NULL, solver_dir = "jump",
                                  output_name = "model.jl", model_name = "model",
@@ -754,6 +756,7 @@ write_jump_internal <- function(model, file = NULL, model_dir = NULL, solver_dir
 
         # Create dataframe with set members in first column
         df <- data.frame(member = as.character(set_data), stringsAsFactors = FALSE)
+        .need_pkg("arrow", "writing set data for JuMP")
         arrow::write_feather(df, file.path(set_subdir, "data.arrow"))
       }
     }

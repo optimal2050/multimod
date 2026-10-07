@@ -452,15 +452,20 @@ read_mps_solution <- function(sol, index_dir = NULL, col_index = NULL,
 #' @seealso [write_energyrt_output()], [read_mps_solution()]
 #' @export
 #' @examples
-#' \dontrun{
-#' r <- solve_highs(m, attach = FALSE)
-#' write_solution(r, "runs/out", format = "csv")
+#' \donttest{
+#' # Solving takes a few seconds
+#' if (requireNamespace("highs", quietly = TRUE)) {
+#'   m <- example_models$energyRt$multimod
+#'   r <- solve_highs(m, attach = FALSE)
+#'   write_solution(r, file.path(tempdir(), "energyRt_solution"), format = "csv")
+#' }
 #' }
 write_solution <- function(solution, dir,
                            format = c("arrow", "csv", "parquet"),
                            variables = NULL,
                            nonzero_only = TRUE) {
   format <- match.arg(format)
+  if (format != "csv") .need_pkg("arrow", paste0("format = \"", format, "\""))
   primal <- solution$primal
   if (is.null(primal)) stop("solution has no $primal table.")
   dim_names <- attr(primal, "dim_names")

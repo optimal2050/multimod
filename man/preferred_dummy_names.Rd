@@ -3,6 +3,9 @@
 \name{preferred_dummy_names}
 \alias{preferred_dummy_names}
 \title{Preferred short names for common sets to avoid conflicts}
+\format{
+A named list mapping set names to preferred short iterator names.
+}
 \usage{
 preferred_dummy_names
 }

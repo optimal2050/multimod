@@ -63,8 +63,12 @@ expects.
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
-r <- solve_highs(m, attach = FALSE)
-write_solution(r, "runs/out", format = "csv")
-} # }
+# \donttest{
+# Solving takes a few seconds
+if (requireNamespace("highs", quietly = TRUE)) {
+  m <- example_models$energyRt$multimod
+  r <- solve_highs(m, attach = FALSE)
+  write_solution(r, file.path(tempdir(), "energyRt_solution"), format = "csv")
+}
+# }
 ```

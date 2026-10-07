@@ -49,25 +49,25 @@ navbar:
       - text: "---"
       - text: "Code Generation"
       - text: JuMP Integration
-        # href: articles/jump.html
+        href: articles/jump.html
       - text: GMPL Integration
-        # href: articles/gmpl.html
+        href: articles/gmpl.html
       - text: Pyomo Integration
-        # href: articles/pyomo.html
+        href: articles/pyomo.html
       - text: "---"
       - text: "Model Management"
       - text: Configuration System
-        # href: articles/configuration.html
+        href: articles/configuration.html
       - text: Model Workspace
-        # href: articles/model_workspace.html
+        href: articles/model_workspace.html
       - text: LaTeX Generation
-        # href: articles/latex.html
+        href: articles/latex.html
       - text: "---"
       - text: "Advanced"
       - text: Model Optimization (Folding & Trimming)
-        # href: articles/folding.html
+        href: articles/folding.html
       - text: Abstract Syntax Tree (AST)
-        # href: articles/ast.html
+        href: articles/ast.html
     roadmap:
       text: "Development Status"
       href: articles/roadmap.html

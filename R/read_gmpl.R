@@ -48,7 +48,19 @@ register_index_alias <- function(collection, set_name, alias_name) {
 #' @export
 #'
 #' @examples
+#' # Parse model text directly (a character vector of GMPL lines)
+#' structure <- read_gmpl(c(
+#'   "set REGION;",
+#'   "param Demand{r in REGION};",
+#'   "var x{r in REGION} >= 0;",
+#'   "minimize cost: sum{r in REGION} x[r];",
+#'   "s.t. meet{r in REGION}: x[r] >= Demand[r];",
+#'   "end;"
+#' ))
+#' names(structure$parameters)
+#'
 #' \dontrun{
+#' # Model and data files on disk
 #' model <- read_gmpl("model.mod", "data.dat")
 #' }
 read_gmpl <- function(model_file,
@@ -914,7 +926,7 @@ parse_gmpl_objective <- function(stmt, model, verbose = FALSE) {
 
 #' Extract Indexing Expression from GMPL Statement
 #'
-#' Parse {index_vars in sets: condition} pattern
+#' Parse the \code{\{index_vars in sets: condition\}} pattern
 #'
 #' @param stmt Statement starting with indexing expression
 #' @return List with indexing structure and remaining statement
@@ -1018,14 +1030,14 @@ parse_index_list <- function(str) {
   return(specs)
 }
 
-#' Parse GMPL Expression to AST
+#' Build an AST node for a GMPL identifier
 #'
-#' Convert a GMPL expression string to multimod AST format
+#' Looks up a GMPL identifier among the known symbols and returns a typed
+#' AST node (variable, parameter, set) with canonical casing, or a plain
+#' `symbol` node when the identifier is unknown.
 #'
-#' @param expr Character string containing GMPL expression
+#' @param name Character string; identifier as it appears in the GMPL source
 #' @param symbols Named list of known symbols (sets, parameters, variables)
-#' @param depth Current recursion depth (internal use)
-#' @param max_depth Maximum recursion depth
 #' @return AST node
 #' @keywords internal
 gmpl_symbol_node <- function(name, symbols) {
@@ -1430,10 +1442,10 @@ parse_conditional <- function(expr, symbols, depth, max_depth) {
     then_expr <- substring(expr, then_pos + 4, else_pos - 1)  # +4 for "then"
     else_expr <- substring(expr, else_pos + 4)  # +4 for "else"
 
-    return(ast_conditional(
+    return(ast_when(
       condition = parse_gmpl_expr(trimws(condition), symbols, depth + 1, max_depth),
-      then_expr = parse_gmpl_expr(trimws(then_expr), symbols, depth + 1, max_depth),
-      else_expr = parse_gmpl_expr(trimws(else_expr), symbols, depth + 1, max_depth)
+      then = parse_gmpl_expr(trimws(then_expr), symbols, depth + 1, max_depth),
+      otherwise = parse_gmpl_expr(trimws(else_expr), symbols, depth + 1, max_depth)
     ))
   }
 

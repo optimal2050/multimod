@@ -755,6 +755,7 @@ compare_variables <- function(
 #'
 #' @param x A variable_comparison object
 #' @param ... Additional arguments (unused)
+#' @return Invisibly, `x`.
 #'
 #' @export
 print.variable_comparison <- function(x, ...) {

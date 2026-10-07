@@ -21,13 +21,13 @@ as_rexpression.symbol <- function(x, ...) {
 
 #' @exportS3Method
 #' @noRd
-as_rexpression.variable <- function(x, ...) {
+as_rexpression.mm_variable <- function(x, ...) {
   paste0(x$name)
 }
 
 #' @exportS3Method
 #' @noRd
-as_rexpression.parameter <- function(x, ...) {
+as_rexpression.mm_parameter <- function(x, ...) {
   paste0(x$name)
 }
 

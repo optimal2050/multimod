@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.4.9003</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -65,17 +65,25 @@
     </div>
 
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="development version" id="multimod-development-version">multimod (development version)<a class="anchor" aria-label="anchor" href="#multimod-development-version"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.5.0" id="multimod-050">multimod 0.5.0<a class="anchor" aria-label="anchor" href="#multimod-050"></a></h2>
 <div class="section level3">
-<h3 id="breaking-changes-development-version">Breaking changes<a class="anchor" aria-label="anchor" href="#breaking-changes-development-version"></a></h3>
-<ul><li>
-<code>setup_python_environment()</code> and <code>setup_multimod_python()</code> are now <code><a href="../reference/mm_setup_python.html">mm_setup_python()</a></code>, with no aliases. Its <code>packages</code> default gains <code>pyarrow</code> and <code>pandas</code>, so the environment can read the Arrow data <code>save_model(format = "ipc")</code> writes, and <code>python_version</code> defaults to 3.14. <code>solve_pyomo(packages = )</code> now defaults to <code>NULL</code> and defers to it, so the environment contents have one owner. <code>conda_packages</code> defaults to <code>"glpk"</code>, installed with conda rather than <code>pip</code>, because the MathProg route needs the <code>glpsol</code> executable; <code><a href="../reference/multimod-config.html">get_multimod_glpsol()</a></code> now also looks inside the environment.</li>
+<h3 id="breaking-changes-0-5-0">Breaking changes<a class="anchor" aria-label="anchor" href="#breaking-changes-0-5-0"></a></h3>
+<ul><li>The S3 classes of model objects are now prefixed: <code>mm_model</code>, <code>mm_set</code>, <code>mm_mapping</code>, <code>mm_parameter</code>, <code>mm_variable</code>, <code>mm_equation</code> (declarations and references alike). The bare names collided with other packages’ classes (energyRt’s <code>model</code> and <code>variable</code>), so that methods of one package were dispatched on objects of the other. Code testing <code>inherits(x, "model")</code> and friends must use the new names; <code><a href="../reference/is_declaration.html">is_declaration()</a></code> and the <code>is_*()</code> helpers are unchanged. Saved models carry their class, so <code>example_models</code> was re-stamped and models saved with earlier versions need the same (<code>class&lt;-</code> on the nested nodes). The JSON schema tags and the CamelCase constructors (<code>Model()</code>, <code><a href="../reference/multimod-constructors.html">Set()</a></code>, …) are unchanged.</li>
 <li>
-<code><a href="../reference/analyze_fold_opportunities.html">analyze_fold_opportunities()</a></code>: <code>fold_slice</code> is now <code>fold_timeslice</code>, and the <code>slice</code> dimension is spelled <code>timeslice</code> throughout, matching energyRt. The old spelling was dead code, so the timeslice-coverage check never ran.</li>
-<li>Example models are consolidated into <code>example_models</code>: use <code>example_models$energyRt$multimod</code> in place of the removed <code>utopia_multimod</code> and its siblings.</li>
+<code>arrow</code> and <code>visNetwork</code> moved from Imports to Suggests; the functions that need them check and fail with an installation hint.</li>
+<li>
+<code>multimod_config_write(global = TRUE)</code> and its readers use the per-user configuration directory returned by <code>tools::R_user_dir("multimod", "config")</code> instead of <code>~/.multimod/</code>.</li>
 </ul></div>
 <div class="section level3">
-<h3 id="bug-fixes-development-version">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-development-version"></a></h3>
+<h3 id="cran-preparation-0-5-0">CRAN preparation<a class="anchor" aria-label="anchor" href="#cran-preparation-0-5-0"></a></h3>
+<ul><li><p>The four articles that need energyRt or an installed solver (folding, GMPL, JuMP, Pyomo) are website articles rather than package vignettes.</p></li>
+<li><p>Tests run under <code>R CMD check</code> (a test runner was missing).</p></li>
+<li><p><code>setup_python_environment()</code> and <code>setup_multimod_python()</code> are now <code><a href="../reference/mm_setup_python.html">mm_setup_python()</a></code>, with no aliases. Its <code>packages</code> default gains <code>pyarrow</code> and <code>pandas</code>, so the environment can read the Arrow data <code>save_model(format = "ipc")</code> writes, and <code>python_version</code> defaults to 3.14. <code>solve_pyomo(packages = )</code> now defaults to <code>NULL</code> and defers to it, so the environment contents have one owner. <code>conda_packages</code> defaults to <code>"glpk"</code>, installed with conda rather than <code>pip</code>, because the MathProg route needs the <code>glpsol</code> executable; <code><a href="../reference/multimod-config.html">get_multimod_glpsol()</a></code> now also looks inside the environment.</p></li>
+<li><p><code><a href="../reference/analyze_fold_opportunities.html">analyze_fold_opportunities()</a></code>: <code>fold_slice</code> is now <code>fold_timeslice</code>, and the <code>slice</code> dimension is spelled <code>timeslice</code> throughout, matching energyRt. The old spelling was dead code, so the timeslice-coverage check never ran.</p></li>
+<li><p>Example models are consolidated into <code>example_models</code>: use <code>example_models$energyRt$multimod</code> in place of the removed <code>utopia_multimod</code> and its siblings.</p></li>
+</ul></div>
+<div class="section level3">
+<h3 id="bug-fixes-0-5-0">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-5-0"></a></h3>
 <ul><li><p>A symbol declared as a subset (<code>sup(process)</code>) is registered as both a set and a mapping, and only one side carries its members. Every writer now emits it from the side that has them. Previously the MathProg data section and the GDX took the empty side, so gates such as <code>mLoComm</code> were written empty and the equations using them were silently inert.</p></li>
 <li><p>Pyomo: a gated <code>sum</code> kept its condition, a mapping in condition position is a membership test rather than a truthy <code>Set</code>, <code>ord()</code>/<code>card()</code> resolve to a position parameter, and rule iterators are taken from the equation’s domain mapping, so an alias such as <code>dst</code> is bound. <code><a href="../reference/solve_pyomo.html">solve_pyomo()</a></code> passes environment variables through <code><a href="https://rdrr.io/r/base/Sys.setenv.html" class="external-link">Sys.setenv()</a></code> rather than <code>system2(env =)</code>, which Windows ignores, so <code>solver =</code> is no longer silently dropped.</p></li>
 <li><p><code>save_model(format = "ipc")</code> now works with Pyomo: the generated loader reads each file directly instead of through <code>DataPortal</code>, which has no reader for Arrow or Parquet.</p></li>
@@ -85,14 +93,14 @@
 <li><p><code><a href="../reference/fold_model.html">fold_model()</a></code> refuses a dimension the parameter carries more than once, such as <code>timeslice</code> in <code>pTimesliceAgg(year, timeslice, timeslicep)</code> or <code>region</code> in the <code>pTradeIr*</code> family. Both the declaration rewrite and the reference rewrite drop every matching dimension, so folding collapsed the pair into one subscript.</p></li>
 </ul></div>
 <div class="section level3">
-<h3 id="new-features-development-version">New features<a class="anchor" aria-label="anchor" href="#new-features-development-version"></a></h3>
+<h3 id="new-features-0-5-0">New features<a class="anchor" aria-label="anchor" href="#new-features-0-5-0"></a></h3>
 <div class="section level4">
-<h4 id="gams-development-version">GAMS<a class="anchor" aria-label="anchor" href="#gams-development-version"></a></h4>
+<h4 id="gams-0-5-0">GAMS<a class="anchor" aria-label="anchor" href="#gams-0-5-0"></a></h4>
 <ul><li><p><code><a href="../reference/write_gams_data.html">write_gams_data()</a></code> writes a model’s data to a GDX, and <code>write_gams(gdx =, include_solve =)</code> emits the matching <code>$load</code> block and the <code>model</code> / <code>solve</code> statements, so a GAMS job can be assembled without a GAMS licence and solved elsewhere. Zero-valued parameter records are written as <code>EPS</code>: a GDX stores no zeros, and GAMS has no per-parameter default, so the default assigned after loading would otherwise overwrite a stored zero. This route is exercised against an older GDX library and gdxtools 0.7, which does not install on R &gt;= 4.6, with the solve run on NEOS; contributions testing newer pipelines are welcome.</p></li>
 <li><p><code><a href="../reference/mm_check_python.html">mm_check_python()</a></code> reports the interpreter multimod would use and whether it carries the needed packages. <code><a href="../reference/solve_pyomo.html">solve_pyomo()</a></code> calls it before bootstrapping, so a usable environment is no longer reinstalled on every solve.</p></li>
 </ul></div>
 <div class="section level4">
-<h4 id="direct-matrix--mps-backend-development-version">Direct matrix / MPS backend<a class="anchor" aria-label="anchor" href="#direct-matrix--mps-backend-development-version"></a></h4>
+<h4 id="direct-matrix--mps-backend-0-5-0">Direct matrix / MPS backend<a class="anchor" aria-label="anchor" href="#direct-matrix--mps-backend-0-5-0"></a></h4>
 <ul><li>Assemble a model straight into LP arrays, bypassing the symbolic layer: <code><a href="../reference/model_to_lp.html">model_to_lp()</a></code>, <code><a href="../reference/build_col_index.html">build_col_index()</a></code>, <code><a href="../reference/build_row_index.html">build_row_index()</a></code>, <code><a href="../reference/build_triplets.html">build_triplets()</a></code>.</li>
 <li>
 <code><a href="../reference/write_mps.html">write_mps()</a></code>, <code><a href="../reference/read_mps_solution.html">read_mps_solution()</a></code>, <code><a href="../reference/write_energyrt_output.html">write_energyrt_output()</a></code> for the file round trip; <code><a href="../reference/solve_highs.html">solve_highs()</a></code> for an in-process solve returning duals.</li>
@@ -112,7 +120,7 @@
 </ul><p>See <code>dev/mps-pipeline-and-issues.md</code> for the pipeline, measurements and open items.</p>
 </div>
 <div class="section level4">
-<h4 id="data-integration-and-storage-development-version">Data integration and storage<a class="anchor" aria-label="anchor" href="#data-integration-and-storage-development-version"></a></h4>
+<h4 id="data-integration-and-storage-0-5-0">Data integration and storage<a class="anchor" aria-label="anchor" href="#data-integration-and-storage-0-5-0"></a></h4>
 <ul><li>
 <code><a href="../reference/save_model.html">save_model()</a></code> / <code><a href="../reference/load_model.html">load_model()</a></code> store a model workspace as Arrow IPC, Parquet or CSV, with lazy loading for large datasets. See <code><a href="../articles/model_workspace.html">vignette("model_workspace")</a></code>.</li>
 <li>
@@ -123,28 +131,28 @@
 <li>Language-neutral serialisation of the AST: <code><a href="../reference/model_to_json.html">model_to_json()</a></code> / <code><a href="../reference/model_from_json.html">model_from_json()</a></code>, with the node shapes declared once in <code><a href="../reference/ast_schema.html">ast_schema()</a></code> and a JSON Schema emitted by <code><a href="../reference/ast_json_schema.html">ast_json_schema()</a></code>. <code><a href="../reference/validate_ast.html">validate_ast()</a></code> checks a node against the schema. Previously structure was only ever written as <code>.rds</code>.</li>
 </ul></div>
 <div class="section level4">
-<h4 id="code-generation-development-version">Code generation<a class="anchor" aria-label="anchor" href="#code-generation-development-version"></a></h4>
-<ul><li>Pyomo code generation: abstract models with external data loading, and any solver Pyomo supports. See <code><a href="../articles/pyomo.html">vignette("pyomo")</a></code>.</li>
+<h4 id="code-generation-0-5-0">Code generation<a class="anchor" aria-label="anchor" href="#code-generation-0-5-0"></a></h4>
+<ul><li>Pyomo code generation: abstract models with external data loading, and any solver Pyomo supports. See <code>vignette("pyomo")</code>.</li>
 <li>
 <code><a href="../reference/write_jump.html">write_jump()</a></code> generates modern JuMP syntax: named constraints, tuple indexing, short index aliases, variable bounds from GAMS types, and CSV diagnostics.</li>
 <li>
 <code><a href="../reference/write_gmpl.html">write_gmpl()</a></code> / <code><a href="../reference/write_gmpl_data.html">write_gmpl_data()</a></code> generate GMPL/MathProg, writing data lazily from Arrow/Parquet datasets.</li>
 </ul></div>
 <div class="section level4">
-<h4 id="configuration-and-usability-development-version">Configuration and usability<a class="anchor" aria-label="anchor" href="#configuration-and-usability-development-version"></a></h4>
+<h4 id="configuration-and-usability-0-5-0">Configuration and usability<a class="anchor" aria-label="anchor" href="#configuration-and-usability-0-5-0"></a></h4>
 <ul><li>Solver paths resolve through R options, environment variables, a YAML config and auto-detection, in that order: <code><a href="../reference/multimod-config.html">get_multimod_python()</a></code>, <code><a href="../reference/multimod-config.html">get_multimod_julia()</a></code>, <code><a href="../reference/multimod-config.html">get_multimod_glpsol()</a></code>, with <code><a href="../reference/multimod-config.html">multimod_config_write()</a></code>, <code><a href="../reference/multimod-config.html">multimod_config_read()</a></code> and <code><a href="../reference/multimod-config.html">multimod_config_show()</a></code>. See <code><a href="../articles/configuration.html">vignette("configuration")</a></code>.</li>
 <li>Reader functions (<code><a href="../reference/read_gams.html">read_gams()</a></code>, <code><a href="../reference/read_gmpl.html">read_gmpl()</a></code>, <code><a href="../reference/read_gmpl_data.html">read_gmpl_data()</a></code>, <code><a href="../reference/import_gmpl_data.html">import_gmpl_data()</a></code>) accept character vectors as well as file paths, so a model can be parsed from an R object without a temporary file.</li>
 </ul></div>
 <div class="section level4">
-<h4 id="model-optimization-development-version">Model optimization<a class="anchor" aria-label="anchor" href="#model-optimization-development-version"></a></h4>
+<h4 id="model-optimization-0-5-0">Model optimization<a class="anchor" aria-label="anchor" href="#model-optimization-0-5-0"></a></h4>
 <ul><li>
-<code><a href="../reference/fold_model.html">fold_model()</a></code> reduces the dimensionality of uniform parameters; <code><a href="../reference/create_fold_spec.html">create_fold_spec()</a></code> and <code><a href="../reference/get_fold_summary.html">get_fold_summary()</a></code> support it. See <code><a href="../articles/folding.html">vignette("folding")</a></code>.</li>
+<code><a href="../reference/fold_model.html">fold_model()</a></code> reduces the dimensionality of uniform parameters; <code><a href="../reference/create_fold_spec.html">create_fold_spec()</a></code> and <code><a href="../reference/get_fold_summary.html">get_fold_summary()</a></code> support it. See <code>vignette("folding")</code>.</li>
 <li>
-<code>trim_model()</code> removes unused sets, parameters, variables and equations, and <code><a href="../reference/get_trim_summary.html">get_trim_summary()</a></code> reports what went.</li>
+<code><a href="../reference/trim_model.html">trim_model()</a></code> removes unused sets, parameters, variables and equations, and <code><a href="../reference/get_trim_summary.html">get_trim_summary()</a></code> reports what went.</li>
 </ul></div>
 </div>
 <div class="section level3">
-<h3 id="bug-fixes-development-version-1">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-development-version-1"></a></h3>
+<h3 id="bug-fixes-0-5-0-1">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-5-0-1"></a></h3>
 <ul><li>A constraint summing over more than one index was silently dropped from the model: the index list in <code>sum((region, timeslice)$map, ...)</code> kept the comma’s whitespace, so the second index matched no set and the sum bound nothing. The row still assembled, with its bounds and no coefficients, and solved to Optimal.</li>
 <li>Numeric literals in scientific notation with a signed exponent (<code>1e-20</code>, <code>3.6888e+08</code>) failed to parse.</li>
 <li>A decimal literal in an equation body (<code>=l= 3201.976</code>) was read as dot-access and became <code>val(y)</code>, building a wrong matrix.</li>
@@ -162,7 +170,7 @@
 <code>DESCRIPTION</code> no longer carries a <code>Collate</code> field: it had fallen out of date, and files absent from it are silently not sourced.</li>
 </ul></div>
 <div class="section level3">
-<h3 id="documentation-development-version">Documentation<a class="anchor" aria-label="anchor" href="#documentation-development-version"></a></h3>
+<h3 id="documentation-0-5-0">Documentation<a class="anchor" aria-label="anchor" href="#documentation-0-5-0"></a></h3>
 <ul><li>New vignettes: <code>configuration</code>, <code>pyomo</code>, <code>model_workspace</code>.</li>
 <li>Updated vignettes: <code>jump</code>, <code>gmpl</code>, <code>latex</code>.</li>
 </ul><hr></div>
@@ -176,11 +184,11 @@
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Oleg Lugovoy.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
+
 </div>
 
     </footer></div>

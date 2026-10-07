@@ -115,7 +115,7 @@
 #' @noRd
 .mx_eval <- function(node, env, ctx) {
   if (is.null(node)) return(.mx_no_terms())
-  cls <- class(node)[1]
+  cls <- sub("^mm_", "", class(node)[1])
 
   switch(
     cls,
@@ -567,7 +567,7 @@
 #' @keywords internal
 #' @noRd
 .mx_join_cond <- function(cur, cond, iters, ctx) {
-  if (!inherits(cond, "mapping")) return(NULL)
+  if (!inherits(cond, "mm_mapping")) return(NULL)
   nm <- cond$name
   dat <- .mx_map_data(nm, ctx)
 
@@ -649,7 +649,7 @@
 #' @noRd
 .mx_condition <- function(node, env, ctx) {
   if (is.null(node)) return(rep(TRUE, nrow(env)))
-  cls <- class(node)[1]
+  cls <- sub("^mm_", "", class(node)[1])
 
   if (cls == "mapping") return(.mx_membership(node, env, ctx))
 
@@ -844,7 +844,7 @@ build_triplets <- function(model, col_index = NULL, row_index = NULL,
                            on_duplicate = c("error", "last", "first"),
                            verbose = FALSE, chunk_rows = 1000000L) {
   on_duplicate <- match.arg(on_duplicate)
-  stopifnot(inherits(model, "multimod") || inherits(model, "model"))
+  stopifnot(inherits(model, "multimod") || inherits(model, "mm_model"))
   stopifnot(is.numeric(chunk_rows), length(chunk_rows) == 1, chunk_rows >= 1)
   chunk_rows <- as.integer(chunk_rows)
   if (is.null(col_index)) col_index <- build_col_index(model)

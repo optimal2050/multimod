@@ -20,5 +20,6 @@ A list of all matching elements
 Recursively extract elements by name from a nested structure
 }
 \examples{
-extract_elements_by_name(model, "when")
+eq <- example_models$energyRt$multimod$equations[[1]]
+length(extract_ast_elements(eq, "when"))
 }

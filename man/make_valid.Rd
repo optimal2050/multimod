@@ -2,9 +2,12 @@
 % Please edit documentation in R/model_symbol_utils.R
 \name{make_valid}
 \alias{make_valid}
+\alias{make_valid.mm_model}
 \title{Make a multimod model valid by reconciling symbols}
 \usage{
 make_valid(x, ...)
+
+\method{make_valid}{mm_model}(x, verbose = FALSE, stop_on_error = FALSE, revalidate = FALSE, ...)
 }
 \arguments{
 \item{x}{A \code{multimod} model object}

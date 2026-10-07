@@ -22,6 +22,10 @@ generate proper fold specification with entity-specific mappings.}
 \item{tolerance}{Numeric tolerance for considering values equal (default: 1e-10)}
 
 \item{verbose}{Logical; print progress messages (default: TRUE)}
+
+\item{.progress}{Progress bar control: \code{"auto"} (default) shows a
+\code{progressr} bar for large models, \code{TRUE} forces it on (requires
+\code{progressr}), \code{FALSE} disables it.}
 }
 \value{
 Modified model with folded parameters
@@ -68,17 +72,10 @@ Safety measures:
 }
 }
 \examples{
-\dontrun{
-# Specify fold dimensions with entity-specific mappings
-fold_dims <- list(
-  timeslice = list(sup = "mSupTimeslice", trade = "mTradeTimeslice",
-           stg = c("mStorageComm", "mCommTimeslice")),
-  region = c("mTechRegion", "mSupRegion", "mDemRegion", "mStorageRegion"),
-  year = c("mTechYear", "mSupYear", "mDemYear", "mStorageYear")
-)
-fold_spec <- create_fold_spec(model, fold_dims = fold_dims)
+m <- example_models$energyRt$multimod
+fold_spec <- create_fold_spec(m, fold_dims = "timeslice", verbose = FALSE)
 # Review and edit fold_spec to ensure correct validation mappings
-model <- fold_model(model, fold_spec = fold_spec)
-}
+m_folded <- fold_model(m, fold_spec = fold_spec, verbose = FALSE)
+get_fold_summary(m_folded, format = "text")
 
 }

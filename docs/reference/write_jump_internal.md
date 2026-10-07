@@ -25,3 +25,8 @@ write_jump_internal(
   ...
 )
 ```
+
+## Value
+
+A character vector of Julia source lines, invisibly when `file` is given
+(the lines are also written to it).

@@ -6,6 +6,9 @@
 \usage{
 normalize_dim_names(dims)
 }
+\value{
+A character vector of set names; empty for \code{NULL} input.
+}
 \description{
 Normalize dimension specifications to a character vector of set names
 }

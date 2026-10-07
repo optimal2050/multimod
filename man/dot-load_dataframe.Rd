@@ -6,6 +6,9 @@
 \usage{
 .load_dataframe(path, format)
 }
+\value{
+A data frame, or \code{NULL} when no file of \code{format} exists at \code{path}.
+}
 \description{
 Internal: Load dataframe from disk
 }

@@ -70,7 +70,7 @@
   # --- declarations: S3 class c(<s3>, "multimod", "ast") ------------------
 
   set_decl = list(
-    kind = "decl", s3 = "set",
+    kind = "decl", s3 = "mm_set",
     fields = list(
       name      = .f("string", TRUE),
       desc      = .f("string"),
@@ -80,7 +80,7 @@
   ),
 
   mapping_decl = list(
-    kind = "decl", s3 = "mapping",
+    kind = "decl", s3 = "mm_mapping",
     fields = list(
       name        = .f("string", TRUE),
       desc        = .f("string"),
@@ -95,7 +95,7 @@
   ),
 
   parameter_decl = list(
-    kind = "decl", s3 = "parameter",
+    kind = "decl", s3 = "mm_parameter",
     fields = list(
       name        = .f("string", TRUE),
       desc        = .f("string"),
@@ -113,7 +113,7 @@
   ),
 
   variable_decl = list(
-    kind = "decl", s3 = "variable",
+    kind = "decl", s3 = "mm_variable",
     fields = list(
       name        = .f("string", TRUE),
       desc        = .f("string"),
@@ -130,7 +130,7 @@
   ),
 
   equation_decl = list(
-    kind = "decl", s3 = "equation",
+    kind = "decl", s3 = "mm_equation",
     fields = list(
       name               = .f("string", TRUE),
       desc               = .f("string"),
@@ -147,18 +147,18 @@
 
   # --- references: S3 class c(<s3>, "ast"), no "multimod" marker ----------
 
-  set_ref       = list(kind = "ref", s3 = "set",
+  set_ref       = list(kind = "ref", s3 = "mm_set",
                        fields = list(name = .f("string", TRUE))),
 
-  mapping_ref   = list(kind = "ref", s3 = "mapping",
+  mapping_ref   = list(kind = "ref", s3 = "mm_mapping",
                        fields = list(name = .f("string", TRUE),
                                      dims = .f("node"))),
 
-  parameter_ref = list(kind = "ref", s3 = "parameter",
+  parameter_ref = list(kind = "ref", s3 = "mm_parameter",
                        fields = list(name = .f("string", TRUE),
                                      dims = .f("node"))),
 
-  variable_ref  = list(kind = "ref", s3 = "variable",
+  variable_ref  = list(kind = "ref", s3 = "mm_variable",
                        fields = list(name = .f("string", TRUE),
                                      dims = .f("node"))),
 

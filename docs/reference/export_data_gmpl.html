@@ -17,7 +17,7 @@ with headers). This code can be injected into a GMPL model file before the solve
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.4.9003</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -107,11 +107,19 @@ with headers). This code can be injected into a GMPL model file before the solve
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
-<span class="r-in"><span><span class="va">model</span> <span class="op">&lt;-</span> <span class="fu"><a href="read_gmpl.html">read_gmpl</a></span><span class="op">(</span><span class="st">"model.mod"</span>, <span class="st">"data.dat"</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">export_code</span> <span class="op">&lt;-</span> <span class="fu">export_data_gmpl</span><span class="op">(</span><span class="va">model</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="va">export_code</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="va">example_models</span><span class="op">$</span><span class="va">energyRt</span><span class="op">$</span><span class="va">multimod</span></span></span>
+<span class="r-in"><span><span class="va">export_code</span> <span class="op">&lt;-</span> <span class="fu">export_data_gmpl</span><span class="op">(</span><span class="va">m</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/substr.html" class="external-link">substr</a></span><span class="op">(</span><span class="va">export_code</span>, <span class="fl">1</span>, <span class="fl">400</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> # ========== DATA EXPORT ==========</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> printf "Exporting model data to data_export/...\n";</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> # Export sets</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> printf "comm\n" &gt; "data_export/comm.csv";</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> for {i in comm} { printf "%s\n", i &gt;&gt; "data_export/comm.csv"; }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> printf "region\n" &gt; "data_export/region.csv";</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> for {i in region} { printf "%s\n", i &gt;&gt; "data_export/region.csv"; }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> printf "year\n" &gt; "data_export/year.csv";</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> for {i in year} { printf "%s\n", i </span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
@@ -119,11 +127,11 @@ with headers). This code can be injected into a GMPL model file before the solve
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Oleg Lugovoy.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
+
 </div>
 
     </footer></div>

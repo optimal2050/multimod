@@ -54,7 +54,7 @@ model_to_lp <- function(model, col_index = NULL, row_index = NULL,
                         chunk_rows = 1000000L) {
   on_duplicate <- match.arg(on_duplicate)
   on_empty_row <- match.arg(on_empty_row)
-  stopifnot(inherits(model, "multimod") || inherits(model, "model"))
+  stopifnot(inherits(model, "multimod") || inherits(model, "mm_model"))
   if (is.null(col_index)) col_index <- build_col_index(model, verbose = verbose,
                                                        names = index_names)
   if (is.null(row_index)) row_index <- build_row_index(model, verbose = verbose,

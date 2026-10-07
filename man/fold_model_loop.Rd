@@ -6,6 +6,9 @@
 \usage{
 fold_model_loop(model, fold_spec, tolerance, verbose, p = NULL)
 }
+\value{
+The folded \code{mm_model}.
+}
 \description{
 Internal fold loop with optional progress reporting
 }

@@ -40,8 +40,8 @@ test_that("Set() does not collide with data.table::set() or the class 'set'", {
   data.table::set(d, j = "b", value = 4:6)     # the generic `set`, untouched
   expect_equal(names(d), c("a", "b"))
   # and the S3 class is still lowercase, so dispatch is unaffected
-  expect_equal(class(Set("tech"))[1], "set")
-  expect_true(inherits(SetRef("tech"), "set"))
+  expect_equal(class(Set("tech"))[1], "mm_set")
+  expect_true(inherits(SetRef("tech"), "mm_set"))
 })
 
 # --- construction-time validation --------------------------------------------

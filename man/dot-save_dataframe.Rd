@@ -14,6 +14,10 @@
   label = NULL
 )
 }
+\value{
+Invisibly, the path of the written file, or \code{NULL} when \code{data} is
+empty.
+}
 \description{
 Internal: Save dataframe to disk
 }

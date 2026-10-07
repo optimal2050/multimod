@@ -18,9 +18,8 @@ writes. Intended for non-R readers of the serialised model - a C++ core, a
 Python binding, or an editor with schema-aware completion.
 }
 \examples{
-\dontrun{
-cat(ast_json_schema())
-}
+schema <- ast_json_schema()
+cat(substr(schema, 1, 300))
 }
 \seealso{
 \code{\link[=ast_schema]{ast_schema()}}, \code{\link[=model_to_json]{model_to_json()}}

@@ -8,6 +8,8 @@
 #' @param node_type The type of AST node (e.g., `"expression"`, `"variable"`,
 #' `"constant"`, `"parameter"`, `"symbol"`).
 #' @param ... Additional named fields passed as components of the AST node.
+#' @param inherits_class Optional character vector of extra classes inserted
+#'   between `node_type` and `"ast"` in the class attribute.
 #'
 #' @return A structured S3 object of class `ast`, with a subclass
 #' matching `node_type`.
@@ -43,7 +45,7 @@ new_ast <- function(node_type, ..., inherits_class = NULL) {
 ast_set <- function(name) {
   stopifnot(is.character(name), length(name) == 1)
   # if (!is.null(domain)) stopifnot(inherits(domain, "ast") && domain$type == "set")
-  new_ast("set", name = name)
+  new_ast("mm_set", name = name)
 }
 # @param domain Optional. Another AST set node representing the parent set
 # (e.g., "a" in b(a)), indicating that this set is a subset of the parent set.
@@ -189,6 +191,7 @@ ast_dims <- function(...) {
 #'
 #' @param name A character string representing the mapping name.
 #' @param dims An `dims` object representing the dimensions of the mapping.
+#' @param ... Additional fields stored on the node (passed to [new_ast()]).
 #'
 #' @return An `mapping` S3 object (subclass of `ast`).
 #' @export
@@ -200,7 +203,7 @@ ast_mapping <- function(name, dims = ast_dims(), ...) {
   # if (!is.null(domain)) {
   #   stopifnot(inherits(domain, "ast") && domain$type == "mapping")
   # }
-  new_ast("mapping", name = name, dims = dims, ...)
+  new_ast("mm_mapping", name = name, dims = dims, ...)
 }
 # @param domain An optional `mapping` object representing the parent mapping,
 # indicating that this mapping is a subset of the parent mapping.
@@ -211,6 +214,10 @@ ast_mapping <- function(name, dims = ast_dims(), ...) {
 #'
 #' @param name Name of the variable.
 #' @param dims Optional vector of dimension `dims` objects.
+#' @param vtype Optional variable type as declared in the source model
+#'   (e.g. `"positive"`, `"binary"`, `"integer"`).
+#' @param bounds Optional list of bounds with elements `lo` and/or `up`.
+#' @param ... Additional fields stored on the node (passed to [new_ast()]).
 #'
 #' @return An `variable` S3 object (subclass of `ast`).
 #' @export
@@ -221,25 +228,27 @@ ast_variable <- function(name, dims = ast_dims(), vtype = NULL, bounds = NULL, .
   args <- list(name = name, dims = dims, ...)
   if (!is.null(vtype)) args$vtype <- vtype
   if (!is.null(bounds)) args$bounds <- bounds
-  do.call(new_ast, c(list("variable"), args))
+  do.call(new_ast, c(list("mm_variable"), args))
 }
 
 #' Create a parameter AST node
 #'
 #' @param name Name of the parameter.
 #' @param dims Optional vector of dimension `dims` objects.
+#' @param ... Additional fields stored on the node (passed to [new_ast()]).
 #'
 #' @return An `parameter` S3 object (subclass of `ast`).
 #' @export
 ast_parameter <- function(name, dims = ast_dims(), ...) {
   stopifnot(is.character(name))
   stopifnot(length(name) == 1)
-  new_ast("parameter", name = name, dims = dims, ...)
+  new_ast("mm_parameter", name = name, dims = dims, ...)
 }
 
 #' Create a symbol AST node (for unclassified identifiers)
 #'
 #' @param name A character string representing the symbol.
+#' @param ... Additional fields stored on the node (passed to [new_ast()]).
 #'
 #' @return An `symbol` S3 object (subclass of `ast`).
 #' @export
@@ -257,6 +266,7 @@ ast_symbol <- function(name, ...) {
 #'
 #' @param symbol A character string representing the index symbol (e.g., "y", "ls", "ld").
 #' @param offset An integer offset. Negative for backward shift (e.g., -1 for y-1), positive for forward shift (e.g., +1 for y+1).
+#' @param ... Additional fields stored on the node (passed to [new_ast()]).
 #'
 #' @return A `shift` S3 object (subclass of `ast`).
 #' @export
@@ -275,6 +285,7 @@ ast_shift <- function(symbol, offset, ...) {
 #' Create a constant AST node
 #'
 #' @param value A numeric or character constant.
+#' @param ... Additional fields stored on the node (passed to [new_ast()]).
 #'
 #' @return An `constant` S3 object (subclass of `ast`).
 #' @export
@@ -296,6 +307,7 @@ ast_constant <- function(value, ...) {
 #' @param otherwise Optional expression to evaluate if the condition is false.
 #' This part is not available in GAMS `$` statements, but is useful for other
 #' languages.
+#' @param ... Additional fields stored on the node (passed to [new_ast()]).
 #'
 #' @return An object of class `ast` and subclass `when`.
 #' @export
@@ -357,6 +369,7 @@ ast_prod <- function(index, value, domain = NULL) {
 #' @param name A character string representing the function name.
 #' @param value An AST node representing the function body or expression.
 #' @param index An AST node (typically dims or when) defining the index set.
+#' @param ... Additional fields stored on the node (passed to [new_ast()]).
 #' @return An `ast` object of class `function`.
 #' @export
 ast_func <- function(name, value, index = NULL, ...) {
@@ -403,6 +416,8 @@ ast_func <- function(name, value, index = NULL, ...) {
 #' @param op A character string representing the operator (e.g., `+`, `*`, `/`).
 #' @param lhs The left-hand side AST node.
 #' @param rhs The right-hand side AST node.
+#' @param brackets Optional bracket type to wrap the expression in when
+#'   rendered: `"("`, `"["` or the curly brace; `NULL` for none.
 #'
 #' @return An `expression` S3 object (subclass of `ast`).
 #' @export
@@ -454,12 +469,12 @@ ast_unary <- function(op, rhs) {
 #' @param rhs The right-hand side of the equation (an AST node).
 #' @param relation A character string representing the relation type.
 #'  One of `"=="`, `"<="`, or `">="`.
-#'  @param name Optional character string. The name of the equation.
-#'  @param domain Optional AST node representing the domain condition.
-#'  @param desc Optional character string. A description or label for the equation.
+#' @param name Optional character string. The name of the equation.
+#' @param domain Optional AST node representing the domain condition.
+#' @param desc Optional character string. A description or label for the equation.
 #'
-#'  @return An `equation` S3 object.
-#'  @export
+#' @return An `ast` node of class `equation`.
+#' @export
 ast_equation <- function(lhs, rhs, relation = "==",
                          name = NULL, domain = NULL, desc = NULL) {
   stopifnot(relation %in% c("==", "<=", ">=", "<", ">"))
@@ -529,7 +544,9 @@ node_type <- function(x) {
   if (!inherits(x, c("ast", "multimod"))) {
     return(NULL)
   }
-  class(x)[1]
+  # the node type is the first class without the package prefix:
+  # "mm_variable" -> "variable", "expression" -> "expression"
+  sub("^mm_", "", class(x)[1])
 }
 
 #' Generate a stable hash for an AST or multimod object (excluding internal hash fields)
@@ -625,6 +642,7 @@ ast_setmax <- function(index, value) {
 #' @param symbols Symbol table or similar object that may carry a `language` field/attribute.
 #' @param context Optional object (model structure, builder) that exposes `$language` or a
 #'   `language` attribute.
+#' @return A lower-case language identifier, e.g. `"gams"` or `"gmpl"`.
 #' @keywords internal
 resolve_ast_language <- function(language = NULL, symbols = NULL, context = NULL) {
   if (!is.null(language)) {
@@ -700,6 +718,11 @@ get_ast_parser <- function(language) {
 
 #' Language-aware AST expression parser
 #'
+#' @param expr A character string to parse, or an AST node (returned as is).
+#' @param symbols Symbol table passed to the parser.
+#' @param language,context See [resolve_ast_language()].
+#' @param ... Passed on to the language parser.
+#' @return An AST node.
 #' @keywords internal
 ast_parse_expr <- function(expr, symbols = NULL, language = NULL, context = NULL, ...) {
   if (inherits(expr, "ast")) return(expr)

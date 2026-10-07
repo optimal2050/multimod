@@ -50,9 +50,7 @@ self-contained file, which is practical for small models.
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
-data(example_models)
-js <- model_to_json(example_models$energyRt$multimod)
+m <- example_models$energyRt$multimod
+js <- model_to_json(m)
 m2 <- model_from_json(js)
-} # }
 ```

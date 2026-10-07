@@ -7,11 +7,11 @@
 get_network_data(x, alias_map = NULL, show_dims = TRUE)
 }
 \arguments{
+\item{x}{A multimod equation (\code{mm_equation}) or \code{ast} object}
+
 \item{alias_map}{A named list for alias mapping (optional)}
 
 \item{show_dims}{Logical, whether to show dimensions in the label (default: FALSE)}
-
-\item{eq}{A multimod equation object}
 }
 \value{
 A list with two data frames: nodes and edges to be used with

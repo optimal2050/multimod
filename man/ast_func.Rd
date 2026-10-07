@@ -12,6 +12,8 @@ ast_func(name, value, index = NULL, ...)
 \item{value}{An AST node representing the function body or expression.}
 
 \item{index}{An AST node (typically dims or when) defining the index set.}
+
+\item{...}{Additional fields stored on the node (passed to \code{\link[=new_ast]{new_ast()}}).}
 }
 \value{
 An \code{ast} object of class \code{function}.

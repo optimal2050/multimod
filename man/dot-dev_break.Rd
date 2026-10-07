@@ -9,6 +9,9 @@
 \arguments{
 \item{context}{Where it fired, as "file.R:line".}
 }
+\value{
+Invisibly, \code{NULL}; called for the warning it raises.
+}
 \description{
 Replaces \code{browser()} calls left in package code. \code{browser()} stops an
 interactive session and waits for input with no message -- indistinguishable

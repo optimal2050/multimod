@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.4.9003</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -155,6 +155,10 @@ Note: Solution is always saved to solution/ directory regardless of this setting
 <dd><p>logical or character; if TRUE, exports model to MPS format; if character, specifies filename (default: FALSE)</p></dd>
 
 
+<dt id="arg-data-mode">data_mode<a class="anchor" aria-label="anchor" href="#arg-data-mode"></a></dt>
+<dd><p>character; <code>"external"</code> (default) generates a data.jl that reads parameter data from files at run time, <code>"embedded"</code> writes the data into the Julia source</p></dd>
+
+
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
 <dd><p>Additional arguments (not used)</p></dd>
 
@@ -166,22 +170,21 @@ Note: Solution is always saved to solution/ directory regardless of this setting
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
-<span class="r-in"><span><span class="co"># Write to model directory with default solver subdirectory</span></span></span>
-<span class="r-in"><span><span class="fu">write_jump</span><span class="op">(</span><span class="va">model</span>, model_dir <span class="op">=</span> <span class="st">"my_model"</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="co"># -&gt; my_model/solvers/jump/model.jl</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="va">example_models</span><span class="op">$</span><span class="va">energyRt</span><span class="op">$</span><span class="va">multimod</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Specify custom solver directory</span></span></span>
-<span class="r-in"><span><span class="fu">write_jump</span><span class="op">(</span><span class="va">model</span>, model_dir <span class="op">=</span> <span class="st">"my_model"</span>, solver_dir <span class="op">=</span> <span class="st">"jump-highs"</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="co"># -&gt; my_model/solvers/jump-highs/model.jl</span></span></span>
+<span class="r-in"><span><span class="co"># Explicit file path</span></span></span>
+<span class="r-in"><span><span class="fu">write_jump</span><span class="op">(</span><span class="va">m</span>, file <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".jl"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Override with explicit file path</span></span></span>
-<span class="r-in"><span><span class="fu">write_jump</span><span class="op">(</span><span class="va">model</span>, file <span class="op">=</span> <span class="st">"custom/path/model.jl"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="co"># Into a saved model workspace: &lt;model_dir&gt;/solvers/&lt;solver_dir&gt;/model.jl</span></span></span>
+<span class="r-in"><span><span class="va">ws</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"energyRt_ws"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="save_model.html">save_model</a></span><span class="op">(</span><span class="va">m</span>, <span class="va">ws</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">write_jump</span><span class="op">(</span><span class="va">m</span>, model_dir <span class="op">=</span> <span class="va">ws</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">write_jump</span><span class="op">(</span><span class="va">m</span>, model_dir <span class="op">=</span> <span class="va">ws</span>, solver_dir <span class="op">=</span> <span class="st">"jump-highs"</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Use barrier method for large models</span></span></span>
-<span class="r-in"><span><span class="fu">write_jump</span><span class="op">(</span><span class="va">model</span>, model_dir <span class="op">=</span> <span class="st">"my_model"</span>, </span></span>
+<span class="r-in"><span><span class="co"># Barrier method for large models</span></span></span>
+<span class="r-in"><span><span class="fu">write_jump</span><span class="op">(</span><span class="va">m</span>, model_dir <span class="op">=</span> <span class="va">ws</span>,</span></span>
 <span class="r-in"><span>           optimizer_attributes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>solver <span class="op">=</span> <span class="st">"ipm"</span>, parallel <span class="op">=</span> <span class="st">"on"</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Removing existing solver directory: C:\Users\admin\AppData\Local\Temp\RtmpQVAZuj/energyRt_ws/solvers/jump</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
@@ -189,11 +192,11 @@ Note: Solution is always saved to solution/ directory regardless of this setting
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Oleg Lugovoy.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
+
 </div>
 
     </footer></div>

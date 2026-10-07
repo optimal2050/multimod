@@ -268,7 +268,7 @@ multimod_config_write <- function(config, global = FALSE) {
   }
   
   config_file <- if (global) {
-    file.path(Sys.getenv("HOME"), ".multimod", "config.yml")
+    file.path(tools::R_user_dir("multimod", "config"), "config.yml")
   } else {
     file.path(getwd(), ".multimod.yml")
   }
@@ -294,7 +294,7 @@ multimod_config_read <- function(global = FALSE) {
   # Try project-level first, then global
   config_files <- c(
     file.path(getwd(), ".multimod.yml"),
-    file.path(Sys.getenv("HOME"), ".multimod", "config.yml")
+    file.path(tools::R_user_dir("multimod", "config"), "config.yml")
   )
   
   if (global) {
@@ -314,7 +314,7 @@ multimod_config_read <- function(global = FALSE) {
 #' @export
 multimod_config_path <- function(global = FALSE) {
   config_file <- if (global) {
-    file.path(Sys.getenv("HOME"), ".multimod", "config.yml")
+    file.path(tools::R_user_dir("multimod", "config"), "config.yml")
   } else {
     file.path(getwd(), ".multimod.yml")
   }

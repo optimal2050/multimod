@@ -14,6 +14,11 @@ ast_symbol(name, ...)
 
   A character string representing the symbol.
 
+- ...:
+
+  Additional fields stored on the node (passed to
+  [`new_ast()`](https://optimal2050.github.io/multimod/reference/new_ast.md)).
+
 ## Value
 
 An `symbol` S3 object (subclass of `ast`).

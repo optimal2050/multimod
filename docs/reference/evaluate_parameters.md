@@ -46,12 +46,23 @@ Updated model with computed parameter values
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
-gmpl <- read_gmpl("model.mod")
+# A GMPL model with a computed parameter, parsed from text
+gmpl <- read_gmpl(c(
+  "set REGION;",
+  "param DiscountRate{r in REGION};",
+  "param GrowthFactor{r in REGION} := 1 + DiscountRate[r];",
+  "var x{r in REGION} >= 0;",
+  "minimize obj: sum{r in REGION} GrowthFactor[r] * x[r];",
+  "s.t. c1{r in REGION}: x[r] >= 1;",
+  "end;"
+))
 data <- list(
   REGION = c("R1", "R2"),
-  DiscountRate = c(R1=0.05, R2=0.07)
+  DiscountRate = c(R1 = 0.05, R2 = 0.07)
 )
 model <- evaluate_parameters(gmpl, data)
-} # }
+model$parameters$GrowthFactor$data
+#>   REGION value
+#> 1     R1  1.05
+#> 2     R2  1.07
 ```

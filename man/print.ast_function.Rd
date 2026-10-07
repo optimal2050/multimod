@@ -11,6 +11,9 @@
 
 \item{...}{Additional arguments (unused)}
 }
+\value{
+Invisibly, \code{x}.
+}
 \description{
 Print method for functions created from AST
 }

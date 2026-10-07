@@ -17,9 +17,9 @@ Walks through an AST or model structure and collects all unique AST node
 classes encountered. Non-AST objects are ignored.
 }
 \examples{
-\dontrun{
-gmpl <- read_gmpl("model.mod")
-classes <- collect_ast_classes(gmpl)
-# Returns: c("symbol", "constant", "expression", "setmin", ...)
-}
+m <- example_models$energyRt$multimod
+collect_ast_classes(m$equations$eqTechSng2Sng)
+
+# All node classes used anywhere in the model
+collect_ast_classes(m)
 }

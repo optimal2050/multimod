@@ -30,11 +30,9 @@ store that \code{\link[=save_model]{save_model()}} writes, not in a JSON documen
 models.
 }
 \examples{
-\dontrun{
-data(example_models)
-js <- model_to_json(example_models$energyRt$multimod)
+m <- example_models$energyRt$multimod
+js <- model_to_json(m)
 m2 <- model_from_json(js)
-}
 }
 \seealso{
 \code{\link[=model_from_json]{model_from_json()}}, \code{\link[=ast_schema]{ast_schema()}}, \code{\link[=save_model]{save_model()}}

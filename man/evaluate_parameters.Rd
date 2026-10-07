@@ -32,12 +32,20 @@ Convert AST formulas and default expressions to computed numeric values.
 Handles dependency resolution through topological sorting.
 }
 \examples{
-\dontrun{
-gmpl <- read_gmpl("model.mod")
+# A GMPL model with a computed parameter, parsed from text
+gmpl <- read_gmpl(c(
+  "set REGION;",
+  "param DiscountRate{r in REGION};",
+  "param GrowthFactor{r in REGION} := 1 + DiscountRate[r];",
+  "var x{r in REGION} >= 0;",
+  "minimize obj: sum{r in REGION} GrowthFactor[r] * x[r];",
+  "s.t. c1{r in REGION}: x[r] >= 1;",
+  "end;"
+))
 data <- list(
   REGION = c("R1", "R2"),
-  DiscountRate = c(R1=0.05, R2=0.07)
+  DiscountRate = c(R1 = 0.05, R2 = 0.07)
 )
 model <- evaluate_parameters(gmpl, data)
-}
+model$parameters$GrowthFactor$data
 }

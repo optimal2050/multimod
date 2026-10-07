@@ -38,6 +38,12 @@ fold_model(
 
   Logical; print progress messages (default: TRUE)
 
+- .progress:
+
+  Progress bar control: `"auto"` (default) shows a `progressr` bar for
+  large models, `TRUE` forces it on (requires `progressr`), `FALSE`
+  disables it.
+
 ## Value
 
 Modified model with folded parameters
@@ -92,16 +98,9 @@ Safety measures:
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
-# Specify fold dimensions with entity-specific mappings
-fold_dims <- list(
-  timeslice = list(sup = "mSupTimeslice", trade = "mTradeTimeslice",
-           stg = c("mStorageComm", "mCommTimeslice")),
-  region = c("mTechRegion", "mSupRegion", "mDemRegion", "mStorageRegion"),
-  year = c("mTechYear", "mSupYear", "mDemYear", "mStorageYear")
-)
-fold_spec <- create_fold_spec(model, fold_dims = fold_dims)
+m <- example_models$energyRt$multimod
+fold_spec <- create_fold_spec(m, fold_dims = "timeslice", verbose = FALSE)
 # Review and edit fold_spec to ensure correct validation mappings
-model <- fold_model(model, fold_spec = fold_spec)
-} # }
+m_folded <- fold_model(m, fold_spec = fold_spec, verbose = FALSE)
+get_fold_summary(m_folded, format = "text")
 ```

@@ -22,8 +22,8 @@ Modified model object
 Low-level function to update mapping data in a model.
 }
 \examples{
-\dontrun{
-# Update mapping data
-model <- update_mapping(model, "mTechRegion", new_mapping_data)
-}
+m <- example_models$energyRt$multimod
+map <- get_data(m, "mCommTimeslice", type = "mapping")
+m <- update_mapping(m, "mCommTimeslice", map[1:10, ])
+nrow(get_data(m, "mCommTimeslice", type = "mapping"))
 }

@@ -1,33 +1,40 @@
 # multimod
 
-The `multimod` R package is an effort to bridge alternative mathematical
-modeling frameworks and languages, particularly those used in energy
-system modeling. It defines a domain-specific language (DSL) for
-representing mathematical programming models in a unified, abstract
-format.
+> **One optimization model, many representations.**
 
-`multimod` supports partial parsing of models written in GAMS (General
-Algebraic Modeling System), and is being extended to support more GAMS
-language features, as well as JuMP (Julia), Pyomo (Python), and GMPL
-(GNU Math Programming Language). Parsed models can be converted into the
-`multimod` format for analysis, manipulation, visualization, or
-rendering to LaTeX and other modeling languages.
+**multimod** is an R toolkit for defining, translating, documenting, and
+solving algebraic optimization models. It stores a model as a common
+abstract syntax tree (AST), separating the mathematical structure from
+any one modeling language or solver interface.
 
-The package is designed to facilitate the exchange of mathematical
-models across different languages and solver frameworks, with the goal
-of simplifying the development, comparison, and reuse of complex
-optimization models in energy systems and beyond.
+From that shared representation, multimod can:
 
-## Development Status
+- inspect, validate, visualize, fold, trim, and serialize a model;
+- render equations or a complete formulation as LaTeX;
+- generate GAMS, GMPL/MathProg, Julia/JuMP, Python/Pyomo, or R code; or
+- bypass generated model code and assemble a solver-ready LP matrix
+  directly, write MPS, or solve in-process with HiGHS.
 
-**WARNING**: The package is in active development. All implementations
-are experimental and APIs may change. See [Get
-started](https://optimal2050.github.io/multimod/articles/multimod.md)
-for an overview of current functionality and [Development
-Roadmap](https://optimal2050.github.io/multimod/articles/roadmap.md) for
-implementation status and future plans.
+The package grew from energy-system modeling, but the AST and rendering
+machinery are domain-independent.
 
-## Workflow Diagram
+## Why a common model representation?
+
+Mathematical models often become coupled to the language in which they
+were first written. multimod separates three concerns:
+
+1.  **Model meaning** — sets, parameters, variables, mappings,
+    equations, and objectives in the AST.
+2.  **Representation** — human-readable LaTeX, executable backend code,
+    JSON, or a sparse LP/MPS matrix.
+3.  **Execution** — a local solver, an institutional modeling
+    environment, or remote hardware.
+
+That separation makes it possible to compare backends, document the
+exact model being solved, manipulate it before execution, and reuse one
+formulation across several solver ecosystems.
+
+## Architecture
 
 ``` text
 ┌─────────────────────────────┐
@@ -61,7 +68,7 @@ implementation status and future plans.
 │ GAMS     write_gams() +      [✓] │  │ read_mps_solution()         [✓]  │
 │          write_gams_data()       │  │                                  │
 │ {{AMPL, ...}}                [ ] │  │ no generated model text, so      │
-│                                  │  │ no model-build step - the        │
+│                                  │  │ no model-build step — the        │
 │ then an external solver:         │  │ time and memory wall on          │
 │ glpsol, Julia, Python, NEOS      │  │ large models                     │
 └──────────────────────────────────┘  └──────────────────────────────────┘
@@ -69,125 +76,169 @@ implementation status and future plans.
 Status: [✓] implemented | [~] and { } developing | [ ] and {{ }} considering
 ```
 
-## Installation and Example Workflow
+### Current capability
+
+| Direction | Implemented |
+|----|----|
+| Define | R constructors and DSL for declarations, references, expressions, and equations |
+| Read | GAMS models (partial language coverage); GMPL models and data (limited coverage) |
+| Inspect and transform | AST validation, model statistics, visualization, [`fold_model()`](https://optimal2050.github.io/multimod/reference/fold_model.md), [`trim_model()`](https://optimal2050.github.io/multimod/reference/trim_model.md) |
+| Document | Equation and full-model LaTeX rendering |
+| Generate code | GAMS, GMPL/MathProg, JuMP, Pyomo, and plain R |
+| Interchange and storage | JSON AST serialization; Arrow IPC, Parquet, and CSV model workspaces with lazy data loading |
+| Build matrices | Sparse LP arrays, MPS output, coefficient diagnostics |
+| Solve | In-process HiGHS, written MPS, or generated backend code |
+
+Reader and writer coverage are intentionally reported separately.
+multimod can write languages that it cannot yet read, and parsing a
+source language does not imply support for every feature of that
+language.
+
+## Installation
+
+Install the development version from GitHub:
 
 ``` r
 
-# install.packages("pak")
 pak::pkg_install("optimal2050/multimod")
 ```
 
-### Load a GAMS model and parse
+Backend runtimes are optional. Install only the solver or language
+toolchains needed for the routes you intend to use.
+
+## Quickstart
+
+The package includes an energyRt-derived example model:
 
 ``` r
 
 library(multimod)
-model_info <- read_gams("my_model.gms")
-class(model_info) # "model_structure"
-```
 
-``` R
+mod <- example_models$energyRt$multimod
+class(mod)
 #> [1] "model"    "multimod"
-```
-
-#### AST elements: an example equation
-
-``` r
 
 eq <- mod$equations[["eqObjective"]]
 print(eq)
-#> <AST equation> eqObjective
-#>   relation:  == 
-#>   lhs:  vObjective 
-#>   rhs:  sum(if (mvTotalCost[region,year]) {[region,year]}, *, vTotalCost[region,year] * pPeriodLen[year], pDiscountFactor[region,year], FALSE)
 ```
 
-#### Render an equation to LaTeX
+Render the same equation in mathematical notation or executable
+languages:
 
 ``` r
 
 as_latex(eq) |> cat()
+as_gams(eq)  |> cat()
+as_jump(eq)  |> cat()
 ```
 
-``` math
-\textit{vObjective} = \sum_{{r,y} \in \textsf{mvTotalCost}_{r,y}} {\textit{vTotalCost}_{r,y}  \cdot  \textsf{pPeriodLen}_{y}  \cdot  \textsf{pDiscountFactor}_{r,y}}
-```
-
-#### Render a specific equation to GAMS or Julia/JuMP
+Or inspect its expression tree:
 
 ``` r
 
-as_gams(eq) |> cat()
-#> eqObjective..
-#>   vObjective =e=
-#>   sum([region,year]$(mvTotalCost[region,year]), vTotalCost[region,year] * pPeriodLen[year] * pDiscountFactor[region,year]);
-as_jump(eq) |> cat()
-#> @constraint(
-#>     model,
-#>     eqObjective,
-#>     vObjective == sum(vTotalCost[region, year] * get(pPeriodLen, year, pPeriodLenDef) * get(pDiscountFactor, (region, year), pDiscountFactorDef) for (region, year) in mvTotalCost)
-#> )
-```
-
-#### Visualize equation tree
-
-``` r
-
-library(visNetwork)
 as_visNetwork(eq)
 ```
 
-#### Write the entire model to LaTeX
+To parse an existing source model instead:
 
 ``` r
 
-write_latex(mod, 
-            file = "my_multimod_model.tex",
-            title = "My multimod model equations",
-            subtitle = "Generated by multimod package")
-tinytex::pdflatex("my_multimod_model.tex")
+mod <- read_gams("model.gms")
+# or
+mod <- read_gmpl("model.mod", data_file = "model.dat")
 ```
 
-#### Write JuMP/Julia model
+## Document or translate a complete model
+
+Produce a mathematical appendix directly from the model:
 
 ``` r
 
-# Complete workflow: save data and generate JuMP code
-save_model(mod, "my_model_dir", format = "ipc")  # Arrow format
-write_jump(mod, model_dir = "my_model_dir")      # Generate Julia code
-
-# Solve with Julia
-solve_jump(model_dir = "my_model_dir")
+write_latex(
+  mod,
+  file = "model-equations.tex",
+  title = "Model equations"
+)
 ```
 
-#### Write & solve GMPL model
+Generate code for another modeling environment:
 
 ``` r
 
-write_gmpl(mod, model_dir = "my_model_dir")
-solve_gmpl(mod, model_dir = "my_model_dir")
+save_model(mod, "model-workspace", format = "ipc")
+
+write_gams(mod,  file = "model.gms")
+write_gmpl(mod,  model_dir = "model-workspace")
+write_jump(mod,  model_dir = "model-workspace")
+write_pyomo(mod, model_dir = "model-workspace")
 ```
 
-#### Write & solve Python/Pyomo model
+The generated code can then be executed with the corresponding local or
+remote runtime.
+
+## Skip code generation: build the LP directly
+
+For a linear model, multimod can evaluate the AST into sparse solver
+arrays without asking GAMS, JuMP, Pyomo, or GMPL to rebuild the symbolic
+model:
 
 ``` r
 
-write_pyomo(mod, model_dir = "my_model_dir")
-solve_pyomo(mod, model_dir = "my_model_dir")
+lp <- model_to_lp(mod)
+check_matrix_numbers(lp)
+
+result <- solve_highs(mod, lp = lp)
+
+# Or write a portable solver input:
+write_mps(mod, "model.mps", lp = lp)
 ```
 
-#### {Write GAMS model}
+This route avoids the symbolic build step that can dominate time and
+memory on large models.
+[`solve_mps()`](https://optimal2050.github.io/multimod/reference/solve_mps.md)
+provides the local file round trip; solution readers support HiGHS and
+cuOpt formats.
 
-``` r
+## energyRt and cloud solving
 
-# in progress
-write_gams(mod, file = "my_multimod_model.gms")
+[energyRt](https://github.com/optimal2050/energyRt) uses multimod as a
+model compiler and interchange layer:
+
+``` text
+energyRt scenario
+      |
+      v
+multimod AST --> LaTeX / backend code
+      |
+      v
+   LP / MPS --> local solver
+      |
+      +------> mmcloud --> cloud CPU/GPU solver --> solution
 ```
+
+With energyRt loaded, `multimod::as_multimod(scen)` builds the AST from
+an interpolated scenario. `mmcloud` can then transport an MPS file and
+solver command to cloud hardware and return the solution; multimod
+remains responsible for the mathematical model and matrix.
+
+## Development status
+
+multimod is experimental. APIs and supported language subsets may
+change, and cross-backend output should be validated for the model
+features you use.
+
+See the [Get
+started](https://optimal2050.github.io/multimod/articles/multimod.html)
+article for the AST and DSL, the [development
+status](https://optimal2050.github.io/multimod/articles/devstatus.html)
+for backend coverage, and the
+[roadmap](https://optimal2050.github.io/multimod/articles/roadmap.html)
+for planned readers and transformations.
 
 ## License
 
 Apache License 2.0 — see `LICENSE.md`.
 
 The bundled `example_models` dataset includes model source generated
-from energyRt. Its third-party terms apply to that data only, not to the
-multimod package code — see `LICENSE.note`.
+from energyRt. Its third-party terms apply to that data only, not to
+multimod’s package code; see `LICENSE.note`.

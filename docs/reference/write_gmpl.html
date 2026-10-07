@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.4.9003</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -75,6 +75,28 @@
 <span>  <span class="va">model</span>,</span>
 <span>  file <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  model_dir <span class="op">=</span> <span class="va">model</span><span class="op">$</span><span class="va">base_dir</span>,</span>
+<span>  format_expr <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  include_solve <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  export_vars <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  use_table_output <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  use_folded <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  objective <span class="op">=</span> <span class="st">"cost"</span>,</span>
+<span>  export_data <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  drop_default_values <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  INF <span class="op">=</span> <span class="fl">1e+20</span>,</span>
+<span>  check <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  resolve_aliases <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  verbose <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  export_mps <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  stop_on_error <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  <span class="va">...</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S3 method for class 'mm_model'</span></span>
+<span><span class="fu">write_gmpl</span><span class="op">(</span></span>
+<span>  <span class="va">model</span>,</span>
+<span>  file <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  model_dir <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  format_expr <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  include_solve <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  export_vars <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -179,11 +201,11 @@
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Oleg Lugovoy.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
+
 </div>
 
     </footer></div>

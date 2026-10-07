@@ -77,7 +77,7 @@ test_that("a wildcard reaching the matrix is an error, not a default", {
   used <- character()
   walk <- function(n) {
     if (is.null(n) || !is.list(n)) return(invisible())
-    if (inherits(n, "parameter") && !is.null(n$name)) used <<- c(used, n$name)
+    if (inherits(n, "mm_parameter") && !is.null(n$name)) used <<- c(used, n$name)
     for (el in n) if (is.list(el)) walk(el)
   }
   for (eq in m$equations) walk(eq)

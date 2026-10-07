@@ -6,6 +6,18 @@
 \usage{
 ast_parse_expr(expr, symbols = NULL, language = NULL, context = NULL, ...)
 }
+\arguments{
+\item{expr}{A character string to parse, or an AST node (returned as is).}
+
+\item{symbols}{Symbol table passed to the parser.}
+
+\item{language, context}{See \code{\link[=resolve_ast_language]{resolve_ast_language()}}.}
+
+\item{...}{Passed on to the language parser.}
+}
+\value{
+An AST node.
+}
 \description{
 Language-aware AST expression parser
 }

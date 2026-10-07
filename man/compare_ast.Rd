@@ -26,15 +26,13 @@ Recursively compare two AST objects to identify structural and value differences
 Useful for debugging changes in model structure or equation transformations.
 }
 \examples{
-\dontrun{
-# Compare two equation ASTs
-eq1 <- model_old$equations$eqTechCap
-eq2 <- model_new$equations$eqTechCap
+m <- example_models$energyRt$multimod
+eq1 <- m$equations$eqTechSng2Sng
+eq2 <- m$equations$eqTechGrp2Sng
 result <- compare_ast(eq1, eq2)
 print(result)
 
 # Compare specific parts
-result <- compare_ast(eq1$rhs, eq2$rhs, path = "eqTechCap$rhs")
-}
+compare_ast(eq1$rhs, eq2$rhs, path = "rhs")
 
 }

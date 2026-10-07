@@ -23,8 +23,6 @@ pak::pkg_install("optimal2050/multimod", dependencies = TRUE)
 
 ``` r
 
-library(lobstr)
-library(visNetwork, quietly = TRUE)
 library(multimod)
 ```
 
@@ -135,6 +133,10 @@ print(eq)
 #>   relation:  == 
 #>   lhs:  vTechCap[tech,region,year] 
 #>   rhs:  vTechStockCap[tech,region,year] + sum(if (mTechNew...
+```
+
+``` r
+
 as_visNetwork(eq)
 ```
 

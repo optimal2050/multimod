@@ -2,7 +2,7 @@
 % Please edit documentation in R/trim.R
 \name{should_enable_progress_trim}
 \alias{should_enable_progress_trim}
-\title{Trim unused elements from a model}
+\title{Decide whether to show a progress bar while trimming}
 \usage{
 should_enable_progress_trim(
   model,
@@ -13,21 +13,23 @@ should_enable_progress_trim(
 \arguments{
 \item{model}{A multimod model object}
 
-\item{strategy}{Character. Trimming strategy:
-\itemize{
-\item "unused": Remove empty data and dependent variables/equations (default)
-\item "aggressive": Also perform graph-based analysis (future)
-}}
+\item{element_threshold}{Integer. Progress is enabled when the number of
+sets, parameters, mappings, variables and equations exceeds this value
+(default: 100)}
 
-\item{verbose}{Logical. Print progress messages (default: TRUE)}
+\item{row_threshold}{Integer. Progress is enabled when the total number of
+parameter data rows exceeds this value (default: 50000)}
 }
 \value{
-Model with \verb{$trimmed = TRUE} flag on unused elements
+Logical; \code{TRUE} when a \code{progressr} progress bar should be shown
+while trimming
 }
 \description{
-Removes "dead branches" from a model by marking unused sets, parameters,
-mappings, variables, and equations with \verb{$trimmed = TRUE}. Code generators
-(e.g., write_jump, write_gmpl) will skip elements marked as trimmed.
+Heuristic used by \code{\link[=trim_model]{trim_model()}} with \code{.progress = "auto"}: returns \code{TRUE}
+for models large enough that trimming takes noticeable time. Trimming
+removes "dead branches" by marking unused sets, parameters, mappings,
+variables, and equations with \verb{$trimmed = TRUE}; code generators
+(e.g., write_jump, write_gmpl) skip elements marked as trimmed.
 }
 \details{
 Trimming process:
@@ -42,18 +44,5 @@ Trimming process:
 Unlike folding (which reduces dimensions), trimming removes entire unused
 elements. Original data is preserved on disk but marked for exclusion from
 solver code generation.
-}
-\examples{
-\dontrun{
-# Typical workflow
-model <- fold_model(model)  # Reduce dimensions first
-model <- trim_model(model)  # Then remove dead branches
-write_jump(model, "model.jl")  # Trimmed elements excluded
-
-# Check what was trimmed
-summary <- get_trim_summary(model)
-print(summary, format = "text")
-}
-
 }
 \keyword{internal}

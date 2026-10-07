@@ -6,6 +6,9 @@
 \usage{
 get_op_precedence(op)
 }
+\value{
+An integer precedence level; 10 for unknown operators.
+}
 \description{
 Get operator precedence level (higher = tighter binding)
 }

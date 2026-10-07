@@ -6,6 +6,11 @@
 \usage{
 .solve_gmpl_glpsol(gmpl_dir, glpsol_path, verbose, timeout)
 }
+\value{
+A list with elements \code{success}, \code{objective}, \code{solve_time}, \code{status},
+\code{exit_code}, \code{solver_output} and, when the solution file was parsed,
+\code{variables} (a data frame of \code{name} and \code{value}).
+}
 \description{
 Internal function to solve with glpsol executable
 }

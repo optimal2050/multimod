@@ -26,7 +26,7 @@ A multimod model.
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
-m2 <- model_from_json("model.json")
-} # }
+f <- tempfile(fileext = ".json")
+model_to_json(example_models$energyRt$multimod, path = f)
+m2 <- model_from_json(f)
 ```

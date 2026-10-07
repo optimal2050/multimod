@@ -21,7 +21,7 @@ stop_on_error = FALSE to collect diagnostics without raising errors."><meta prop
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.4.9003</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -94,29 +94,36 @@ dimensions stored as raw character vectors instead of <code>ast_dims</code>). Ca
 <span><span class="co"># S3 method for class 'dims'</span></span>
 <span><span class="fu">validate</span><span class="op">(</span><span class="va">x</span>, context <span class="op">=</span> <span class="cn">NULL</span>, stop_on_error <span class="op">=</span> <span class="cn">TRUE</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># S3 method for class 'set'</span></span>
+<span><span class="co"># S3 method for class 'mm_set'</span></span>
 <span><span class="fu">validate</span><span class="op">(</span><span class="va">x</span>, context <span class="op">=</span> <span class="cn">NULL</span>, stop_on_error <span class="op">=</span> <span class="cn">TRUE</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'symbol'</span></span>
 <span><span class="fu">validate</span><span class="op">(</span><span class="va">x</span>, context <span class="op">=</span> <span class="cn">NULL</span>, stop_on_error <span class="op">=</span> <span class="cn">TRUE</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># S3 method for class 'mapping'</span></span>
+<span><span class="co"># S3 method for class 'mm_mapping'</span></span>
 <span><span class="fu">validate</span><span class="op">(</span><span class="va">x</span>, context <span class="op">=</span> <span class="cn">NULL</span>, stop_on_error <span class="op">=</span> <span class="cn">TRUE</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'ast_formula'</span></span>
 <span><span class="fu">validate</span><span class="op">(</span><span class="va">x</span>, context <span class="op">=</span> <span class="cn">NULL</span>, stop_on_error <span class="op">=</span> <span class="cn">TRUE</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># S3 method for class 'parameter'</span></span>
+<span><span class="co"># S3 method for class 'mm_parameter'</span></span>
 <span><span class="fu">validate</span><span class="op">(</span><span class="va">x</span>, context <span class="op">=</span> <span class="cn">NULL</span>, stop_on_error <span class="op">=</span> <span class="cn">TRUE</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># S3 method for class 'variable'</span></span>
+<span><span class="co"># S3 method for class 'mm_variable'</span></span>
 <span><span class="fu">validate</span><span class="op">(</span><span class="va">x</span>, context <span class="op">=</span> <span class="cn">NULL</span>, stop_on_error <span class="op">=</span> <span class="cn">TRUE</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># S3 method for class 'equation'</span></span>
+<span><span class="co"># S3 method for class 'mm_equation'</span></span>
 <span><span class="fu">validate</span><span class="op">(</span><span class="va">x</span>, context <span class="op">=</span> <span class="cn">NULL</span>, stop_on_error <span class="op">=</span> <span class="cn">TRUE</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># S3 method for class 'model'</span></span>
-<span><span class="fu">validate</span><span class="op">(</span><span class="va">x</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span>, stop_on_error <span class="op">=</span> <span class="cn">TRUE</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
+<span><span class="co"># S3 method for class 'mm_model'</span></span>
+<span><span class="fu">validate</span><span class="op">(</span></span>
+<span>  <span class="va">x</span>,</span>
+<span>  context <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  stop_on_error <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  recursive <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  verbose <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  <span class="va">...</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -181,21 +188,41 @@ when <code>stop_on_error = FALSE</code>. Invisibly returns the same result when
     <div class="section level2">
     <h2 id="methods-by-class-">Methods (by class)<a class="anchor" aria-label="anchor" href="#methods-by-class-"></a></h2>
 
-<ul><li><p><code>validate(model)</code>: Validate a multimod model</p>
+<ul><li><p><code>validate(mm_model)</code>: Validate a multimod model</p>
 <p>Checks a multimod model for structural issues, naming conflicts, and other
 potential problems that could cause issues during export or solving.</p></li>
 </ul></div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
-<span class="r-in"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="read_gmpl.html">read_gmpl</a></span><span class="op">(</span><span class="st">"model.mod"</span>, data_file <span class="op">=</span> <span class="st">"data.dat"</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">validation</span> <span class="op">&lt;-</span> <span class="fu">validate</span><span class="op">(</span><span class="va">m</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="va">validation</span><span class="op">$</span><span class="va">valid</span><span class="op">)</span> <span class="op">{</span></span></span>
-<span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Errors found:\n"</span><span class="op">)</span></span></span>
-<span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="va">validation</span><span class="op">$</span><span class="va">errors</span>, collapse <span class="op">=</span> <span class="st">"\n"</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="op">}</span></span></span>
-<span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="va">example_models</span><span class="op">$</span><span class="va">energyRt</span><span class="op">$</span><span class="va">multimod</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># A single equation</span></span></span>
+<span class="r-in"><span><span class="fu">validate</span><span class="op">(</span><span class="va">m</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqTechSng2Sng</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $valid</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $errors</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> character(0)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $warnings</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> character(0)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $info</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> character(0)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $context</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "equation eqTechSng2Sng"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># \donttest{</span></span></span>
+<span class="r-in"><span><span class="co"># The whole model takes a few seconds</span></span></span>
+<span class="r-in"><span><span class="va">validation</span> <span class="op">&lt;-</span> <span class="fu">validate</span><span class="op">(</span><span class="va">m</span>, stop_on_error <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">validation</span><span class="op">$</span><span class="va">valid</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] TRUE</span>
+<span class="r-in"><span><span class="va">validation</span><span class="op">$</span><span class="va">errors</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> character(0)</span>
+<span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>
@@ -204,11 +231,11 @@ potential problems that could cause issues during export or solving.</p></li>
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Oleg Lugovoy.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
+
 </div>
 
     </footer></div>

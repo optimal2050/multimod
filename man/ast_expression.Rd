@@ -12,6 +12,9 @@ ast_expression(op, lhs, rhs, brackets = NULL)
 \item{lhs}{The left-hand side AST node.}
 
 \item{rhs}{The right-hand side AST node.}
+
+\item{brackets}{Optional bracket type to wrap the expression in when
+rendered: \code{"("}, \code{"["} or the curly brace; \code{NULL} for none.}
 }
 \value{
 An \code{expression} S3 object (subclass of \code{ast}).

@@ -497,9 +497,6 @@ model <- update_parameter(model, "pDemand", new_data, auto_save = TRUE)
   Generate JuMP/Julia code
 - [`?write_gmpl`](https://optimal2050.github.io/multimod/reference/write_gmpl.md) -
   Generate GMPL code
-- [`vignette("jump")`](https://optimal2050.github.io/multimod/articles/jump.md) -
-  Complete JuMP workflow guide
-- [`vignette("gmpl")`](https://optimal2050.github.io/multimod/articles/gmpl.md) -
-  Complete GMPL workflow guide
-- [`vignette("folding")`](https://optimal2050.github.io/multimod/articles/folding.md) -
-  Parameter folding for model reduction
+- `vignette("jump")` - Complete JuMP workflow guide
+- `vignette("gmpl")` - Complete GMPL workflow guide
+- `vignette("folding")` - Parameter folding for model reduction

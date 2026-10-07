@@ -414,7 +414,7 @@ test_that("save_model skips trimmed elements in metadata CSVs", {
   )
 
   # Add 'model' class for save_model compatibility
-  class(model) <- c("model", class(model))
+  class(model) <- c("mm_model", class(model))
 
   # Trim
   trimmed <- trim_model(model, verbose = FALSE)

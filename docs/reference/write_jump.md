@@ -97,6 +97,12 @@ write_jump(
   logical or character; if TRUE, exports model to MPS format; if
   character, specifies filename (default: FALSE)
 
+- data_mode:
+
+  character; `"external"` (default) generates a data.jl that reads
+  parameter data from files at run time, `"embedded"` writes the data
+  into the Julia source
+
 - ...:
 
   Additional arguments (not used)
@@ -108,20 +114,19 @@ Character vector of Julia code, or writes file if path is determined
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
-# Write to model directory with default solver subdirectory
-write_jump(model, model_dir = "my_model")
-# -> my_model/solvers/jump/model.jl
+m <- example_models$energyRt$multimod
 
-# Specify custom solver directory
-write_jump(model, model_dir = "my_model", solver_dir = "jump-highs")
-# -> my_model/solvers/jump-highs/model.jl
+# Explicit file path
+write_jump(m, file = tempfile(fileext = ".jl"))
 
-# Override with explicit file path
-write_jump(model, file = "custom/path/model.jl")
+# Into a saved model workspace: <model_dir>/solvers/<solver_dir>/model.jl
+ws <- file.path(tempdir(), "energyRt_ws")
+save_model(m, ws, verbose = FALSE)
+write_jump(m, model_dir = ws)
+write_jump(m, model_dir = ws, solver_dir = "jump-highs")
 
-# Use barrier method for large models
-write_jump(model, model_dir = "my_model", 
+# Barrier method for large models
+write_jump(m, model_dir = ws,
            optimizer_attributes = list(solver = "ipm", parallel = "on"))
-} # }
+#> Removing existing solver directory: C:\Users\admin\AppData\Local\Temp\RtmpQVAZuj/energyRt_ws/solvers/jump
 ```

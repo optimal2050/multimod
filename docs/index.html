@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Define and Render Mathematical Models Across Multiple Optimization Languages. • multimod</title>
+<title>Define and Render Mathematical Models Across Optimization Languages • multimod</title>
 <!-- favicons --><link rel="icon" type="image/png" sizes="96x96" href="favicon-96x96.png">
 <link rel="icon" type="”image/svg+xml”" href="favicon.svg">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
@@ -15,9 +15,9 @@
 <link href="deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Define and Render Mathematical Models Across Multiple Optimization Languages.">
-<meta name="description" content="Multimod provides a domain-specific language (DSL) for defining algebraic equations and constraints in R, and rendering them to multiple mathematical programming languages, including GAMS, AMPL, Pyomo, and JuMP. It supports structured storage of equations, parameters, sets, and mappings, and aims to simplify the development of complex optimization models across platforms.">
-<meta property="og:description" content="Multimod provides a domain-specific language (DSL) for defining algebraic equations and constraints in R, and rendering them to multiple mathematical programming languages, including GAMS, AMPL, Pyomo, and JuMP. It supports structured storage of equations, parameters, sets, and mappings, and aims to simplify the development of complex optimization models across platforms.">
+<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Define and Render Mathematical Models Across Optimization Languages">
+<meta name="description" content="A domain-specific language for defining the sets, parameters, variables, mappings and equations of an algebraic optimization model in R, and rendering the model to several mathematical programming languages, including GAMS, GNU MathProg, Pyomo and JuMP, or to an LP matrix solved in R. Models can be folded, trimmed, validated, compared and stored, and solutions read back into R.">
+<meta property="og:description" content="A domain-specific language for defining the sets, parameters, variables, mappings and equations of an algebraic optimization model in R, and rendering the model to several mathematical programming languages, including GAMS, GNU MathProg, Pyomo and JuMP, or to an LP matrix solved in R. Models can be folded, trimmed, validated, compared and stored, and solutions read back into R.">
 <meta property="og:image" content="https://optimal2050.github.io/multimod/logo.png">
 <!-- Google tag (gtag.js) --><script async src="https://www.googletagmanager.com/gtag/js?id=G-LNY00P1MW7"></script><script>
   window.dataLayer = window.dataLayer || [];
@@ -35,7 +35,7 @@
 
     <a class="navbar-brand me-2" href="index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.4.9003</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -54,18 +54,18 @@
     <li><a class="dropdown-item" href="articles/multimod.html">Overview</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Code Generation</h6></li>
-    <li><h6 class="dropdown-header" data-toc-skip>JuMP Integration</h6></li>
-    <li><h6 class="dropdown-header" data-toc-skip>GMPL Integration</h6></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Pyomo Integration</h6></li>
+    <li><a class="dropdown-item" href="articles/jump.html">JuMP Integration</a></li>
+    <li><a class="dropdown-item" href="articles/gmpl.html">GMPL Integration</a></li>
+    <li><a class="dropdown-item" href="articles/pyomo.html">Pyomo Integration</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Model Management</h6></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Configuration System</h6></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Model Workspace</h6></li>
-    <li><h6 class="dropdown-header" data-toc-skip>LaTeX Generation</h6></li>
+    <li><a class="dropdown-item" href="articles/configuration.html">Configuration System</a></li>
+    <li><a class="dropdown-item" href="articles/model_workspace.html">Model Workspace</a></li>
+    <li><a class="dropdown-item" href="articles/latex.html">LaTeX Generation</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Advanced</h6></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Model Optimization (Folding &amp; Trimming)</h6></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Abstract Syntax Tree (AST)</h6></li>
+    <li><a class="dropdown-item" href="articles/folding.html">Model Optimization (Folding &amp; Trimming)</a></li>
+    <li><a class="dropdown-item" href="articles/ast.html">Abstract Syntax Tree (AST)</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="news/index.html">News</a></li>
@@ -98,16 +98,34 @@
 </div>
 <!-- badges: start -->
 
-<p>The <code>multimod</code> R package is an effort to bridge alternative mathematical modeling frameworks and languages, particularly those used in energy system modeling. It defines a domain-specific language (DSL) for representing mathematical programming models in a unified, abstract format.</p>
-<p><code>multimod</code> supports partial parsing of models written in GAMS (General Algebraic Modeling System), and is being extended to support more GAMS language features, as well as JuMP (Julia), Pyomo (Python), and GMPL (GNU Math Programming Language). Parsed models can be converted into the <code>multimod</code> format for analysis, manipulation, visualization, or rendering to LaTeX and other modeling languages.</p>
-<p>The package is designed to facilitate the exchange of mathematical models across different languages and solver frameworks, with the goal of simplifying the development, comparison, and reuse of complex optimization models in energy systems and beyond.</p>
+<blockquote>
+<p><strong>One optimization model, many representations.</strong></p>
+</blockquote>
+<p><strong>multimod</strong> is an R toolkit for defining, translating, documenting, and solving algebraic optimization models. It stores a model as a common abstract syntax tree (AST), separating the mathematical structure from any one modeling language or solver interface.</p>
+<p>From that shared representation, multimod can:</p>
+<ul>
+<li>inspect, validate, visualize, fold, trim, and serialize a model;</li>
+<li>render equations or a complete formulation as LaTeX;</li>
+<li>generate GAMS, GMPL/MathProg, Julia/JuMP, Python/Pyomo, or R code; or</li>
+<li>bypass generated model code and assemble a solver-ready LP matrix directly, write MPS, or solve in-process with HiGHS.</li>
+</ul>
+<p>The package grew from energy-system modeling, but the AST and rendering machinery are domain-independent.</p>
 <div class="section level2">
-<h2 id="development-status">Development Status<a class="anchor" aria-label="anchor" href="#development-status"></a>
+<h2 id="why-a-common-model-representation">Why a common model representation?<a class="anchor" aria-label="anchor" href="#why-a-common-model-representation"></a>
 </h2>
-<p><strong>WARNING</strong>: The package is in active development. All implementations are experimental and APIs may change. See <a href="articles/multimod.html">Get started</a> for an overview of current functionality and <a href="articles/roadmap.html">Development Roadmap</a> for implementation status and future plans.</p>
+<p>Mathematical models often become coupled to the language in which they were first written. multimod separates three concerns:</p>
+<ol style="list-style-type: decimal">
+<li>
+<strong>Model meaning</strong> — sets, parameters, variables, mappings, equations, and objectives in the AST.</li>
+<li>
+<strong>Representation</strong> — human-readable LaTeX, executable backend code, JSON, or a sparse LP/MPS matrix.</li>
+<li>
+<strong>Execution</strong> — a local solver, an institutional modeling environment, or remote hardware.</li>
+</ol>
+<p>That separation makes it possible to compare backends, document the exact model being solved, manipulate it before execution, and reuse one formulation across several solver ecosystems.</p>
 </div>
 <div class="section level2">
-<h2 id="workflow-diagram">Workflow Diagram<a class="anchor" aria-label="anchor" href="#workflow-diagram"></a>
+<h2 id="architecture">Architecture<a class="anchor" aria-label="anchor" href="#architecture"></a>
 </h2>
 <pre class="text"><code>┌─────────────────────────────┐
 │      Input Formats          │
@@ -140,122 +158,165 @@
 │ GAMS     write_gams() +      [✓] │  │ read_mps_solution()         [✓]  │
 │          write_gams_data()       │  │                                  │
 │ {{AMPL, ...}}                [ ] │  │ no generated model text, so      │
-│                                  │  │ no model-build step - the        │
+│                                  │  │ no model-build step — the        │
 │ then an external solver:         │  │ time and memory wall on          │
 │ glpsol, Julia, Python, NEOS      │  │ large models                     │
 └──────────────────────────────────┘  └──────────────────────────────────┘
 
 Status: [✓] implemented | [~] and { } developing | [ ] and {{ }} considering</code></pre>
+<div class="section level3">
+<h3 id="current-capability">Current capability<a class="anchor" aria-label="anchor" href="#current-capability"></a>
+</h3>
+<table class="table">
+<colgroup>
+<col width="50%">
+<col width="50%">
+</colgroup>
+<thead><tr>
+<th>Direction</th>
+<th>Implemented</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>Define</td>
+<td>R constructors and DSL for declarations, references, expressions, and equations</td>
+</tr>
+<tr>
+<td>Read</td>
+<td>GAMS models (partial language coverage); GMPL models and data (limited coverage)</td>
+</tr>
+<tr>
+<td>Inspect and transform</td>
+<td>AST validation, model statistics, visualization, <code><a href="reference/fold_model.html">fold_model()</a></code>, <code><a href="reference/trim_model.html">trim_model()</a></code>
+</td>
+</tr>
+<tr>
+<td>Document</td>
+<td>Equation and full-model LaTeX rendering</td>
+</tr>
+<tr>
+<td>Generate code</td>
+<td>GAMS, GMPL/MathProg, JuMP, Pyomo, and plain R</td>
+</tr>
+<tr>
+<td>Interchange and storage</td>
+<td>JSON AST serialization; Arrow IPC, Parquet, and CSV model workspaces with lazy data loading</td>
+</tr>
+<tr>
+<td>Build matrices</td>
+<td>Sparse LP arrays, MPS output, coefficient diagnostics</td>
+</tr>
+<tr>
+<td>Solve</td>
+<td>In-process HiGHS, written MPS, or generated backend code</td>
+</tr>
+</tbody>
+</table>
+<p>Reader and writer coverage are intentionally reported separately. multimod can write languages that it cannot yet read, and parsing a source language does not imply support for every feature of that language.</p>
+</div>
 </div>
 <div class="section level2">
-<h2 id="installation-and-example-workflow">Installation and Example Workflow<a class="anchor" aria-label="anchor" href="#installation-and-example-workflow"></a>
+<h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
+<p>Install the development version from GitHub:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># install.packages("pak")</span></span>
-<span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pkg_install.html" class="external-link">pkg_install</a></span><span class="op">(</span><span class="st">"optimal2050/multimod"</span><span class="op">)</span></span></code></pre></div>
-<div class="section level3">
-<h3 id="load-a-gams-model-and-parse">Load a GAMS model and parse<a class="anchor" aria-label="anchor" href="#load-a-gams-model-and-parse"></a>
-</h3>
+<code class="sourceCode R"><span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pkg_install.html" class="external-link">pkg_install</a></span><span class="op">(</span><span class="st">"optimal2050/multimod"</span><span class="op">)</span></span></code></pre></div>
+<p>Backend runtimes are optional. Install only the solver or language toolchains needed for the routes you intend to use.</p>
+</div>
+<div class="section level2">
+<h2 id="quickstart">Quickstart<a class="anchor" aria-label="anchor" href="#quickstart"></a>
+</h2>
+<p>The package includes an energyRt-derived example model:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://optimal2050.github.io/multimod">multimod</a></span><span class="op">)</span></span>
-<span><span class="va">model_info</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/read_gams.html">read_gams</a></span><span class="op">(</span><span class="st">"my_model.gms"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">class</a></span><span class="op">(</span><span class="va">model_info</span><span class="op">)</span> <span class="co"># "model_structure"</span></span></code></pre></div>
-<div class="sourceCode" id="cb4"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="co">#&gt; [1] "model"    "multimod"</span></span></code></pre></div>
-<div class="section level4">
-<h4 id="ast-elements-an-example-equation">AST elements: an example equation<a class="anchor" aria-label="anchor" href="#ast-elements-an-example-equation"></a>
-</h4>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">eq</span> <span class="op">&lt;-</span> <span class="va">mod</span><span class="op">$</span><span class="va">equations</span><span class="op">[[</span><span class="st">"eqObjective"</span><span class="op">]</span><span class="op">]</span></span>
-<span><span class="fu"><a href="reference/print.html">print</a></span><span class="op">(</span><span class="va">eq</span><span class="op">)</span></span>
-<span><span class="co">#&gt; &lt;AST equation&gt; eqObjective</span></span>
-<span><span class="co">#&gt;   relation:  == </span></span>
-<span><span class="co">#&gt;   lhs:  vObjective </span></span>
-<span><span class="co">#&gt;   rhs:  sum(if (mvTotalCost[region,year]) {[region,year]}, *, vTotalCost[region,year] * pPeriodLen[year], pDiscountFactor[region,year], FALSE)</span></span></code></pre></div>
-</div>
-<div class="section level4">
-<h4 id="render-an-equation-to-latex">Render an equation to LaTeX<a class="anchor" aria-label="anchor" href="#render-an-equation-to-latex"></a>
-</h4>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="reference/as_latex.html">as_latex</a></span><span class="op">(</span><span class="va">eq</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mtext mathvariant="italic">𝑣𝑂𝑏𝑗𝑒𝑐𝑡𝑖𝑣𝑒</mtext><mo>=</mo><munder><mo>∑</mo><mrow><mrow><mi>r</mi><mo>,</mo><mi>y</mi></mrow><mo>∈</mo><msub><mtext mathvariant="sans-serif">𝗆𝗏𝖳𝗈𝗍𝖺𝗅𝖢𝗈𝗌𝗍</mtext><mrow><mi>r</mi><mo>,</mo><mi>y</mi></mrow></msub></mrow></munder><mrow><msub><mtext mathvariant="italic">𝑣𝑇𝑜𝑡𝑎𝑙𝐶𝑜𝑠𝑡</mtext><mrow><mi>r</mi><mo>,</mo><mi>y</mi></mrow></msub><mo>⋅</mo><msub><mtext mathvariant="sans-serif">𝗉𝖯𝖾𝗋𝗂𝗈𝖽𝖫𝖾𝗇</mtext><mi>y</mi></msub><mo>⋅</mo><msub><mtext mathvariant="sans-serif">𝗉𝖣𝗂𝗌𝖼𝗈𝗎𝗇𝗍𝖥𝖺𝖼𝗍𝗈𝗋</mtext><mrow><mi>r</mi><mo>,</mo><mi>y</mi></mrow></msub></mrow></mrow><annotation encoding="application/x-tex">\textit{vObjective} = \sum_{{r,y} \in \textsf{mvTotalCost}_{r,y}} {\textit{vTotalCost}_{r,y}  \cdot  \textsf{pPeriodLen}_{y}  \cdot  \textsf{pDiscountFactor}_{r,y}}</annotation></semantics></math></p>
-</div>
-<div class="section level4">
-<h4 id="render-a-specific-equation-to-gams-or-juliajump">Render a specific equation to GAMS or Julia/JuMP<a class="anchor" aria-label="anchor" href="#render-a-specific-equation-to-gams-or-juliajump"></a>
-</h4>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="reference/as_gams.html">as_gams</a></span><span class="op">(</span><span class="va">eq</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; eqObjective..</span></span>
-<span><span class="co">#&gt;   vObjective =e=</span></span>
-<span><span class="co">#&gt;   sum([region,year]$(mvTotalCost[region,year]), vTotalCost[region,year] * pPeriodLen[year] * pDiscountFactor[region,year]);</span></span>
-<span><span class="fu"><a href="reference/as_jump.html">as_jump</a></span><span class="op">(</span><span class="va">eq</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; @constraint(</span></span>
-<span><span class="co">#&gt;     model,</span></span>
-<span><span class="co">#&gt;     eqObjective,</span></span>
-<span><span class="co">#&gt;     vObjective == sum(vTotalCost[region, year] * get(pPeriodLen, year, pPeriodLenDef) * get(pDiscountFactor, (region, year), pDiscountFactorDef) for (region, year) in mvTotalCost)</span></span>
-<span><span class="co">#&gt; )</span></span></code></pre></div>
-</div>
-<div class="section level4">
-<h4 id="visualize-equation-tree">Visualize equation tree<a class="anchor" aria-label="anchor" href="#visualize-equation-tree"></a>
-</h4>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://datastorm-open.github.io/visNetwork/" class="external-link">visNetwork</a></span><span class="op">)</span></span>
-<span><span class="fu"><a href="reference/as_visNetwork.html">as_visNetwork</a></span><span class="op">(</span><span class="va">eq</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level4">
-<h4 id="write-the-entire-model-to-latex">Write the entire model to LaTeX<a class="anchor" aria-label="anchor" href="#write-the-entire-model-to-latex"></a>
-</h4>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="reference/write_latex.html">write_latex</a></span><span class="op">(</span><span class="va">mod</span>, </span>
-<span>            file <span class="op">=</span> <span class="st">"my_multimod_model.tex"</span>,</span>
-<span>            title <span class="op">=</span> <span class="st">"My multimod model equations"</span>,</span>
-<span>            subtitle <span class="op">=</span> <span class="st">"Generated by multimod package"</span><span class="op">)</span></span>
-<span><span class="fu">tinytex</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/tinytex/man/latexmk.html" class="external-link">pdflatex</a></span><span class="op">(</span><span class="st">"my_multimod_model.tex"</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level4">
-<h4 id="write-jumpjulia-model">Write JuMP/Julia model<a class="anchor" aria-label="anchor" href="#write-jumpjulia-model"></a>
-</h4>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Complete workflow: save data and generate JuMP code</span></span>
-<span><span class="fu"><a href="reference/save_model.html">save_model</a></span><span class="op">(</span><span class="va">mod</span>, <span class="st">"my_model_dir"</span>, format <span class="op">=</span> <span class="st">"ipc"</span><span class="op">)</span>  <span class="co"># Arrow format</span></span>
-<span><span class="fu"><a href="reference/write_jump.html">write_jump</a></span><span class="op">(</span><span class="va">mod</span>, model_dir <span class="op">=</span> <span class="st">"my_model_dir"</span><span class="op">)</span>      <span class="co"># Generate Julia code</span></span>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://optimal2050.github.io/multimod/">multimod</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Solve with Julia</span></span>
-<span><span class="fu"><a href="reference/solve_jump.html">solve_jump</a></span><span class="op">(</span>model_dir <span class="op">=</span> <span class="st">"my_model_dir"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="va">example_models</span><span class="op">$</span><span class="va">energyRt</span><span class="op">$</span><span class="va">multimod</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">class</a></span><span class="op">(</span><span class="va">mod</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "model"    "multimod"</span></span>
+<span></span>
+<span><span class="va">eq</span> <span class="op">&lt;-</span> <span class="va">mod</span><span class="op">$</span><span class="va">equations</span><span class="op">[[</span><span class="st">"eqObjective"</span><span class="op">]</span><span class="op">]</span></span>
+<span><span class="fu"><a href="reference/print.html">print</a></span><span class="op">(</span><span class="va">eq</span><span class="op">)</span></span></code></pre></div>
+<p>Render the same equation in mathematical notation or executable languages:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/as_latex.html">as_latex</a></span><span class="op">(</span><span class="va">eq</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/as_gams.html">as_gams</a></span><span class="op">(</span><span class="va">eq</span><span class="op">)</span>  <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/as_jump.html">as_jump</a></span><span class="op">(</span><span class="va">eq</span><span class="op">)</span>  <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p>Or inspect its expression tree:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/as_visNetwork.html">as_visNetwork</a></span><span class="op">(</span><span class="va">eq</span><span class="op">)</span></span></code></pre></div>
+<p>To parse an existing source model instead:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/read_gams.html">read_gams</a></span><span class="op">(</span><span class="st">"model.gms"</span><span class="op">)</span></span>
+<span><span class="co"># or</span></span>
+<span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/read_gmpl.html">read_gmpl</a></span><span class="op">(</span><span class="st">"model.mod"</span>, data_file <span class="op">=</span> <span class="st">"model.dat"</span><span class="op">)</span></span></code></pre></div>
 </div>
-<div class="section level4">
-<h4 id="write--solve-gmpl-model">Write &amp; solve GMPL model<a class="anchor" aria-label="anchor" href="#write--solve-gmpl-model"></a>
-</h4>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="reference/write_gmpl.html">write_gmpl</a></span><span class="op">(</span><span class="va">mod</span>, model_dir <span class="op">=</span> <span class="st">"my_model_dir"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="reference/solve_gmpl.html">solve_gmpl</a></span><span class="op">(</span><span class="va">mod</span>, model_dir <span class="op">=</span> <span class="st">"my_model_dir"</span><span class="op">)</span></span></code></pre></div>
+<div class="section level2">
+<h2 id="document-or-translate-a-complete-model">Document or translate a complete model<a class="anchor" aria-label="anchor" href="#document-or-translate-a-complete-model"></a>
+</h2>
+<p>Produce a mathematical appendix directly from the model:</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/write_latex.html">write_latex</a></span><span class="op">(</span></span>
+<span>  <span class="va">mod</span>,</span>
+<span>  file <span class="op">=</span> <span class="st">"model-equations.tex"</span>,</span>
+<span>  title <span class="op">=</span> <span class="st">"Model equations"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>Generate code for another modeling environment:</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/save_model.html">save_model</a></span><span class="op">(</span><span class="va">mod</span>, <span class="st">"model-workspace"</span>, format <span class="op">=</span> <span class="st">"ipc"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="reference/write_gams.html">write_gams</a></span><span class="op">(</span><span class="va">mod</span>,  file <span class="op">=</span> <span class="st">"model.gms"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/write_gmpl.html">write_gmpl</a></span><span class="op">(</span><span class="va">mod</span>,  model_dir <span class="op">=</span> <span class="st">"model-workspace"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/write_jump.html">write_jump</a></span><span class="op">(</span><span class="va">mod</span>,  model_dir <span class="op">=</span> <span class="st">"model-workspace"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/write_pyomo.html">write_pyomo</a></span><span class="op">(</span><span class="va">mod</span>, model_dir <span class="op">=</span> <span class="st">"model-workspace"</span><span class="op">)</span></span></code></pre></div>
+<p>The generated code can then be executed with the corresponding local or remote runtime.</p>
 </div>
-<div class="section level4">
-<h4 id="write--solve-pythonpyomo-model">Write &amp; solve Python/Pyomo model<a class="anchor" aria-label="anchor" href="#write--solve-pythonpyomo-model"></a>
-</h4>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="reference/write_pyomo.html">write_pyomo</a></span><span class="op">(</span><span class="va">mod</span>, model_dir <span class="op">=</span> <span class="st">"my_model_dir"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="reference/solve_pyomo.html">solve_pyomo</a></span><span class="op">(</span><span class="va">mod</span>, model_dir <span class="op">=</span> <span class="st">"my_model_dir"</span><span class="op">)</span></span></code></pre></div>
+<div class="section level2">
+<h2 id="skip-code-generation-build-the-lp-directly">Skip code generation: build the LP directly<a class="anchor" aria-label="anchor" href="#skip-code-generation-build-the-lp-directly"></a>
+</h2>
+<p>For a linear model, multimod can evaluate the AST into sparse solver arrays without asking GAMS, JuMP, Pyomo, or GMPL to rebuild the symbolic model:</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">lp</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/model_to_lp.html">model_to_lp</a></span><span class="op">(</span><span class="va">mod</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/check_matrix_numbers.html">check_matrix_numbers</a></span><span class="op">(</span><span class="va">lp</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/solve_highs.html">solve_highs</a></span><span class="op">(</span><span class="va">mod</span>, lp <span class="op">=</span> <span class="va">lp</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Or write a portable solver input:</span></span>
+<span><span class="fu"><a href="reference/write_mps.html">write_mps</a></span><span class="op">(</span><span class="va">mod</span>, <span class="st">"model.mps"</span>, lp <span class="op">=</span> <span class="va">lp</span><span class="op">)</span></span></code></pre></div>
+<p>This route avoids the symbolic build step that can dominate time and memory on large models. <code><a href="reference/solve_mps.html">solve_mps()</a></code> provides the local file round trip; solution readers support HiGHS and cuOpt formats.</p>
 </div>
-<div class="section level4">
-<h4 id="write-gams-model">{Write GAMS model}<a class="anchor" aria-label="anchor" href="#write-gams-model"></a>
-</h4>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># in progress</span></span>
-<span><span class="fu"><a href="reference/write_gams.html">write_gams</a></span><span class="op">(</span><span class="va">mod</span>, file <span class="op">=</span> <span class="st">"my_multimod_model.gms"</span><span class="op">)</span></span></code></pre></div>
+<div class="section level2">
+<h2 id="energyrt-and-cloud-solving">energyRt and cloud solving<a class="anchor" aria-label="anchor" href="#energyrt-and-cloud-solving"></a>
+</h2>
+<p><a href="https://github.com/optimal2050/energyRt" class="external-link">energyRt</a> uses multimod as a model compiler and interchange layer:</p>
+<pre class="text"><code>energyRt scenario
+      |
+      v
+multimod AST --&gt; LaTeX / backend code
+      |
+      v
+   LP / MPS --&gt; local solver
+      |
+      +------&gt; mmcloud --&gt; cloud CPU/GPU solver --&gt; solution</code></pre>
+<p>With energyRt loaded, <code>multimod::as_multimod(scen)</code> builds the AST from an interpolated scenario. <code>mmcloud</code> can then transport an MPS file and solver command to cloud hardware and return the solution; multimod remains responsible for the mathematical model and matrix.</p>
 </div>
-</div>
+<div class="section level2">
+<h2 id="development-status">Development status<a class="anchor" aria-label="anchor" href="#development-status"></a>
+</h2>
+<p>multimod is experimental. APIs and supported language subsets may change, and cross-backend output should be validated for the model features you use.</p>
+<p>See the <a href="https://optimal2050.github.io/multimod/articles/multimod.html">Get started</a> article for the AST and DSL, the <a href="https://optimal2050.github.io/multimod/articles/devstatus.html">development status</a> for backend coverage, and the <a href="https://optimal2050.github.io/multimod/articles/roadmap.html">roadmap</a> for planned readers and transformations.</p>
 </div>
 <div class="section level2">
 <h2 id="license">License<a class="anchor" aria-label="anchor" href="#license"></a>
 </h2>
 <p>Apache License 2.0 — see <code>LICENSE.md</code>.</p>
-<p>The bundled <code>example_models</code> dataset includes model source generated from energyRt. Its third-party terms apply to that data only, not to the multimod package code — see <code>LICENSE.note</code>.</p>
+<p>The bundled <code>example_models</code> dataset includes model source generated from energyRt. Its third-party terms apply to that data only, not to multimod’s package code; see <code>LICENSE.note</code>.</p>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="links">
 <h2 data-toc-skip>Links</h2>
 <ul class="list-unstyled">
 <li><a href="https://github.com/optimal2050/multimod/" class="external-link">Browse source code</a></li>
+<li><a href="https://github.com/optimal2050/multimod/issues" class="external-link">Report a bug</a></li>
 </ul>
 </div>
 
@@ -282,18 +343,11 @@ Status: [✓] implemented | [~] and { } developing | [ ] and {{ }} considering</
 </ul>
 </div>
 
-<div class="developers">
-<h2 data-toc-skip>Developers</h2>
-<ul class="list-unstyled">
-<li>Oleg Lugovoy <br><small class="roles"> Author, maintainer </small> <a href="https://orcid.org/0000-0001-5546-9875" target="orcid.widget" aria-label="ORCID" class="external-link"><span class="fab fa-orcid orcid" aria-hidden="true"></span></a>  </li>
-</ul>
-</div>
-
 <div class="dev-status">
 <h2 data-toc-skip>Dev status</h2>
 <ul class="list-unstyled">
 <li><a href="https://lifecycle.r-lib.org/articles/stages.html#experimental" class="external-link"><img src="https://img.shields.io/badge/lifecycle-experimental-orange.svg" alt="Lifecycle: experimental"></a></li>
-<li><a href="https://CRAN.R-project.org/package=multimod" class="external-link"><img src="https://www.r-pkg.org/badges/version/multimod" alt="CRAN status"></a></li>
+<li><a href="https://opensource.org/licenses/Apache-2.0" class="external-link"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License: Apache 2.0"></a></li>
 <li><a href="code_of_conduct.html"><img src="https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg" alt="Contributor Covenant"></a></li>
 </ul>
 </div>
@@ -303,11 +357,11 @@ Status: [✓] implemented | [~] and { } developing | [ ] and {{ }} considering</
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Oleg Lugovoy.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
+
 </div>
 
     </footer>

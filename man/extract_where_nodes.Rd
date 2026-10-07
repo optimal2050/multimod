@@ -6,6 +6,13 @@
 \usage{
 extract_where_nodes(ast)
 }
+\arguments{
+\item{ast}{An AST node.}
+}
+\value{
+A named list of the \code{where} nodes found in \code{ast}, keyed by name.
+}
 \description{
 Extract "where" nodes from an AST
 }
+\keyword{internal}

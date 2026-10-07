@@ -6,6 +6,10 @@
 \usage{
 build_product_ast(factors)
 }
+\value{
+A single AST node: the only factor, or a left-nested \code{expression}
+node with operator \code{*}.
+}
 \description{
 Build a nested product AST from a list of factor nodes
 }

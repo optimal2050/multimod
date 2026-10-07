@@ -2,23 +2,21 @@
 % Please edit documentation in R/read_gmpl.R
 \name{gmpl_symbol_node}
 \alias{gmpl_symbol_node}
-\title{Parse GMPL Expression to AST}
+\title{Build an AST node for a GMPL identifier}
 \usage{
 gmpl_symbol_node(name, symbols)
 }
 \arguments{
+\item{name}{Character string; identifier as it appears in the GMPL source}
+
 \item{symbols}{Named list of known symbols (sets, parameters, variables)}
-
-\item{expr}{Character string containing GMPL expression}
-
-\item{depth}{Current recursion depth (internal use)}
-
-\item{max_depth}{Maximum recursion depth}
 }
 \value{
 AST node
 }
 \description{
-Convert a GMPL expression string to multimod AST format
+Looks up a GMPL identifier among the known symbols and returns a typed
+AST node (variable, parameter, set) with canonical casing, or a plain
+\code{symbol} node when the identifier is unknown.
 }
 \keyword{internal}

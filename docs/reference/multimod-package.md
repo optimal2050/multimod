@@ -1,19 +1,21 @@
-# multimod: Define and Render Mathematical Models Across Multiple Optimization Languages.
+# multimod: Define and Render Mathematical Models Across Optimization Languages
 
-Multimod provides a domain-specific language (DSL) for defining
-algebraic equations and constraints in R, and rendering them to multiple
-mathematical programming languages, including GAMS, AMPL, Pyomo, and
-JuMP. It supports structured storage of equations, parameters, sets, and
-mappings, and aims to simplify the development of complex optimization
-models across platforms.
+A domain-specific language for defining the sets, parameters, variables,
+mappings and equations of an algebraic optimization model in R, and
+rendering the model to several mathematical programming languages,
+including 'GAMS', 'GNU MathProg', 'Pyomo' and 'JuMP', or to an LP matrix
+solved in R. Models can be folded, trimmed, validated, compared and
+stored, and solutions read back into R.
 
 ## See also
 
 Useful links:
 
-- <https://optimal2050.github.io/multimod>
+- <https://optimal2050.github.io/multimod/>
 
 - <https://github.com/optimal2050/multimod>
+
+- Report bugs at <https://github.com/optimal2050/multimod/issues>
 
 ## Author
 

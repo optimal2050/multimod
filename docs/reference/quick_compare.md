@@ -41,3 +41,10 @@ quick_compare(
 
   Logical; if TRUE, perform case-insensitive comparison for character
   columns (default: FALSE)
+
+## Value
+
+Invisibly, the list returned by
+[`compare_dataframes()`](https://optimal2050.github.io/multimod/reference/compare_dataframes.md)
+(elements `only_in_1`, `only_in_2`, `in_both`, `differences`,
+`summary`).

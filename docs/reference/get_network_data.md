@@ -10,6 +10,10 @@ get_network_data(x, alias_map = NULL, show_dims = TRUE)
 
 ## Arguments
 
+- x:
+
+  A multimod equation (`mm_equation`) or `ast` object
+
 - alias_map:
 
   A named list for alias mapping (optional)
@@ -17,10 +21,6 @@ get_network_data(x, alias_map = NULL, show_dims = TRUE)
 - show_dims:
 
   Logical, whether to show dimensions in the label (default: FALSE)
-
-- eq:
-
-  A multimod equation object
 
 ## Value
 

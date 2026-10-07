@@ -22,11 +22,12 @@ A multimod model object
 Load multimod model from disk
 }
 \examples{
-\dontrun{
+ws <- file.path(tempdir(), "energyRt_ws")
+save_model(example_models$energyRt$multimod, ws, verbose = FALSE)
+
 # Load model with all data
-model <- load_model("models/utopia")
+m <- load_model(ws, verbose = FALSE)
 
 # Load structure only (for inspection)
-model <- load_model("models/utopia", load_data = FALSE)
-}
+m_light <- load_model(ws, load_data = FALSE, verbose = FALSE)
 }

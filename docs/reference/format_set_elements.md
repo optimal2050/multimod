@@ -13,3 +13,7 @@ format_set_elements(
   tail_n = 3
 )
 ```
+
+## Value
+
+A character string such as `"(3 elements: a, b, c)"`.

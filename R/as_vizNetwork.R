@@ -1,6 +1,6 @@
 #' Get network data for a multimod equation
 #'
-#' @param eq A multimod equation object
+#' @param x A multimod equation (`mm_equation`) or `ast` object
 #' @param alias_map A named list for alias mapping (optional)
 #' @param show_dims Logical, whether to show dimensions in the label (default: FALSE)
 #'
@@ -143,7 +143,7 @@ get_network_data <- function(x, alias_map = NULL, show_dims = TRUE) {
   # Build node of AST or LHS of equation
   lhs_root <- walk_ast(eq$lhs)
 
-  if (inherits(x, "equation")) {
+  if (inherits(x, "mm_equation")) {
     # Add Relation node (central node)
     id_counter <- id_counter + 1
     relation_id <- id_counter
@@ -176,6 +176,12 @@ get_network_data <- function(x, alias_map = NULL, show_dims = TRUE) {
 #' Convert a multimod ast or equation to a visNetwork object
 #'
 #' @param x A multimod object
+#' @param main Title of the network plot (default: the object's name).
+#' @param submain Subtitle of the network plot (default: the object's description).
+#' @param alias_map A named list for alias mapping (optional).
+#' @param show_dims Logical, whether to show dimensions in node labels.
+#' @param ... Passed on to methods.
+#' @return A `visNetwork` htmlwidget.
 #' @export
 as_visNetwork <- function(x, ...) {
   UseMethod("as_visNetwork")
@@ -189,7 +195,8 @@ as_visNetwork.ast <- function(x,
                               main = x$name,
                               submain = x$desc,
                               alias_map = NULL,
-                              show_dims = TRUE) {
+                              show_dims = TRUE,
+                              ...) {
 
   if (!requireNamespace("visNetwork", quietly = TRUE)) {
     stop("Please install 'visNetwork' package.")

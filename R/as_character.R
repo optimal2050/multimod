@@ -62,6 +62,7 @@ wrap_brackets <- function(x, brackets = NULL, ...) {
 #' @param brackets Bracket style to use
 #' @param max_char Maximum characters before truncation
 #' @param ... Additional arguments
+#' @return A single character string.
 #' @export
 #' @method as.character expression
 as.character.expression <- function(x, brackets = NULL, max_char = 50, ...) {
@@ -89,8 +90,8 @@ as.character.unary <- function(x, ...) {
 }
 
 #' @export
-#' @method as.character variable
-as.character.variable <- function(x, ...) {
+#' @method as.character mm_variable
+as.character.mm_variable <- function(x, ...) {
   if (length(x$dims) > 0) {
     paste0(x$name, as.character(x$dims))
   } else {
@@ -99,8 +100,8 @@ as.character.variable <- function(x, ...) {
 }
 
 #' @export
-#' @method as.character parameter
-as.character.parameter <- function(x, ...) {
+#' @method as.character mm_parameter
+as.character.mm_parameter <- function(x, ...) {
   if (length(x$dims) > 0) {
     paste0(x$name, as.character(x$dims))
   } else {
@@ -109,8 +110,8 @@ as.character.parameter <- function(x, ...) {
 }
 
 #' @export
-#' @method as.character mapping
-as.character.mapping <- function(x, ...) {
+#' @method as.character mm_mapping
+as.character.mm_mapping <- function(x, ...) {
   if (length(x$dims) > 0) {
     paste0(x$name, as.character(x$dims))
   } else {
@@ -135,8 +136,8 @@ as.character.constant <- function(x, ...) {
 }
 
 #' @export
-#' @method as.character set
-as.character.set <- function(x, ...) {
+#' @method as.character mm_set
+as.character.mm_set <- function(x, ...) {
   paste0("set: ", x$name)
 }
 

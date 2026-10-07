@@ -23,6 +23,10 @@ alias_ast_names(ast, alias_map, classes = NULL, ...)
 
   Character vector of AST classes to filter (optional).
 
+- ...:
+
+  Further arguments, currently ignored.
+
 ## Value
 
 Modified AST with aliases applied.

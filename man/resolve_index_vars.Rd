@@ -6,6 +6,10 @@
 \usage{
 resolve_index_vars(dims_index_aliases, dim_names)
 }
+\value{
+A character vector named by \code{dim_names} giving the iterator alias
+of each dimension.
+}
 \description{
 Resolve iterator variable names for dimensions
 }

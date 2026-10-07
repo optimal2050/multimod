@@ -19,6 +19,7 @@ Retrieves the index alias for a set name from a multimod model.
 If no alias exists, generates one on-the-fly.
 }
 \examples{
+model <- example_models$energyRt$multimod
 model <- add_index_aliases(model)
 get_index_alias(model, "tech")  # "h"
 

@@ -15,6 +15,10 @@
 
 \item{...}{Additional arguments passed to print methods}
 }
+\value{
+Called for the side effect of printing; the methods return \code{x} or
+\code{NULL} invisibly.
+}
 \description{
 S3 print methods for displaying AST and multimod objects
 }

@@ -21,15 +21,12 @@ variables, or equations have \verb{$trimmed = TRUE}. More robust than checking
 only the \code{model$misc$trimmed} flag.
 }
 \examples{
-\dontrun{
-# Check if model has any trimmed elements
-if (is_trimmed_any(model)) {
-  cat("Model has trimmed elements\n")
-}
-# Check only data elements (excluding equations)
-if (is_trimmed_any(model, include_equations = FALSE)) {
-  cat("Model has trimmed data elements\n")
-}
-}
+m <- example_models$energyRt$multimod
+is_trimmed_any(m)
+
+m_trimmed <- trim_model(m, verbose = FALSE)
+is_trimmed_any(m_trimmed)
+# Only data elements (excluding equations)
+is_trimmed_any(m_trimmed, include_equations = FALSE)
 
 }

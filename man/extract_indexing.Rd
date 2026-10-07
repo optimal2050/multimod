@@ -13,6 +13,6 @@ extract_indexing(stmt)
 List with indexing structure and remaining statement
 }
 \description{
-Parse {index_vars in sets: condition} pattern
+Parse the \code{\{index_vars in sets: condition\}} pattern
 }
 \keyword{internal}

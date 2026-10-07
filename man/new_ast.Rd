@@ -15,6 +15,9 @@ ast_set(name)
 
 \item{...}{Additional named fields passed as components of the AST node.}
 
+\item{inherits_class}{Optional character vector of extra classes inserted
+between \code{node_type} and \code{"ast"} in the class attribute.}
+
 \item{name}{Character. Name of the set (e.g., "b").}
 }
 \value{

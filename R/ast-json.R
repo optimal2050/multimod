@@ -311,11 +311,9 @@ ast_from_json <- function(j) .node_from_json(j)
 #' @seealso [model_from_json()], [ast_schema()], [save_model()]
 #' @export
 #' @examples
-#' \dontrun{
-#' data(example_models)
-#' js <- model_to_json(example_models$energyRt$multimod)
+#' m <- example_models$energyRt$multimod
+#' js <- model_to_json(m)
 #' m2 <- model_from_json(js)
-#' }
 model_to_json <- function(model, path = NULL, data = c("omit", "inline"),
                           pretty = TRUE) {
   data <- match.arg(data)
@@ -370,9 +368,9 @@ model_to_json <- function(model, path = NULL, data = c("omit", "inline"),
 #' @seealso [model_to_json()]
 #' @export
 #' @examples
-#' \dontrun{
-#' m2 <- model_from_json("model.json")
-#' }
+#' f <- tempfile(fileext = ".json")
+#' model_to_json(example_models$energyRt$multimod, path = f)
+#' m2 <- model_from_json(f)
 model_from_json <- function(json) {
   if (!requireNamespace("jsonlite", quietly = TRUE)) {
     stop("model_from_json() needs the 'jsonlite' package.", call. = FALSE)
@@ -408,7 +406,7 @@ model_from_json <- function(json) {
       number  = as.numeric(unlist(j[[fn]], use.names = FALSE)),
       j[[fn]])
   }
-  structure(out, class = c("model", "multimod"))
+  structure(out, class = c("mm_model", "multimod"))
 }
 
 #' Emit a JSON Schema for the multimod AST
@@ -422,9 +420,8 @@ model_from_json <- function(json) {
 #' @seealso [ast_schema()], [model_to_json()]
 #' @export
 #' @examples
-#' \dontrun{
-#' cat(ast_json_schema())
-#' }
+#' schema <- ast_json_schema()
+#' cat(substr(schema, 1, 300))
 ast_json_schema <- function(path = NULL) {
   if (!requireNamespace("jsonlite", quietly = TRUE)) {
     stop("ast_json_schema() needs the 'jsonlite' package.", call. = FALSE)

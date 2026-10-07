@@ -7,3 +7,7 @@ Get dependencies from AST
 ``` r
 get_dependencies(ast, model)
 ```
+
+## Value
+
+A character vector of unique parameter names referenced in `ast`.

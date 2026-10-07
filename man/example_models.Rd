@@ -21,7 +21,7 @@ energyRt_version, gams_source, date_imported, note}
 }
 \source{
 \itemize{
-\item energyRt: \url{https://github.com/energyRt/energyRt}
+\item energyRt: \url{https://github.com/optimal2050/energyRt}
 }
 }
 \usage{
@@ -85,21 +85,15 @@ example_models$energyRt$metadata
 # Use the pre-parsed multimod model
 summary(example_models$energyRt$multimod)
 
-\dontrun{
-# Parse from source (no temp files needed)
-model_gams <- read_gams(
+# Parse the structure from the bundled GAMS source (no temp files needed)
+structure <- read_gams(
   file_or_text = example_models$energyRt$gams$model,
   include = FALSE
 )
 
-# Export to different formats
-write_gmpl(example_models$energyRt$multimod, "tmp/energyrt")
-write_pyomo(example_models$energyRt$multimod, "tmp/energyrt_pyomo")
-}
-
 }
 \references{
-energyRt package: \url{https://github.com/energyRt/energyRt}
+energyRt package: \url{https://github.com/optimal2050/energyRt}
 }
 \seealso{
 \itemize{

@@ -1,8 +1,34 @@
 # Changelog
 
-## multimod (development version)
+## multimod 0.5.0
 
 ### Breaking changes
+
+- The S3 classes of model objects are now prefixed: `mm_model`,
+  `mm_set`, `mm_mapping`, `mm_parameter`, `mm_variable`, `mm_equation`
+  (declarations and references alike). The bare names collided with
+  other packages’ classes (energyRt’s `model` and `variable`), so that
+  methods of one package were dispatched on objects of the other. Code
+  testing `inherits(x, "model")` and friends must use the new names;
+  [`is_declaration()`](https://optimal2050.github.io/multimod/reference/is_declaration.md)
+  and the `is_*()` helpers are unchanged. Saved models carry their
+  class, so `example_models` was re-stamped and models saved with
+  earlier versions need the same (`class<-` on the nested nodes). The
+  JSON schema tags and the CamelCase constructors (`Model()`,
+  [`Set()`](https://optimal2050.github.io/multimod/reference/multimod-constructors.md),
+  …) are unchanged.
+- `arrow` and `visNetwork` moved from Imports to Suggests; the functions
+  that need them check and fail with an installation hint.
+- `multimod_config_write(global = TRUE)` and its readers use the
+  per-user configuration directory returned by
+  `tools::R_user_dir("multimod", "config")` instead of `~/.multimod/`.
+
+### CRAN preparation
+
+- The four articles that need energyRt or an installed solver (folding,
+  GMPL, JuMP, Pyomo) are website articles rather than package vignettes.
+
+- Tests run under `R CMD check` (a test runner was missing).
 
 - `setup_python_environment()` and `setup_multimod_python()` are now
   [`mm_setup_python()`](https://optimal2050.github.io/multimod/reference/mm_setup_python.md),
@@ -15,10 +41,12 @@
   the MathProg route needs the `glpsol` executable;
   [`get_multimod_glpsol()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
   now also looks inside the environment.
+
 - [`analyze_fold_opportunities()`](https://optimal2050.github.io/multimod/reference/analyze_fold_opportunities.md):
   `fold_slice` is now `fold_timeslice`, and the `slice` dimension is
   spelled `timeslice` throughout, matching energyRt. The old spelling
   was dead code, so the timeslice-coverage check never ran.
+
 - Example models are consolidated into `example_models`: use
   `example_models$energyRt$multimod` in place of the removed
   `utopia_multimod` and its siblings.
@@ -184,8 +212,7 @@ open items.
 #### Code generation
 
 - Pyomo code generation: abstract models with external data loading, and
-  any solver Pyomo supports. See
-  [`vignette("pyomo")`](https://optimal2050.github.io/multimod/articles/pyomo.md).
+  any solver Pyomo supports. See `vignette("pyomo")`.
 - [`write_jump()`](https://optimal2050.github.io/multimod/reference/write_jump.md)
   generates modern JuMP syntax: named constraints, tuple indexing, short
   index aliases, variable bounds from GAMS types, and CSV diagnostics.
@@ -224,10 +251,9 @@ open items.
   [`create_fold_spec()`](https://optimal2050.github.io/multimod/reference/create_fold_spec.md)
   and
   [`get_fold_summary()`](https://optimal2050.github.io/multimod/reference/get_fold_summary.md)
-  support it. See
-  [`vignette("folding")`](https://optimal2050.github.io/multimod/articles/folding.md).
-- `trim_model()` removes unused sets, parameters, variables and
-  equations, and
+  support it. See `vignette("folding")`.
+- [`trim_model()`](https://optimal2050.github.io/multimod/reference/trim_model.md)
+  removes unused sets, parameters, variables and equations, and
   [`get_trim_summary()`](https://optimal2050.github.io/multimod/reference/get_trim_summary.md)
   reports what went.
 

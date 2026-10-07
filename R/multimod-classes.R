@@ -17,7 +17,7 @@ new_set <- function(name, desc = NULL, subset_of = NULL,
       subset_of = subset_of,
       data = data
     ),
-    class = c("set", "multimod", "ast")
+    class = c("mm_set", "multimod", "ast")
   )
 
   .check_node(obj)
@@ -31,7 +31,12 @@ new_set <- function(name, desc = NULL, subset_of = NULL,
 #' @param desc character, description of the mapping
 #' @param subset_of character, name of the parent mapping
 #' @param dims character vector, names of the declared dimensions
+#' @param active_dims character vector, names of the active dimensions
+#'   (defaults to `dims`)
 #' @param data data frame, data for the mapping
+#' @param auto_fold logical, whether to automatically fold dimensions
+#' @param symbols optional named list of known symbols (sets, aliases) used to
+#'   resolve dimension names in [ast_dims()]
 #' @return An object of class `mapping`
 #' @export
 new_mapping <- function(name,
@@ -51,7 +56,7 @@ new_mapping <- function(name,
       active_dims = ast_dims(active_dims, symbols = symbols),
       data = data
     ),
-    class = c("mapping", "multimod", "ast")
+    class = c("mm_mapping", "multimod", "ast")
   )
 
   .check_node(obj)
@@ -62,11 +67,20 @@ new_mapping <- function(name,
 #' Create a multimod parameter
 #'
 #' @param name character, name of the parameter
+#' @param desc character, description of the parameter
 #' @param dims character vector, names of the declared dimensions
 #' @param data data frame, data for the parameter
 #' @param active_dims character vector, names of the active dimensions
+#' @param defVal numeric, default value for elements not present in `data`
+#' @param defInt numeric, default value used for integer-valued elements
+#'   (reserved; `NULL` in the packaged models)
+#' @param symbolic logical, whether the parameter is defined by `formula`
+#'   rather than by `data`
+#' @param formula AST expression defining the parameter when `symbolic = TRUE`
 #' @param comment character, comment line from source file (e.g., *@ domain hint)
 #' @param auto_fold logical, whether to automatically fold dimensions
+#' @param symbols optional named list of known symbols (sets, aliases) used to
+#'   resolve dimension names in [ast_dims()]
 #'
 #' @returns a parameter object
 #' @export
@@ -105,7 +119,7 @@ new_parameter <- function(
       formula = formula,
       comment = comment
     ),
-    class = c("parameter", "multimod", "ast")
+    class = c("mm_parameter", "multimod", "ast")
   )
 
   .check_node(obj)
@@ -116,12 +130,19 @@ new_parameter <- function(
 #' Create a multimod variable
 #'
 #' @param name character, name of the variable
+#' @param desc character, description of the variable
 #' @param dims character vector, names of the declared dimensions
 #' @param data data frame, data for the variable
 #' @param active_dims character vector, names of the active dimensions
 #' @param domain character, domain mapping name for sparse indexing (NULL = Cartesian, character(0) = unused)
+#' @param vtype character, variable type as declared in the source model
+#'   (e.g. `"positive"`, `"binary"`, `"integer"`)
+#' @param bounds list with optional elements `lo` and `up` giving the lower and
+#'   upper bounds
 #' @param comment character, comment line from source file (e.g., *@ domain hint)
 #' @param auto_fold logical, whether to automatically fold dimensions
+#' @param symbols optional named list of known symbols (sets, aliases) used to
+#'   resolve dimension names in [ast_dims()]
 #'
 #' @returns a variable object
 #' @export
@@ -162,7 +183,7 @@ new_variable <- function(
       comment = comment,
       data = as.data.frame(data)
     ),
-    class = c("variable", "multimod", "ast")
+    class = c("mm_variable", "multimod", "ast")
   )
 
   .check_node(obj)
@@ -184,6 +205,11 @@ new_variable <- function(
 #' @param relation Character string. The relation type: one of `"=="`, `"<="`, or `">="`.
 #' @param domain Optional AST or symbol representing the domain/mapping condition for the equation.
 #' @param comment character, comment line from source file (e.g., *@ domain hint)
+#' @param dims_index_aliases Optional character vector of equation-specific
+#'   iterator names, one per declared dimension (preserved from the source
+#'   model, e.g. by `read_gmpl()`).
+#' @param symbols Optional named list of known symbols (sets, aliases) used to
+#'   resolve dimension names in [ast_dims()].
 #'
 #' @returns An object of class `equation`, containing the parsed equation structure.
 #'
@@ -191,7 +217,10 @@ new_variable <- function(
 #'
 #' @examples
 #' lhs <- ast_variable("vTechOut", dims = c("tech", "region"))
-#' rhs <- ast_expression("*", param("pTechEff", dims = c("tech")), ast_variable("vTechInp", dims = c("tech", "region")))
+#' rhs <- ast_expression("*",
+#'   ast_parameter("pTechEff", dims = c("tech")),
+#'   ast_variable("vTechInp", dims = c("tech", "region"))
+#' )
 #' eq <- new_equation(
 #'   name = "eqTechEff",
 #'   desc = "Technology output efficiency",
@@ -227,7 +256,7 @@ new_equation <- function(
       rhs = rhs,
       dims_index_aliases = dims_index_aliases  # Store equation-specific iterator vars
     ),
-    class = c("equation", "multimod", "ast")
+    class = c("mm_equation", "multimod", "ast")
   )
 
   .check_node(obj)
@@ -272,13 +301,20 @@ new_model_structure <- function(
 
 #' Create a multimod model object
 #'
+#' @param name model name (character, optional)
 #' @param sets named list of sets
+#' @param aliases named list of set aliases
 #' @param mappings named list of mappings
 #' @param parameters named list of parameter objects
 #' @param variables named list of variable objects
 #' @param equations named list of equation objects
 #' @param desc model description (character)
+#' @param inMemory logical; whether the model data is held in memory
+#'   (default `TRUE`) rather than read from `base_path`
+#' @param base_path base directory for relative data paths when data is
+#'   stored on disk
 #' @param metadata Named list with auxiliary information (e.g., language, source_file, data_source).
+#' @param ... Additional named fields stored on the model object.
 #'
 #' @returns A model object
 #' @export
@@ -317,7 +353,7 @@ new_model <- function(
       metadata = metadata,
       ...
     ),
-    class = c("model", "multimod")
+    class = c("mm_model", "multimod")
   )
 
   if (!is.null(metadata$source_language)) {

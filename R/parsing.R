@@ -266,30 +266,9 @@ split_top_level <- function(
 }
 
 
-#' @export
+#' @noRd
 is_associative <- function(op) {
   op %in% c("+", "*", "and", "or", "&", "|")
-}
-
-#' Annotate expression tree with bracket requirements
-#'
-#' @export
-annotate_brackets <- function(expr, parent = NULL, side = NULL) {
-  if (!inherits(expr, "expression")) return(expr)
-
-  # Determine bracketing need
-  bracket_status <- needs_brackets(expr, parent = parent, side = side)
-  expr$brackets <- bracket_status
-
-  # Recurse into subexpressions
-  if (!is.null(expr$lhs)) {
-    expr$lhs <- annotate_brackets(expr$lhs, parent = expr, side = "lhs")
-  }
-  if (!is.null(expr$rhs)) {
-    expr$rhs <- annotate_brackets(expr$rhs, parent = expr, side = "rhs")
-  }
-
-  expr
 }
 
 
