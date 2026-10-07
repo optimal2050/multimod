@@ -3,10 +3,6 @@ title: "multimod to Pyomo"
 author: "multimod Package"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteEncoding{UTF-8}
-  %\VignetteIndexEntry{Pyomo}
-  %\VignetteEngine{knitr::rmarkdown}
 editor_options: 
   chunk_output_type: console
 ---
@@ -106,19 +102,19 @@ def build_dataportal(model, base_dir):
 - Requires file system access
 - Slightly slower startup
 
-#### **`data_mode = "embedded"` (Not Yet Implemented)**
+#### **`data_mode = "embedded"`**
 
 Data embedded as Python literals in the code:
 
 ```python
-# Would be in model.py
+# In model.py
 pDiscountRate = {
     'R1': 0.05,
     'R2': 0.03
 }
 ```
 
-**When implemented, will provide:**
+**Provides:**
 - Standalone files: No external dependencies
 - Faster startup: No file I/O
 - Portable: Single file distribution
@@ -250,11 +246,12 @@ library(energyRt)  # For scenario data
 **Easy Setup:**
 
 ```{r setup-python, eval=FALSE}
-# Automatic setup with conda environment
-mm_setup_python(
-  env_name = "multimod",
-  packages = c("pyomo", "highspy")  # Includes HiGHS solver
-)
+# Automatic setup: conda environment "multimod" (Python 3.14) with pyomo,
+# highspy, pyarrow and pandas, plus GLPK (glpsol) installed with conda
+mm_setup_python()
+
+# Check an existing environment without installing anything
+mm_check_python()
 ```
 
 **Manual Python setup:**
@@ -273,6 +270,8 @@ pip install highspy  # For HiGHS
 **Verify installation:**
 
 ```{r verify-python}
+mm_check_python(packages = "pyomo")
+
 python_exec <- get_multimod_python()
 system2(python_exec, args = c("-c", "import pyomo.environ; print('Pyomo OK')"))
 ```
@@ -281,7 +280,7 @@ system2(python_exec, args = c("-c", "import pyomo.environ; print('Pyomo OK')"))
 
 ```{r read-gams}
 # Path to GAMS model
-gams_file <- "C:/Users/admin/Documents/R/multimod/dev/scenarios/BASE_UTOPIA/script/gams_cbc/energyRt.gms"
+gams_file <- "path/to/energyRt.gms"
 
 # Read model structure
 cat("Reading GAMS model...\n")
@@ -302,12 +301,6 @@ cat("  Equations:", length(model_struct$equations), "\n")
 cat("\nConverting to multimod...\n")
 model <- as_multimod(model_struct)
 
-# Extract domain information from GAMS comments
-model <- en_extract_domains_from_comments(model, verbose = TRUE)
-
-# Populate default values from energyRt conventions
-model <- populate_defvals_from_energyrt(model)
-
 cat("\nModel ready for Pyomo export\n")
 ```
 
@@ -316,8 +309,7 @@ cat("\nModel ready for Pyomo export\n")
 ```{r load-scenario}
 # Load energyRt scenario
 cat("\nLoading energyRt scenario...\n")
-scen_file <- "C:/Users/admin/Documents/R/multimod/dev/scenarios/BASE_UTOPIA/scen.RData"
-load(scen_file)
+load("path/to/scen.RData")
 
 cat("Scenario class:", class(scen), "\n")
 ```
@@ -325,14 +317,9 @@ cat("Scenario class:", class(scen), "\n")
 ### Import with Comprehensive Logging
 
 ```{r import-data}
-# Import all data (sets, parameters, mappings, bounds)
+# Build the model and import all data (sets, parameters, mappings, bounds)
 cat("\nImporting energyRt scenario data...\n")
-model <- import_energyRt_data(
-  model, 
-  scen, 
-  inMemory = TRUE,  # Load data into R memory
-  log_file = "tmp/import_log.csv"
-)
+model <- multimod_from_energyRt(scen, inMemory = TRUE)
 
 cat("\nImport complete!\n")
 
@@ -351,7 +338,7 @@ Save the model data to disk for Pyomo to load:
 
 ```{r save-data}
 # Create output directory
-test_dir <- "tmp/utopia_pyomo"
+test_dir <- file.path(tempdir(), "utopia_pyomo")
 
 # Save model data in Arrow IPC format (recommended)
 cat("\nSaving model data (Arrow IPC format)...\n")
@@ -411,8 +398,8 @@ write_pyomo(model, model_dir = test_dir, export_data = TRUE)
 # Separate solve.py file (3-file structure)
 write_pyomo(model, model_dir = test_dir, split = TRUE)
 
-# Future: Embedded data (when implemented)
-# write_pyomo(model, model_dir = test_dir, data_mode = "embedded")
+# Embedded data: write the data into model.py (standalone file)
+write_pyomo(model, model_dir = test_dir, data_mode = "embedded")
 ```
 
 ### Inspect Generated Code
@@ -667,10 +654,8 @@ if (dir.exists(data_export_dir)) {
 ## Step 8: Load Results Back to R
 
 ```{r load-results}
-# TODO: Implement result loading function
-# result_model <- load_pyomo_solution(model, test_dir)
-
-# For now, parse JSON manually
+# solve_pyomo(load_results = TRUE) is reserved: loading solutions back into
+# the model is not implemented yet, so read the exported JSON directly
 if (file.exists(var_file)) {
   cat("\n=== LOADING RESULTS TO R ===\n")
   
@@ -697,6 +682,7 @@ if (file.exists(var_file)) {
 ```{r}
 # Check Python configuration
 get_multimod_python()
+mm_check_python()
 multimod_config_show()
 
 # Set up environment
@@ -773,26 +759,21 @@ library(energyRt)
 # 1. Setup Python environment (one-time)
 mm_setup_python()
 
-# 2. Load and convert model
-model_struct <- read_gams("path/to/model.gms")
-model <- as_multimod(model_struct)
-model <- en_extract_domains_from_comments(model)
-model <- populate_defvals_from_energyrt(model)
-
-# 3. Import scenario data
+# 2. Build the model from an interpolated energyRt scenario
 load("path/to/scenario.RData")
-model <- import_energyRt_data(model, scen, inMemory = TRUE)
+model <- multimod_from_energyRt(scen, inMemory = TRUE)
 
-# 4. Save and export
-save_model(model, "tmp/model", format = "ipc")
-write_pyomo(model, model_dir = "tmp/model", 
+# 3. Save and export
+model_dir <- file.path(tempdir(), "model")
+save_model(model, model_dir, format = "ipc")
+write_pyomo(model, model_dir = model_dir,
             export_mps = TRUE, export_vars = TRUE)
 
-# 5. Solve
-result <- solve_pyomo(model_dir = "tmp/model", 
+# 4. Solve
+result <- solve_pyomo(model, model_dir = model_dir,
                       solver = "highs", verbose = TRUE)
 
-# 6. Analyze results
+# 5. Analyze results
 print(result$status)
 ```
 

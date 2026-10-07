@@ -3,10 +3,6 @@ title: "multimod to JuMP"
 author: "multimod Package"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteEncoding{UTF-8}
-  %\VignetteIndexEntry{multimod to JuMP}
-  %\VignetteEngine{knitr::rmarkdown}
 editor_options: 
   chunk_output_type: console
 ---
@@ -35,15 +31,16 @@ We'll use the UTOPIA base scenario from energyRt as our example.
 
 ### Key Functions
 
-#### 1. `write_jump(model, model_dir, cleanup, format)`
+#### 1. `write_jump(model, model_dir, cleanup, use_folded, data_mode)`
 
 Generates a complete Julia/JuMP project with model code, data loading, and diagnostics.
 
 **Parameters:**
 
 - `model_dir`: Output directory for the project
-- `cleanup = FALSE`: Whether to remove existing directory first
-- `format = "ipc"`: Data format ("ipc" for Arrow, "csv" for CSV files)
+- `cleanup = TRUE`: Remove an existing `solvers/jump/` directory first
+- `use_folded = TRUE`: Use the folded dimensions of folded parameters
+- `data_mode = "external"`: Read the data `save_model()` wrote (Arrow IPC or CSV, chosen by `save_model(format = )`); `"embedded"` writes the data into the Julia code
 
 **Generated Files:**
 
@@ -162,7 +159,7 @@ Pkg.add(["JuMP", "HiGHS", "Arrow", "DataFrames", "CSV", "Dates"])
 
 ```{r read-gams}
 # Path to GAMS model
-gams_file <- "C:/Users/admin/Documents/R/multimod/dev/scenarios/BASE_UTOPIA/script/gams_cbc/energyRt.gms"
+gams_file <- "path/to/energyRt.gms"
 
 # Read model structure
 cat("Reading GAMS model...\n")
@@ -183,12 +180,6 @@ cat("  Equations:", length(model_struct$equations), "\n")
 cat("\nConverting to multimod...\n")
 model <- as_multimod(model_struct)
 
-# Extract domain information from GAMS comments
-model <- en_extract_domains_from_comments(model, verbose = TRUE)
-
-# Populate default values from energyRt conventions
-model <- populate_defvals_from_energyrt(model)
-
 # Check index aliases (used in JuMP code)
 cat("\nIndex aliases for JuMP:\n")
 print(model$index_aliases)
@@ -206,8 +197,7 @@ end
 ```{r load-scenario}
 # Load energyRt scenario
 cat("\nLoading energyRt scenario...\n")
-scen_file <- "C:/Users/admin/Documents/R/multimod/dev/scenarios/BASE_UTOPIA/scen.RData"
-load(scen_file)
+load("path/to/scen.RData")
 
 cat("Scenario class:", class(scen), "\n")
 ```
@@ -215,14 +205,9 @@ cat("Scenario class:", class(scen), "\n")
 ### Import with Comprehensive Logging
 
 ```{r import-data}
-# Import all data (sets, parameters, mappings, bounds)
+# Build the model and import all data (sets, parameters, mappings, bounds)
 cat("\nImporting energyRt scenario data...\n")
-model <- import_energyRt_data(
-  model, 
-  scen, 
-  inMemory = TRUE,  # Load data into R memory
-  log_file = "tmp/import_log.csv"
-)
+model <- multimod_from_energyRt(scen, inMemory = TRUE)
 
 cat("\nImport complete!\n")
 
@@ -240,8 +225,10 @@ cat("Parameters with data:", n_with_data, "/", n_params, "\n")
 The importer automatically splits bounds parameters:
 
 ```{r check-bounds}
-# Show bounds mapping
-show_bounds_mapping(model)
+# Show the import log and anything that did not match
+log <- multimod_import_log(model)
+length(log$bounds)
+multimod_unmatched(model)
 
 # Example: pTechAf (type="bounds") becomes:
 #   pTechAfLo - lower bounds
@@ -254,7 +241,7 @@ Save the model data to disk for Julia to load:
 
 ```{r save-data}
 # Create output directory
-test_dir <- "tmp/utopia_jump"
+test_dir <- file.path(tempdir(), "utopia_jump")
 
 # Save model data in Arrow IPC format (recommended)
 cat("\nSaving model data (Arrow IPC format)...\n")
@@ -345,14 +332,13 @@ This ensures:
 ### Option A: Run from R
 
 ```{r solve-from-r}
-# Execute Julia model from R
+# Run the generated model.jl with the configured Julia
 cat("\n=== SOLVING WITH JULIA/JUMP ===\n\n")
 
-# Change to Julia directory and run
-old_wd <- getwd()
-setwd(julia_dir)
-system2("julia", args = "model.jl")
-setwd(old_wd)
+result <- solve_jump(model, model_dir = test_dir, method = "system", verbose = TRUE)
+
+cat("Status:", result$status, "\n")
+cat("Objective:", result$objective, "\n")
 ```
 
 ### Option B: Run from Julia REPL
@@ -425,37 +411,15 @@ if (file.exists(variable_csv)) {
 }
 ```
 
-### Parse Solution from Julia Output
+### Objective, Status and Solve Time
 
-The Julia script prints solution information to console. You can capture it:
+`solve_jump()` parses the objective value, termination status and solve time
+from the Julia output:
 
 ```{r parse-solution}
-# Run and capture output
-output <- system2("julia", 
-                  args = file.path(julia_dir, "model.jl"),
-                  stdout = TRUE, 
-                  stderr = TRUE)
-
-# Parse objective value
-obj_line <- grep("Objective value:", output, value = TRUE)
-if (length(obj_line) > 0) {
-  obj_value <- as.numeric(sub(".*Objective value:\\s+([-0-9.e+]+).*", "\\1", obj_line))
-  cat("\nObjective value:", format(obj_value, big.mark = ",", scientific = FALSE), "\n")
-}
-
-# Parse termination status
-status_line <- grep("Termination status:", output, value = TRUE)
-if (length(status_line) > 0) {
-  status <- sub(".*Termination status:\\s+(\\w+).*", "\\1", status_line)
-  cat("Termination status:", status, "\n")
-}
-
-# Parse solve time
-time_line <- grep("HiGHS run time", output, value = TRUE)
-if (length(time_line) > 0) {
-  solve_time <- sub(".*HiGHS run time\\s*:\\s*([-0-9.]+).*", "\\1", time_line)
-  cat("Solve time:", solve_time, "seconds\n")
-}
+result$objective
+result$status
+result$solve_time
 ```
 
 ## Comparison with energyRt Original
@@ -464,7 +428,7 @@ Compare with the original energyRt translation if available:
 
 ```{r compare-models}
 # Load reference model results
-ref_con_stats <- "dev/scenarios/BASE_UTOPIA/script/julia_highs/constraint_stats.csv"
+ref_con_stats <- "path/to/reference/constraint_stats.csv"
 if (file.exists(ref_con_stats)) {
   ref_con <- read.csv(ref_con_stats)
   our_con <- read.csv(constraint_csv)
@@ -647,28 +611,24 @@ Here's the complete end-to-end workflow:
 library(multimod)
 library(energyRt)
 
-# 1. Read and convert GAMS model
-model <- as_multimod(read_gams("path/to/energyRt.gms"))
-model <- en_extract_domains_from_comments(model)
-model <- populate_defvals_from_energyrt(model)
-
-# 2. Load and import scenario data
+# 1. Build the model from an interpolated energyRt scenario
 load("path/to/scen.RData")
-model <- import_energyRt_data(model, scen, inMemory = TRUE)
+model <- multimod_from_energyRt(scen, inMemory = TRUE)
 
-# 3. Save model data
-test_dir <- "tmp/my_model"
+# 2. Save model data
+test_dir <- file.path(tempdir(), "my_model")
 save_model(model, test_dir, format = "ipc", verbose = TRUE)
 
-# 4. Generate JuMP code
+# 3. Generate JuMP code
 write_jump(model, model_dir = test_dir)
 
-# 5. Solve with Julia
-julia_dir <- file.path(test_dir, "solvers", "jump")
-setwd(julia_dir)
-system2("julia", args = "model.jl")
+# 4. Solve with Julia
+result <- solve_jump(model, model_dir = test_dir)
+cat("Objective:", result$objective, "\n")
 
-# 6. Read results
+# 5. Read diagnostics
+julia_dir <- file.path(test_dir, "solvers", "jump")
+
 con_stats <- read.csv(file.path(julia_dir, "constraint_stats.csv"))
 var_stats <- read.csv(file.path(julia_dir, "variable_stats.csv"))
 
@@ -710,7 +670,7 @@ The key innovation is the dimension-aware data loading that correctly handles bo
 - JuMP documentation: [jump.dev](https://jump.dev/)
 - Julia language: [julialang.org](https://julialang.org/)
 - Arrow format: [arrow.apache.org](https://arrow.apache.org/)
-- energyRt package: [github.com/energyRt/energyRt](https://github.com/energyRt/energyRt)
+- energyRt package: [github.com/optimal2050/energyRt](https://github.com/optimal2050/energyRt)
 - HiGHS solver: [highs.dev](https://highs.dev/)
 
 ## Session Info

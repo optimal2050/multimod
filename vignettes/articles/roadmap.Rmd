@@ -16,7 +16,7 @@ The `multimod` package is under active but experimental development. This docume
 
 ## Current Status (October 2026)
 
-**Version 0.4+ (Development)** - Core features implemented, API stabilization in progress
+**Version 0.5.0** - Core features implemented, API stabilization in progress
 
 **WARNING**: All implementations are in active development stage - APIs may change, edge cases remain
 
@@ -74,12 +74,12 @@ The package has progressed significantly beyond initial roadmap milestones:
   - **Embedded data**: For small models (data included in generated code)
   - **External data**: For large models (code connects to Arrow repository)
   - Python/Pyomo and Julia/JuMP support both modes
-- **Functions**: `save_model()`, `load_model()`, `import_energyRt_data()`, `link_scenario_data_with_log()`
+- **Functions**: `save_model()`, `load_model()`, `energyRt::multimod_from_energyRt()`, `energyRt::multimod_import_log()`
 
 ### Documentation & Visualization
 - **LaTeX Generation**: Publication-ready mathematical documentation with annotations
 - **Expression Visualization**: Interactive AST visualization with visNetwork
-- **Comprehensive Vignettes**: 10+ vignettes covering major features
+- **Comprehensive Vignettes**: three vignettes and six articles covering major features
 - **Example Models**: Unified `example_models` dataset
 
 ---
@@ -240,8 +240,8 @@ Current focus areas (contributions especially welcome):
 
 ### Get Involved
 
-- **GitHub**: [https://github.com/energyRt/multimod](https://github.com/energyRt/multimod)
-- **Issues**: [https://github.com/energyRt/multimod/issues](https://github.com/energyRt/multimod/issues)
+- **GitHub**: [https://github.com/optimal2050/multimod](https://github.com/optimal2050/multimod)
+- **Issues**: [https://github.com/optimal2050/multimod/issues](https://github.com/optimal2050/multimod/issues)
 - **Contact**: Open an issue or discussion on GitHub
 
 

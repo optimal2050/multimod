@@ -119,19 +119,25 @@ as_gams.symbol <- function(x, ...) {
 #' @export
 #' @method as_gams sum
 as_gams.sum <- function(x, ...) {
-  idx_brackets <- ifelse(isTRUE(length(x$index$then) > 1), "[]", "")
-  idx <- as_gams(x$index, brackets = idx_brackets, ...)
+  idx <- as_gams(x$index, brackets = .gams_index_brackets(x$index), ...)
   val <- as_gams(x$value, ...)
   paste0("sum(", idx, ", ", val,")")
+}
+
+# GAMS needs a controlling index of several sets bracketed: sum((i,j), ...).
+# The index is either a dims node (ast_sum()) or a when node whose `then`
+# holds the dims (GAMS-style $-condition).
+.gams_index_brackets <- function(index) {
+  n <- if (inherits(index, "when")) length(index$then) else length(index)
+  if (isTRUE(n > 1)) "[]" else ""
 }
 
 #' @export
 #' @method as_gams prod
 as_gams.prod <- function(x, ...) {
-  idx_brackets <- ifelse(isTRUE(length(x$index$then) > 1), "[]", "")
-  idx <- as_gams(x$index, brackets = idx_brackets, ...)
+  idx <- as_gams(x$index, brackets = .gams_index_brackets(x$index), ...)
   val <- as_gams(x$value, ...)
-  paste0("prod(", idx, val,")")
+  paste0("prod(", idx, ", ", val, ")")
 }
 
 #' @export

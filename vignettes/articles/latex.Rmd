@@ -1,10 +1,6 @@
 ---
 title: "LaTeX Generation"
 output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{LaTeX Generation}
-  %\VignetteEncoding{UTF-8}
-  %\VignetteEngine{knitr::rmarkdown}
 editor_options: 
   chunk_output_type: console
 ---
@@ -27,7 +23,7 @@ library(multimod)
 
 ## Load Example Model
 
-We'll use the UTOPIA model that comes with the multimod package:
+We'll use the energyRt example model that comes with the multimod package:
 
 ```{r load-model}
 data(example_models)
@@ -60,10 +56,10 @@ The generated LaTeX document includes:
 
 The `model_view` parameter controls how the model is displayed:
 
-### Auto Mode (Default)
-Automatically detects if model is optimized and chooses appropriate view:
-```{r auto-mode, eval=FALSE}
-tex <- write_latex(demo_model)  # Auto-detects view mode
+### Default
+When `model_view` is omitted, `write_latex()` uses `"reduced"` for a folded or trimmed model and `"full"` otherwise (there is no `"auto"` value):
+```{r default-mode, eval=FALSE}
+tex <- write_latex(demo_model)
 ```
 
 ### Reduced Mode
@@ -89,13 +85,9 @@ Folding reduces parameter dimensionality by consolidating dimensions with unifor
 fold_spec <- create_fold_spec(
   demo_model,
   fold_dims = list(
-    slice = list(
-      tech = "mTechSlice",
-      comm = "mCommSlice"
-    ),
-    region = list(
-      tech = "mTechRegion",
-      sup = "mSupRegion"
+    timeslice = list(
+      tech = "mTechTimeslice",
+      comm = "mCommTimeslice"
     )
   )
 )
@@ -135,27 +127,27 @@ The optimization summary includes:
 
 ### Folded Annotations
 
-In full view mode, folded parameters show green annotations:
+In full view mode, folded parameters are annotated in blue (the `folded_color` default):
 
 ```{r folded-annotations, eval=FALSE}
-# Parameters will show: (folded: 5D → 2D) in green
+# Parameters will show: (folded: 5D → 2D) in blue
 tex <- write_latex(model_optimized, model_view = "full")
 ```
 
 ### Trimmed Annotations
 
-Trimmed elements are marked in blue (customizable):
+Trimmed elements are marked in red (the `trimmed_color` default); both colours can be changed:
 
 ```{r trimmed-annotations, eval=FALSE}
-# Default blue color
-tex <- write_latex(model_optimized, 
-                  model_view = "full", 
-                  trimmed_color = "blue")
-
-# Custom color
+# Default colours: folded_color = "blue", trimmed_color = "red"
 tex <- write_latex(model_optimized, 
                   model_view = "full", 
                   trimmed_color = "red")
+
+# Custom colours
+tex <- write_latex(model_optimized, 
+                  model_view = "full", 
+                  trimmed_color = "gray")
 ```
 
 ## Data Display Options
@@ -233,7 +225,7 @@ tex <- write_latex(demo_model,
                   include_parameters = TRUE,
                   include_variables = TRUE,
                   include_equations = TRUE,
-                  include_mappings = TRUE)  # Now TRUE by default
+                  include_mappings = TRUE)
 
 # Equations only
 tex <- write_latex(demo_model,
@@ -264,14 +256,10 @@ demo_model <- example_models$energyRt$multimod
 fold_spec <- create_fold_spec(
   demo_model,
   fold_dims = list(
-    slice = list(
-      tech = "mTechSlice",
-      comm = "mCommSlice",
-      stg = c("mStorageComm", "mCommSlice")
-    ),
-    region = list(
-      tech = "mTechRegion",
-      sup = "mSupRegion"
+    timeslice = list(
+      tech = "mTechTimeslice",
+      comm = "mCommTimeslice",
+      stg = c("mStorageComm", "mCommTimeslice")
     ),
     year = list(
       tech = "mTechYear",
@@ -294,7 +282,7 @@ write_latex(
   data_detail = "brief",            # Brief data format
   use_model_aliases = TRUE,         # Use short names in equations
   use_aliases_in_declarations = FALSE,  # Full names in declarations
-  trimmed_color = "blue",           # Color for trimmed annotations
+  trimmed_color = "red",           # Color for trimmed annotations
   include_sets = TRUE,
   include_aliases = TRUE,
   include_index_aliases = TRUE,
@@ -330,10 +318,10 @@ param_latex <- as_latex(demo_model$parameters$pTechCinp2use)
 var_latex <- as_latex(demo_model$variables$vTechInp)
 
 # Convert an equation
-eq_latex <- as_latex(demo_model$equations$eqTechInp2Out)
+eq_latex <- as_latex(demo_model$equations$eqTechCapUp)
 
 # Convert an AST node
-ast_latex <- as_latex(demo_model$equations$eqTechInp2Out$rhs)
+ast_latex <- as_latex(demo_model$equations$eqTechCapUp$rhs)
 ```
 
 ## Tips for Publication-Quality Output
@@ -341,7 +329,7 @@ ast_latex <- as_latex(demo_model$equations$eqTechInp2Out$rhs)
 1. **Use full mode with optimized models** to show readers what was removed
 2. **Include table of contents** for longer models
 3. **Add explanatory text** via the optimization summary
-4. **Use consistent colors** for annotations (blue for trimmed, green for folded)
+4. **Use consistent colors** for annotations (red for trimmed, blue for folded)
 5. **Show brief data** to give readers context without overwhelming detail
 6. **Use index aliases** to make equations more readable
 7. **Keep full names in declarations** for clarity
@@ -365,7 +353,7 @@ pdflatex model.tex
 
 The `write_latex()` function provides comprehensive control over LaTeX generation:
 
-- **Model views**: Auto, reduced, full, or both
+- **Model views**: Reduced, full, or both
 - **Data display**: Control detail level and element formatting
 - **Optimization**: Automatic summary with explanatory text
 - **Annotations**: Visual markers for folded and trimmed elements

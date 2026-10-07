@@ -126,6 +126,8 @@
     unary      = .mx_eval_unary(node, env, ctx),
     when       = .mx_eval_when(node, env, ctx),
     func       = .mx_eval_func(node, env, ctx),
+    sum        = .mx_eval_sum(node, env, ctx),   # ast_sum() nodes; GAMS sums arrive as func
+    prod       = .mx_eval_prod(node, env, ctx),
     .mx_unsupported(node)
   )
 }
@@ -498,6 +500,7 @@
     cond <- idx$condition
     idx <- idx$then
   }
+  if (is.null(cond) && !is.null(node$domain)) cond <- node$domain  # ast_sum(domain=)
   iters <- .mx_index_names(idx)
   if (!length(iters)) return(NULL)
 

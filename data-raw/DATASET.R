@@ -45,3 +45,5 @@ energyRt_entry <- list(
 example_models <- list(energyRt = energyRt_entry)
 
 usethis::use_data(example_models, overwrite = TRUE)
+
+## Toy model (added 2026-10-09): see data-raw/toy_model.R, run after this script.
