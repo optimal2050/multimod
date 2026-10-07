@@ -43,31 +43,29 @@ navbar:
     articles:
       text: Tutorials
       menu:
-      - text: "Getting Started"
+      - text: "Getting Started (package vignettes)"
       - text: Overview
         href: articles/multimod.html
+      - text: Writing a model in R
+        href: articles/ast.html
+      - text: Folding and trimming
+        href: articles/folding.html
       - text: "---"
-      - text: "Code Generation"
-      - text: JuMP Integration
+      - text: "Backends"
+      - text: Configuring solver paths
+        href: articles/configuration.html
+      - text: JuMP
         href: articles/jump.html
-      - text: GMPL Integration
+      - text: GMPL (GLPK)
         href: articles/gmpl.html
-      - text: Pyomo Integration
+      - text: Pyomo
         href: articles/pyomo.html
       - text: "---"
-      - text: "Model Management"
-      - text: Configuration System
-        href: articles/configuration.html
-      - text: Model Workspace
+      - text: "More"
+      - text: Model workspace and data
         href: articles/model_workspace.html
-      - text: LaTeX Generation
+      - text: LaTeX rendering
         href: articles/latex.html
-      - text: "---"
-      - text: "Advanced"
-      - text: Model Optimization (Folding & Trimming)
-        href: articles/folding.html
-      - text: Abstract Syntax Tree (AST)
-        href: articles/ast.html
     roadmap:
       text: "Development Status"
       href: articles/roadmap.html

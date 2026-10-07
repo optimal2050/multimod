@@ -18,12 +18,15 @@ knitr::opts_chunk$set(
 has_vis <- requireNamespace("visNetwork", quietly = TRUE)
 ```
 
-[The Vignette is under revision]
+This vignette provides an overview of the current functionality of the `multimod` package, which is designed to parse GAMS models and convert them into a structured format for further analysis, visualization, rendering to LaTeX, and other mathematical programming languages.
 
-This vignette provides an overview of the current functionality of the `multimod` package, which is designed to parse GAMS models and convert them into a structured format for further analysis, visualization, rendering to LaTeX, and other mathematical programming languages. 
+## Installation
+Install the released version from CRAN:
+```{r, eval=FALSE}
+install.packages("multimod")
+```
 
-## Installation  
-The development version of the package is available for installation from GitHub using the `pak` package. The package is not yet available on CRAN.
+Or the development version from GitHub using the `pak` package:
 ```{r, eval=FALSE}
 # install.packages("pak")
 pak::pkg_install("optimal2050/multimod", dependencies = TRUE)
@@ -36,31 +39,16 @@ library(multimod)
 
 ## Example model
 
-Download example model  
+The package ships the GAMS source of the energyRt model in `example_models`, both as text and as an already converted `multimod` object.
 ```{r, eval=FALSE}
-gams_source <- file.path(tempdir(), "energyRt.gms")
-
-# Download "energyRt.gms" GAMS model source file from GitHub
-download.file(
-  url = file.path("https://raw.githubusercontent.com/optimal2050/energyRt",
-                  "refs/heads/master/gams/energyRt.gms"),
-  destfile = gams_source,
-  method = "curl"
-)
-
-file.exists(gams_source)
-```
-
-```{r, echo=FALSE, eval=TRUE, include=FALSE}
-# gams_source <- here("tmp/energyRt.gms") |> fs::path_rel(start = getwd())
-gams_source <- multimod::example_models$energyRt$gams$model
+gams_source <- example_models$energyRt$gams$model
 ```
 
 ## Parse model structure
 Model structure is a named list of the model symbols: sets, parameters, variables, equations, and other components. The parser reads declarations to further identify the model elements used in equations/constraints. Data and operations on data are not imported--the parser focuses on the model structure, which is stored in an object of class `model_structure`.
 
 ```{r, eval=FALSE}
-mod_str <- read_gams(gams_source, include = FALSE, verbose = FALSE)
+mod_str <- read_gams(file_or_text = gams_source, include = FALSE, verbose = FALSE)
 print(mod_str)
 ```
 
@@ -176,8 +164,8 @@ alias_map <- list(
   comm = "c", 
   commp = "cp", 
   tech = "t", 
-  year = "y", 
-  slice = "s"
+  year = "y",
+  timeslice = "s"
 )
 # eq <- mod$equations$eqTechVarom # the same equation as above
 eq_tex_file <- paste0("tmp/", eq$name, "_short.tex")
@@ -206,7 +194,7 @@ write_latex(mod, file = "tmp/example_model.tex",
             title = "Base energyRt model",
             subtitle = "Imported from GAMS and rendered to LaTeX by multimod",
             author = "energyRt authors",
-            alias_map = multimod::example_model$short_aliases)
+            alias_map = mod$index_aliases)
 tinytex::pdflatex("tmp/example_model.tex")
 ```
 
@@ -222,15 +210,23 @@ image_write(img, "images/example_model.png")
 knitr::include_graphics("images/example_model.png")
 ```
 
-## Rendering back to GAMS 
-The idea of the `multimod` package is to provide a way to convert the model structure back to GAMS, Julia/JuMP, Python/Pyomo, or other mathematical programming languages. The current version has a drafted implementation of the `as_gams` method, which converts the multimod object back to GAMS code. This feature does not create a fully functional GAMS model yet, it exports declarations only. Connections with data is planned for future releases.
+## Rendering back to GAMS
+The idea of the `multimod` package is to provide a way to convert the model structure back to GAMS, Julia/JuMP, Python/Pyomo, or other mathematical programming languages. The `as_gams` method converts a multimod object or equation back to GAMS code; `write_gams()` renders the whole model to a `.gms` file and `write_gams_data()` exports the data as a GDX.
 ```{r, eval=TRUE}
 as_gams(mod$equations$eqTechCapUp) |> cat()
 ```
-Render full model.
+Render the full model and its data.
 ```{r, eval=FALSE}
-write_gams(mod, file = "tmp/example_model.gms")
+write_gams(mod, file = file.path(tempdir(), "example_model.gms"))
+write_gams_data(mod, file = file.path(tempdir(), "example_model.gdx"))
+```
+
+## Routes to a solver
+A model with data attached can be solved two ways. The matrix route assembles the LP in R: `model_to_lp()` builds the coefficient matrix from the equations, `solve_highs()` solves it in process with HiGHS, and `mm_session()` keeps the matrix between repeated solves. The file routes write the model in another language and run its toolchain: `write_gmpl()` with `solve_gmpl()` (GLPK), `write_jump()` with `solve_jump()` (Julia), `write_pyomo()` with `solve_pyomo()` (Python). `example_models$toy` is a small LP to try them on.
+```{r, eval=FALSE}
+r <- solve_highs(example_models$toy, attach = FALSE)
+r$objective
 ```
 
 ## Summary
-This vignette provides an overview of the current functionality of the `multimod` package, which allows for parsing certain GAMS models, converting them into a structured format, rendering to LaTeX, and converting back to GAMS code. The package is still under development, not all styles of GAMS models and syntax are supported, more features will be added in the future. See the [{dev-status}](roadmap.html) article for details.
+This vignette provides an overview of the current functionality of the `multimod` package, which allows for parsing certain GAMS models, converting them into a structured format, rendering to LaTeX, and converting back to GAMS code. The package is still under development, not all styles of GAMS models and syntax are supported, more features will be added in the future. See the [Development status](roadmap.html) article for details.

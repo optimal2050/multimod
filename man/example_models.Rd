@@ -5,8 +5,14 @@
 \alias{example_models}
 \title{Example Model in Multiple Formats}
 \format{
-A list with 1 element:
+A list with 2 elements:
 \describe{
+\item{toy}{A two-region capacity-expansion LP (3 technologies, 2 regions,
+4 parameters, 3 variables, 3 equations) written with the multimod
+constructors in \code{data-raw/toy_model.R}. Every parameter carries
+data, so \code{model_to_lp()} gives a 9 x 13 LP and
+\code{solve_highs()} finds the optimum (198000) in well under a second.
+Used by \code{vignette("ast")} and the solver examples.}
 \item{energyRt}{energyRt TOPIA test case with components:
 \describe{
 \item{gams}{List with \code{model}: energyRt's GAMS template source

@@ -1,136 +1,266 @@
 ---
-title: "Abstract Syntax Tree"
+title: "Writing a model in R"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Abstract Syntax Tree}
-  %\VignetteEncoding{UTF-8}
+  %\VignetteIndexEntry{Writing a model in R}
   %\VignetteEngine{knitr::rmarkdown}
-editor_options: 
-  chunk_output_type: console
+  %\VignetteEncoding{UTF-8}
 ---
 
 ```{r, include = FALSE}
-knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "#>"
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+has_highs <- requireNamespace("highs", quietly = TRUE)
+```
+
+```{r setup}
+library(multimod)
+```
+
+multimod models are usually read from a source file: `read_gams()` and
+`read_gmpl()` turn a GAMS or MathProg model into the structure described here.
+This vignette builds the same kind of object directly in R, which is the way
+to write a new model, to generate one programmatically, or to understand what
+the readers produce. The model is a small capacity-expansion problem: three
+technologies supply electricity to two regions at least cost. It ships with
+the package as `example_models$toy`; the code below is the file that built it.
+
+## The parts of a model
+
+A model is a list of named components, each a small S3 object:
+
+| Component   | Constructor       | Holds                                              |
+|-------------|-------------------|----------------------------------------------------|
+| sets        | `new_set()`       | the index values of a dimension                    |
+| mappings    | `new_mapping()`   | tuples over several sets, used as domains          |
+| parameters  | `new_parameter()` | data indexed by dimensions                         |
+| variables   | `new_variable()`  | decision variables, with a domain and bounds       |
+| equations   | `new_equation()`  | left side, relation, right side, over a domain     |
+
+The sides of an equation are *expressions*: trees of AST nodes built with
+`ast_variable()`, `ast_parameter()`, `ast_expression()`, `ast_sum()` and
+their relatives. Every renderer (`as_gams()`, `as_latex()`, the LP matrix) is
+a walk over that tree.
+
+## Sets
+
+A set names a dimension and lists its values.
+
+```{r sets}
+techs   <- c("coal", "gas", "wind")
+regions <- c("north", "south")
+
+sets <- list(
+  tech   = new_set("tech",   desc = "generation technologies", data = techs),
+  region = new_set("region", desc = "model regions",           data = regions)
+)
+sets$tech
+```
+
+## Mappings
+
+A mapping is a table of tuples over one or more sets. Mappings serve as
+*domains*: an indexed variable or equation exists for exactly the tuples of
+its domain mapping, which is how sparse models stay sparse. Here every
+technology may be built in every region, so the domain is the full grid.
+
+```{r mappings}
+tuples <- expand.grid(tech = techs, region = regions, stringsAsFactors = FALSE)
+
+mappings <- list(
+  mTR = new_mapping("mTR", desc = "technology x region pairs",
+                    dims = c("tech", "region"), data = tuples),
+  mR  = new_mapping("mR",  desc = "regions",
+                    dims = "region", data = data.frame(region = regions))
+)
+mappings$mTR$data
+```
+
+## Parameters
+
+A parameter declares its dimensions and carries a data frame with one column
+per dimension plus `value`.
+
+```{r parameters}
+parameters <- list(
+  pCapCost = new_parameter("pCapCost", desc = "annualised capacity cost, EUR/kW",
+    dims = "tech",
+    data = data.frame(tech = techs, value = c(120, 70, 90))),
+  pVarCost = new_parameter("pVarCost", desc = "variable cost, EUR/MWh",
+    dims = "tech",
+    data = data.frame(tech = techs, value = c(30, 55, 0))),
+  pAvail = new_parameter("pAvail", desc = "availability factor",
+    dims = c("tech", "region"),
+    data = transform(tuples, value = c(0.85, 0.85, 0.90, 0.90, 0.35, 0.25))),
+  pDemand = new_parameter("pDemand", desc = "annual demand, MWh",
+    dims = "region",
+    data = data.frame(region = regions, value = c(1000, 600)))
+)
+parameters$pAvail
+```
+
+## Variables
+
+Variables declare dimensions, a domain mapping, a type and bounds. A scalar
+variable has `dims = character(0)`.
+
+```{r variables}
+variables <- list(
+  vCap = new_variable("vCap", desc = "installed capacity, kW",
+                      dims = c("tech", "region"), domain = "mTR",
+                      vtype = "positive", bounds = list(lo = 0)),
+  vGen = new_variable("vGen", desc = "generation, MWh",
+                      dims = c("tech", "region"), domain = "mTR",
+                      vtype = "positive", bounds = list(lo = 0)),
+  vCost = new_variable("vCost", desc = "total system cost, EUR",
+                       dims = character(0))
 )
 ```
 
-```{r setup, eval=FALSE}
-library(multimod)
-library(lobstr)
-library(visNetwork)
+## Expressions
+
+Inside an equation, symbols are *referenced* rather than declared:
+`ast_variable()` and `ast_parameter()` take the name and the index symbols,
+given as `ast_dims()`. `ast_expression()` combines two nodes with an operator,
+and `ast_sum()` sums an expression over index symbols.
+
+```{r expressions}
+gen   <- ast_variable("vGen", dims = ast_dims("tech", "region"))
+avail <- ast_parameter("pAvail", dims = ast_dims("tech", "region"))
+cap   <- ast_variable("vCap", dims = ast_dims("tech", "region"))
+
+limit <- ast_expression("*", avail, cap)
+node_type(limit)
+limit
 ```
 
-## Example equation #1
-```{r, eval=FALSE}
-model_info <- example_model$model_info #|> as_multimod()
-mm <- as_multimod(
-  x = model_info, 
-  name = "Base energyRt model",
-  desc = "Converted to multimod format and exported to PDF/LaTeX using the multimod R package",
-  authors = "source: www.energyRt.org\nhttps://github.com/optimal2050/multimod"
-  )
-# eq <- example_model$multimod$equations$eqTechCapUp
-eq <- mm$equations$eqTechCapUp
-print(eq$name); print(eq$desc)
-names(eq)
+Rendering is a method on the node, so an expression can be checked before it
+is used:
+
+```{r render-expression}
+as_gams(limit)
+as_latex(limit)
 ```
 
-### Full tree structure
-```{r, eval=FALSE}
-depth(eq)
-tree(eq, max_depth = 5)
+## Equations
+
+An equation has a left side, a relation (`"=="`, `"<="`, `">="`), a right side
+and a domain. The domain mapping decides for which tuples the equation is
+generated.
+
+```{r equations}
+eqCapLim <- new_equation("eqCapLim", desc = "generation is limited by capacity",
+  dims = c("tech", "region"),
+  lhs = gen, rhs = limit, relation = "<=",
+  domain = ast_mapping("mTR", dims = ast_dims("tech", "region")))
+
+eqDemand <- new_equation("eqDemand", desc = "demand is met in every region",
+  dims = "region",
+  lhs = ast_sum(ast_dims("tech"), ast_variable("vGen", dims = ast_dims("tech", "region"))),
+  rhs = ast_parameter("pDemand", dims = ast_dims("region")),
+  relation = ">=",
+  domain = ast_mapping("mR", dims = ast_dims("region")))
+
+eqCost <- new_equation("eqCost", desc = "total cost",
+  dims = character(0),
+  lhs = ast_variable("vCost", dims = ast_dims()),
+  rhs = ast_sum(ast_dims("tech", "region"),
+    ast_expression("+",
+      ast_expression("*", ast_parameter("pCapCost", dims = ast_dims("tech")),
+                          ast_variable("vCap", dims = ast_dims("tech", "region"))),
+      ast_expression("*", ast_parameter("pVarCost", dims = ast_dims("tech")),
+                          ast_variable("vGen", dims = ast_dims("tech", "region"))))),
+  relation = "==")
+
+eqDemand
+as_latex(eqCost)
 ```
 
-### Network representation
-```{r, eval=FALSE}
-eq_net <- multimod::get_network_data(eq)
-visNetwork(eq_net$nodes, eq_net$edges) |>
-  visOptions(highlightNearest = TRUE, nodesIdSelection = TRUE) |>
-  visHierarchicalLayout(direction = "LR")  
+## The model
 
+`new_model()` assembles the components. The objective is declared as the
+equation that defines it, the variable it defines and the sense.
+
+```{r model}
+toy <- new_model(
+  name = "toy", desc = "two-region capacity expansion",
+  sets = sets, mappings = mappings, parameters = parameters,
+  variables = variables,
+  equations = list(eqCapLim = eqCapLim, eqDemand = eqDemand, eqCost = eqCost),
+  objectives = list(list(equation = "eqCost", variable = "vCost",
+                         sense = "minimize"))
+)
+toy
 ```
 
-### LaTeX output
-```{r, eval=FALSE}
-eq_latex <- as_latex(eq)
-cat(eq_latex)
-write_latex(eq, file = "tmp/test.tex")
+Every constructor validates its node against the AST schema as it is built
+(`ast_schema()` lists the node types and their fields), so a malformed node is
+refused where it is written. `validate()` checks the assembled model: every
+symbol referenced in an equation must be declared, with matching dimensions.
 
+```{r validate}
+v <- validate(toy)
+v$valid
 ```
 
+The text backends write indexed expressions with short iterator names
+(`sum{t in tech}` in MathProg, `for t in tech` in Julia). A model built in R
+has none until `add_index_aliases()` derives them from the set names:
 
-## Example equation #2
-```{r, eval=FALSE}
-# eq <- example_model$multimod$equations$eqTechAInp
-eq <- mm$equations$eqTechAInp
-eq <- mm$equations$eqTechCap
-eq <- mm$equations$eqCost
-eq <- mm$equations$eqTaxCost
-eq <- mm$equations$eqStorageEac
-eq <- mm$equations$eqTechSng2Sng
-eq <- mm$equations$eqStorageStore
-eq <- mm$equations$eqImportIrCost
-eq <- mm$equations$eqStorageVarom
-eq <- mm$equations$eqTechGrp2Sng
-eq <- mm$equations$eqTechAfcOutLo
-eq <- mm$equations$eqImportTot
-eq <- mm$equations$eqTechEac
-eq <- mm$equations$eqAggOutTot
-eq <- mm$equations$eqTechSng2Grp
-eq <- mm$equations$eqTechShareInpUp
-eq <- alias_ast_names(eq, aliases = example_model$short_aliases)
-print(eq$name); print(eq$desc)
+```{r aliases}
+toy <- add_index_aliases(toy)
+unlist(toy$index_aliases)
 ```
 
-### Partial tree structure
-```{r, eval=FALSE}
-tree(eq, max_depth = 3)
+## Solving
+
+The matrix route needs no external software: `model_to_lp()` builds the
+constraint matrix from the equations and the data, and `solve_highs()` passes
+it to the HiGHS solver (the 'highs' package).
+
+```{r lp}
+lp <- model_to_lp(toy)
+dim(lp$A)
 ```
 
-### Network representation
-```{r, eval=FALSE}
-eq_net <- get_network_data(eq, show_dims = TRUE)
-visNetwork(eq_net$nodes, eq_net$edges) |>
-  visOptions(highlightNearest = TRUE, nodesIdSelection = TRUE) |>
-  visInteraction(navigationButtons = TRUE) |>
-  visHierarchicalLayout(direction = "LR")
+```{r solve, eval = has_highs}
+r <- solve_highs(toy, attach = FALSE)
+r$objective
+head(r$primal[r$primal$value > 0, ], 10)
 ```
 
-```{r, eval=FALSE}
-as_visNetwork(eq$lhs) |>
-  visOptions(highlightNearest = TRUE, nodesIdSelection = TRUE) |>
-  visInteraction(navigationButtons = TRUE) |>
-  visHierarchicalLayout(direction = "LR")
+The file routes render the same model for an external solver:
+`write_gmpl()` for GLPK, `write_jump()` for Julia and `write_pyomo()` for
+Python; `vignette("multimod")` lists them with their `solve_*()` counterparts.
+
+```{r write}
+mod_file <- tempfile(fileext = ".mod")
+invisible(write_gmpl(toy, file = mod_file))
+cat(head(readLines(mod_file), 12), sep = "\n")
 ```
 
+## Saving and exchanging the model
 
-### LaTeX output
-```{r, eval=FALSE}
-eq_w <- remap_ast_elements(eq) 
-# eq_latex <- as_latex(eq_w)
-# eq_latex <- 
-# eq_latex |> cat()
+`model_to_json()` serialises the whole model, including the AST, in the
+language-neutral JSON format defined by `ast_json_schema()`;
+`model_from_json()` reads it back. This is the interchange format for other
+implementations of the model structure.
 
-write_latex(eq_w, file = "tmp/test.tex")
-write_latex(eq, file = "tmp/test.tex")
-write_latex(ast_node, file = "tmp/test.tex")
-
-
-m <- mm
-m$equations <- mm$equations |>
-  lapply(remap_ast_elements) |>
-  lapply(alias_ast_names, aliases = example_model$short_aliases)
-write_latex(m, file = "tmp/multimod-test.tex", include_aliases = F)
-
-write_latex(m$equations$eqObjective, file = "tmp/eqObjective.tex")
-
+```{r json}
+json <- model_to_json(toy)
+back <- model_from_json(json)
+identical(names(back$equations), names(toy$equations))
+as_gams(back$equations$eqDemand)
 ```
 
-### GAMS output
-```{reval=FALSE}
-write_gams(mm, file = "tmp/multimod-test.gms", format_expr = TRUE)
+`save_model()` and `load_model()` write a model as a workspace directory with
+its data tables in CSV or Arrow files; see the "Model workspace" article on
+the package website.
 
-```
+## Where next
 
+- `vignette("multimod")`: reading an existing GAMS model and what the package
+  does with it.
+- `vignette("folding")`: folding and trimming a model to the size its data
+  actually needs.
+- The website articles cover the solver backends (GLPK, JuMP, Pyomo) and
+  their configuration.

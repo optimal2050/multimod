@@ -18,6 +18,29 @@
   configuration directory returned by `tools::R_user_dir("multimod",
   "config")` instead of `~/.multimod/`.
 
+## New
+
+* `example_models$toy`: a small, fully populated capacity-expansion LP built
+  with the constructors (`data-raw/toy_model.R`). It goes through every route
+  in well under a second and is what `vignette("ast")` builds step by step.
+* `vignette("ast")` is now the guide to writing a model in R: sets, mappings,
+  parameters, variables, expressions, equations, validation, the matrix
+  route, the file routes and the JSON round trip.
+
+## Fixes
+
+* The matrix backend evaluates `sum`/`prod` nodes produced by `ast_sum()` /
+  `ast_prod()` (GAMS sums arrive as `func` nodes and were the only form
+  handled); `ast_sum(domain = )` gates the summation like a `$`-condition.
+* GMPL rendering of models built in R: sums over an unnamed `ast_dims()` get
+  iterator names (`sum{t in tech}`) and references inside use them;
+  one-dimensional domains render as `{r in mR}`, which MathProg requires;
+  equations without `dims_index_aliases` get default iterators instead of an
+  error.
+* GAMS rendering brackets a multi-set sum index, `sum((tech,region), ...)`,
+  and `prod()` separates index and body with a comma.
+* `untrim_model()` accepts `mm_model` objects.
+
 ## CRAN preparation
 
 * The four articles that need energyRt or an installed solver (folding,

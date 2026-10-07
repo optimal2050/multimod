@@ -1,10 +1,6 @@
 ---
 title: "Model Workspace and Data Management"
 output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{Model Workspace and Data Management}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
 ---
 
 ```{r, include = FALSE}
@@ -173,7 +169,7 @@ model <- load_model(
 )
 
 # Access parameters
-tech_cost <- model$parameters$pTechCost$data
+tech_cost <- model$parameters$pTechInvcost$data
 demand <- model$parameters$pDemand$data
 ```
 
@@ -293,7 +289,6 @@ print(tail(log, 5))
 - Audit trail: log tracks all solution loads with timestamps
 - Clean workspace: no proliferation of timestamped directories
 - Overwrite behavior: easy to re-run and update solutions
-```
 
 ## Working with Folded Data
 
@@ -301,7 +296,11 @@ Models with folded parameters store both regular and folded data:
 
 ```{r folded-data}
 # Apply folding
-model <- fold_parameter(model, "pDemand", dimensions = "slice")
+fold_spec <- create_fold_spec(
+  model,
+  fold_dims = list(timeslice = list(tech = "mTechTimeslice", comm = "mCommTimeslice"))
+)
+model <- fold_model(model, fold_spec)
 
 # Save model - both data and folded_data are saved
 model <- save_model(model, path = "models/utopia_folded", format = "ipc")
@@ -413,7 +412,7 @@ model_structure <- load_model(
 
 # Load only needed parameters
 demand <- get_data(model_structure, "pDemand", type = "parameter")
-tech_cost <- get_data(model_structure, "pTechCost", type = "parameter")
+tech_cost <- get_data(model_structure, "pTechInvcost", type = "parameter")
 ```
 
 ## Performance Comparison

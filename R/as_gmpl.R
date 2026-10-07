@@ -124,7 +124,7 @@ as_gmpl.mm_mapping <- function(x, declaration = FALSE, desc = declaration, ...) 
           set_name
         }
       })
-      paste0("(", paste(dim_list, collapse = ","), ") in ", x$name)
+      .gmpl_tuple_in(dim_list, x$name)
     } else {
       x$name
     }
@@ -358,7 +358,7 @@ as_gmpl.mm_parameter <- function(x, declaration = FALSE, desc = declaration, ...
           set_name
         }
       })
-      paste0("(", paste(dim_list, collapse = ","), ") in ", x$name)
+      .gmpl_tuple_in(dim_list, x$name)
     } else {
       # In equation context, use dummy variables
       if (!is.null(dims_obj) && length(dims_obj) > 0) {
@@ -478,7 +478,7 @@ as_gmpl.mm_variable <- function(x, declaration = FALSE, desc = declaration, ...)
           set_name
         }
       })
-      paste0("(", paste(dim_list, collapse = ","), ") in ", x$name)
+      .gmpl_tuple_in(dim_list, x$name)
     } else {
       # In equation context, use dummy variables
       if (!is.null(dims_obj) && length(dims_obj) > 0) {
@@ -546,16 +546,12 @@ as_gmpl.sum <- function(x, ...) {
 
     # Get index names and sets from x$index (dims object)
     if (inherits(x$index, "dims") && length(x$index) > 0) {
-      # Build index spec: "var in SET, var2 in SET2"
-      index_specs <- sapply(names(x$index), function(var_name) {
-        set_expr <- x$index[[var_name]]
-        set_name <- dim_binding_name(set_expr)
-        paste(var_name, "in", set_name)
-      })
+      # "var in SET, var2 in SET2"; iterators derived where the index is unnamed
+      idx_core <- .gmpl_sum_index(x$index)
 
       # Add condition
       cond_str <- as_gmpl(condition, ...)
-      idx <- paste0(paste(index_specs, collapse = ", "), ": ", cond_str)
+      idx <- paste0(idx_core, ": ", cond_str)
     } else {
       # Fallback
       idx <- as_gmpl(x$index, brackets = "{}", ...)
@@ -567,13 +563,7 @@ as_gmpl.sum <- function(x, ...) {
   } else {
     # No condition, standard sum - still need "var in SET" format
     if (inherits(x$index, "dims") && length(x$index) > 0) {
-      # Build index spec: "var in SET, var2 in SET2"
-      index_specs <- sapply(names(x$index), function(var_name) {
-        set_expr <- x$index[[var_name]]
-        set_name <- dim_binding_name(set_expr)
-        paste(var_name, "in", set_name)
-      })
-      idx <- paste(index_specs, collapse = ", ")
+      idx <- .gmpl_sum_index(x$index)
     } else {
       # Fallback for unexpected structure
       idx <- as_gmpl(x$index, brackets = "", ...)
@@ -621,12 +611,7 @@ as_gmpl.setmin <- function(x, ...) {
   # GMPL uses curly braces for indexed min: min{i in I} expr
   # Build index spec: "var in SET, var2 in SET2"
   if (inherits(x$index, "dims") && length(x$index) > 0) {
-    index_specs <- sapply(names(x$index), function(var_name) {
-      set_expr <- x$index[[var_name]]
-      set_name <- dim_binding_name(set_expr)
-      paste(var_name, "in", set_name)
-    })
-    idx <- paste(index_specs, collapse = ", ")
+    idx <- .gmpl_sum_index(x$index)
   } else {
     # Fallback for unexpected structure
     idx <- as_gmpl(x$index, brackets = "", ...)
@@ -653,12 +638,7 @@ as_gmpl.setmax <- function(x, ...) {
   # GMPL uses curly braces for indexed max: max{i in I} expr
   # Build index spec: "var in SET, var2 in SET2"
   if (inherits(x$index, "dims") && length(x$index) > 0) {
-    index_specs <- sapply(names(x$index), function(var_name) {
-      set_expr <- x$index[[var_name]]
-      set_name <- dim_binding_name(set_expr)
-      paste(var_name, "in", set_name)
-    })
-    idx <- paste(index_specs, collapse = ", ")
+    idx <- .gmpl_sum_index(x$index)
   } else {
     # Fallback for unexpected structure
     idx <- as_gmpl(x$index, brackets = "", ...)
@@ -1072,7 +1052,7 @@ as_gmpl_sum_prod <- function(x, ...) {
                   set_name
                 }
               })
-              inner_cond_str <- paste0("(", paste(dim_list, collapse = ","), ") in ", inner_cond$name)
+              inner_cond_str <- .gmpl_tuple_in(dim_list, inner_cond$name)
               # Wrap in nested sum with FORIF
               paste0("sum{FORIF: ", inner_cond_str, "}(", inner_expr, ")")
             } else {
@@ -1143,8 +1123,7 @@ as_gmpl.when <- function(x, ...) {
       }
     })
 
-    tuple <- paste0("(", paste(dim_list, collapse = ","), ")")
-    condition_str <- paste0(tuple, " in ", cond_name)
+    condition_str <- .gmpl_tuple_in(dim_list, cond_name)
 
     # Return FORIF sum pattern
     paste0("sum{_IF_: ", condition_str, "}(", then_expr, ")")
@@ -1355,12 +1334,10 @@ as_gmpl.mm_equation <- function(x, model = NULL, is_objective = FALSE, obj_info 
         })
         names(dims_index_aliases) <- set_names
       } else {
-        # Fall back to generating new ones
-        # This should not normally happen - equations should have dims_index_aliases
-        stop("Equation '", eqname, "' is missing dims_index_aliases. ",
-             "This should have been preserved from original GMPL parsing or set during equation creation. ",
-             "Equation dims: ", paste(set_names, collapse = ", "), ". ",
-             "Cannot auto-generate index aliases - they must match the variable references in equation body.")
+        # A model built with the constructors (no reader, no global aliases):
+        # its references use the set names themselves, so the iterators can be
+        # derived from them.
+        dims_index_aliases <- default_index_aliases(set_names)
       }
     }
 
@@ -1400,10 +1377,10 @@ as_gmpl.mm_equation <- function(x, model = NULL, is_objective = FALSE, obj_info 
     # Check if there's a domain mapping or condition
     if (!is.null(x$domain) && inherits(x$domain, "symbol")) {
       domain_name <- x$domain$name
-      index_tuple <- paste0("{(", var_list, ") in ", domain_name, "}")
+      index_tuple <- paste0("{", .gmpl_tuple_in(strsplit(var_list, ",\\s*")[[1]], domain_name), "}")
     } else if (!is.null(x$domain) && inherits(x$domain, "mm_mapping")) {
       domain_name <- x$domain$name
-      index_tuple <- paste0("{(", var_list, ") in ", domain_name, "}")
+      index_tuple <- paste0("{", .gmpl_tuple_in(strsplit(var_list, ",\\s*")[[1]], domain_name), "}")
     } else if (!is.null(x$domain) && inherits(x$domain, "expression")) {
       # Domain is a condition/filter expression
       # Use Cartesian product with condition
@@ -1497,3 +1474,37 @@ as_gmpl.mm_equation <- function(x, model = NULL, is_objective = FALSE, obj_info 
 }
 
 
+
+# Iterator specification of a sum/prod index: "t in tech, r in region".
+# Indexes built by the readers name each entry by its iterator (`t` bound to
+# set tech). Indexes built with ast_dims("tech") do not, so the iterators are
+# derived from the set names and registered as iterator variables, so that
+# references inside the sum render with them; the caller's option state is
+# restored when the calling renderer returns.
+.gmpl_sum_index <- function(index, envir = parent.frame()) {
+  sets <- vapply(index, dim_binding_name, character(1), USE.NAMES = FALSE)
+  vars <- names(index)
+  if (is.null(vars)) vars <- rep("", length(sets))
+  miss <- !nzchar(vars)
+  if (any(miss)) {
+    old <- getOption("multimod.iterator_vars", list())
+    taken <- c(unlist(old, use.names = FALSE),
+               unlist(getOption("multimod.index_aliases", list()), use.names = FALSE))
+    gen <- unname(default_index_aliases(sets[miss]))
+    gen <- make.unique(c(taken, gen), sep = "_")[length(taken) + seq_along(gen)]
+    vars[miss] <- gen
+    new <- old
+    for (i in which(miss)) new[[sets[i]]] <- vars[i]
+    options(multimod.iterator_vars = new)
+    do.call(on.exit, list(bquote(options(multimod.iterator_vars = .(old))), add = TRUE),
+            envir = envir)
+  }
+  paste(vars, "in", sets, collapse = ", ")
+}
+
+# "(t,r) in mTR" for a tuple, "r in mR" for a single index: MathProg does not
+# accept parentheses around a one-element tuple.
+.gmpl_tuple_in <- function(dim_list, set_name) {
+  if (length(dim_list) == 1L) paste0(dim_list, " in ", set_name)
+  else paste0("(", paste(dim_list, collapse = ","), ") in ", set_name)
+}
