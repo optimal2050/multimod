@@ -36,7 +36,7 @@ A list with 1 element:
 
 ## Source
 
-- energyRt: <https://github.com/energyRt/energyRt>
+- energyRt: <https://github.com/optimal2050/energyRt>
 
 ## Details
 
@@ -79,7 +79,7 @@ See `LICENSE.note`.
 
 ## References
 
-energyRt package: <https://github.com/energyRt/energyRt>
+energyRt package: <https://github.com/optimal2050/energyRt>
 
 ## See also
 
@@ -149,15 +149,9 @@ summary(example_models$energyRt$multimod)
 #> index_aliases  44    -none- character
 #> misc            2    -none- list     
 
-if (FALSE) { # \dontrun{
-# Parse from source (no temp files needed)
-model_gams <- read_gams(
+# Parse the structure from the bundled GAMS source (no temp files needed)
+structure <- read_gams(
   file_or_text = example_models$energyRt$gams$model,
   include = FALSE
 )
-
-# Export to different formats
-write_gmpl(example_models$energyRt$multimod, "tmp/energyrt")
-write_pyomo(example_models$energyRt$multimod, "tmp/energyrt_pyomo")
-} # }
 ```

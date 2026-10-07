@@ -7,6 +7,7 @@
 #' @exportS3Method
 #' @noRd
 plot.ast <- function(x, ...) {
+  .need_pkg("visNetwork", "plot() of an AST")
   nodes <- list()
   edges <- list()
   node_id <- 0

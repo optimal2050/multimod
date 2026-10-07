@@ -15,6 +15,8 @@ ast_when(condition, then, otherwise = NULL, ...)
 \item{otherwise}{Optional expression to evaluate if the condition is false.
 This part is not available in GAMS \code{$} statements, but is useful for other
 languages.}
+
+\item{...}{Additional fields stored on the node (passed to \code{\link[=new_ast]{new_ast()}}).}
 }
 \value{
 An object of class \code{ast} and subclass \code{when}.

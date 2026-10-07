@@ -236,14 +236,14 @@ test_that("fold_equations updates parameter references in AST", {
     if (!is.list(node)) return(NULL)
     
     # Check if this node is the parameter we're looking for
-    if (inherits(node, "parameter") && !is.null(node$name) && node$name == param_name) {
+    if (inherits(node, "mm_parameter") && !is.null(node$name) && node$name == param_name) {
       return(node)
     }
     
     # Recursively search all list elements
     for (i in seq_along(node)) {
       element <- node[[i]]
-      if (is.list(element) || inherits(element, "parameter") || inherits(element, "expression")) {
+      if (is.list(element) || inherits(element, "mm_parameter") || inherits(element, "expression")) {
         result <- find_param(element, param_name, depth + 1)
         if (!is.null(result)) return(result)
       }
@@ -353,6 +353,7 @@ test_that("JuMP code generation with multi-dimension folding produces correct co
 
 test_that("JuMP folded model solves correctly", {
   skip_if_not_installed("data.table")
+  skip_on_cran()
   skip_on_ci()  # Skip on CI if Julia not available
   skip_if_not(Sys.which("julia") != "", "Julia not available")
   
@@ -397,6 +398,7 @@ test_that("JuMP folded model solves correctly", {
 
 test_that("JuMP folded and unfolded models produce same objective", {
   skip_if_not_installed("data.table")
+  skip_on_cran()
   skip_on_ci()
   skip_if_not(Sys.which("julia") != "", "Julia not available")
   
@@ -588,13 +590,13 @@ test_that("as_jump respects parameter dims from equation AST", {
     if (is.null(node)) return(NULL)
     if (!is.list(node)) return(NULL)
     
-    if (inherits(node, "parameter") && !is.null(node$name) && node$name == param_name) {
+    if (inherits(node, "mm_parameter") && !is.null(node$name) && node$name == param_name) {
       return(node)
     }
     
     for (i in seq_along(node)) {
       element <- node[[i]]
-      if (is.list(element) || inherits(element, "parameter") || inherits(element, "expression")) {
+      if (is.list(element) || inherits(element, "mm_parameter") || inherits(element, "expression")) {
         result <- find_param(element, param_name, depth + 1)
         if (!is.null(result)) return(result)
       }

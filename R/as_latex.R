@@ -58,7 +58,7 @@ escape_latex_mathname <- function(name) {
   gsub("_", "\\_", name, fixed = TRUE)
 }
 
-#' @export
+#' @noRd
 latex_wrap_brackets <- function(x,
                                 brackets = NULL,
                                 autosize = TRUE,
@@ -106,6 +106,8 @@ latex_wrap_brackets <- function(x,
 }
 
 #' Get effective dimensions for LaTeX rendering
+#' @return A `dims` object: the active (folded) dimensions when requested,
+#'   else the declared dimensions, else those inferred from the data columns.
 #' @keywords internal
 get_latex_dims <- function(x, use_folded = TRUE) {
   if (use_folded && !is.null(x$active_dims) && length(x$active_dims) > 0) {
@@ -128,6 +130,7 @@ get_latex_dims <- function(x, use_folded = TRUE) {
 }
 
 #' Format set elements for LaTeX display
+#' @return A character string such as `"(3 elements: a, b, c)"`.
 #' @keywords internal
 format_set_elements <- function(set_data,
                                max_inline = 10,
@@ -162,6 +165,8 @@ format_set_elements <- function(set_data,
 }
 
 #' Render LaTeX indices for extrema constructs
+#' @return A character string of LaTeX code for the index of a min/max
+#'   construct.
 #' @keywords internal
 render_extrema_index <- function(index_node, brackets = NULL, ...) {
   if (inherits(index_node, "dims")) {
@@ -179,7 +184,7 @@ render_extrema_index <- function(index_node, brackets = NULL, ...) {
       return(paste0(idx_latex, " \\in ", set_name))
     }
 
-    if (inherits(cond, "mapping")) {
+    if (inherits(cond, "mm_mapping")) {
       dims <- cond$dims
       dims_latex <- as_latex(dims, ...)
       mapping_latex <- paste0("\\mathsf{", cond$name, "}_{", dims_latex, "}")
@@ -194,7 +199,7 @@ render_extrema_index <- function(index_node, brackets = NULL, ...) {
 }
 
 #' @returns A LaTeX bracket size prefix (e.g., "", "\\big", "\\Big", etc.)
-#' @export
+#' @noRd
 latex_bracket_size <- function(content, context = NULL) {
   # Strip LaTeX commands and brackets for rough length estimation
   content_clean <- gsub("\\\\[a-zA-Z]+|\\{|\\}|\\s+", "", content)
@@ -353,6 +358,22 @@ latex_top_level_operators <- function(latex_str,
 
 
 #' Convert objects to LaTeX format
+#'
+#' @param ... Further arguments passed to `as_latex()` methods for child nodes.
+#' @param brackets Optional bracket type used to wrap the rendered expression:
+#'   `"("`, `"["` or the curly brace; `NULL` or `FALSE` for none.
+#' @param math_env LaTeX command used to typeset set names (e.g. `"text"`,
+#'   `"mathcal"`); `NULL` returns the plain name.
+#' @param subscript_dims Logical; if `TRUE`, dimensions are rendered as a
+#'   subscript, otherwise they are wrapped in `brackets`.
+#' @param use_index_aliases Logical; if `TRUE`, dimension names are replaced
+#'   by the index aliases stored in `model`.
+#' @param model Optional `mm_model` providing `index_aliases` when
+#'   `use_index_aliases = TRUE`.
+#' @param use_indicator Logical; if `TRUE`, conditional (`when`) nodes are
+#'   rendered with an indicator function instead of a conditional bar.
+#' @param indicator_symbol LaTeX macro used as the indicator symbol when
+#'   `use_indicator = TRUE` (default: option `multimod.latex.indicator_symbol`).
 #'
 #' @export
 #' @rdname as_latex
@@ -533,9 +554,9 @@ as_latex.call <- function(x, brackets = NULL, ...) {
 # }
 
 #' @export
-#' @method as_latex set
+#' @method as_latex mm_set
 #' @rdname as_latex
-as_latex.set <- function(x, math_env = "text", ...) {
+as_latex.mm_set <- function(x, math_env = "text", ...) {
   if (is.null(x$name)) {
     return("\\emptyset")
   } else {
@@ -569,9 +590,9 @@ as_latex.dims <- function(x, brackets = NULL, subscript_dims = NULL, ...) {
 }
 
 #' @export
-#' @method as_latex expression
+#' @method as_latex mm_mapping
 #' @rdname as_latex
-as_latex.mapping <- function(x, brackets = NULL,
+as_latex.mm_mapping <- function(x, brackets = NULL,
                              subscript_dims = is.null(brackets), ...) {
   # return(NULL)
   if (is.null(x$name)) {
@@ -595,9 +616,9 @@ as_latex.mapping <- function(x, brackets = NULL,
 }
 
 #' @export
-#' @method as_latex parameter
+#' @method as_latex mm_parameter
 #' @rdname as_latex
-as_latex.parameter <- function(x, brackets = NULL,
+as_latex.mm_parameter <- function(x, brackets = NULL,
                               subscript_dims = is.null(brackets),
                               use_index_aliases = FALSE,
                               model = NULL,
@@ -643,9 +664,9 @@ as_latex.parameter <- function(x, brackets = NULL,
 }
 
 #' @export
-#' @method as_latex variable
+#' @method as_latex mm_variable
 #' @rdname as_latex
-as_latex.variable <- function(x, brackets = NULL, subscript_dims = TRUE,
+as_latex.mm_variable <- function(x, brackets = NULL, subscript_dims = TRUE,
                              use_index_aliases = FALSE,
                              model = NULL,
                              ...) {
@@ -837,7 +858,7 @@ as_latex.when <- function(x,
   dims_tex <- NULL
   mapping_latex <- NULL
 
-  if (inherits(cond, "mapping") && !is.null(cond$dims)) {
+  if (inherits(cond, "mm_mapping") && !is.null(cond$dims)) {
     dim_names <- character(length(cond$dims))
     for (i in seq_along(cond$dims)) {
       dim_names[i] <- cond$dims[[i]]$name
@@ -851,7 +872,7 @@ as_latex.when <- function(x,
     mapping_latex <- paste0("\\mathsf{", cond$name, "}_{", subscript, "}")
   }
 
-  if (inherits(cond, "where") && inherits(cond$content, "mapping")) {
+  if (inherits(cond, "where") && inherits(cond$content, "mm_mapping")) {
     dim_names <- character(length(cond$content$dims))
     for (i in seq_along(cond$content$dims)) {
       dim_names[i] <- cond$content$dims[[i]]$name
@@ -904,7 +925,7 @@ as_latex.sum <- function(x, brackets = NULL, use_index_aliases = FALSE, model = 
       for (i in seq_along(index_node)) {
         elem <- index_node[[i]]
         # Apply index alias mapping if use_index_aliases is TRUE
-        if (use_index_aliases && !is.null(model) && !is.null(model$index_aliases) && inherits(elem, "set")) {
+        if (use_index_aliases && !is.null(model) && !is.null(model$index_aliases) && inherits(elem, "mm_set")) {
           set_name <- elem$name
           if (set_name %in% names(model$index_aliases)) {
             # Use short form
@@ -932,7 +953,7 @@ as_latex.sum <- function(x, brackets = NULL, use_index_aliases = FALSE, model = 
       set_name <- paste0("\\mathsf{", cond$name, "}")
       index_latex <- paste0(idx_latex, " \\in ", set_name)
 
-    } else if (inherits(cond, "mapping")) {
+    } else if (inherits(cond, "mm_mapping")) {
       dims <- cond$dims
       dims_latex <- as_latex(dims, ...)
       mapping_latex <- paste0("\\mathsf{", cond$name, "}_{", dims_latex, "}")
@@ -1070,8 +1091,8 @@ as_latex.where <- function(x, inline_where = NULL, ...) {
 }
 
 #' @export
-#' @method as_latex equation
-as_latex.equation <- function(x,
+#' @method as_latex mm_equation
+as_latex.mm_equation <- function(x,
                               # math_env = "equation",
                               brackets_dims = NULL,
                               subscript_dims = is.null(brackets_dims),
@@ -1119,7 +1140,7 @@ as_latex.equation <- function(x,
     # Fall back to model-level index_aliases
     model_aliases <- extra_args$model$index_aliases
     # Get equation dims, could be from domain (mapping) or direct dims
-    eq_dim_names <- if (!is.null(x$domain) && inherits(x$domain, "mapping")) {
+    eq_dim_names <- if (!is.null(x$domain) && inherits(x$domain, "mm_mapping")) {
       # If domain is a mapping, use its dims
       if (!is.null(x$domain$dims)) names(x$domain$dims) else character()
     } else if (!is.null(x$dims)) {
@@ -1266,6 +1287,9 @@ end_math_env <- function(envs) {
 # format functions ####
 
 #' Estimate the length of a LaTeX string
+#' @param latex_str A character string of LaTeX code.
+#' @return A single number, the approximate rendered length in characters;
+#'   0 for `NULL` or empty input.
 #' @export
 estimate_latex_length <- function(latex_str) {
   if (is.null(latex_str) || !nzchar(latex_str)) return(0)
@@ -1370,6 +1394,10 @@ format_latex_aligned <- function(lhs, rhs, rel = "=", max_len = 90) {
 #'
 #' @param latex_str A LaTeX math string
 #' @param operators Vector of operators to split at
+#' @param indent_str Character string prepended to each continuation chunk
+#'   (default: none)
+#' @param max_len Maximum estimated line length; strings at or below it are
+#'   returned unsplit (default 80)
 #'
 #' @return A character vector of expression chunks
 #' @export

@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.4.9003</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -91,12 +91,20 @@
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
 
 
-<dl><dt id="arg-desc">desc<a class="anchor" aria-label="anchor" href="#arg-desc"></a></dt>
+<dl><dt id="arg-name">name<a class="anchor" aria-label="anchor" href="#arg-name"></a></dt>
+<dd><p>model name (character, optional)</p></dd>
+
+
+<dt id="arg-desc">desc<a class="anchor" aria-label="anchor" href="#arg-desc"></a></dt>
 <dd><p>model description (character)</p></dd>
 
 
 <dt id="arg-sets">sets<a class="anchor" aria-label="anchor" href="#arg-sets"></a></dt>
 <dd><p>named list of sets</p></dd>
+
+
+<dt id="arg-aliases">aliases<a class="anchor" aria-label="anchor" href="#arg-aliases"></a></dt>
+<dd><p>named list of set aliases</p></dd>
 
 
 <dt id="arg-mappings">mappings<a class="anchor" aria-label="anchor" href="#arg-mappings"></a></dt>
@@ -115,8 +123,22 @@
 <dd><p>named list of equation objects</p></dd>
 
 
+<dt id="arg-inmemory">inMemory<a class="anchor" aria-label="anchor" href="#arg-inmemory"></a></dt>
+<dd><p>logical; whether the model data is held in memory
+(default <code>TRUE</code>) rather than read from <code>base_path</code></p></dd>
+
+
+<dt id="arg-base-path">base_path<a class="anchor" aria-label="anchor" href="#arg-base-path"></a></dt>
+<dd><p>base directory for relative data paths when data is
+stored on disk</p></dd>
+
+
 <dt id="arg-metadata">metadata<a class="anchor" aria-label="anchor" href="#arg-metadata"></a></dt>
 <dd><p>Named list with auxiliary information (e.g., language, source_file, data_source).</p></dd>
+
+
+<dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
+<dd><p>Additional named fields stored on the model object.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -129,11 +151,11 @@
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Oleg Lugovoy.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
+
 </div>
 
     </footer></div>

@@ -34,7 +34,7 @@ dual_registered_symbols <- function(model) {
 collect_model_symbols <- function(model,
                                   include_aliases = TRUE,
                                   include_index_aliases = TRUE) {
-  stopifnot(inherits(model, "model"))
+  stopifnot(inherits(model, "mm_model"))
 
   component_names <- function(items) {
     if (is.null(items) || length(items) == 0) {
@@ -557,7 +557,7 @@ inspect_model_symbols <- function(model,
                                   symbol_info = NULL,
                                   fix = FALSE,
                                   verbose = FALSE) {
-  stopifnot(inherits(model, "model"))
+  stopifnot(inherits(model, "mm_model"))
   symbol_info <- symbol_info %||% collect_model_symbols(model)
   log <- new_symbol_issue_log()
 
@@ -663,8 +663,10 @@ make_valid <- function(x, ...) {
   UseMethod("make_valid")
 }
 
+#' @rdname make_valid
+#' @method make_valid mm_model
 #' @export
-make_valid.model <- function(x,
+make_valid.mm_model <- function(x,
                              verbose = FALSE,
                              stop_on_error = FALSE,
                              revalidate = FALSE,

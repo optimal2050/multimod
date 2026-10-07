@@ -155,7 +155,7 @@ validate.dims <- function(x, context = NULL, stop_on_error = TRUE, recursive = T
 
 #' @export
 #' @rdname validate
-validate.set <- function(x, context = NULL, stop_on_error = TRUE, recursive = TRUE, ...) {
+validate.mm_set <- function(x, context = NULL, stop_on_error = TRUE, recursive = TRUE, ...) {
   dots <- list(...)
   detailed_report <- isTRUE(dots$detailed_report)
 
@@ -164,7 +164,7 @@ validate.set <- function(x, context = NULL, stop_on_error = TRUE, recursive = TR
   warnings <- character()
   info <- character()
 
-  if (!inherits(x, "set")) {
+  if (!inherits(x, "mm_set")) {
     errors <- c(errors, "Object does not inherit class 'set'")
   }
   if (!inherits(x, "ast")) {
@@ -246,7 +246,7 @@ validate.symbol <- function(x, context = NULL, stop_on_error = TRUE, recursive =
 
 #' @export
 #' @rdname validate
-validate.mapping <- function(x, context = NULL, stop_on_error = TRUE, recursive = TRUE, ...) {
+validate.mm_mapping <- function(x, context = NULL, stop_on_error = TRUE, recursive = TRUE, ...) {
   dots <- list(...)
   detailed_report <- isTRUE(dots$detailed_report)
 
@@ -255,7 +255,7 @@ validate.mapping <- function(x, context = NULL, stop_on_error = TRUE, recursive 
   warnings <- character()
   info <- character()
 
-  if (!inherits(x, "mapping")) {
+  if (!inherits(x, "mm_mapping")) {
     errors <- c(errors, "Object does not inherit class 'mapping'")
   }
   if (!inherits(x, "ast")) {
@@ -432,7 +432,7 @@ check_named_fields <- function(x, required_fields, optional_fields = character()
 
 #' @export
 #' @rdname validate
-validate.parameter <- function(x, context = NULL, stop_on_error = TRUE, recursive = TRUE, ...) {
+validate.mm_parameter <- function(x, context = NULL, stop_on_error = TRUE, recursive = TRUE, ...) {
   dots <- list(...)
   detailed_report <- isTRUE(dots$detailed_report)
 
@@ -443,7 +443,7 @@ validate.parameter <- function(x, context = NULL, stop_on_error = TRUE, recursiv
 
   expected_fields <- c("name", "desc", "dims", "active_dims", "data", "defVal", "defInt", "symbolic", "formula", "comment")
 
-  if (!inherits(x, "parameter")) {
+  if (!inherits(x, "mm_parameter")) {
     errors <- c(errors, "Object does not inherit class 'parameter'")
   }
   if (!inherits(x, "ast")) {
@@ -529,7 +529,7 @@ validate.parameter <- function(x, context = NULL, stop_on_error = TRUE, recursiv
 
 #' @export
 #' @rdname validate
-validate.variable <- function(x, context = NULL, stop_on_error = TRUE, recursive = TRUE, ...) {
+validate.mm_variable <- function(x, context = NULL, stop_on_error = TRUE, recursive = TRUE, ...) {
   dots <- list(...)
   detailed_report <- isTRUE(dots$detailed_report)
 
@@ -538,7 +538,7 @@ validate.variable <- function(x, context = NULL, stop_on_error = TRUE, recursive
   warnings <- character()
   info <- character()
 
-  if (!inherits(x, "variable")) {
+  if (!inherits(x, "mm_variable")) {
     errors <- c(errors, "Object does not inherit class 'variable'")
   }
   if (!inherits(x, "ast")) {
@@ -595,7 +595,7 @@ validate.variable <- function(x, context = NULL, stop_on_error = TRUE, recursive
   }
 
   domain_value <- x[["domain"]]
-  if (!is.null(domain_value) && !inherits(domain_value, "mapping") && !inherits(domain_value, "ast")) {
+  if (!is.null(domain_value) && !inherits(domain_value, "mm_mapping") && !inherits(domain_value, "ast")) {
     warnings <- c(warnings, "Variable domain should be NULL, a mapping, or an AST node")
   }
 
@@ -619,7 +619,7 @@ validate.variable <- function(x, context = NULL, stop_on_error = TRUE, recursive
 
 #' @export
 #' @rdname validate
-validate.equation <- function(x, context = NULL, stop_on_error = TRUE, recursive = TRUE, ...) {
+validate.mm_equation <- function(x, context = NULL, stop_on_error = TRUE, recursive = TRUE, ...) {
   dots <- list(...)
   detailed_report <- isTRUE(dots$detailed_report)
 
@@ -628,7 +628,7 @@ validate.equation <- function(x, context = NULL, stop_on_error = TRUE, recursive
   warnings <- character()
   info <- character()
 
-  if (!inherits(x, "equation")) {
+  if (!inherits(x, "mm_equation")) {
     errors <- c(errors, "Object does not inherit class 'equation'")
   }
   if (!inherits(x, "ast")) {
@@ -688,7 +688,7 @@ validate.equation <- function(x, context = NULL, stop_on_error = TRUE, recursive
   }
 
   domain_value <- x[["domain"]]
-  if (!is.null(domain_value) && !inherits(domain_value, "mapping") && !inherits(domain_value, "ast")) {
+  if (!is.null(domain_value) && !inherits(domain_value, "mm_mapping") && !inherits(domain_value, "ast")) {
     warnings <- c(warnings, "Equation domain should be NULL, a mapping, or an AST node")
   }
 
@@ -730,17 +730,21 @@ validate.equation <- function(x, context = NULL, stop_on_error = TRUE, recursive
 #' }
 #'
 #' @examples
-#' \dontrun{
-#' m <- read_gmpl("model.mod", data_file = "data.dat")
-#' validation <- validate(m)
-#' if (!validation$valid) {
-#'   cat("Errors found:\n")
-#'   cat(paste(validation$errors, collapse = "\n"))
-#' }
+#' m <- example_models$energyRt$multimod
+#'
+#' # A single equation
+#' validate(m$equations$eqTechSng2Sng)
+#'
+#' \donttest{
+#' # The whole model takes a few seconds
+#' validation <- validate(m, stop_on_error = FALSE)
+#' validation$valid
+#' validation$errors
 #' }
 #'
 #' @export
-validate.model <- function(x, verbose = FALSE, stop_on_error = TRUE, ...) {
+validate.mm_model <- function(x, context = NULL, stop_on_error = TRUE, recursive = TRUE,
+                              verbose = FALSE, ...) {
   errors <- character(0)
   warnings <- character(0)
   info <- character(0)
@@ -877,6 +881,7 @@ validate.model <- function(x, verbose = FALSE, stop_on_error = TRUE, ...) {
 #'
 #' @param x A model_validation object
 #' @param ... Additional arguments (currently unused)
+#' @return Invisibly, `x`.
 #'
 #' @export
 print.model_validation <- function(x, ...) {

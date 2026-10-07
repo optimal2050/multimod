@@ -189,6 +189,9 @@ solve_gmpl <- function(model = NULL,
 }
 
 #' Internal function to solve with glpsol executable
+#' @return A list with elements `success`, `objective`, `solve_time`, `status`,
+#'   `exit_code`, `solver_output` and, when the solution file was parsed,
+#'   `variables` (a data frame of `name` and `value`).
 #' @keywords internal
 .solve_gmpl_glpsol <- function(gmpl_dir, glpsol_path, verbose, timeout) {
 
@@ -404,7 +407,7 @@ read_csv_results <- function(model, model_dir, verbose = TRUE) {
       dest_file <- file.path(dest_var_dir, "data.csv")
       file.copy(csv_path, dest_file, overwrite = TRUE)
       
-      if (verbose) cat(sprintf("  ✓ Loaded %s: %d rows\n", var_name, nrow(solution_data)))
+      if (verbose) cat(sprintf("  \u2713 Loaded %s: %d rows\n", var_name, nrow(solution_data)))
       
     }, error = function(e) {
       if (verbose) cat(sprintf("  Error reading %s: %s\n", var_name, e$message))

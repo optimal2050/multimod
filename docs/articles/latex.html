@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.4.9003</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -108,7 +108,7 @@ models with proper annotations.</p>
 <h2 id="setup">Setup<a class="anchor" aria-label="anchor" href="#setup"></a>
 </h2>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://optimal2050.github.io/multimod">multimod</a></span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://optimal2050.github.io/multimod/">multimod</a></span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="load-example-model">Load Example Model<a class="anchor" aria-label="anchor" href="#load-example-model"></a>
@@ -272,7 +272,7 @@ with uniform values:</p>
 <p>Trimming removes empty and unused model elements:</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Trim the folded model</span></span>
-<span><span class="va">model_optimized</span> <span class="op">&lt;-</span> <span class="fu">trim_model</span><span class="op">(</span><span class="va">model_folded</span><span class="op">)</span></span>
+<span><span class="va">model_optimized</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/trim_model.html">trim_model</a></span><span class="op">(</span><span class="va">model_folded</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Starting model trimming...</span></span>
 <span><span class="co">#&gt;   Phase 1: Identifying empty sets, parameters, and mappings...</span></span>
 <span><span class="co">#&gt;     Trimmed set: group</span></span>
@@ -911,7 +911,7 @@ document:</p>
 <span></span>
 <span><span class="co"># Apply folding and trimming</span></span>
 <span><span class="va">model_folded</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/fold_model.html">fold_model</a></span><span class="op">(</span><span class="va">demo_model</span>, <span class="va">fold_spec</span><span class="op">)</span></span>
-<span><span class="va">model_optimized</span> <span class="op">&lt;-</span> <span class="fu">trim_model</span><span class="op">(</span><span class="va">model_folded</span><span class="op">)</span></span>
+<span><span class="va">model_optimized</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/trim_model.html">trim_model</a></span><span class="op">(</span><span class="va">model_folded</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Generate comprehensive LaTeX document</span></span>
 <span><span class="fu"><a href="../reference/write_latex.html">write_latex</a></span><span class="op">(</span></span>
@@ -1034,11 +1034,11 @@ documentation directly from your model code.</p>
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Oleg Lugovoy.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
+
 </div>
 
     </footer>

@@ -811,8 +811,6 @@ print(result$status)
 
 See also: -
 [`vignette("configuration")`](https://optimal2050.github.io/multimod/articles/configuration.md) -
-Configure solver paths -
-[`vignette("jump")`](https://optimal2050.github.io/multimod/articles/jump.md) -
-JuMP export workflow -
+Configure solver paths - `vignette("jump")` - JuMP export workflow -
 [`?write_pyomo`](https://optimal2050.github.io/multimod/reference/write_pyomo.md) -
 Full documentation

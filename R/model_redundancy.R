@@ -29,17 +29,14 @@
 #' High folded redundancy suggests additional dimensions could be folded.
 #'
 #' @examples
-#' \dontrun{
-#' # Analyze all parameters
-#' analyze_parameter_redundancy(model)
+#' m <- example_models$energyRt$multimod
 #'
 #' # Analyze specific parameters
-#' analyze_parameter_redundancy(model, params = c("pTechCinp2use", "pSupCost"))
+#' analyze_parameter_redundancy(m, params = c("pTechCinp2use", "pSupCost"))
 #'
-#' # Get detailed results
-#' results <- analyze_parameter_redundancy(model, return_details = TRUE)
-#' View(results)
-#' }
+#' # Analyze all parameters and keep the per-parameter details
+#' results <- analyze_parameter_redundancy(m, return_details = TRUE)
+#' head(results)
 #'
 #' @export
 analyze_parameter_redundancy <- function(model, 
@@ -47,7 +44,7 @@ analyze_parameter_redundancy <- function(model,
                                          verbose = TRUE,
                                          return_details = FALSE) {
   
-  stopifnot(inherits(model, "multimod") || inherits(model, "model"))
+  stopifnot(inherits(model, "multimod") || inherits(model, "mm_model"))
   
   # Select parameters to analyze
   if (is.null(params)) {
@@ -206,7 +203,7 @@ get_dim_names <- function(dims) {
       d <- dims[[i]]
       if (inherits(d, "symbol")) {
         d$name
-      } else if (inherits(d, "set")) {
+      } else if (inherits(d, "mm_set")) {
         d$name
       } else {
         as.character(d)

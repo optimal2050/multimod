@@ -59,7 +59,7 @@ pyomo_format_scalar <- function(x) {
 
 pyomo_dim_name <- function(dim) {
   if (inherits(dim, "symbol")) return(dim$name)
-  if (inherits(dim, "set")) return(dim$name)
+  if (inherits(dim, "mm_set")) return(dim$name)
   if (inherits(dim, "character")) return(dim[[1]])
   if (is.list(dim) && !is.null(dim$name)) return(dim$name)
   as.character(dim)[1]
@@ -166,7 +166,7 @@ pyomo_tuple_from_dims <- function(dims_obj, model = NULL, var_names = NULL, scop
 }
 
 pyomo_membership_expr <- function(mapping, model = NULL, var_names = NULL, scope = NULL) {
-  stopifnot(inherits(mapping, "mapping"))
+  stopifnot(inherits(mapping, "mm_mapping"))
   dims <- mapping$dims
   tuple <- pyomo_tuple_from_dims(dims, model = model, var_names = var_names, scope = scope)
   paste0(tuple, " in model.", mapping$name)
@@ -194,7 +194,7 @@ as_pyomo.shift <- function(x, var_names = NULL, scope = NULL, model = NULL, ...)
 }
 
 #' @export
-as_pyomo.set <- function(x, scope = NULL, ...) {
+as_pyomo.mm_set <- function(x, scope = NULL, ...) {
   # Check if this set name maps to an iterator variable in scope
   # This happens when we merge expressions into a sum - the merged expression
   # may have set nodes that need to be resolved to the sum's iterator variable
@@ -237,7 +237,7 @@ as_pyomo.constant <- function(x, ...) {
 }
 
 #' @export
-as_pyomo.mapping <- function(x, context = c("reference", "membership"), model = NULL, var_names = NULL, scope = NULL, ...) {
+as_pyomo.mm_mapping <- function(x, context = c("reference", "membership"), model = NULL, var_names = NULL, scope = NULL, ...) {
   context <- match.arg(context)
   if (context == "membership") {
     return(pyomo_membership_expr(x, model = model, var_names = var_names, scope = scope))
@@ -258,7 +258,7 @@ as_pyomo.mapping <- function(x, context = c("reference", "membership"), model = 
 #' @return A Pyomo boolean expression.
 #' @keywords internal
 pyomo_condition <- function(node, model = NULL, var_names = NULL, scope = NULL, ...) {
-  if (inherits(node, "mapping")) {
+  if (inherits(node, "mm_mapping")) {
     return(as_pyomo(node, context = "membership", model = model,
                     var_names = var_names, scope = scope))
   }
@@ -266,8 +266,8 @@ pyomo_condition <- function(node, model = NULL, var_names = NULL, scope = NULL, 
 }
 
 #' @export
-as_pyomo.parameter <- function(x, model = NULL, var_names = NULL, scope = NULL, ...) {
-  stopifnot(inherits(x, "parameter"))
+as_pyomo.mm_parameter <- function(x, model = NULL, var_names = NULL, scope = NULL, ...) {
+  stopifnot(inherits(x, "mm_parameter"))
   dims <- x$dims %||% x$active_dims
   if (is.null(dims) || length(dims) == 0) {
     return(paste0("model.", x$name))
@@ -277,8 +277,8 @@ as_pyomo.parameter <- function(x, model = NULL, var_names = NULL, scope = NULL, 
 }
 
 #' @export
-as_pyomo.variable <- function(x, model = NULL, var_names = NULL, scope = NULL, ...) {
-  stopifnot(inherits(x, "variable"))
+as_pyomo.mm_variable <- function(x, model = NULL, var_names = NULL, scope = NULL, ...) {
+  stopifnot(inherits(x, "mm_variable"))
   dims <- x$dims
   if (is.null(dims) || length(dims) == 0) {
     return(paste0("model.", x$name))
@@ -302,11 +302,11 @@ collect_symbols <- function(node) {
   }
   
   # Also collect set names - they may represent iterator variables outside their scope
-  if (inherits(node, "set")) {
+  if (inherits(node, "mm_set")) {
     return(node$name)
   }
   
-  if (inherits(node, c("parameter", "variable"))) {
+  if (inherits(node, c("mm_parameter", "mm_variable"))) {
     symbols <- c(symbols, node$name)
     if (!is.null(node$dims)) {
       for (dim in node$dims) {
@@ -409,7 +409,7 @@ as_pyomo.expression <- function(x, model = NULL, var_names = NULL, scope = NULL,
       # Also get the set names, since parsing may resolve symbols to sets
       set_names <- character(0)
       for (idx in sum_node$index) {
-        if (inherits(idx, "set")) {
+        if (inherits(idx, "mm_set")) {
           set_names <- c(set_names, idx$name)
         }
       }
@@ -680,7 +680,7 @@ pyomo_iter_from_index <- function(index_node, model = NULL, var_names = NULL, sc
       # expression that may combine membership with comparisons. Rendering
       # only the mapping case dropped the rest of the gate, so a sum ranged
       # over the whole set and indexed variables outside their domain.
-      filter_expr <- if (inherits(index_node$condition, "mapping")) {
+      filter_expr <- if (inherits(index_node$condition, "mm_mapping")) {
         pyomo_membership_expr(index_node$condition, model = model,
                               var_names = var_names, scope = filter_scope)
       } else {
@@ -746,9 +746,11 @@ as_pyomo.when <- function(x, model = NULL, var_names = NULL, scope = NULL, ...) 
 # Equations -------------------------------------------------------------------
 
 #' Convert an equation node to Pyomo rule definition (internal helper)
+#' @return A list with `rule`, the Python source lines of the rule function,
+#'   and `assignment`, the line adding the constraint to the model.
 #' @keywords internal
 render_pyomo_equation <- function(eq, model = NULL) {
-  stopifnot(inherits(eq, "equation"))
+  stopifnot(inherits(eq, "mm_equation"))
   dim_names <- pyomo_collect_dim_names(eq$dims)
 
   # The equation is indexed by its domain mapping, so the iterators belong to
@@ -756,7 +758,7 @@ render_pyomo_equation <- function(eq, model = NULL) {
   # carries the base sets (comm, region, ...). Naming them from eq$dims bound
   # `r` in the rule signature while the body resolved `dst` to `rd`.
   domain_dim_names <- NULL
-  if (inherits(eq$domain, "mapping") && !is.null(eq$domain$dims) &&
+  if (inherits(eq$domain, "mm_mapping") && !is.null(eq$domain$dims) &&
       length(eq$domain$dims) == length(dim_names)) {
     domain_dim_names <- pyomo_collect_dim_names(eq$domain$dims)
   }
@@ -797,7 +799,7 @@ render_pyomo_equation <- function(eq, model = NULL) {
   header <- if (nzchar(iter_args)) sprintf("def %s(model, %s):", rule_name, paste(iter_map, collapse = ", ")) else sprintf("def %s(model):", rule_name)
   lines <- c(header)
   if (!is.null(eq$domain)) {
-    if (inherits(eq$domain, "mapping")) {
+    if (inherits(eq$domain, "mm_mapping")) {
       membership <- pyomo_membership_expr(eq$domain, model = model, var_names = iter_map, scope = scope)
       lines <- c(lines, sprintf("    if not (%s):", membership), "        return Constraint.Skip")
     } else if (inherits(eq$domain, "expression") || inherits(eq$domain, "ast")) {

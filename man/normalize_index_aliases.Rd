@@ -6,6 +6,10 @@
 \usage{
 normalize_index_aliases(aliases, dim_names)
 }
+\value{
+A character vector named by \code{dim_names}, \code{NA} where no alias was
+supplied, or \code{NULL} when \code{aliases} is empty.
+}
 \description{
 Normalize provided dimension aliases to align with dim names
 }

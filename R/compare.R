@@ -15,16 +15,14 @@
 #'   \item{summary}{Character string summarizing key differences}
 #'   
 #' @examples
-#' \dontrun{
-#' # Compare two equation ASTs
-#' eq1 <- model_old$equations$eqTechCap
-#' eq2 <- model_new$equations$eqTechCap
+#' m <- example_models$energyRt$multimod
+#' eq1 <- m$equations$eqTechSng2Sng
+#' eq2 <- m$equations$eqTechGrp2Sng
 #' result <- compare_ast(eq1, eq2)
 #' print(result)
-#' 
+#'
 #' # Compare specific parts
-#' result <- compare_ast(eq1$rhs, eq2$rhs, path = "eqTechCap$rhs")
-#' }
+#' compare_ast(eq1$rhs, eq2$rhs, path = "rhs")
 #' 
 #' @export
 compare_ast <- function(ast1, ast2, path = "root", max_diffs = 50) {
@@ -154,6 +152,7 @@ compare_ast <- function(ast1, ast2, path = "root", max_diffs = 50) {
 #' 
 #' @param x Result from compare_ast()
 #' @param ... Additional arguments (not used)
+#' @return Invisibly, `x`.
 #' 
 #' @export
 print.ast_comparison <- function(x, ...) {

@@ -15,7 +15,7 @@ Useful for debugging changes in model structure or equation transformations."><m
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.4.9003</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -113,16 +113,76 @@ Useful for debugging changes in model structure or equation transformations.</p>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
-<span class="r-in"><span><span class="co"># Compare two equation ASTs</span></span></span>
-<span class="r-in"><span><span class="va">eq1</span> <span class="op">&lt;-</span> <span class="va">model_old</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqTechCap</span></span></span>
-<span class="r-in"><span><span class="va">eq2</span> <span class="op">&lt;-</span> <span class="va">model_new</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqTechCap</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="va">example_models</span><span class="op">$</span><span class="va">energyRt</span><span class="op">$</span><span class="va">multimod</span></span></span>
+<span class="r-in"><span><span class="va">eq1</span> <span class="op">&lt;-</span> <span class="va">m</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqTechSng2Sng</span></span></span>
+<span class="r-in"><span><span class="va">eq2</span> <span class="op">&lt;-</span> <span class="va">m</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqTechGrp2Sng</span></span></span>
 <span class="r-in"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu">compare_ast</span><span class="op">(</span><span class="va">eq1</span>, <span class="va">eq2</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="print.html">print</a></span><span class="op">(</span><span class="va">result</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Found 9 difference(s) across 9 node(s) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Differences:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   [1] value @ root$name</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       AST1: eqTechSng2Sng</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       AST2: eqTechGrp2Sng</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   [2] value @ root$desc</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       AST1: Technology input to output</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       AST2: Technology group input to output</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   [3] value @ root$domain$name</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       AST1: meqTechSng2Sng</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       AST2: meqTechGrp2Sng</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   [4] class @ root$lhs</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       AST1: mm_variable, ast</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       AST2: expression, ast</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   [5] value @ root$rhs$op</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       AST1: *</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       AST2: /</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   [6] value @ root$rhs$lhs$op</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       AST1: *</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       AST2: /</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   [7] class @ root$rhs$lhs$lhs</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       AST1: expression, ast</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       AST2: mm_variable, ast</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   [8] value @ root$rhs$lhs$rhs$name</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       AST1: pTechCact2cout</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       AST2: pTechUse2cact</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   [9] class @ root$rhs$rhs</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       AST1: mm_variable, ast</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       AST2: mm_parameter, ast</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Compare specific parts</span></span></span>
-<span class="r-in"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu">compare_ast</span><span class="op">(</span><span class="va">eq1</span><span class="op">$</span><span class="va">rhs</span>, <span class="va">eq2</span><span class="op">$</span><span class="va">rhs</span>, path <span class="op">=</span> <span class="st">"eqTechCap$rhs"</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
+<span class="r-in"><span><span class="fu">compare_ast</span><span class="op">(</span><span class="va">eq1</span><span class="op">$</span><span class="va">rhs</span>, <span class="va">eq2</span><span class="op">$</span><span class="va">rhs</span>, path <span class="op">=</span> <span class="st">"rhs"</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Found 5 difference(s) across 5 node(s) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Differences:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   [1] value @ rhs$op</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       AST1: *</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       AST2: /</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   [2] value @ rhs$lhs$op</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       AST1: *</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       AST2: /</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   [3] class @ rhs$lhs$lhs</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       AST1: expression, ast</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       AST2: mm_variable, ast</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   [4] value @ rhs$lhs$rhs$name</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       AST1: pTechCact2cout</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       AST2: pTechUse2cact</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   [5] class @ rhs$rhs</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       AST1: mm_variable, ast</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       AST2: mm_parameter, ast</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>
@@ -131,11 +191,11 @@ Useful for debugging changes in model structure or equation transformations.</p>
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Oleg Lugovoy.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
+
 </div>
 
     </footer></div>

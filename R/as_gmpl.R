@@ -65,6 +65,7 @@ dim_binding_name <- function(entry) {
 }
 
 #' @export
+#' @method as_gmpl character
 as_gmpl.character <- function(x, ...) {
   if (is.character(x)) {
     return(x)
@@ -73,9 +74,9 @@ as_gmpl.character <- function(x, ...) {
 }
 
 #' @export
-#' @method as_gmpl set
-as_gmpl.set <- function(x, declaration = FALSE, desc = declaration, model = NULL, ...) {
-  stopifnot(inherits(x, "set"))
+#' @method as_gmpl mm_set
+as_gmpl.mm_set <- function(x, declaration = FALSE, desc = declaration, model = NULL, ...) {
+  stopifnot(inherits(x, "mm_set"))
   if (declaration) {
     comment <- if (desc && !is.null(x$desc) && length(x$desc) > 0 && !is.na(x$desc) && nchar(x$desc) > 0) {
       paste0("  # ", x$desc)
@@ -89,9 +90,9 @@ as_gmpl.set <- function(x, declaration = FALSE, desc = declaration, model = NULL
 }
 
 #' @export
-#' @method as_gmpl mapping
-as_gmpl.mapping <- function(x, declaration = FALSE, desc = declaration, ...) {
-  stopifnot(inherits(x, "mapping"))
+#' @method as_gmpl mm_mapping
+as_gmpl.mm_mapping <- function(x, declaration = FALSE, desc = declaration, ...) {
+  stopifnot(inherits(x, "mm_mapping"))
   dims_obj <- ensure_dims_object(x$dims)
   if (declaration) {
     # Get dimension count from the mapping
@@ -168,9 +169,9 @@ as_gmpl.dims <- function(x, use_index_aliases = TRUE, brackets = "[", ...) {
 }
 
 #' @export
-#' @method as_gmpl parameter
-as_gmpl.parameter <- function(x, declaration = FALSE, desc = declaration, ...) {
-  stopifnot(inherits(x, "parameter"))
+#' @method as_gmpl mm_parameter
+as_gmpl.mm_parameter <- function(x, declaration = FALSE, desc = declaration, ...) {
+  stopifnot(inherits(x, "mm_parameter"))
   dims_obj <- ensure_dims_object(x$dims)
   active_dims_obj <- ensure_dims_object(x$active_dims)
   if (declaration) {
@@ -371,9 +372,9 @@ as_gmpl.parameter <- function(x, declaration = FALSE, desc = declaration, ...) {
 }
 
 #' @export
-#' @method as_gmpl variable
-as_gmpl.variable <- function(x, declaration = FALSE, desc = declaration, ...) {
-  stopifnot(inherits(x, "variable"))
+#' @method as_gmpl mm_variable
+as_gmpl.mm_variable <- function(x, declaration = FALSE, desc = declaration, ...) {
+  stopifnot(inherits(x, "mm_variable"))
   dims_obj <- ensure_dims_object(x$dims)
   if (declaration) {
     # Format indexing with curly braces and iterator variables (r in REGION, etc.)
@@ -897,9 +898,7 @@ as_gmpl_sum_prod <- function(x, ...) {
 
       if (i == length(iter_sets)) {
         # Innermost: add condition
-        options(multimod.in_binding_condition = TRUE)
-        cond_str <- as_gmpl(condition, ...)
-        options(multimod.in_binding_condition = FALSE)
+        cond_str <- .with_binding_condition(as_gmpl(condition, ...))
 
         result <- paste0(x$name, "{", binding, ": ", cond_str, "}(", result, ")")
       } else {
@@ -914,7 +913,7 @@ as_gmpl_sum_prod <- function(x, ...) {
     # Single iterator - existing logic
     iter_name <- if (inherits(iterator, "symbol")) {
       iterator$name
-    } else if (inherits(iterator, "set")) {
+    } else if (inherits(iterator, "mm_set")) {
       iterator$name
     } else {
       as_gmpl(iterator, ...)
@@ -1012,15 +1011,9 @@ as_gmpl_sum_prod <- function(x, ...) {
   # Build condition part (common for both single and tuple iterators)
   # Set flag to indicate we're in a binding condition context
   # This tells as_gmpl methods to convert mappings/params/vars to membership tests
-  old_in_binding <- getOption("multimod.in_binding_condition", FALSE)
-  options(multimod.in_binding_condition = TRUE)
-
-  # Convert condition - as_gmpl will handle membership tests automatically now
-  cond_str <- as_gmpl(condition, ...)
-
-  # Reset binding flag immediately after processing condition
-  # The value should NOT have membership test conversion
-  options(multimod.in_binding_condition = old_in_binding)
+  # Convert condition - as_gmpl will handle membership tests automatically now;
+  # the value must NOT have membership test conversion, so the flag is scoped
+  cond_str <- .with_binding_condition(as_gmpl(condition, ...))
 
   # Build the binding: {bindings: condition}
   # bindings is either "c in comm" or "y in year, s in timeslice"
@@ -1037,7 +1030,7 @@ as_gmpl_sum_prod <- function(x, ...) {
     # Skip the first element if it's a mapping (that's the iterator set definition)
     val_items <- x$value
     start_idx <- 1
-    if (inherits(val_items[[1]], "mapping") || inherits(val_items[[1]], "set")) {
+    if (inherits(val_items[[1]], "mm_mapping") || inherits(val_items[[1]], "mm_set")) {
       start_idx <- 2
     }
 
@@ -1061,7 +1054,7 @@ as_gmpl_sum_prod <- function(x, ...) {
           # Nested condition - create nested sum with FORIF placeholder
           inner_expr <- as_gmpl(when_obj$then, ...)
           inner_cond <- when_obj$condition
-          if (inherits(inner_cond, "variable") || inherits(inner_cond, "parameter") || inherits(inner_cond, "mapping")) {
+          if (inherits(inner_cond, "mm_variable") || inherits(inner_cond, "mm_parameter") || inherits(inner_cond, "mm_mapping")) {
             # Build membership test for inner condition
             inner_dims <- ensure_dims_object(inner_cond$dims)
             if (!is.null(inner_dims) && length(inner_dims) > 0) {
@@ -1120,7 +1113,7 @@ as_gmpl.when <- function(x, ...) {
   # (i.e., a membership test rather than a boolean expression)
 
   cond_dims <- ensure_dims_object(x$condition$dims)
-  is_membership_filter <- inherits(x$condition, c("mapping", "variable", "parameter")) &&
+  is_membership_filter <- inherits(x$condition, c("mm_mapping", "mm_variable", "mm_parameter")) &&
                          !is.null(cond_dims) &&
                          length(cond_dims) > 0
 
@@ -1180,6 +1173,7 @@ as_gmpl.where <- function(x, ...) {
 }
 
 #' Get operator precedence level (higher = tighter binding)
+#' @return An integer precedence level; 10 for unknown operators.
 #' @keywords internal
 get_op_precedence <- function(op) {
   precedence <- list(
@@ -1278,7 +1272,7 @@ as_gmpl.expression <- function(x, parent_op = NULL, parent_precedence = 0, ...) 
   # For division, if RHS is an indexed access, wrap in parens to preserve semantics
   # Example: a / (b[x]) not a / b[x] which could be (a/b)[x]
   rhs_dims <- ensure_dims_object(x$rhs$dims)
-  if (identical(op_value, "/") && inherits(x$rhs, c("symbol", "parameter", "variable")) &&
+  if (identical(op_value, "/") && inherits(x$rhs, c("symbol", "mm_parameter", "mm_variable")) &&
       !is.null(rhs_dims) && length(rhs_dims) > 0 && !grepl("^\\(", rhs)) {
     rhs <- paste0("(", rhs, ")")
   }
@@ -1313,8 +1307,8 @@ as_gmpl.unary <- function(x, ...) {
 }
 
 #' @export
-#' @method as_gmpl equation
-as_gmpl.equation <- function(x, model = NULL, is_objective = FALSE, obj_info = NULL, ...) {
+#' @method as_gmpl mm_equation
+as_gmpl.mm_equation <- function(x, model = NULL, is_objective = FALSE, obj_info = NULL, ...) {
   eqname <- x$name
   dims_obj <- ensure_dims_object(x$dims)
   domain_dims_obj <- if (!is.null(x$domain) && !is.null(x$domain$dims)) {
@@ -1339,7 +1333,7 @@ as_gmpl.equation <- function(x, model = NULL, is_objective = FALSE, obj_info = N
 
     set_names <- sapply(dims_source, function(d) {
       if (inherits(d, "symbol")) d$name
-      else if (inherits(d, "set")) d$name
+      else if (inherits(d, "mm_set")) d$name
       else as.character(d)
     })
 
@@ -1407,7 +1401,7 @@ as_gmpl.equation <- function(x, model = NULL, is_objective = FALSE, obj_info = N
     if (!is.null(x$domain) && inherits(x$domain, "symbol")) {
       domain_name <- x$domain$name
       index_tuple <- paste0("{(", var_list, ") in ", domain_name, "}")
-    } else if (!is.null(x$domain) && inherits(x$domain, "mapping")) {
+    } else if (!is.null(x$domain) && inherits(x$domain, "mm_mapping")) {
       domain_name <- x$domain$name
       index_tuple <- paste0("{(", var_list, ") in ", domain_name, "}")
     } else if (!is.null(x$domain) && inherits(x$domain, "expression")) {

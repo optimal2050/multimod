@@ -21,29 +21,36 @@ validate(x, context = NULL, stop_on_error = TRUE, recursive = TRUE, ...)
 # S3 method for class 'dims'
 validate(x, context = NULL, stop_on_error = TRUE, recursive = TRUE, ...)
 
-# S3 method for class 'set'
+# S3 method for class 'mm_set'
 validate(x, context = NULL, stop_on_error = TRUE, recursive = TRUE, ...)
 
 # S3 method for class 'symbol'
 validate(x, context = NULL, stop_on_error = TRUE, recursive = TRUE, ...)
 
-# S3 method for class 'mapping'
+# S3 method for class 'mm_mapping'
 validate(x, context = NULL, stop_on_error = TRUE, recursive = TRUE, ...)
 
 # S3 method for class 'ast_formula'
 validate(x, context = NULL, stop_on_error = TRUE, recursive = TRUE, ...)
 
-# S3 method for class 'parameter'
+# S3 method for class 'mm_parameter'
 validate(x, context = NULL, stop_on_error = TRUE, recursive = TRUE, ...)
 
-# S3 method for class 'variable'
+# S3 method for class 'mm_variable'
 validate(x, context = NULL, stop_on_error = TRUE, recursive = TRUE, ...)
 
-# S3 method for class 'equation'
+# S3 method for class 'mm_equation'
 validate(x, context = NULL, stop_on_error = TRUE, recursive = TRUE, ...)
 
-# S3 method for class 'model'
-validate(x, verbose = FALSE, stop_on_error = TRUE, ...)
+# S3 method for class 'mm_model'
+validate(
+  x,
+  context = NULL,
+  stop_on_error = TRUE,
+  recursive = TRUE,
+  verbose = FALSE,
+  ...
+)
 ```
 
 ## Arguments
@@ -116,7 +123,7 @@ Current checks include:
 
 ## Methods (by class)
 
-- `validate(model)`: Validate a multimod model
+- `validate(mm_model)`: Validate a multimod model
 
   Checks a multimod model for structural issues, naming conflicts, and
   other potential problems that could cause issues during export or
@@ -125,12 +132,32 @@ Current checks include:
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
-m <- read_gmpl("model.mod", data_file = "data.dat")
-validation <- validate(m)
-if (!validation$valid) {
-  cat("Errors found:\n")
-  cat(paste(validation$errors, collapse = "\n"))
-}
-} # }
+m <- example_models$energyRt$multimod
+
+# A single equation
+validate(m$equations$eqTechSng2Sng)
+#> $valid
+#> [1] TRUE
+#> 
+#> $errors
+#> character(0)
+#> 
+#> $warnings
+#> character(0)
+#> 
+#> $info
+#> character(0)
+#> 
+#> $context
+#> [1] "equation eqTechSng2Sng"
+#> 
+
+# \donttest{
+# The whole model takes a few seconds
+validation <- validate(m, stop_on_error = FALSE)
+validation$valid
+#> [1] TRUE
+validation$errors
+#> character(0)
+# }
 ```

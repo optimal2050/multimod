@@ -10,6 +10,8 @@ ast_parameter(name, dims = ast_dims(), ...)
 \item{name}{Name of the parameter.}
 
 \item{dims}{Optional vector of dimension \code{dims} objects.}
+
+\item{...}{Additional fields stored on the node (passed to \code{\link[=new_ast]{new_ast()}}).}
 }
 \value{
 An \code{parameter} S3 object (subclass of \code{ast}).

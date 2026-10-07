@@ -146,6 +146,9 @@ sort_model_components <- function(components, type = "sets") {
 #' @param file Path to the output LaTeX file. If `NULL`, returns the LaTeX code as a character string.
 #' @param ... Additional arguments passed to the specific method.
 #'
+#' @return For an `mm_equation`, invisibly `file`. For an `mm_model`, invisibly
+#'   `file` when a path is given, otherwise the LaTeX source as a single
+#'   character string.
 #' @export
 write_latex <- function(x, file, ...) {
   UseMethod("write_latex")
@@ -153,6 +156,10 @@ write_latex <- function(x, file, ...) {
 
 #' Write LaTeX representation of an equation
 #'
+#' @param x An `mm_equation` (or, for the model method, an `mm_model`) object.
+#' @param file Path to the output LaTeX file.
+#' @param alias_map Named list mapping dimension names to index aliases used
+#'   in the rendered equations; `NULL` for none.
 #' @param append Logical; if `TRUE`, appends to the file instead of overwriting.
 #' @param standalone Logical; if `TRUE`, writes a complete LaTeX document with preamble and ending.
 #' @param preamble Character vector; LaTeX preamble to use. If `NULL`, uses the default preamble.
@@ -163,9 +170,10 @@ write_latex <- function(x, file, ...) {
 #' @param verbose Logical; if `TRUE`, prints additional information during processing.
 #' @param ... Additional arguments passed to the `as_latex` function for rendering the equation.
 #'
+#' @return Invisibly, `file`.
 #' @export
-#' @method write_latex equation
-write_latex.equation <- function(x,
+#' @method write_latex mm_equation
+write_latex.mm_equation <- function(x,
                                  file,
                                  append = FALSE,
                                  standalone = !append,
@@ -227,7 +235,17 @@ write_latex.equation <- function(x,
 
 #' Write LaTeX representation of a model
 #'
-#' @inherit write_latex.equation
+#' @inherit write_latex.mm_equation params
+#' @param file Path to the output LaTeX file. If `NULL`, the LaTeX source is
+#'   returned as a character string.
+#' @param title Character; document title (default: `"Model: <name>"`).
+#' @param subtitle Character; document subtitle (default: the model description).
+#' @param author Character; document author (default: `x$authors`).
+#' @param show_date Logical; if `TRUE`, print the date on the title page.
+#' @param alias_map Named list mapping dimension names to index aliases; if
+#'   `NULL` and `use_model_aliases = TRUE`, taken from `x$index_aliases`.
+#' @param use_latex_names Logical; if TRUE, use LaTeX symbol names stored in
+#'   `x$metadata$latex_names` when available. Default TRUE.
 #' @param model_view Character; display mode: "reduced" (folded dims, skip trimmed),
 #'   "full" (original model), or "both" (comparison). Default auto-detects.
 #' @param include_data Logical; if TRUE, include data context (set sizes, etc.).
@@ -252,9 +270,11 @@ write_latex.equation <- function(x,
 #' @param folded_color Character; LaTeX color name for folded annotations. Default "blue".
 #' @param trimmed_color Character; LaTeX color name for trimmed annotations. Default "red".
 #'
+#' @return Invisibly, `file` when a path is given; otherwise the LaTeX source
+#'   as a single character string.
 #' @export
-#' @method write_latex model
-write_latex.model <- function(x,
+#' @method write_latex mm_model
+write_latex.mm_model <- function(x,
                               file = NULL,
                               append = FALSE,
                               preamble = NULL,

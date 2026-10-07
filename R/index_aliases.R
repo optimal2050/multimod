@@ -113,6 +113,7 @@ add_index_aliases <- function(model, index_aliases = NULL, overwrite = FALSE) {
 #' @return Character. The index alias for the set
 #'
 #' @examples
+#' model <- example_models$energyRt$multimod
 #' model <- add_index_aliases(model)
 #' get_index_alias(model, "tech")  # "h"
 #'
@@ -149,6 +150,7 @@ has_index_aliases <- function(model) {
 }
 
 #' Preferred short names for common sets to avoid conflicts
+#' @format A named list mapping set names to preferred short iterator names.
 #' @keywords internal
 preferred_dummy_names <- list(
   tech = "h",      # technology (avoid 't' conflict with time, trade)

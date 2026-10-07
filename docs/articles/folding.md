@@ -4,7 +4,7 @@
 
 library(multimod)
 library(energyRt)
-#> energyRt 0.90.0.9014-dev (2026-10-05)
+#> energyRt 0.90.0.9016-dev (2026-10-07)
 #> Development version, please report bugs/issues:
 #> https://github.com/optimal2050/energyRt/issues
 #> 

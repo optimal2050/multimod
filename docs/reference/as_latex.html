@@ -15,7 +15,7 @@ Convert a character string to LaTeX-safe format"><meta property="og:image" conte
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.4.9003</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -85,16 +85,16 @@ Convert a character string to LaTeX-safe format"><meta property="og:image" conte
 <span><span class="co"># S3 method for class 'call'</span></span>
 <span><span class="fu">as_latex</span><span class="op">(</span><span class="va">x</span>, brackets <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># S3 method for class 'set'</span></span>
+<span><span class="co"># S3 method for class 'mm_set'</span></span>
 <span><span class="fu">as_latex</span><span class="op">(</span><span class="va">x</span>, math_env <span class="op">=</span> <span class="st">"text"</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'dims'</span></span>
 <span><span class="fu">as_latex</span><span class="op">(</span><span class="va">x</span>, brackets <span class="op">=</span> <span class="cn">NULL</span>, subscript_dims <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># S3 method for class 'expression'</span></span>
+<span><span class="co"># S3 method for class 'mm_mapping'</span></span>
 <span><span class="fu">as_latex</span><span class="op">(</span><span class="va">x</span>, brackets <span class="op">=</span> <span class="cn">NULL</span>, subscript_dims <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">brackets</span><span class="op">)</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># S3 method for class 'parameter'</span></span>
+<span><span class="co"># S3 method for class 'mm_parameter'</span></span>
 <span><span class="fu">as_latex</span><span class="op">(</span></span>
 <span>  <span class="va">x</span>,</span>
 <span>  brackets <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -104,7 +104,7 @@ Convert a character string to LaTeX-safe format"><meta property="og:image" conte
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># S3 method for class 'variable'</span></span>
+<span><span class="co"># S3 method for class 'mm_variable'</span></span>
 <span><span class="fu">as_latex</span><span class="op">(</span></span>
 <span>  <span class="va">x</span>,</span>
 <span>  brackets <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -156,6 +156,10 @@ Convert a character string to LaTeX-safe format"><meta property="og:image" conte
 <dd><p>A character string (or vector of strings) to be converted to LaTeX.</p></dd>
 
 
+<dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
+<dd><p>Further arguments passed to <code>as_latex()</code> methods for child nodes.</p></dd>
+
+
 <dt id="arg-math">math<a class="anchor" aria-label="anchor" href="#arg-math"></a></dt>
 <dd><p>Logical; if TRUE, wraps the result in math mode (<code>$...$</code>).</p></dd>
 
@@ -166,6 +170,41 @@ Convert a character string to LaTeX-safe format"><meta property="og:image" conte
 
 <dt id="arg-italic">italic<a class="anchor" aria-label="anchor" href="#arg-italic"></a></dt>
 <dd><p>Logical; if TRUE, wraps the text in <code>\\textit{...}</code>.</p></dd>
+
+
+<dt id="arg-brackets">brackets<a class="anchor" aria-label="anchor" href="#arg-brackets"></a></dt>
+<dd><p>Optional bracket type used to wrap the rendered expression:
+<code>"("</code>, <code>"["</code> or the curly brace; <code>NULL</code> or <code>FALSE</code> for none.</p></dd>
+
+
+<dt id="arg-math-env">math_env<a class="anchor" aria-label="anchor" href="#arg-math-env"></a></dt>
+<dd><p>LaTeX command used to typeset set names (e.g. <code>"text"</code>,
+<code>"mathcal"</code>); <code>NULL</code> returns the plain name.</p></dd>
+
+
+<dt id="arg-subscript-dims">subscript_dims<a class="anchor" aria-label="anchor" href="#arg-subscript-dims"></a></dt>
+<dd><p>Logical; if <code>TRUE</code>, dimensions are rendered as a
+subscript, otherwise they are wrapped in <code>brackets</code>.</p></dd>
+
+
+<dt id="arg-use-index-aliases">use_index_aliases<a class="anchor" aria-label="anchor" href="#arg-use-index-aliases"></a></dt>
+<dd><p>Logical; if <code>TRUE</code>, dimension names are replaced
+by the index aliases stored in <code>model</code>.</p></dd>
+
+
+<dt id="arg-model">model<a class="anchor" aria-label="anchor" href="#arg-model"></a></dt>
+<dd><p>Optional <code>mm_model</code> providing <code>index_aliases</code> when
+<code>use_index_aliases = TRUE</code>.</p></dd>
+
+
+<dt id="arg-use-indicator">use_indicator<a class="anchor" aria-label="anchor" href="#arg-use-indicator"></a></dt>
+<dd><p>Logical; if <code>TRUE</code>, conditional (<code>when</code>) nodes are
+rendered with an indicator function instead of a conditional bar.</p></dd>
+
+
+<dt id="arg-indicator-symbol">indicator_symbol<a class="anchor" aria-label="anchor" href="#arg-indicator-symbol"></a></dt>
+<dd><p>LaTeX macro used as the indicator symbol when
+<code>use_indicator = TRUE</code> (default: option <code>multimod.latex.indicator_symbol</code>).</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -188,11 +227,11 @@ Convert a character string to LaTeX-safe format"><meta property="og:image" conte
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Oleg Lugovoy.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
+
 </div>
 
     </footer></div>

@@ -6,6 +6,10 @@
 \usage{
 distribute_sum_product(expr_node)
 }
+\value{
+A \code{sum} AST node whose body is multiplied by the other factors, or
+\code{NULL} when \code{expr_node} does not contain exactly one \code{sum} factor.
+}
 \description{
 Inject multiplicative factors into the body of a sum node
 }

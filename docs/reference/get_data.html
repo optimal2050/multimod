@@ -15,7 +15,7 @@ from disk if the model is stored and data is not in memory."><meta property="og:
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.4.9003</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -104,16 +104,27 @@ from disk if the model is stored and data is not in memory.</p>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
-<span class="r-in"><span><span class="co"># Get parameter data</span></span></span>
-<span class="r-in"><span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu">get_data</span><span class="op">(</span><span class="va">model</span>, <span class="st">"pTechCost"</span><span class="op">)</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="va">example_models</span><span class="op">$</span><span class="va">energyRt</span><span class="op">$</span><span class="va">multimod</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Get mapping data</span></span></span>
-<span class="r-in"><span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu">get_data</span><span class="op">(</span><span class="va">model</span>, <span class="st">"mTechRegion"</span>, type <span class="op">=</span> <span class="st">"mapping"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="co"># Parameter data</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu">get_data</span><span class="op">(</span><span class="va">m</span>, <span class="st">"pTechOlife"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   tech region value</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 ECOA     C1    30</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 ECOA     C2    30</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 ECOA     C3    30</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4 ECOA     C4    30</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5 ECOA     C5    30</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6 ECOA     W1    30</span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Get set members</span></span></span>
-<span class="r-in"><span><span class="va">members</span> <span class="op">&lt;-</span> <span class="fu">get_data</span><span class="op">(</span><span class="va">model</span>, <span class="st">"tech"</span>, type <span class="op">=</span> <span class="st">"set"</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
+<span class="r-in"><span><span class="co"># Mapping data</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu">get_data</span><span class="op">(</span><span class="va">m</span>, <span class="st">"mCommTimeslice"</span>, type <span class="op">=</span> <span class="st">"mapping"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   comm timeslice</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1  COA    ANNUAL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2  GAS    ANNUAL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3  BIO    ANNUAL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4  NUC    ANNUAL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5  SOL   FAL_DAY</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6  SOL   FAL_NGT</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
@@ -121,11 +132,11 @@ from disk if the model is stored and data is not in memory.</p>
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Oleg Lugovoy.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
+
 </div>
 
     </footer></div>

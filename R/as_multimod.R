@@ -285,7 +285,7 @@ as_multimod.model_structure <- function(x, index_aliases = NULL, ...) {
             sense = eqn_info$sense %||% "minimize",
             body = eqn_info$body
           ),
-          class = c("objective_equation", "equation", "multimod")
+          class = c("objective_equation", "mm_equation", "multimod")
         )
         equations[[eq_name]] <- eqn
         next

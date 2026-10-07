@@ -112,9 +112,9 @@ Functions to convert multimod objects to LaTeX.
 
 - [`as_latex()`](https://optimal2050.github.io/multimod/reference/as_latex.md)
   : Convert objects to LaTeX format
-- [`write_latex(`*`<equation>`*`)`](https://optimal2050.github.io/multimod/reference/write_latex.equation.md)
+- [`write_latex(`*`<mm_equation>`*`)`](https://optimal2050.github.io/multimod/reference/write_latex.mm_equation.md)
   : Write LaTeX representation of an equation
-- [`write_latex(`*`<model>`*`)`](https://optimal2050.github.io/multimod/reference/write_latex.model.md)
+- [`write_latex(`*`<mm_model>`*`)`](https://optimal2050.github.io/multimod/reference/write_latex.mm_model.md)
   : Write LaTeX representation of a model
 - [`write_latex()`](https://optimal2050.github.io/multimod/reference/write_latex.md)
   : Write LaTeX representation of an equation or model
@@ -139,7 +139,7 @@ Functions to read GAMS models and convert multimod objects to GAMS code.
   : Strip GAMS block comments
 - [`as_gams()`](https://optimal2050.github.io/multimod/reference/as_gams.md)
   : Convert multimod object to GAMS syntax
-- [`write_gams(`*`<model>`*`)`](https://optimal2050.github.io/multimod/reference/write_gams.model.md)
+- [`write_gams(`*`<mm_model>`*`)`](https://optimal2050.github.io/multimod/reference/write_gams.mm_model.md)
   : Write a full GAMS model file from a multimod object
 - [`write_gams()`](https://optimal2050.github.io/multimod/reference/write_gams.md)
   : Write a GAMS model file from a multimod object
@@ -162,8 +162,6 @@ Functions to read GMPL models and convert multimod objects to GMPL code.
   : Read GMPL declarations sequentially
 - [`as_gmpl()`](https://optimal2050.github.io/multimod/reference/as_gmpl.md)
   : Convert multimod object to GMPL/MathProg syntax
-- [`write_gmpl(`*`<model>`*`)`](https://optimal2050.github.io/multimod/reference/write_gmpl.model.md)
-  : Write a full GMPL model file from a multimod object
 - [`write_gmpl()`](https://optimal2050.github.io/multimod/reference/write_gmpl.md)
   : Write a GMPL/MathProg model file from a multimod object
 - [`write_gmpl_data()`](https://optimal2050.github.io/multimod/reference/write_gmpl_data.md)
@@ -184,7 +182,7 @@ Functions to read JuMP models and convert multimod objects to JuMP code.
 - [`write_jump()`](https://optimal2050.github.io/multimod/reference/write_jump.md)
   : Write a Julia/JuMP model file from a multimod object
 - [`write_jump_solution_code()`](https://optimal2050.github.io/multimod/reference/write_jump_solution_code.md)
-  : Write JuMP solution values to disk
+  : Julia source of the JuMP solution writer
 - [`compare_jump_stats()`](https://optimal2050.github.io/multimod/reference/compare_jump_stats.md)
   : Compare JuMP model constraint statistics between two model
   directories
@@ -255,6 +253,8 @@ redundant dimensions.
 Functions for model trimming to remove unused elements (empty data,
 unused variables, dead branches).
 
+- [`trim_model()`](https://optimal2050.github.io/multimod/reference/trim_model.md)
+  : Trim a model to the elements its data actually uses
 - [`untrim_model()`](https://optimal2050.github.io/multimod/reference/untrim_model.md)
   : Untrim model or specific elements
 - [`get_trim_summary()`](https://optimal2050.github.io/multimod/reference/get_trim_summary.md)
@@ -542,15 +542,11 @@ Utility functions for multimod.
   : Extract Arguments from AST
 - [`extract_ast_elements()`](https://optimal2050.github.io/multimod/reference/extract_ast_elements.md)
   : Recursively extract elements by name from a nested structure
-- [`extract_where_nodes()`](https://optimal2050.github.io/multimod/reference/extract_where_nodes.md)
-  : Extract "where" nodes from an AST
 - [`alias_ast_names()`](https://optimal2050.github.io/multimod/reference/alias_ast_names.md)
   : Apply name aliases to AST nodes
 - [`depth()`](https://optimal2050.github.io/multimod/reference/depth.md)
   : Get the depth of a nested list structure (AST, multimod, and other
   objects)
-- [`annotate_brackets()`](https://optimal2050.github.io/multimod/reference/annotate_brackets.md)
-  : Annotate expression tree with bracket requirements
 - [`brackets_pair()`](https://optimal2050.github.io/multimod/reference/brackets_pair.md)
   : Get a pair of brackets
 - [`wrap_brackets()`](https://optimal2050.github.io/multimod/reference/wrap_brackets.md)
@@ -564,8 +560,6 @@ Utility functions for multimod.
   : Get the type of an AST or multimod node
 - [`remap_ast_elements()`](https://optimal2050.github.io/multimod/reference/remap_ast_elements.md)
   : Replace AST elements with "ast_where" nodes
-- [`resolve_full_name()`](https://optimal2050.github.io/multimod/reference/resolve_full_name.md)
-  : Resolve alias to full set name
 - [`schema_node_types()`](https://optimal2050.github.io/multimod/reference/schema_node_types.md)
   : Node types known to the schema
 - [`split_at_top_level_operators()`](https://optimal2050.github.io/multimod/reference/split_at_top_level_operators.md)

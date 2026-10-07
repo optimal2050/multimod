@@ -154,6 +154,7 @@ load_arrow_data <- function(path, format = NULL, collect = TRUE) {
 #' @param format Format: "parquet", "feather", "ipc", "csv"
 #' @param overwrite Logical. Overwrite existing data?
 #' 
+#' @return Invisibly, `path`.
 #' @keywords internal
 save_arrow_data <- function(data, path, format = "parquet", overwrite = FALSE) {
   if (!requireNamespace("arrow", quietly = TRUE)) {
@@ -473,7 +474,7 @@ save_all_mappings <- function(model, format = "parquet", keep_in_memory = FALSE)
 #' 
 #' @export
 add_set_data <- function(model, set_name, members) {
-  stopifnot(inherits(model, "multimod") || inherits(model, "model"))
+  stopifnot(inherits(model, "multimod") || inherits(model, "mm_model"))
   
   if (!set_name %in% names(model$sets)) {
     stop("Set not found: ", set_name)
@@ -496,7 +497,7 @@ add_set_data <- function(model, set_name, members) {
 #' 
 #' @export
 populate_sets_from_data <- function(model, load_data = FALSE) {
-  stopifnot(inherits(model, "multimod") || inherits(model, "model"))
+  stopifnot(inherits(model, "multimod") || inherits(model, "mm_model"))
   
   cat("Populating sets from model data...\n")
   
@@ -595,6 +596,9 @@ populate_sets_from_data <- function(model, load_data = FALSE) {
 
 #' Export import log to CSV file
 #'
+#' @param import_log The import log list produced by [import_gmpl_data()].
+#' @param log_file Path of the CSV file to write.
+#' @return `NULL`; called for its side effect of writing `log_file`.
 #' @keywords internal
 #' @export
 export_import_log <- function(import_log, log_file) {

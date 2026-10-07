@@ -26,6 +26,10 @@ quick_compare(
 
 \item{ignore.case}{Logical; if TRUE, perform case-insensitive comparison for character columns (default: FALSE)}
 }
+\value{
+Invisibly, the list returned by \code{\link[=compare_dataframes]{compare_dataframes()}} (elements
+\code{only_in_1}, \code{only_in_2}, \code{in_both}, \code{differences}, \code{summary}).
+}
 \description{
 Quick comparison showing first few differences
 }

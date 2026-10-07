@@ -14,6 +14,9 @@ resolve_ast_language(language = NULL, symbols = NULL, context = NULL)
 \item{context}{Optional object (model structure, builder) that exposes \verb{$language} or a
 \code{language} attribute.}
 }
+\value{
+A lower-case language identifier, e.g. \code{"gams"} or \code{"gmpl"}.
+}
 \description{
 Resolve the parsing language for AST helpers
 }

@@ -22,3 +22,9 @@ write_latex(x, file, ...)
 - ...:
 
   Additional arguments passed to the specific method.
+
+## Value
+
+For an `mm_equation`, invisibly `file`. For an `mm_model`, invisibly
+`file` when a path is given, otherwise the LaTeX source as a single
+character string.

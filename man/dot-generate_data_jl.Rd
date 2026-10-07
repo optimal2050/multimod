@@ -14,6 +14,9 @@
   data_mode = c("external", "embedded")
 )
 }
+\value{
+Invisibly, the path of the written \code{data.jl} file.
+}
 \description{
 Generate data.jl file that loads all data upfront (energyRt.jl compatible)
 }

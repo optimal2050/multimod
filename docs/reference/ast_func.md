@@ -22,6 +22,11 @@ ast_func(name, value, index = NULL, ...)
 
   An AST node (typically dims or when) defining the index set.
 
+- ...:
+
+  Additional fields stored on the node (passed to
+  [`new_ast()`](https://optimal2050.github.io/multimod/reference/new_ast.md)).
+
 ## Value
 
 An `ast` object of class `function`.

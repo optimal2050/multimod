@@ -28,12 +28,12 @@ write_gams <- function(model, file = NULL, format_expr = TRUE, ...) {
 #' @param ... Additional arguments passed to formatting functions
 #'
 #' @return Character vector or writes file if `file` is given
-#' @method write_gams model
+#' @method write_gams mm_model
 #' @export
-write_gams.model <- function(model, file = NULL, format_expr = TRUE,
+write_gams.mm_model <- function(model, file = NULL, format_expr = TRUE,
                              gdx = NULL, include_solve = FALSE,
                              objective = "vObjective", ...) {
-  stopifnot(inherits(model, "model"))
+  stopifnot(inherits(model, "mm_model"))
 
   lines <- character()
 

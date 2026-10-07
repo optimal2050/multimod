@@ -257,7 +257,8 @@ split_line_on_pattern <- function(
 #' @returns A list of all matching elements
 #' @export
 #' @examples
-#' extract_elements_by_name(model, "when")
+#' eq <- example_models$energyRt$multimod$equations[[1]]
+#' length(extract_ast_elements(eq, "when"))
 extract_ast_elements <- function(obj, name, recursive = TRUE) {
   results <- list()
 
@@ -290,12 +291,6 @@ replace_ast_elements <- function(obj, name, replacement) {
   obj
 }
 
-if (F) {
-  # ast_type <- list(
-  #   "when" = "cond",
-  # )
-  ast_type <- c("when", "mapping")
-}
 
 #' Replace AST elements with "ast_where" nodes
 #'
@@ -309,6 +304,11 @@ if (F) {
 #' (e.g., "when", "mapping").
 #' @param name_prefix A character string prefix for the new names of the
 #' replaced elements. Defaults to "m".
+#' @param n Integer; starting value of the counter used to number the
+#'   replaced elements (default 0).
+#' @param latex_max Numeric; elements whose rendered LaTeX is shorter than
+#'   this estimated length are left in place (default 10).
+#' @param ... Further arguments, currently ignored.
 #'
 #' @returns Modified AST object with remapped elements
 #' @export
@@ -353,7 +353,7 @@ remap_ast_elements <- function(obj,
   # remove duplicates by equations
   if (n > 0 && inherits(obj, "multimod") && !is.null(obj$equations)) {
     obj$equations <- lapply(obj$equations, replace_where_duplicates)
-  } else if (n > 0 && inherits(obj, "equation")) {
+  } else if (n > 0 && inherits(obj, "mm_equation")) {
     obj <- replace_where_duplicates(obj)
   }
 
@@ -361,6 +361,9 @@ remap_ast_elements <- function(obj,
 }
 
 #' Extract "where" nodes from an AST
+#' @param ast An AST node.
+#' @return A named list of the `where` nodes found in `ast`, keyed by name.
+#' @keywords internal
 extract_where_nodes <- function(ast) {
   result <- list()
 
@@ -431,6 +434,7 @@ replace_where_duplicates <- function(obj) {
 #' @param ast An AST object or list.
 #' @param alias_map A named list or character vector. Keys are aliases, values are original names.
 #' @param classes Character vector of AST classes to filter (optional).
+#' @param ... Further arguments, currently ignored.
 #'
 #' @return Modified AST with aliases applied.
 #' @export
@@ -528,70 +532,6 @@ short_names_sets <- list(
 )
 
 
-#' Resolve a dimension name to its alias
-#'
-#' @param name A character string or vector of dimension names.
-#' @param base Named list of base aliases.
-#' @param extended Named list of extended aliases.
-#' @param default If no alias is found, return `name`, `NA`, or `"?"`.
-#'
-#' @return A character vector of resolved aliases.
-#' @noRd
-resolve_alias <- function(name,
-                          base = base_aliases,
-                          extended = extended_aliases,
-                          default = NULL) {
-  name <- as.character(name)
-  out <- character(length(name))
-
-  for (i in seq_along(name)) {
-    n <- name[i]
-    if (n %in% names(extended)) {
-      out[i] <- extended[[n]]
-    } else if (n %in% names(base)) {
-      out[i] <- base[[n]]
-    } else {
-      out[i] <- if (!is.null(default)) default else n
-    }
-  }
-
-  out
-}
-
-#' Resolve alias to full set name
-#'
-#' @param alias A character vector of alias names (e.g., "r", "yp").
-#' @param base Named list of base aliases.
-#' @param extended Named list of extended aliases.
-#' @param default Fallback if alias not found.
-#'
-#' @return Character vector of full names.
-#' @export
-resolve_full_name <- function(alias,
-                              base = base_aliases,
-                              extended = extended_aliases,
-                              default = NULL) {
-  alias <- as.character(alias)
-
-  # Invert mappings
-  base_inv <- setNames(names(base), unname(base))
-  ext_inv  <- setNames(names(extended), unname(extended))
-
-  out <- character(length(alias))
-  for (i in seq_along(alias)) {
-    a <- alias[i]
-    if (a %in% names(ext_inv)) {
-      out[i] <- ext_inv[[a]]
-    } else if (a %in% names(base_inv)) {
-      out[i] <- base_inv[[a]]
-    } else {
-      out[i] <- if (!is.null(default)) default else a
-    }
-  }
-
-  out
-}
-
 
 #' Recursively apply a function to all nodes of an AST
 #'
@@ -623,11 +563,11 @@ map_ast <- function(node, func, include_class = TRUE) {
 #' @export
 #'
 #' @examples
-#' \dontrun{
-#' gmpl <- read_gmpl("model.mod")
-#' classes <- collect_ast_classes(gmpl)
-#' # Returns: c("symbol", "constant", "expression", "setmin", ...)
-#' }
+#' m <- example_models$energyRt$multimod
+#' collect_ast_classes(m$equations$eqTechSng2Sng)
+#'
+#' # All node classes used anywhere in the model
+#' collect_ast_classes(m)
 collect_ast_classes <- function(obj) {
   classes_found <- character(0)
   
@@ -862,10 +802,30 @@ compare_jump_stats <- function(model_dir1,
 #' is not.
 #'
 #' @param context Where it fired, as "file.R:line".
+#' @return Invisibly, `NULL`; called for the warning it raises.
 #' @keywords internal
 .dev_break <- function(context = "") {
   warning("multimod: reached a state believed unreachable",
           if (nzchar(context)) paste0(" (", context, ")") else "",
           call. = FALSE)
   invisible(NULL)
+}
+
+# Evaluate `expr` with the GMPL binding-condition flag set, restoring the
+# caller's value on exit, including on error.
+.with_binding_condition <- function(expr) {
+  old <- getOption("multimod.in_binding_condition", FALSE)
+  options(multimod.in_binding_condition = TRUE)
+  on.exit(options(multimod.in_binding_condition = old), add = TRUE)
+  expr
+}
+
+# Stop with an installation hint when an optional (Suggests) package is
+# needed for `what`.
+.need_pkg <- function(pkg, what) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    stop("multimod: package '", pkg, "' is required for ", what,
+         "; install it with install.packages(\"", pkg, "\").", call. = FALSE)
+  }
+  invisible(TRUE)
 }

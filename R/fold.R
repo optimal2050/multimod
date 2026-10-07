@@ -18,18 +18,18 @@
 #' dimensions for code generation and validation.
 #'
 #' @examples
-#' \dontrun{
-#' # Get active dimensions (works for folded or unfolded)
-#' dims <- get_active_dims(param)
-#' 
-#' # Check if parameter is folded
-#' folded_dims <- get_active_dims(param, folded = TRUE)
-#' is_folded <- !is.null(folded_dims)
-#' }
+#' m <- example_models$energyRt$multimod
+#' param <- m$parameters$pTechCinp2use
+#'
+#' # Active dimensions: the folded ones if folded, else the declared ones
+#' get_active_dims(param)
+#'
+#' # Folded dimensions only
+#' get_active_dims(param, folded = TRUE)
 #'
 #' @export
 get_active_dims <- function(param, folded = FALSE) {
-  stopifnot(inherits(param, "parameter"))
+  stopifnot(inherits(param, "mm_parameter"))
   
   if (folded) {
     # Return folded dimensions only if parameter is folded
@@ -57,6 +57,8 @@ get_active_dims <- function(param, folded = FALSE) {
 #' @param format Character string specifying output format: "list" (default) 
 #'   returns structured list, "data.frame" returns tabular format, "text" prints
 #'   formatted summary
+#' @param verbose Logical; if `TRUE` and `format = "text"`, print a note when
+#'   the model has no folding applied (default: FALSE)
 #'
 #' @return Depending on format:
 #' \itemize{
@@ -76,16 +78,18 @@ get_active_dims <- function(param, folded = FALSE) {
 #' }
 #'
 #' @examples
-#' \dontrun{
-#' # Get structured list
-#' stats <- get_fold_summary(model_folded)
-#' 
-#' # Get as data frame
-#' df <- get_fold_summary(model_folded, format = "data.frame")
-#' 
-#' # Print formatted summary
-#' get_fold_summary(model_folded, format = "text")
-#' }
+#' m <- example_models$energyRt$multimod
+#' spec <- create_fold_spec(m, fold_dims = "timeslice", verbose = FALSE)
+#' m_folded <- fold_model(m, fold_spec = spec, verbose = FALSE)
+#'
+#' # Structured list
+#' stats <- get_fold_summary(m_folded)
+#'
+#' # As a data frame
+#' df <- get_fold_summary(m_folded, format = "data.frame")
+#'
+#' # Formatted text
+#' get_fold_summary(m_folded, format = "text")
 #'
 #' @export
 get_fold_summary <- function(model, format = c("list", "data.frame", "text"), verbose = FALSE) {
@@ -156,7 +160,7 @@ get_fold_summary <- function(model, format = c("list", "data.frame", "text"), ve
     cat(strrep("-", 95), "\n")
     
     for (info in param_info) {
-      cat(sprintf("%-25s %20s %20s %6d→%-6d %10s\n",
+      cat(sprintf("%-25s %20s %20s %6d\u2192%-6d %10s\n",
                   info$parameter,
                   info$original_dims,
                   info$folded_dims,
@@ -191,13 +195,13 @@ get_fold_summary <- function(model, format = c("list", "data.frame", "text"), ve
 #' Also returns TRUE if the model has folded_equations.
 #'
 #' @examples
-#' \dontrun{
-#' # Check if a parameter is folded
-#' is_folded(model$parameters$pTechCinp2use)
-#' 
-#' # Check if a model has any folded parameters
-#' is_folded(model)
-#' }
+#' m <- example_models$energyRt$multimod
+#' is_folded(m)
+#' is_folded(m$parameters$pTechCinp2use)
+#'
+#' spec <- create_fold_spec(m, fold_dims = "timeslice", verbose = FALSE)
+#' m_folded <- fold_model(m, fold_spec = spec, verbose = FALSE)
+#' is_folded(m_folded)
 #'
 #' @export
 is_folded <- function(x) {
@@ -205,13 +209,13 @@ is_folded <- function(x) {
 }
 
 #' @export
-is_folded.parameter <- function(x) {
+is_folded.mm_parameter <- function(x) {
   # A parameter is considered folded if it has fold_info indicating folding occurred
   !is.null(x$misc$fold_info) && isTRUE(x$misc$fold_info$folded)
 }
 
 #' @export
-is_folded.model <- function(x) {
+is_folded.mm_model <- function(x) {
   # Check if any parameters are folded
   if (!is.null(x$parameters) && length(x$parameters) > 0) {
     for (param in x$parameters) {
@@ -231,7 +235,7 @@ is_folded.model <- function(x) {
 
 #' @export
 is_folded.multimod <- function(x) {
-  is_folded.model(x)
+  is_folded.mm_model(x)
 }
 
 #' @export
@@ -308,20 +312,18 @@ is_folded.default <- function(x) {
 #' @seealso [fold_model()]
 #' @export
 #' @examples
-#' \dontrun{
-#' fold_spec <- create_fold_spec(model, fold_dims = "timeslice")
+#' m <- example_models$energyRt$multimod
+#' fold_spec <- create_fold_spec(m, fold_dims = "timeslice")
+#' head(fold_spec)
 #'
+#' # Entity-specific validation mappings (a character vector is a chain)
 #' fold_spec <- create_fold_spec(
-#'   model,
+#'   m,
 #'   fold_dims = list(
-#'     timeslice = list(
-#'       tech = "mTechTimeslice",
-#'       comm = "mCommTimeslice",
-#'       stg  = c("mStorageComm", "mCommTimeslice")   # a chain
-#'     )
-#'   )
+#'     timeslice = list(comm = "mCommTimeslice")
+#'   ),
+#'   verbose = FALSE
 #' )
-#' }
 create_fold_spec <- function(model,
                              fold_dims,
                              tolerance = 1e-10,
@@ -403,7 +405,7 @@ create_fold_spec <- function(model,
         } else {
           # Chain of mappings
           validation_mapping_raw <- mapping_spec  # Store as vector
-          validation_mapping_display <- paste(mapping_spec, collapse = " → ")
+          validation_mapping_display <- paste(mapping_spec, collapse = " \u2192 ")
         }
       } else {
         validation_mapping_raw <- NA_character_
@@ -511,6 +513,9 @@ should_enable_progress_fold <- function(model, fold_spec,
 #'   generate proper fold specification with entity-specific mappings.
 #' @param tolerance Numeric tolerance for considering values equal (default: 1e-10)
 #' @param verbose Logical; print progress messages (default: TRUE)
+#' @param .progress Progress bar control: `"auto"` (default) shows a
+#'   `progressr` bar for large models, `TRUE` forces it on (requires
+#'   `progressr`), `FALSE` disables it.
 #'
 #' @return Modified model with folded parameters
 #' 
@@ -541,18 +546,11 @@ should_enable_progress_fold <- function(model, fold_spec,
 #' - Updates equation ASTs to match reduced dimensions
 #' 
 #' @examples
-#' \dontrun{
-#' # Specify fold dimensions with entity-specific mappings
-#' fold_dims <- list(
-#'   timeslice = list(sup = "mSupTimeslice", trade = "mTradeTimeslice",
-#'            stg = c("mStorageComm", "mCommTimeslice")),
-#'   region = c("mTechRegion", "mSupRegion", "mDemRegion", "mStorageRegion"),
-#'   year = c("mTechYear", "mSupYear", "mDemYear", "mStorageYear")
-#' )
-#' fold_spec <- create_fold_spec(model, fold_dims = fold_dims)
+#' m <- example_models$energyRt$multimod
+#' fold_spec <- create_fold_spec(m, fold_dims = "timeslice", verbose = FALSE)
 #' # Review and edit fold_spec to ensure correct validation mappings
-#' model <- fold_model(model, fold_spec = fold_spec)
-#' }
+#' m_folded <- fold_model(m, fold_spec = fold_spec, verbose = FALSE)
+#' get_fold_summary(m_folded, format = "text")
 #' 
 #' @export
 fold_model <- function(model, 
@@ -562,7 +560,7 @@ fold_model <- function(model,
                        .progress = "auto") {
   `%>%` <- magrittr::`%>%`
   
-  stopifnot(inherits(model, "multimod") || inherits(model, "model"))
+  stopifnot(inherits(model, "multimod") || inherits(model, "mm_model"))
   stopifnot("fold_spec parameter is required. Use create_fold_spec() to generate it." = !missing(fold_spec))
   
   # Determine if progress should be enabled
@@ -649,6 +647,7 @@ fold_model <- function(model,
 }
 
 #' Internal fold loop with optional progress reporting
+#' @return The folded `mm_model`.
 #' @keywords internal
 fold_model_loop <- function(model, fold_spec, tolerance, verbose, p = NULL) {
   `%>%` <- magrittr::`%>%`
@@ -677,14 +676,14 @@ fold_model_loop <- function(model, fold_spec, tolerance, verbose, p = NULL) {
       validation_mapping_display <- fold_spec$validation_mapping[i]
     } else {
       if (length(validation_mapping) > 1) {
-        validation_mapping_display <- paste(validation_mapping, collapse = " → ")
+        validation_mapping_display <- paste(validation_mapping, collapse = " \u2192 ")
       } else {
         validation_mapping_display <- validation_mapping
       }
     }
     
     if (!param_name %in% names(model$parameters)) {
-      if (verbose) cat("⊠ Skipping", param_name, "- not found in model\n")
+      if (verbose) cat("\u22a0 Skipping", param_name, "- not found in model\n")
       n_skipped <- n_skipped + 1
       next
     }
@@ -711,7 +710,7 @@ fold_model_loop <- function(model, fold_spec, tolerance, verbose, p = NULL) {
     
     # Check if dimension exists in parameter
     if (!dim_to_fold %in% dims) {
-      if (verbose) cat("⊠ Skipping", param_name, "- doesn't have dimension", dim_to_fold, "\n")
+      if (verbose) cat("\u22a0 Skipping", param_name, "- doesn't have dimension", dim_to_fold, "\n")
       n_skipped <- n_skipped + 1
       next
     }
@@ -806,8 +805,8 @@ fold_model_loop <- function(model, fold_spec, tolerance, verbose, p = NULL) {
     
     # Track for summary
     fold_summary[[param_name]] <- list(
-      original = paste(original_dims, collapse=" × "),
-      folded = paste(active_dims, collapse=" × "),
+      original = paste(original_dims, collapse=" \u00d7 "),
+      folded = paste(active_dims, collapse=" \u00d7 "),
       removed = dim_to_fold,
       original_rows = nrow(param$data),
       folded_rows = nrow(folded_data),
@@ -817,7 +816,7 @@ fold_model_loop <- function(model, fold_spec, tolerance, verbose, p = NULL) {
     n_folded <- n_folded + 1
     
     if (verbose) {
-      cat(sprintf("✓ %s: %dD → %dD (%d → %d rows, %.1fx)\n",
+      cat(sprintf("\u2713 %s: %dD \u2192 %dD (%d \u2192 %d rows, %.1fx)\n",
                  param_name, 
                  length(original_dims),
                  length(active_dims),
@@ -1226,7 +1225,7 @@ get_dim_names <- function(dims) {
       d <- dims[[i]]
       if (inherits(d, "symbol")) {
         d$name
-      } else if (inherits(d, "set")) {
+      } else if (inherits(d, "mm_set")) {
         d$name
       } else {
         as.character(d)
@@ -1249,7 +1248,7 @@ get_dim_names <- function(dims) {
 #' @return Modified model with fold removed
 #' @export
 unfold_model <- function(model, verbose = TRUE) {
-  stopifnot(inherits(model, "multimod") || inherits(model, "model"))
+  stopifnot(inherits(model, "multimod") || inherits(model, "mm_model"))
   
   n_unfolded <- 0
   
@@ -1266,7 +1265,7 @@ unfold_model <- function(model, verbose = TRUE) {
       n_unfolded <- n_unfolded + 1
       
       if (verbose) {
-        cat("✓ Unfolded", param_name, "\n")
+        cat("\u2713 Unfolded", param_name, "\n")
       }
     }
   }
@@ -1300,7 +1299,7 @@ validate_fold <- function(model, verbose = TRUE) {
   # Ensure pipe operator is available
   `%>%` <- magrittr::`%>%`
   
-  stopifnot(inherits(model, "multimod") || inherits(model, "model"))
+  stopifnot(inherits(model, "multimod") || inherits(model, "mm_model"))
   
   issues <- list()
   n_validated <- 0
@@ -1337,7 +1336,7 @@ validate_fold <- function(model, verbose = TRUE) {
       )
       
       if (verbose) {
-        cat("✗", param_name, "- inconsistent values in", nrow(inconsistent), "groups\n")
+        cat("\u2717", param_name, "- inconsistent values in", nrow(inconsistent), "groups\n")
       }
       next
     }
@@ -1359,7 +1358,7 @@ validate_fold <- function(model, verbose = TRUE) {
       )
       
       if (verbose) {
-        cat("✗", param_name, "- folded_data mismatch\n")
+        cat("\u2717", param_name, "- folded_data mismatch\n")
       }
       next
     }
@@ -1369,7 +1368,7 @@ validate_fold <- function(model, verbose = TRUE) {
     
     n_valid <- n_valid + 1
     if (verbose) {
-      cat("✓", param_name, "- valid\n")
+      cat("\u2713", param_name, "- valid\n")
     }
   }
   
@@ -1405,7 +1404,7 @@ analyze_fold_opportunities <- function(model,
   # Ensure pipe operator is available
   `%>%` <- magrittr::`%>%`
   
-  stopifnot(inherits(model, "multimod") || inherits(model, "model"))
+  stopifnot(inherits(model, "multimod") || inherits(model, "mm_model"))
   
   fold_candidates <- c()
   if (fold_timeslice) fold_candidates <- c(fold_candidates, "timeslice")
@@ -1454,8 +1453,8 @@ analyze_fold_opportunities <- function(model,
       
       results[[param_name]] <- data.frame(
         parameter = param_name,
-        original_dims = paste(dims, collapse=" × "),
-        folded_dims = paste(active_dims, collapse=" × "),
+        original_dims = paste(dims, collapse=" \u00d7 "),
+        folded_dims = paste(active_dims, collapse=" \u00d7 "),
         removed_dims = paste(dims_to_remove, collapse=", "),
         original_rows = nrow(param$data),
         folded_rows = folded_size,
@@ -1574,7 +1573,7 @@ fold_ast_node <- function(node, folded_params, model = NULL, debug = FALSE) {
   if (is.null(node) || !is.list(node)) return(node)
   
   # Handle parameter references - have $name and $dims
-  if (inherits(node, "parameter") && !is.null(node$name)) {
+  if (inherits(node, "mm_parameter") && !is.null(node$name)) {
     param_name <- node$name
     
     # Check if this parameter was folded
@@ -1595,7 +1594,7 @@ fold_ast_node <- function(node, folded_params, model = NULL, debug = FALSE) {
         for (i in seq_along(node$dims)) {
           dim <- node$dims[[i]]
           # Get dim name
-          dim_name <- if (inherits(dim, "set") && !is.null(dim$name)) {
+          dim_name <- if (inherits(dim, "mm_set") && !is.null(dim$name)) {
             dim$name
           } else if (inherits(dim, "symbol") && !is.null(dim$name)) {
             dim$name

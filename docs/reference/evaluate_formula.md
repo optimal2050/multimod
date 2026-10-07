@@ -14,3 +14,8 @@ evaluate_formula(
   verbose = FALSE
 )
 ```
+
+## Value
+
+A numeric scalar (no dimensions), a named numeric vector (one dimension)
+or a numeric array with `dimnames` (several dimensions).

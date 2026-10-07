@@ -18,14 +18,10 @@ Trim statistics in requested format
 Get trim summary statistics
 }
 \examples{
-\dontrun{
-# After trimming
-model <- trim_model(model)
+m <- trim_model(example_models$energyRt$multimod, verbose = FALSE)
 
-# Get summary
-summary <- get_trim_summary(model)
-summary_df <- get_trim_summary(model, format = "data.frame")
-cat(get_trim_summary(model, format = "text"))
-}
+summary <- get_trim_summary(m)
+summary_df <- get_trim_summary(m, format = "data.frame")
+cat(get_trim_summary(m, format = "text"))
 
 }

@@ -2,12 +2,34 @@
 % Please edit documentation in R/write_gmpl.R
 \name{write_gmpl}
 \alias{write_gmpl}
+\alias{write_gmpl.mm_model}
 \title{Write a GMPL/MathProg model file from a multimod object}
 \usage{
 write_gmpl(
   model,
   file = NULL,
   model_dir = model$base_dir,
+  format_expr = FALSE,
+  include_solve = TRUE,
+  export_vars = NULL,
+  use_table_output = FALSE,
+  use_folded = NULL,
+  objective = "cost",
+  export_data = FALSE,
+  drop_default_values = FALSE,
+  INF = 1e+20,
+  check = TRUE,
+  resolve_aliases = TRUE,
+  verbose = FALSE,
+  export_mps = FALSE,
+  stop_on_error = TRUE,
+  ...
+)
+
+\method{write_gmpl}{mm_model}(
+  model,
+  file = NULL,
+  model_dir = NULL,
   format_expr = FALSE,
   include_solve = TRUE,
   export_vars = NULL,

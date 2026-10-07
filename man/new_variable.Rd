@@ -21,17 +21,28 @@ new_variable(
 \arguments{
 \item{name}{character, name of the variable}
 
+\item{desc}{character, description of the variable}
+
 \item{dims}{character vector, names of the declared dimensions}
 
 \item{active_dims}{character vector, names of the active dimensions}
 
 \item{domain}{character, domain mapping name for sparse indexing (NULL = Cartesian, character(0) = unused)}
 
+\item{vtype}{character, variable type as declared in the source model
+(e.g. \code{"positive"}, \code{"binary"}, \code{"integer"})}
+
+\item{bounds}{list with optional elements \code{lo} and \code{up} giving the lower and
+upper bounds}
+
 \item{comment}{character, comment line from source file (e.g., *@ domain hint)}
 
 \item{data}{data frame, data for the variable}
 
 \item{auto_fold}{logical, whether to automatically fold dimensions}
+
+\item{symbols}{optional named list of known symbols (sets, aliases) used to
+resolve dimension names in \code{\link[=ast_dims]{ast_dims()}}}
 }
 \value{
 a variable object

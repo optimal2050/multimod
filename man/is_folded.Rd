@@ -24,12 +24,12 @@ For models: Returns TRUE if the model has any folded parameters, FALSE otherwise
 Also returns TRUE if the model has folded_equations.
 }
 \examples{
-\dontrun{
-# Check if a parameter is folded
-is_folded(model$parameters$pTechCinp2use)
+m <- example_models$energyRt$multimod
+is_folded(m)
+is_folded(m$parameters$pTechCinp2use)
 
-# Check if a model has any folded parameters
-is_folded(model)
-}
+spec <- create_fold_spec(m, fold_dims = "timeslice", verbose = FALSE)
+m_folded <- fold_model(m, fold_spec = spec, verbose = FALSE)
+is_folded(m_folded)
 
 }

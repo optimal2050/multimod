@@ -18,6 +18,11 @@ ast_mapping(name, dims = ast_dims(), ...)
 
   An `dims` object representing the dimensions of the mapping.
 
+- ...:
+
+  Additional fields stored on the node (passed to
+  [`new_ast()`](https://optimal2050.github.io/multimod/reference/new_ast.md)).
+
 ## Value
 
 An `mapping` S3 object (subclass of `ast`).

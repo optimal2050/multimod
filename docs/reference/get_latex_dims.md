@@ -7,3 +7,8 @@ Get effective dimensions for LaTeX rendering
 ``` r
 get_latex_dims(x, use_folded = TRUE)
 ```
+
+## Value
+
+A `dims` object: the active (folded) dimensions when requested, else the
+declared dimensions, else those inferred from the data columns.

@@ -24,6 +24,10 @@ write_jump_internal(
   ...
 )
 }
+\value{
+A character vector of Julia source lines, invisibly when \code{file} is
+given (the lines are also written to it).
+}
 \description{
 Internal function to write JuMP model
 }

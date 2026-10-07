@@ -15,6 +15,9 @@ save_arrow_data(data, path, format = "parquet", overwrite = FALSE)
 
 \item{overwrite}{Logical. Overwrite existing data?}
 }
+\value{
+Invisibly, \code{path}.
+}
 \description{
 Save data to disk using Arrow
 }

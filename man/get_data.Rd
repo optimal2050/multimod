@@ -23,14 +23,11 @@ Retrieve parameter, mapping, or set data from a model. Automatically loads
 from disk if the model is stored and data is not in memory.
 }
 \examples{
-\dontrun{
-# Get parameter data
-data <- get_data(model, "pTechCost")
+m <- example_models$energyRt$multimod
 
-# Get mapping data
-data <- get_data(model, "mTechRegion", type = "mapping")
+# Parameter data
+head(get_data(m, "pTechOlife"))
 
-# Get set members
-members <- get_data(model, "tech", type = "set")
-}
+# Mapping data
+head(get_data(m, "mCommTimeslice", type = "mapping"))
 }

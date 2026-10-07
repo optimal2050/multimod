@@ -27,7 +27,7 @@ write_pyomo <- function(model, file = NULL, model_dir = NULL, solver_dir = "pyom
 }
 
 #' @export
-write_pyomo.model <- function(model, file = NULL, model_dir = NULL, solver_dir = "pyomo",
+write_pyomo.mm_model <- function(model, file = NULL, model_dir = NULL, solver_dir = "pyomo",
                               model_name = "model", solver = "highs",
                               use_folded = TRUE, cleanup = TRUE,
                               data_mode = c("external", "embedded"),
@@ -42,7 +42,7 @@ write_pyomo.model <- function(model, file = NULL, model_dir = NULL, solver_dir =
 
 #' @export
 write_pyomo.multimod <- function(model, ...) {
-  write_pyomo.model(model, ...)
+  write_pyomo.mm_model(model, ...)
 }
 
 #' @export

@@ -25,6 +25,28 @@ write_gmpl(
   stop_on_error = TRUE,
   ...
 )
+
+# S3 method for class 'mm_model'
+write_gmpl(
+  model,
+  file = NULL,
+  model_dir = NULL,
+  format_expr = FALSE,
+  include_solve = TRUE,
+  export_vars = NULL,
+  use_table_output = FALSE,
+  use_folded = NULL,
+  objective = "cost",
+  export_data = FALSE,
+  drop_default_values = FALSE,
+  INF = 1e+20,
+  check = TRUE,
+  resolve_aliases = TRUE,
+  verbose = FALSE,
+  export_mps = FALSE,
+  stop_on_error = TRUE,
+  ...
+)
 ```
 
 ## Arguments

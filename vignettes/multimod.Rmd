@@ -15,7 +15,7 @@ knitr::opts_chunk$set(
   comment = "#>",
   eval = TRUE
 )
-library(here)
+has_vis <- requireNamespace("visNetwork", quietly = TRUE)
 ```
 
 [The Vignette is under revision]
@@ -31,8 +31,6 @@ pak::pkg_install("optimal2050/multimod", dependencies = TRUE)
 
 ## Setup
 ```{r setup}
-library(lobstr)
-library(visNetwork, quietly = TRUE)
 library(multimod)
 ```
 
@@ -53,7 +51,7 @@ download.file(
 file.exists(gams_source)
 ```
 
-```{r, echo=FALSE, eval=TRUE, iclude=FALSE}
+```{r, echo=FALSE, eval=TRUE, include=FALSE}
 # gams_source <- here("tmp/energyRt.gms") |> fs::path_rel(start = getwd())
 gams_source <- multimod::example_models$energyRt$gams$model
 ```
@@ -90,7 +88,7 @@ lobstr::tree(ast_node, max_length = 25, max_depth = 5)
 
 ### Visualization
 They can be visualized as a tree structure, which is useful for understanding the relationships between different elements in the model.
-```{r, eval=TRUE}
+```{r, eval=has_vis}
 as_visNetwork(ast_node)
 ```
 
@@ -111,6 +109,9 @@ Equations are stored in `$equations` list, and can be accessed by their names. E
 ```{r, eval=TRUE}
 eq <- mod$equations$eqTechCap
 print(eq)
+```
+
+```{r, eval=has_vis}
 as_visNetwork(eq)
 ```
 
@@ -214,7 +215,7 @@ library(tikzDevice)
 library(magick)
 library(knitr)
 img <- image_read_pdf("tmp/example_model.pdf", density = 300)
-image_write(img, here("vignettes", "images", "example_model.png"))
+image_write(img, "images/example_model.png")
 ```
 
 ```{r, eval=TRUE, echo=FALSE}

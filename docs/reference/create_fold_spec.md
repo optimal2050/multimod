@@ -72,18 +72,46 @@ joined with `mCommTimeslice[comm, timeslice]` yields `[stg, timeslice]`.
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
-fold_spec <- create_fold_spec(model, fold_dims = "timeslice")
+m <- example_models$energyRt$multimod
+fold_spec <- create_fold_spec(m, fold_dims = "timeslice")
+#> 
+#> === Fold Specification Generated ===
+#> Total entries: 9 
+#> Can fold: 1 
+#> Cannot fold: 8 
+#>   of which unproven -- a validation mapping would allow them: 6 
+#> 
+#> REVIEW CAREFULLY: validation_mapping may be incorrect for non-standard models
+#> 
+head(fold_spec)
+#>         param_name dim_to_fold validation_mapping validation_mapping_raw
+#> 1    pTechCinp2use   timeslice               <NA>                     NA
+#> 2        pTechAfLo   timeslice               <NA>                     NA
+#> 3         pSupCost   timeslice               <NA>                     NA
+#> 4 pTimesliceWeight   timeslice               <NA>                     NA
+#> 5    pTimesliceAgg   timeslice               <NA>                     NA
+#> 6   pStorageInpEff   timeslice               <NA>                     NA
+#>   can_fold unproven
+#> 1    FALSE     TRUE
+#> 2    FALSE     TRUE
+#> 3    FALSE     TRUE
+#> 4     TRUE    FALSE
+#> 5    FALSE    FALSE
+#> 6    FALSE     TRUE
+#>                                                                                                                                                                                                                   reason
+#> 1       Values are constant, but the parameter never indexes 5 of 17 timeslice members (ANNUAL, FAL, SPR), which resolve to the default. Supply a validation mapping for this dimension to confirm they are unreachable.
+#> 2       Values are constant, but the parameter never indexes 5 of 17 timeslice members (ANNUAL, FAL, SPR), which resolve to the default. Supply a validation mapping for this dimension to confirm they are unreachable.
+#> 3 Values are constant, but the parameter never indexes 16 of 17 timeslice members (FAL, FAL_DAY, FAL_NGT), which resolve to the default. Supply a validation mapping for this dimension to confirm they are unreachable.
+#> 4                                                                                                                                                    Values constant across dimension in all 4 groups (tolerance: 1e-10)
+#> 5                                                                                                              Dimension appears 2 times in the parameter (year, timeslice, timeslice); folding would remove all of them
+#> 6       Values are constant, but the parameter never indexes 5 of 17 timeslice members (ANNUAL, FAL, SPR), which resolve to the default. Supply a validation mapping for this dimension to confirm they are unreachable.
 
+# Entity-specific validation mappings (a character vector is a chain)
 fold_spec <- create_fold_spec(
-  model,
+  m,
   fold_dims = list(
-    timeslice = list(
-      tech = "mTechTimeslice",
-      comm = "mCommTimeslice",
-      stg  = c("mStorageComm", "mCommTimeslice")   # a chain
-    )
-  )
+    timeslice = list(comm = "mCommTimeslice")
+  ),
+  verbose = FALSE
 )
-} # }
 ```

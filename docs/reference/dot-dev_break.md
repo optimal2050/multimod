@@ -18,3 +18,7 @@ signal is kept, the block is not.
 - context:
 
   Where it fired, as "file.R:line".
+
+## Value
+
+Invisibly, `NULL`; called for the warning it raises.

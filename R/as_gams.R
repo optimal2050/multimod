@@ -42,6 +42,7 @@ as_gams.default <- function(x, ...) {
 }
 
 #' @export
+#' @method as_gams character
 as_gams.character <- function(x, ...) {
   # If x is a character vector, return it as is
   if (is.character(x)) {
@@ -52,9 +53,9 @@ as_gams.character <- function(x, ...) {
 }
 
 #' @export
-#' @method as_gams set
-as_gams.set <- function(x, declaration = FALSE, desc = declaration, ...) {
-  stopifnot(inherits(x, "set"))
+#' @method as_gams mm_set
+as_gams.mm_set <- function(x, declaration = FALSE, desc = declaration, ...) {
+  stopifnot(inherits(x, "mm_set"))
   if (declaration) {
     paste0("set ", x$name, ifelse(desc, paste0("  ", gams_desc(x$desc)), ""),";")
   } else {
@@ -63,9 +64,9 @@ as_gams.set <- function(x, declaration = FALSE, desc = declaration, ...) {
 }
 
 #' @export
-#' @method as_gams mapping
-as_gams.mapping <- function(x, declaration = FALSE, desc = declaration, ...) {
-  stopifnot(inherits(x, "mapping"))
+#' @method as_gams mm_mapping
+as_gams.mm_mapping <- function(x, declaration = FALSE, desc = declaration, ...) {
+  stopifnot(inherits(x, "mm_mapping"))
   if (declaration) {
     paste0("set ", as.character(x), ifelse(desc, paste0("  ", gams_desc(x$desc)), ""), ";")
   } else {
@@ -81,9 +82,9 @@ as_gams.dims <- function(x, ...) {
 }
 
 #' @export
-#' @method as_gams parameter
-as_gams.parameter <- function(x, declaration = FALSE, desc = declaration, ...) {
-  stopifnot(inherits(x, "parameter"))
+#' @method as_gams mm_parameter
+as_gams.mm_parameter <- function(x, declaration = FALSE, desc = declaration, ...) {
+  stopifnot(inherits(x, "mm_parameter"))
   if (declaration) {
     paste0("parameter ", as.character(x), ifelse(desc, paste0("  ", gams_desc(x$desc)), ""), ";")
   } else {
@@ -92,9 +93,9 @@ as_gams.parameter <- function(x, declaration = FALSE, desc = declaration, ...) {
 }
 
 #' @export
-#' @method as_gams variable
-as_gams.variable <- function(x, declaration = FALSE, desc = declaration, ...) {
-  stopifnot(inherits(x, "variable"))
+#' @method as_gams mm_variable
+as_gams.mm_variable <- function(x, declaration = FALSE, desc = declaration, ...) {
+  stopifnot(inherits(x, "mm_variable"))
   if (declaration) {
     paste0("variable ", as.character(x),
                   ifelse(desc, paste0("  ", gams_desc(x$desc)), ""), ";")
@@ -223,13 +224,13 @@ as_gams.unary <- function(x, ...) {
 
 
 #' @export
-#' @method as_gams equation
-as_gams.equation <- function(x, ...) {
+#' @method as_gams mm_equation
+as_gams.mm_equation <- function(x, ...) {
   eqname <- x$name
   # The equation is indexed by its domain mapping, so the header binds the
   # domain's dims rather than the base sets carried by x$dims.
   index_dims <- x$dims
-  if (inherits(x$domain, "mapping") && !is.null(x$domain$dims) &&
+  if (inherits(x$domain, "mm_mapping") && !is.null(x$domain$dims) &&
       length(x$domain$dims) == length(x$dims)) {
     index_dims <- x$domain$dims
   }

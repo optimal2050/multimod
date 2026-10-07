@@ -137,7 +137,7 @@
 #'   list).
 #' @export
 build_col_index <- function(model, verbose = FALSE, names = TRUE) {
-  stopifnot(inherits(model, "multimod") || inherits(model, "model"))
+  stopifnot(inherits(model, "multimod") || inherits(model, "mm_model"))
   vars <- model$variables
   if (!length(vars)) stop("Model has no variables.")
 
@@ -203,7 +203,7 @@ build_col_index <- function(model, verbose = FALSE, names = TRUE) {
 #'   `">="`) and `rhs` (`NA_real_` until coefficient extraction fills it).
 #' @export
 build_row_index <- function(model, verbose = FALSE, names = TRUE) {
-  stopifnot(inherits(model, "multimod") || inherits(model, "model"))
+  stopifnot(inherits(model, "multimod") || inherits(model, "mm_model"))
   eqs <- model$equations
   if (!length(eqs)) stop("Model has no equations.")
 

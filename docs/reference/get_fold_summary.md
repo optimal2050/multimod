@@ -26,6 +26,11 @@ get_fold_summary(
   structured list, "data.frame" returns tabular format, "text" prints
   formatted summary
 
+- verbose:
+
+  Logical; if `TRUE` and `format = "text"`, print a note when the model
+  has no folding applied (default: FALSE)
+
 ## Value
 
 Depending on format:
@@ -53,14 +58,16 @@ parameter includes:
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
-# Get structured list
-stats <- get_fold_summary(model_folded)
+m <- example_models$energyRt$multimod
+spec <- create_fold_spec(m, fold_dims = "timeslice", verbose = FALSE)
+m_folded <- fold_model(m, fold_spec = spec, verbose = FALSE)
 
-# Get as data frame
-df <- get_fold_summary(model_folded, format = "data.frame")
+# Structured list
+stats <- get_fold_summary(m_folded)
 
-# Print formatted summary
-get_fold_summary(model_folded, format = "text")
-} # }
+# As a data frame
+df <- get_fold_summary(m_folded, format = "data.frame")
+
+# Formatted text
+get_fold_summary(m_folded, format = "text")
 ```

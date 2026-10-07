@@ -21,8 +21,13 @@ Logical indicating if trimmed
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
-is_trimmed(model)
-is_trimmed(model$parameters$pDemand)
-} # }
+m <- example_models$energyRt$multimod
+is_trimmed(m)
+#> [1] FALSE
+
+m_trimmed <- trim_model(m, verbose = FALSE)
+is_trimmed(m_trimmed)
+#> [1] TRUE
+is_trimmed(m_trimmed$parameters$pTechOlife)
+#> [1] FALSE
 ```

@@ -139,15 +139,12 @@ compare_dataframes <- function(df1, df2, key_col = NULL,
       match_idx2 <- match_idx2[valid_matches]
       in_both_internal <- in_both_internal[valid_matches]
     }
-    if (length(in_both_internal) == 0) {
-      next
-    }
-
     df1_subset <- df1_work[match_idx1, , drop = FALSE]
     df2_subset <- df2_work[match_idx2, , drop = FALSE]
-    
-    # Compare each column
-    for (col in compare_cols) {
+
+    # Compare each column; nothing to compare when no key is in both
+    cols_to_compare <- if (length(in_both_internal) == 0) character(0) else compare_cols
+    for (col in cols_to_compare) {
       if (!(col %in% names(df1_subset)) || !(col %in% names(df2_subset))) {
         cat(sprintf("Warning: Column '%s' not in both dataframes\n", col))
         next
@@ -215,6 +212,8 @@ compare_dataframes <- function(df1, df2, key_col = NULL,
 #' @param n Number of examples to show (default: 10)
 #' @param tolerance Numeric tolerance for comparing numeric columns (default: 1e-9)
 #' @param ignore.case Logical; if TRUE, perform case-insensitive comparison for character columns (default: FALSE)
+#' @return Invisibly, the list returned by [compare_dataframes()] (elements
+#'   `only_in_1`, `only_in_2`, `in_both`, `differences`, `summary`).
 #' 
 #' @export
 quick_compare <- function(df1, df2, key_col = "name", n = 10, tolerance = 1e-9, ignore.case = FALSE) {

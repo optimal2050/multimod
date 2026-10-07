@@ -25,7 +25,6 @@ arguments are automatically detected from symbols in the AST, or can
 be explicitly specified.
 }
 \examples{
-\dontrun{
 # Simple expression: DiscountRate[r]
 ast <- ast_expression(
   op = "[",
@@ -34,10 +33,6 @@ ast <- ast_expression(
 )
 fn <- as_rfunction(ast)
 # Creates: function(DiscountRate, r) { DiscountRate[r] }
-
-# Call it
-result <- fn(DiscountRate = c(R1=0.05, R2=0.07), r = "R1")
-# Returns: 0.05
-}
+fn(DiscountRate = c(R1 = 0.05, R2 = 0.07), r = "R1")
 
 }

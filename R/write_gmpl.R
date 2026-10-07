@@ -113,31 +113,23 @@ write_gmpl <- function(model, file = NULL, model_dir = model$base_dir,
 }
 
 
-#' Write a full GMPL model file from a multimod object
-#'
-#' @param model A `multimod` model object
-#' @param file Output file path (optional)
-#' @param format_expr logical; whether to format expressions with line breaks
-#' @param include_solve logical; whether to include solve and end statements
-#' @param export_vars character vector of variable names to export to CSV; if NULL (default), all variables are exported; if FALSE or character(0), no custom export
-#' @param use_table_output logical; whether to add GMPL table statement for output (CSV format); default FALSE
-#' @param objective character; name of the objective variable (default: "cost")
-#' @param export_data logical; whether to insert data export code after parameters (default: FALSE)
-#' @param drop_default_values logical; if TRUE with export_data, exclude values that match defaults (default: FALSE)
-#' @param ... Additional arguments passed to formatting functions
-#'
-#' @return Character vector or writes file if `file` is given
-#' @method write_gmpl model
+#' @rdname write_gmpl
+#' @method write_gmpl mm_model
 #' @export
-write_gmpl.model <- function(model, file = NULL, format_expr = FALSE, include_solve = TRUE,
+write_gmpl.mm_model <- function(model, file = NULL, model_dir = NULL,
+                            format_expr = FALSE, include_solve = TRUE,
                             export_vars = NULL, use_table_output = FALSE, use_folded = NULL, objective = "cost",
-                            export_data = FALSE, drop_default_values = FALSE, ...) {
-  stopifnot(inherits(model, "model"))
+                            export_data = FALSE, drop_default_values = FALSE, INF = 1e20,
+                            check = TRUE, resolve_aliases = TRUE, verbose = FALSE, export_mps = FALSE,
+                            stop_on_error = TRUE, ...) {
+  stopifnot(inherits(model, "mm_model"))
   # Auto-detect if model is folded
   if (is.null(use_folded)) {
     use_folded <- is_folded(model)
   }
-  write_gmpl_internal(model, file, format_expr, include_solve, export_vars, use_table_output, use_folded, objective, export_data, drop_default_values, ...)
+  write_gmpl_internal(model, file, format_expr, include_solve, export_vars, use_table_output, use_folded, objective, export_data, drop_default_values,
+                      model_dir = model_dir, INF = INF, check = check, resolve_aliases = resolve_aliases,
+                      verbose = verbose, export_mps = export_mps, stop_on_error = stop_on_error, ...)
 }
 
 
@@ -476,7 +468,7 @@ write_gmpl_internal <- function(model, file = NULL, format_expr = FALSE, include
         if (!is.null(eq$domain) && !is.null(eq$domain$dims) && length(eq$domain$dims) > 0) {
           domain_dim_names <- sapply(eq$domain$dims, function(d) {
             if (inherits(d, "symbol")) d$name
-            else if (inherits(d, "set")) d$name
+            else if (inherits(d, "mm_set")) d$name
             else if (is.character(d)) d
             else as.character(d)
           })
@@ -852,11 +844,9 @@ generate_variable_output <- function(var) {
 #' @export
 #'
 #' @examples
-#' \dontrun{
-#' model <- read_gmpl("model.mod", "data.dat")
-#' export_code <- export_data_gmpl(model)
-#' cat(export_code)
-#' }
+#' m <- example_models$energyRt$multimod
+#' export_code <- export_data_gmpl(m)
+#' cat(substr(export_code, 1, 400))
 export_data_gmpl <- function(model, export_dir = "data_export", drop_default_values = FALSE) {
 
   if (is.null(model$sets) || is.null(model$parameters)) {
@@ -1167,7 +1157,7 @@ export_data_gmpl <- function(model, export_dir = "data_export", drop_default_val
 #'
 #' @export
 write_gmpl_data <- function(model, file = NULL, use_folded = TRUE, INF = 1e20) {
-  stopifnot(inherits(model, "multimod") || inherits(model, "model"))
+  stopifnot(inherits(model, "multimod") || inherits(model, "mm_model"))
 
   lines <- character()
 

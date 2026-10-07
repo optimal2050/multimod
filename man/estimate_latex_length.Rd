@@ -6,6 +6,13 @@
 \usage{
 estimate_latex_length(latex_str)
 }
+\arguments{
+\item{latex_str}{A character string of LaTeX code.}
+}
+\value{
+A single number, the approximate rendered length in characters;
+0 for \code{NULL} or empty input.
+}
 \description{
 Estimate the length of a LaTeX string
 }

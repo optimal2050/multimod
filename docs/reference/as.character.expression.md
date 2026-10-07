@@ -26,3 +26,7 @@ as.character(x, brackets = NULL, max_char = 50, ...)
 - ...:
 
   Additional arguments
+
+## Value
+
+A single character string.

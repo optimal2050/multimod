@@ -6,6 +6,9 @@
 \usage{
 convert_filter_with_haskey(expr, model, ...)
 }
+\value{
+A character string of JuMP code for the filter expression.
+}
 \description{
 Convert filter expression with haskey checks for parameters (for sum filters)
 }

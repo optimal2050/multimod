@@ -35,6 +35,20 @@ remap_ast_elements(
   A character string prefix for the new names of the replaced elements.
   Defaults to "m".
 
+- n:
+
+  Integer; starting value of the counter used to number the replaced
+  elements (default 0).
+
+- latex_max:
+
+  Numeric; elements whose rendered LaTeX is shorter than this estimated
+  length are left in place (default 10).
+
+- ...:
+
+  Further arguments, currently ignored.
+
 ## Value
 
 Modified AST object with remapped elements

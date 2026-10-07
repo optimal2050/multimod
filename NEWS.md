@@ -1,6 +1,28 @@
-# multimod (development version)
+# multimod 0.5.0
 
 ## Breaking changes
+
+* The S3 classes of model objects are now prefixed: `mm_model`, `mm_set`,
+  `mm_mapping`, `mm_parameter`, `mm_variable`, `mm_equation` (declarations
+  and references alike). The bare names collided with other packages'
+  classes (energyRt's `model` and `variable`), so that methods of one package
+  were dispatched on objects of the other. Code testing `inherits(x,
+  "model")` and friends must use the new names; `is_declaration()` and the
+  `is_*()` helpers are unchanged. Saved models carry their class, so
+  `example_models` was re-stamped and models saved with earlier versions
+  need the same (`class<-` on the nested nodes). The JSON schema tags and the
+  CamelCase constructors (`Model()`, `Set()`, ...) are unchanged.
+* `arrow` and `visNetwork` moved from Imports to Suggests; the functions
+  that need them check and fail with an installation hint.
+* `multimod_config_write(global = TRUE)` and its readers use the per-user
+  configuration directory returned by `tools::R_user_dir("multimod",
+  "config")` instead of `~/.multimod/`.
+
+## CRAN preparation
+
+* The four articles that need energyRt or an installed solver (folding,
+  GMPL, JuMP, Pyomo) are website articles rather than package vignettes.
+* Tests run under `R CMD check` (a test runner was missing).
 
 * `setup_python_environment()` and `setup_multimod_python()` are now
   `mm_setup_python()`, with no aliases. Its `packages` default gains `pyarrow`

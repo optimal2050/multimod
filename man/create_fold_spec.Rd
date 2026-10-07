@@ -54,20 +54,18 @@ the mappings share. For \code{stg = c("mStorageComm", "mCommTimeslice")}:
 yields \verb{[stg, timeslice]}.
 }
 \examples{
-\dontrun{
-fold_spec <- create_fold_spec(model, fold_dims = "timeslice")
+m <- example_models$energyRt$multimod
+fold_spec <- create_fold_spec(m, fold_dims = "timeslice")
+head(fold_spec)
 
+# Entity-specific validation mappings (a character vector is a chain)
 fold_spec <- create_fold_spec(
-  model,
+  m,
   fold_dims = list(
-    timeslice = list(
-      tech = "mTechTimeslice",
-      comm = "mCommTimeslice",
-      stg  = c("mStorageComm", "mCommTimeslice")   # a chain
-    )
-  )
+    timeslice = list(comm = "mCommTimeslice")
+  ),
+  verbose = FALSE
 )
-}
 }
 \seealso{
 \code{\link[=fold_model]{fold_model()}}

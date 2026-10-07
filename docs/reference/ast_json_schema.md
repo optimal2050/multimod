@@ -30,7 +30,13 @@ The JSON Schema as a character string.
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
-cat(ast_json_schema())
-} # }
+schema <- ast_json_schema()
+cat(substr(schema, 1, 300))
+#> {
+#>   "$schema": "https://json-schema.org/draft/2020-12/schema",
+#>   "$id": "https://multimod.dev/schema/ast-v1.0.json",
+#>   "title": "multimod model",
+#>   "description": "Abstract syntax tree of a multimod optimization model. Generated from ast_schema(); do not edit by hand.",
+#>   "type": "object",
+#>   "proper
 ```

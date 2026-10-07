@@ -26,8 +26,9 @@ Character. The index alias for the set
 ## Examples
 
 ``` r
+model <- example_models$energyRt$multimod
 model <- add_index_aliases(model)
-#> Error: object 'model' not found
+#> Model already has index_aliases. Use overwrite=TRUE to replace them.
 get_index_alias(model, "tech")  # "h"
-#> Error: object 'model' not found
+#> [1] "h"
 ```
