@@ -54,7 +54,7 @@ test_that("solve_pyomo solves example model successfully", {
   # Create temp directory
   temp_dir <- tempfile("pyomo_solve_")
   dir.create(temp_dir, recursive = TRUE)
-  on.exit(unlink(temp_dir, recursive = TRUE))
+  on.exit(unlink(temp_dir, recursive = TRUE), add = TRUE)
   
   # Save model and generate Pyomo code
   save_model(model, temp_dir, format = "ipc", verbose = FALSE)
@@ -112,7 +112,7 @@ test_that("solve_pyomo handles model_dir without model object", {
   
   temp_dir <- tempfile("pyomo_nomodel_")
   dir.create(temp_dir, recursive = TRUE)
-  on.exit(unlink(temp_dir, recursive = TRUE))
+  on.exit(unlink(temp_dir, recursive = TRUE), add = TRUE)
   
   # Save and generate
   save_model(model, temp_dir, format = "ipc", verbose = FALSE)
@@ -153,7 +153,7 @@ test_that("solve_pyomo verbose output works", {
   
   temp_dir <- tempfile("pyomo_verbose_")
   dir.create(temp_dir, recursive = TRUE)
-  on.exit(unlink(temp_dir, recursive = TRUE))
+  on.exit(unlink(temp_dir, recursive = TRUE), add = TRUE)
   
   save_model(model, temp_dir, format = "ipc", verbose = FALSE)
   write_pyomo(model, model_dir = temp_dir)
@@ -183,7 +183,7 @@ test_that("solve_pyomo handles missing Python gracefully", {
   
   temp_dir <- tempfile("pyomo_nopython_")
   dir.create(temp_dir, recursive = TRUE)
-  on.exit(unlink(temp_dir, recursive = TRUE))
+  on.exit(unlink(temp_dir, recursive = TRUE), add = TRUE)
   
   save_model(model, temp_dir, format = "csv", verbose = FALSE)
   write_pyomo(model, model_dir = temp_dir)
@@ -206,7 +206,7 @@ test_that("solve_pyomo handles missing model files", {
   
   temp_dir <- tempfile("pyomo_nofiles_")
   dir.create(temp_dir, recursive = TRUE)
-  on.exit(unlink(temp_dir, recursive = TRUE))
+  on.exit(unlink(temp_dir, recursive = TRUE), add = TRUE)
   
   # Don't generate model files
   
@@ -225,7 +225,7 @@ test_that("write_pyomo generates valid Python code structure", {
   
   temp_dir <- tempfile("pyomo_write_")
   dir.create(temp_dir, recursive = TRUE)
-  on.exit(unlink(temp_dir, recursive = TRUE))
+  on.exit(unlink(temp_dir, recursive = TRUE), add = TRUE)
   
   save_model(model, temp_dir, format = "csv", verbose = FALSE)
   write_pyomo(model, model_dir = temp_dir, split = TRUE, 
@@ -261,7 +261,7 @@ test_that("write_pyomo data_mode parameter works", {
   
   temp_dir <- tempfile("pyomo_datamode_")
   dir.create(temp_dir, recursive = TRUE)
-  on.exit(unlink(temp_dir, recursive = TRUE))
+  on.exit(unlink(temp_dir, recursive = TRUE), add = TRUE)
   
   save_model(model, temp_dir, format = "csv", verbose = FALSE)
   
@@ -278,3 +278,51 @@ test_that("write_pyomo data_mode parameter works", {
               label = "Should read the data files directly")
 })
 
+
+test_that("write_pyomo() refuses `file` and builds the workspace it needs", {
+  toy <- example_models$toy
+  expect_error(write_pyomo(toy, file = tempfile(fileext = ".py")), "model_dir")
+
+  d <- withr::local_tempdir()
+  f <- write_pyomo(toy, model_dir = d, export_vars = TRUE)
+  expect_true(file.exists(f))
+  expect_true(file.exists(file.path(d, "model.rds")))
+  expect_true(file.exists(file.path(d, "solvers", "pyomo", "data.py")))
+
+  # a non-empty directory that is not a workspace is left alone
+  d2 <- withr::local_tempdir()
+  writeLines("x", file.path(d2, "notes.txt"))
+  expect_error(write_pyomo(toy, model_dir = d2), "not empty")
+  expect_true(file.exists(file.path(d2, "notes.txt")))
+})
+
+test_that("solve_pyomo(load_results = TRUE) reads the toy solution back", {
+  skip_on_cran()
+  py <- tryCatch(mm_check_python(packages = c("pyomo", "highspy")),
+                 error = function(e) list(ok = FALSE))
+  skip_if(!isTRUE(py$ok), "Python with pyomo and highspy not available")
+
+  toy <- example_models$toy
+  d <- withr::local_tempdir()
+  write_pyomo(toy, model_dir = d, export_vars = TRUE)
+  r <- solve_pyomo(toy, d, solver = "highs", verbose = FALSE, ensure_env = FALSE,
+                   load_results = TRUE)
+  expect_true(r$success)
+  expect_equal(r$objective, 198000, tolerance = 1e-6)
+  gen <- r$model$variables$vGen$solution
+  expect_named(gen, c("tech", "region", "value"))
+  expect_equal(sum(gen$value), 1600, tolerance = 1e-6)
+  expect_setequal(r$model$solution_metadata$variables_loaded, c("vCap", "vGen"))
+
+  expect_error(solve_pyomo(NULL, d, verbose = FALSE, ensure_env = FALSE,
+                           load_results = TRUE), "needs the")
+})
+
+test_that(".pyomo_index_columns() splits Python index strings", {
+  two <- .pyomo_index_columns(c("('coal', 'north')", "('gas', 'south')"), c("tech", "region"))
+  expect_identical(two, data.frame(tech = c("coal", "gas"), region = c("north", "south"),
+                                   stringsAsFactors = FALSE))
+  one <- .pyomo_index_columns(c("coal", "gas"), "tech")
+  expect_identical(one$tech, c("coal", "gas"))
+  expect_identical(ncol(.pyomo_index_columns("None", character(0))), 0L)
+})

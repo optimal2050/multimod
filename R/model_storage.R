@@ -780,9 +780,22 @@ get_data <- function(model, name, type = c("parameter", "mapping", "set", "varia
   type <- match.arg(type)
 
   if (type == "set") {
-    if (!is.null(model$sets[[name]])) {
-      return(model$sets[[name]]$members)
+    set_obj <- model$sets[[name]]
+    if (is.null(set_obj)) return(NULL)
+
+    if (!is.null(set_obj$data) && length(set_obj$data) > 0) {
+      return(as.character(set_obj$data))
     }
+
+    # save_model() writes sets/<name>/data.<ext> with one column, `member`
+    if (!is.null(model$storage$path)) {
+      set_file <- file.path(model$storage$path, "sets", name, "data")
+      data <- .load_dataframe(set_file, model$storage$format)
+      if (!is.null(data) && "member" %in% names(data)) {
+        return(as.character(data$member))
+      }
+    }
+
     return(NULL)
   }
 

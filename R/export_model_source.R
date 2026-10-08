@@ -1,291 +1,158 @@
-#' Export Model Source Files
+#' Export the bundled energyRt model as a solver workspace
 #'
 #' @description
-#' Export model source code from the bundled `example_models` dataset to files
-#' in a specified directory. This is useful for testing parsers, running
-#' models, or inspecting model code.
+#' Writes the energyRt model shipped in `example_models` to a directory, as a
+#' model workspace (see [save_model()]) with one sub-directory per requested
+#' backend under `solvers/`. The GAMS source is the file the model was parsed
+#' from; the MathProg, JuMP and Pyomo code is rendered from the parsed model
+#' with [write_gmpl()], [write_jump()] and [write_pyomo()].
 #'
-#' @param dataset Name of the dataset to export. Currently only "energyrt".
-#' @param dir Directory path where files will be written. Will be created if it
-#'   doesn't exist.
-#' @param format Which format to export: "gams", "gmpl", "jump", "pyomo", or
-#'   "all" (default).
-#' @param overwrite Logical. If TRUE, overwrite existing files. Default is FALSE.
-#' @param verbose Logical. If TRUE, print progress messages. Default is TRUE.
+#' @param dataset Name of the dataset to export. Currently only `"energyrt"`.
+#' @param dir Directory path for the workspace. Created if it does not exist.
+#' @param format Which backend to export: `"gams"`, `"gmpl"`, `"jump"`,
+#'   `"pyomo"`, or `"all"` (default).
+#' @param overwrite Logical. If `TRUE`, existing solver directories are
+#'   rewritten. Default is `FALSE`: a backend whose directory exists is skipped.
+#' @param verbose Logical. If `TRUE`, print progress messages. Default is `TRUE`.
 #'
-#' @return Invisible list of file paths that were created.
+#' @return Invisibly, a character vector of the files written.
 #'
 #' @details
-#' ## energyRt Export
+#' The workspace layout is the one every `solve_*()` function expects:
 #'
-#' For the energyRt dataset, exports files based on the `format` argument:
-#'
-#' - **GAMS** (`format = "gams"`):
-#'   - `model.gms`: Model code with all includes resolved
-#'   - `data.gms`: Data assignments with all includes resolved
-#'   - `README.txt`: Model metadata and information
-#'
-#' - **GMPL** (`format = "gmpl"`):
-#'   - `model.mod`: Model declarations
-#'   - `data.dat`: Data statements
-#'   - `README.txt`: Model metadata and information
-#'
-#' - **JuMP** (`format = "jump"`):
-#'   - `model.jl`: JuMP model code with includes resolved
-#'   - `data.jl`: Pure Julia data code (no RData dependency)
-#'   - `README.txt`: Model metadata and information
-#'
-#' - **Pyomo** (`format = "pyomo"`):
-#'   - `model.py`: Pyomo model code
-#'   - `data.py`: Python data code with exec() resolved
-#'   - `README.txt`: Model metadata and information
-#'
-#' - **All** (`format = "all"`):
-#'   - Exports all formats to subdirectories: gams/, gmpl/, jump/, pyomo/
+#' - `model.rds`, `sets/`, `mappings/`, `parameters/`: the saved model and its
+#'   data (CSV), written once by [save_model()].
+#' - `solvers/gams/model.gms`: the GAMS source of the energyRt model.
+#' - `solvers/gmpl/model.mod` and `data.dat`: MathProg, run with
+#'   `glpsol -m model.mod -d data.dat` from that directory.
+#' - `solvers/jump/model.jl` and `data.jl`: JuMP, run with `julia model.jl`.
+#' - `solvers/pyomo/model.py` and `data.py`: Pyomo, run with `python model.py`.
+#' - `README.txt`: provenance and licence of the model.
 #'
 #' @examples
-#' \dontrun{
-#' tmp_dir <- tempdir()
+#' \donttest{
+#' ws <- file.path(tempdir(), "energyrt_ws")
+#' files <- export_model_source("energyrt", ws, format = "gmpl")
+#' basename(files)
 #'
-#' # Export energyRt GMPL format
-#' export_model_source("energyrt", file.path(tmp_dir, "energyrt"),
-#'                     format = "gmpl")
-#'
-#' # Export all energyRt formats
-#' export_model_source("energyrt", file.path(tmp_dir, "energyrt_all"),
-#'                     format = "all")
-#'
-#' # Use exported files
-#' gmpl_dir <- file.path(tmp_dir, "energyrt")
-#' model <- read_gmpl(file.path(gmpl_dir, "model.mod"),
-#'                    file.path(gmpl_dir, "data.dat"))
+#' model <- read_gmpl(file.path(ws, "solvers", "gmpl", "model.mod"),
+#'                    file.path(ws, "solvers", "gmpl", "data.dat"))
+#' unlink(ws, recursive = TRUE)
 #' }
 #'
 #' @export
 export_model_source <- function(dataset = c("energyrt"),
-                                 dir,
-                                 format = "all",
-                                 overwrite = FALSE,
-                                 verbose = TRUE) {
-
+                                dir,
+                                format = "all",
+                                overwrite = FALSE,
+                                verbose = TRUE) {
   dataset <- match.arg(dataset)
+  format <- match.arg(format, c("gams", "gmpl", "jump", "pyomo", "all"))
+  formats <- if (format == "all") c("gams", "gmpl", "jump", "pyomo") else format
 
-  # Create directory if needed
   if (!dir.exists(dir)) {
     dir.create(dir, recursive = TRUE)
     if (verbose) message("Created directory: ", dir)
   }
 
-  # Track created files
-  files_created <- list()
-
-  # Export based on dataset
+  files <- character()
   if (dataset == "energyrt") {
-    format <- match.arg(format, c("gams", "gmpl", "jump", "pyomo", "all"))
-    files_created <- export_energyrt(dir, format, overwrite, verbose)
+    files <- export_energyrt(dir, formats, overwrite, verbose)
   }
 
   if (verbose) {
-    message("\nExport complete! ", length(files_created), " file(s) written to:")
-    message("  ", normalizePath(dir, mustWork = FALSE))
+    message("Export complete: ", length(files), " file(s) written to ",
+            normalizePath(dir, mustWork = FALSE))
   }
 
-  invisible(files_created)
+  invisible(files)
 }
 
 #' @keywords internal
-export_energyrt <- function(dir, format, overwrite, verbose) {
-  # Load dataset into local environment
+#' @noRd
+export_energyrt <- function(dir, formats, overwrite, verbose) {
   env <- environment()
   utils::data("example_models", envir = env)
-  energyRt_source <- get("example_models", envir = env)$energyRt
-  dataset <- energyRt_source
-
-  if (format == "all") {
-    # Export all formats to subdirectories
-    files <- character()
-    for (fmt in c("gams", "gmpl", "jump", "pyomo")) {
-      subdir <- file.path(dir, fmt)
-      if (!dir.exists(subdir)) {
-        dir.create(subdir, recursive = TRUE)
-      }
-      files <- c(files, export_energyrt_format(dataset, subdir,
-                                                fmt, overwrite, verbose))
-    }
-    return(files)
-  } else {
-    # Export single format
-    return(export_energyrt_format(dataset, dir, format,
-                                  overwrite, verbose))
-  }
-}
-
-#' @keywords internal
-export_energyrt_format <- function(energyRt_source, dir, format, 
-                                   overwrite, verbose) {
+  source <- get("example_models", envir = env)$energyRt
+  model <- source$multimod
   files <- character()
-  
-  # Create output subdirectory (needed by all models)
-  output_dir <- file.path(dir, "output")
-  if (!dir.exists(output_dir)) {
-    dir.create(output_dir, recursive = TRUE)
+
+  say <- function(...) if (verbose) message(...)
+
+  # The workspace: data the rendered code reads at run time. Written once;
+  # save_model(overwrite = TRUE) would wipe the solver directories with it.
+  if (!file.exists(file.path(dir, "model.rds"))) {
+    if (length(list.files(dir, all.files = TRUE, no.. = TRUE)) > 0) {
+      stop(dir, " is not empty and holds no model workspace (model.rds); ",
+           "choose an empty directory.")
+    }
+    save_model(model, dir, format = "csv", verbose = FALSE)
+    files <- c(files, file.path(dir, "model.rds"))
+    say("Wrote: model workspace (model.rds, sets/, mappings/, parameters/)")
   }
-  
-  # Write README with metadata
+
   readme_file <- file.path(dir, "README.txt")
   if (!file.exists(readme_file) || overwrite) {
-    # Format-specific usage notes
-    usage_note <- switch(format,
-      "gmpl" = paste(
-        "Usage:",
-        "  1. Create output directory: mkdir output",
-        "  2. Run model: glpsol -m model.mod -d data.dat",
-        "",
-        sep = "\n  "
-      ),
-      "jump" = paste(
-        "Usage:",
-        "  julia model.jl",
-        "  (Output directory is created automatically)",
-        "",
-        sep = "\n  "
-      ),
-      "pyomo" = paste(
-        "Usage:",
-        "  python model.py",
-        "",
-        "Note: This export contains fully resolved inline data (no exec() calls",
-        "or SQLite database dependencies). However, some constraint rules may",
-        "fail with 'Invalid constraint expression' errors when parameters are",
-        "missing. This is a known issue in the energyRt Pyomo writer that",
-        "needs to be fixed upstream.",
-        "",
-        sep = "\n  "
-      ),
-      ""  # Default: no usage note
-    )
-    
-    readme_content <- c(
-      "energyRt Model Source Files",
-      paste0("Format: ", toupper(format)),
+    meta <- source$metadata
+    writeLines(c(
+      "energyRt model workspace exported by multimod::export_model_source()",
       "",
       "Source:",
-      paste0("  Package: ", energyRt_source$metadata$source),
-      paste0("  Scenario: ", energyRt_source$metadata$scenario),
-      paste0("  Repository: ", energyRt_source$metadata$repository),
+      paste0("  Package:    ", meta$source),
+      paste0("  Scenario:   ", meta$scenario),
+      paste0("  Repository: ", meta$repository),
+      paste0("  Imported:   ", meta$date_imported),
+      paste0("  Exported:   ", Sys.Date()),
       "",
       "License:",
-      paste0("  ", energyRt_source$metadata$license),
+      paste0("  ", meta$license),
       "  https://www.apache.org/licenses/LICENSE-2.0",
       "",
-      "Date:",
-      paste0("  Imported: ", energyRt_source$metadata$date_imported),
-      paste0("  Exported: ", Sys.Date()),
-      "",
-      "Files:",
-      paste0("  model.", get_extension(format), " - Model declarations and equations"),
-      paste0("  data.", get_extension(format), " - Parameter values and data"),
-      if (nchar(usage_note) > 0) c("", usage_note) else NULL,
+      "Layout:",
+      "  model.rds, sets/, mappings/, parameters/  saved model and data (CSV)",
+      "  solvers/gams/model.gms                    GAMS source the model was parsed from",
+      "  solvers/gmpl/model.mod, data.dat          glpsol -m model.mod -d data.dat",
+      "  solvers/jump/model.jl, data.jl            julia model.jl",
+      "  solvers/pyomo/model.py, data.py           python model.py",
       "",
       "Note:",
-      "  ", energyRt_source$metadata$note
-    )
-    writeLines(readme_content, readme_file)
+      paste0("  ", meta$note)
+    ), readme_file)
     files <- c(files, readme_file)
-    if (verbose) message("Wrote: README.txt")
+    say("Wrote: README.txt")
   }
-  
-  if (format == "gams") {
-    # GAMS format - uniform names
-    model_file <- file.path(dir, "model.gms")
-    data_file <- file.path(dir, "data.gms")
-    
-    if (!file.exists(model_file) || overwrite) {
-      writeLines(energyRt_source$gams$model, model_file)
-      files <- c(files, model_file)
-      if (verbose) message("Wrote: model.gms (", 
-                          length(energyRt_source$gams$model), " lines)")
-    }
-    
-    if (!file.exists(data_file) || overwrite) {
-      writeLines(energyRt_source$gams$data, data_file)
-      files <- c(files, data_file)
-      if (verbose) message("Wrote: data.gms (", 
-                          length(energyRt_source$gams$data), " lines)")
-    }
-    
-  } else if (format == "gmpl") {
-    # GMPL format - uniform names
-    model_file <- file.path(dir, "model.mod")
-    data_file <- file.path(dir, "data.dat")
-    
-    if (!file.exists(model_file) || overwrite) {
-      writeLines(energyRt_source$gmpl$model, model_file)
-      files <- c(files, model_file)
-      if (verbose) message("Wrote: model.mod (", 
-                          length(energyRt_source$gmpl$model), " lines)")
-    }
-    
-    if (!file.exists(data_file) || overwrite) {
-      writeLines(energyRt_source$gmpl$data, data_file)
-      files <- c(files, data_file)
-      if (verbose) message("Wrote: data.dat (", 
-                          length(energyRt_source$gmpl$data), " lines)")
-    }
-    
-  } else if (format == "jump") {
-    # JuMP format - uniform names
-    model_file <- file.path(dir, "model.jl")
-    data_jl_file <- file.path(dir, "data.jl")
-    
-    if (!file.exists(model_file) || overwrite) {
-      writeLines(energyRt_source$jump$model, model_file)
-      files <- c(files, model_file)
-      if (verbose) message("Wrote: model.jl (", 
-                          length(energyRt_source$jump$model), " lines)")
-    }
-    
-    if (!is.null(energyRt_source$jump$data) && 
-        (!file.exists(data_jl_file) || overwrite)) {
-      writeLines(energyRt_source$jump$data, data_jl_file)
-      files <- c(files, data_jl_file)
-      if (verbose) message("Wrote: data.jl (", 
-                          length(energyRt_source$jump$data), 
-                          " lines, pure Julia - no RData needed)")
-    }
-    
-  } else if (format == "pyomo") {
-    # Pyomo format - uniform names
-    model_file <- file.path(dir, "model.py")
-    data_file <- file.path(dir, "data.py")
-    
-    if (!is.null(energyRt_source$pyomo$model) && 
-        (!file.exists(model_file) || overwrite)) {
-      writeLines(energyRt_source$pyomo$model, model_file)
-      files <- c(files, model_file)
-      if (verbose) message("Wrote: model.py (", 
-                          length(energyRt_source$pyomo$model), " lines)")
-    }
-    
-    if (!is.null(energyRt_source$pyomo$data) && 
-        (!file.exists(data_file) || overwrite)) {
-      writeLines(energyRt_source$pyomo$data, data_file)
-      files <- c(files, data_file)
-      if (verbose) message("Wrote: data.py (", 
-                          length(energyRt_source$pyomo$data), " lines)")
-    }
-  }
-  
-  return(files)
-}
 
-#' @keywords internal
-get_extension <- function(format) {
-  switch(format,
-    gams = "gms",
-    gmpl = "mod / dat",
-    jump = "jl",
-    pyomo = "py",
-    "txt"
-  )
+  for (fmt in formats) {
+    solver_dir <- file.path(dir, "solvers", fmt)
+    if (dir.exists(solver_dir) && !overwrite) {
+      say("Skipped ", fmt, ": ", solver_dir, " exists (overwrite = FALSE)")
+      next
+    }
+    dir.create(solver_dir, recursive = TRUE, showWarnings = FALSE)
+
+    written <- switch(fmt,
+      gams = {
+        f <- file.path(solver_dir, "model.gms")
+        writeLines(source$gams$model, f)
+        f
+      },
+      gmpl = {
+        out <- suppressMessages(suppressWarnings(write_gmpl(model, model_dir = dir, verbose = FALSE)))
+        c(out$model, out$data)
+      },
+      jump = {
+        suppressMessages(suppressWarnings(write_jump(model, model_dir = dir)))
+        file.path(solver_dir, c("model.jl", "data.jl"))
+      },
+      pyomo = {
+        suppressMessages(write_pyomo(model, model_dir = dir))
+        file.path(solver_dir, c("model.py", "data.py"))
+      }
+    )
+    written <- written[file.exists(written)]
+    files <- c(files, written)
+    say("Wrote: solvers/", fmt, "/ (", paste(basename(written), collapse = ", "), ")")
+  }
+
+  files
 }

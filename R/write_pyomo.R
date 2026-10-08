@@ -6,6 +6,11 @@
 #' embedded literals), and a lightweight `solve.py` runner.
 #'
 #' @inheritParams write_jump
+#' @param model_dir Model workspace directory. The scaffold is written to
+#'   `<model_dir>/solvers/<solver_dir>/` and reads its data from the workspace,
+#'   so the directory must hold one written by [save_model()]; if it does not,
+#'   the model is saved there first (CSV format). Defaults to the directory the
+#'   model was loaded from or saved to (`model$base_path`).
 #' @param solver Python solver name passed to `pyomo.opt.SolverFactory`
 #'   (default `"highs"`).
 #' @param data_mode Whether data should be stored externally in files
@@ -17,7 +22,7 @@
 #'   by the other writers (`model` + `data`). Set `split = TRUE` to preserve the
 #'   previous three-file scaffold.
 #' @export
-write_pyomo <- function(model, file = NULL, model_dir = NULL, solver_dir = "pyomo",
+write_pyomo <- function(model, model_dir = NULL, solver_dir = "pyomo",
                         model_name = "model", solver = "highs",
                         use_folded = TRUE, cleanup = TRUE,
                         data_mode = c("external", "embedded"),
@@ -27,13 +32,13 @@ write_pyomo <- function(model, file = NULL, model_dir = NULL, solver_dir = "pyom
 }
 
 #' @export
-write_pyomo.mm_model <- function(model, file = NULL, model_dir = NULL, solver_dir = "pyomo",
+write_pyomo.mm_model <- function(model, model_dir = NULL, solver_dir = "pyomo",
                               model_name = "model", solver = "highs",
                               use_folded = TRUE, cleanup = TRUE,
                               data_mode = c("external", "embedded"),
                               split = FALSE, export_vars = FALSE, export_data = FALSE,
                               export_mps = FALSE, ...) {
-  write_pyomo_internal(model, file = file, model_dir = model_dir, solver_dir = solver_dir,
+  write_pyomo_internal(model, model_dir = model_dir, solver_dir = solver_dir,
                        model_name = model_name, solver = solver, use_folded = use_folded,
                        cleanup = cleanup, data_mode = data_mode, split = split,
                        export_vars = export_vars, export_data = export_data,
@@ -51,7 +56,7 @@ write_pyomo.model_structure <- function(model, ...) {
   write_pyomo_internal(model, ...)
 }
 
-write_pyomo_internal <- function(model, file = NULL, model_dir = NULL, solver_dir = "pyomo",
+write_pyomo_internal <- function(model, model_dir = NULL, solver_dir = "pyomo",
                                  model_name = "model", solver = "highs",
                                  use_folded = TRUE, cleanup = TRUE,
                                  data_mode = c("external", "embedded"),
@@ -59,15 +64,27 @@ write_pyomo_internal <- function(model, file = NULL, model_dir = NULL, solver_di
                                  export_mps = FALSE, ...) {
   data_mode <- match.arg(data_mode)
 
-  if (!is.null(file)) {
-    warning("'file' argument is ignored for write_pyomo(); the Pyomo scaffold is a directory, not a single file.")
+  if (!is.null(list(...)$file)) {
+    stop("write_pyomo() writes a directory scaffold, not a single file; ",
+         "pass `model_dir` instead of `file`.")
   }
 
   if (is.null(model_dir)) {
     model_dir <- model$base_path
   }
-  if (is.null(model_dir) || !dir.exists(model_dir)) {
-    stop("model_dir must reference a directory produced by save_model().")
+  if (is.null(model_dir)) {
+    stop("`model_dir` is required: the Pyomo scaffold reads its data from a ",
+         "model workspace (see save_model()).")
+  }
+  # The generated code resolves the workspace from its own location
+  # (`<model_dir>/solvers/<solver_dir>/model.py`), so the data must be there.
+  if (!file.exists(file.path(model_dir, "model.rds"))) {
+    if (dir.exists(model_dir) &&
+        length(list.files(model_dir, all.files = TRUE, no.. = TRUE)) > 0) {
+      stop("`model_dir` (", model_dir, ") is not empty and holds no model ",
+           "workspace (model.rds); pass an empty directory or one written by save_model().")
+    }
+    save_model(model, model_dir, format = "csv", verbose = FALSE)
   }
 
   solver_path <- file.path(model_dir, "solvers", solver_dir)
@@ -601,8 +618,12 @@ pyomo_runner_body <- function(solver = "highs", solver_dir = "pyomo", export_var
     "    # Save solution status",
     sprintf("    sol_dir = base_dir / 'solvers' / '%s' / 'solution'", solver_dir),
     "    sol_dir.mkdir(parents=True, exist_ok=True)",
+    "    try:",
+    "        objective_value = value(instance.objective)",
+    "    except Exception:",
+    "        objective_value = None",
     "    with open(sol_dir / 'status.json', 'w') as fh:",
-    "        json.dump({'solver': solver_name, 'status': str(results.solver.status), 'termination': str(results.solver.termination_condition)}, fh, indent=2)"
+    "        json.dump({'solver': solver_name, 'status': str(results.solver.status), 'termination': str(results.solver.termination_condition), 'objective': objective_value}, fh, indent=2)"
   )
   
   if (isTRUE(export_vars)) {

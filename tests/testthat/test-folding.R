@@ -691,3 +691,29 @@ test_that("foldability without a validation mapping is reported as unproven", {
   expect_true(proven_df$can_fold[proven_df$param_name == "pSupCost"])
   expect_false(proven_df$unproven[proven_df$param_name == "pSupCost"])
 })
+
+test_that("get_active_dims() treats an empty active_dims as unset", {
+  m <- example_models$energyRt$multimod
+  p <- m$parameters$pTechCinp2use           # reader-built: no data at construction
+  expect_identical(get_dim_names(get_active_dims(p)), get_dim_names(p$dims))
+  expect_null(get_active_dims(p, folded = TRUE))
+
+  toy_p <- example_models$toy$parameters$pAvail
+  expect_identical(get_dim_names(get_active_dims(toy_p)), c("tech", "region"))
+})
+
+test_that("unfold_model() leaves is_folded() FALSE", {
+  skip_on_cran()
+  m <- example_models$energyRt$multimod
+  spec <- suppressWarnings(create_fold_spec(
+    m, fold_dims = list(region = "region", year = "year"), verbose = FALSE))
+  f <- suppressWarnings(fold_model(m, fold_spec = spec, verbose = FALSE))
+  expect_true(is_folded(f))
+  expect_gt(length(f$folded_equations), 0)
+
+  u <- unfold_model(f, verbose = FALSE)
+  expect_false(is_folded(u))
+  expect_null(u$folded_equations)
+  expect_false(any(vapply(u$parameters, is_folded, TRUE)))
+  expect_identical(u$equations, m$equations)
+})

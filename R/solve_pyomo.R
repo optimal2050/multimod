@@ -6,12 +6,13 @@
 #' "multimod" (configurable) is created, populated with Pyomo, and activated via
 #' the `reticulate` toolkit. Once the environment is ready the solver script is
 #' executed with `system2()` or `processx` and basic status information is
-#' returned. Result loading is not implemented yet but the metadata emitted by
-#' `solve.py` (e.g. `solution/status.json`) is surfaced when available.
+#' returned, together with the status the script writes to
+#' `solution/status.json`. With `load_results = TRUE` the variable values the
+#' script exports are read back into `model`.
 #'
-#' @param model Optional multimod model; currently only used when
-#'   `load_results = TRUE` to indicate where solutions should be loaded (not yet
-#'   implemented).
+#' @param model Optional multimod model. Required when `load_results = TRUE`:
+#'   the solution of each variable is stored in
+#'   `model$variables[[name]]$solution`.
 #' @param model_dir Path to the saved model directory created by `save_model()`.
 #'   Must contain `solvers/<solver_dir>/solve.py` (generated via `write_pyomo()`).
 #' @param solver_dir Name of the solver sub-directory inside `model_dir/solvers`.
@@ -36,8 +37,10 @@
 #'   the `PYOMO_SOLVER` environment variable.
 #' @param env Named character vector of additional environment variables to pass
 #'   to the Python process.
-#' @param load_results Logical; reserved for future work. When `TRUE` a warning
-#'   is issued because loading solutions back into R is not yet implemented.
+#' @param load_results Logical; when `TRUE`, read `solution/variables.json`
+#'   into `model` and return the model as `result$model`. The file is written
+#'   by the generated script only when the scaffold was produced with
+#'   `write_pyomo(export_vars = TRUE)`.
 #' @param verbose Controls solver logging capture. Logical (`TRUE` = buffer
 #'   output, `FALSE` = quiet) or one of `"buffer"`, `"stream"`, `"quiet"`.
 #' @param timeout Optional timeout (in seconds). Requires the `processx`
@@ -46,7 +49,9 @@
 #'
 #' @return A list describing the solver run (exit code, success flag, elapsed
 #'   time, raw output, parsed status metadata when available, and environment
-#'   details).
+#'   details). With `load_results = TRUE`, also `model`, the input model with a
+#'   `solution` data frame on every variable the solver reported. `objective`
+#'   is the objective value the script records in `status.json`.
 #' @export
 solve_pyomo <- function(model = NULL,
                         model_dir,
@@ -139,6 +144,9 @@ solve_pyomo <- function(model = NULL,
     status_info <- tryCatch(jsonlite::read_json(status_path, simplifyVector = TRUE), error = function(e) NULL)
     if (!is.null(status_info)) {
       result$status <- status_info
+      if (!is.null(status_info$objective)) {
+        result$objective <- as.numeric(status_info$objective)
+      }
     }
   }
 
@@ -147,11 +155,70 @@ solve_pyomo <- function(model = NULL,
   result$python <- python_exec
   result$env_name <- env_name
 
-  if (load_results && !is.null(model)) {
-    warning("Loading Pyomo solutions back into R is not implemented yet; returning run metadata only.")
+  if (isTRUE(load_results)) {
+    if (is.null(model)) {
+      stop("`load_results = TRUE` needs the `model` the scaffold was written from.")
+    }
+    model <- load_pyomo_solution(model, model_dir, solver_dir = solver_dir,
+                                 verbose = verbose_mode != "quiet")
+    result$model <- model
   }
 
   result
+}
+
+#' Read the variable values a Pyomo run exported
+#'
+#' The generated `model.py` writes `solution/variables.json` when the scaffold
+#' was produced with `write_pyomo(export_vars = TRUE)`: one object per
+#' variable, keyed by the Python `str()` of the index (`"coal"`,
+#' `"('coal', 'north')"`, `"None"` for a scalar). Each is turned into a data
+#' frame with the variable's dimension names and a `value` column and stored
+#' in `model$variables[[name]]$solution`, like the JuMP loader does.
+#' @noRd
+load_pyomo_solution <- function(model, model_dir, solver_dir = "pyomo", verbose = TRUE) {
+  sol_file <- file.path(model_dir, "solvers", solver_dir, "solution", "variables.json")
+  if (!file.exists(sol_file)) {
+    stop("No ", file.path("solvers", solver_dir, "solution", "variables.json"),
+         " in ", model_dir, ": write the scaffold with ",
+         "write_pyomo(export_vars = TRUE) and solve again.")
+  }
+  values <- jsonlite::read_json(sol_file, simplifyVector = FALSE)
+
+  loaded <- character(0)
+  for (var_name in intersect(names(values), names(model$variables))) {
+    recs <- values[[var_name]]
+    if (length(recs) == 0) next
+    dim_names <- get_dim_names(model$variables[[var_name]]$dims)
+    keys <- .pyomo_index_columns(names(recs), dim_names)
+    keys$value <- vapply(recs, function(v) if (is.null(v)) NA_real_ else as.numeric(v), 1)
+    rownames(keys) <- NULL
+    model$variables[[var_name]]$solution <- keys
+    loaded <- c(loaded, var_name)
+  }
+
+  if (verbose) message("Loaded ", length(loaded), " variable solution(s) from ", basename(sol_file))
+  model$solution_metadata <- list(
+    loaded_at = Sys.time(),
+    variables_loaded = loaded,
+    format = ".json",
+    source = file.path("solvers", solver_dir, "solution")
+  )
+  model
+}
+
+#' Split Python index strings into one column per dimension
+#' @noRd
+.pyomo_index_columns <- function(keys, dim_names) {
+  if (length(dim_names) == 0) return(data.frame(row.names = seq_along(keys)))
+  inner <- sub("^[(](.*?),?[)]$", "\\1", keys, perl = TRUE)
+  inner <- gsub("['\"]", "", inner)
+  parts <- strsplit(inner, ",[[:space:]]*")
+  n <- length(dim_names)
+  parts <- lapply(parts, function(p) { length(p) <- n; p })
+  out <- as.data.frame(do.call(rbind, parts), stringsAsFactors = FALSE)
+  names(out) <- dim_names
+  out
 }
 
 run_pyomo_process <- function(python_exec, script, verbose = c("buffer", "stream", "quiet"),
