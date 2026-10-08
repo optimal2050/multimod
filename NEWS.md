@@ -40,6 +40,23 @@
 * GAMS rendering brackets a multi-set sum index, `sum((tech,region), ...)`,
   and `prod()` separates index and body with a comma.
 * `untrim_model()` accepts `mm_model` objects.
+* `get_active_dims()` returned no dimensions for a parameter read from a
+  source file (an empty `active_dims`); it now returns the declared dims, and
+  `folded = TRUE` returns `NULL` unless the parameter is folded.
+* `unfold_model()` left `folded_equations` behind, so `is_folded()` stayed
+  `TRUE`.
+* `get_data(type = "set")` returned `NULL`: sets keep their members in `data`.
+  It also reads them from a saved workspace.
+* `export_model_source()` failed for every format: the dataset holds only the
+  GAMS source. It now writes a model workspace with the GAMS source and
+  MathProg, JuMP and Pyomo code rendered from the parsed model under
+  `solvers/`.
+* `write_pyomo()` loses its `file` argument, which was ignored. A `model_dir`
+  that holds no workspace is written with `save_model()` first, so one call
+  yields a runnable scaffold.
+* `solve_pyomo(load_results = TRUE)` is implemented: variable values exported
+  with `write_pyomo(export_vars = TRUE)` are read into the model, and the
+  objective value is recorded in `status.json` and returned.
 
 ## CRAN preparation
 

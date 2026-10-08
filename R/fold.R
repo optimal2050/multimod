@@ -30,21 +30,17 @@
 #' @export
 get_active_dims <- function(param, folded = FALSE) {
   stopifnot(inherits(param, "mm_parameter"))
-  
+
+  # A parameter built without data (the readers) carries an empty active_dims;
+  # only a folded parameter may legitimately have fewer active dims than dims.
+  is_fold <- is_folded(param)
+  has_active <- !is.null(param$active_dims) &&
+    (is_fold || length(param$active_dims) > 0)
+
   if (folded) {
-    # Return folded dimensions only if parameter is folded
-    if (!is.null(param$active_dims)) {
-      return(param$active_dims)
-    } else {
-      return(NULL)
-    }
+    if (is_fold && has_active) param$active_dims else NULL
   } else {
-    # Return active dimensions (folded if available, otherwise original)
-    if (!is.null(param$active_dims)) {
-      return(param$active_dims)
-    } else {
-      return(param$dims)
-    }
+    if (has_active) param$active_dims else param$dims
   }
 }
 
@@ -1270,6 +1266,10 @@ unfold_model <- function(model, verbose = TRUE) {
     }
   }
   
+  # fold_equations() keeps the originals in $equations and the rewritten set
+  # in $folded_equations; is_folded() reads the latter.
+  model$folded_equations <- NULL
+
   # Clear model metadata
   if (!is.null(model$misc)) {
     model$misc$fold_summary <- NULL

@@ -24,9 +24,9 @@ solve_pyomo(
 )
 }
 \arguments{
-\item{model}{Optional multimod model; currently only used when
-\code{load_results = TRUE} to indicate where solutions should be loaded (not yet
-implemented).}
+\item{model}{Optional multimod model. Required when \code{load_results = TRUE}:
+the solution of each variable is stored in
+\code{model$variables[[name]]$solution}.}
 
 \item{model_dir}{Path to the saved model directory created by \code{save_model()}.
 Must contain \verb{solvers/<solver_dir>/solve.py} (generated via \code{write_pyomo()}).}
@@ -63,8 +63,10 @@ the \code{PYOMO_SOLVER} environment variable.}
 \item{env}{Named character vector of additional environment variables to pass
 to the Python process.}
 
-\item{load_results}{Logical; reserved for future work. When \code{TRUE} a warning
-is issued because loading solutions back into R is not yet implemented.}
+\item{load_results}{Logical; when \code{TRUE}, read \code{solution/variables.json}
+into \code{model} and return the model as \code{result$model}. The file is written
+by the generated script only when the scaffold was produced with
+\code{write_pyomo(export_vars = TRUE)}.}
 
 \item{verbose}{Controls solver logging capture. Logical (\code{TRUE} = buffer
 output, \code{FALSE} = quiet) or one of \code{"buffer"}, \code{"stream"}, \code{"quiet"}.}
@@ -77,7 +79,9 @@ package.}
 \value{
 A list describing the solver run (exit code, success flag, elapsed
 time, raw output, parsed status metadata when available, and environment
-details).
+details). With \code{load_results = TRUE}, also \code{model}, the input model with a
+\code{solution} data frame on every variable the solver reported. \code{objective}
+is the objective value the script records in \code{status.json}.
 }
 \description{
 Executes the generated \code{solve.py} script inside \verb{solvers/pyomo/} after
@@ -86,6 +90,7 @@ ensuring a Python environment exists. By default the helper
 "multimod" (configurable) is created, populated with Pyomo, and activated via
 the \code{reticulate} toolkit. Once the environment is ready the solver script is
 executed with \code{system2()} or \code{processx} and basic status information is
-returned. Result loading is not implemented yet but the metadata emitted by
-\code{solve.py} (e.g. \code{solution/status.json}) is surfaced when available.
+returned, together with the status the script writes to
+\code{solution/status.json}. With \code{load_results = TRUE} the variable values the
+script exports are read back into \code{model}.
 }

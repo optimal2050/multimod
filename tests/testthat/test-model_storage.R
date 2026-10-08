@@ -519,3 +519,15 @@ test_that("a parameter's empty read carries a value column", {
   expect_equal(nrow(d), 0L)
   expect_equal(names(d), c("tech", "year", "value"))
 })
+
+test_that("get_data(type = 'set') returns the members, in memory or from disk", {
+  toy <- example_models$toy
+  expect_identical(get_data(toy, "tech", type = "set"), c("coal", "gas", "wind"))
+  expect_null(get_data(toy, "nope", type = "set"))
+
+  d <- withr::local_tempdir()
+  save_model(toy, d, format = "csv", verbose = FALSE)
+  m <- load_model(d, load_data = FALSE, verbose = FALSE)
+  m$sets$region$data <- NULL
+  expect_identical(get_data(m, "region", type = "set"), c("north", "south"))
+})
