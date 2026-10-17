@@ -67,6 +67,10 @@ read_gmpl <- function(model_file,
                       data_file = NULL,
                       as_multimod = !is.null(data_file),
                       verbose = FALSE) {
+  # resolved before `data_file` is reassigned from an inline data section below
+  as_multimod_given <- !missing(as_multimod)
+  as_multimod <- isTRUE(as_multimod)
+
   # Handle both file paths and character vectors
   if (length(model_file) == 1 && file.exists(model_file)) {
     # It's a file path - read it
@@ -78,6 +82,22 @@ read_gmpl <- function(model_file,
     lines <- model_file
     model_name <- "gmpl_model"
     model_source <- "<in-memory>"
+  }
+
+  # A MathProg file may carry its own data section. What follows `data;` is
+  # data, not declarations, and the split happens here rather than after
+  # preprocessing because the data parsers read line by line. An inline
+  # section stands in for `data_file` when none was given.
+  inline_data <- NULL
+  at_data <- grep("^[[:space:]]*data[[:space:]]*;", lines, ignore.case = TRUE)
+  if (length(at_data) > 0) {
+    k <- at_data[1]
+    inline_data <- lines[k:length(lines)]
+    lines <- if (k > 1L) lines[seq_len(k - 1L)] else character(0)
+  }
+  if (is.null(data_file) && !is.null(inline_data)) {
+    data_file <- inline_data
+    if (!as_multimod_given) as_multimod <- TRUE
   }
 
   # Preprocess: remove comments and normalize whitespace
@@ -359,6 +379,14 @@ new_ast_formula <- function(target, field, expr, index_vars = character(),
   )
 }
 
+# A bare index set - `param w{L}` rather than `param w{l in L}` - leaves the
+# spec without a `set`, and then the name itself is the set.
+.gmpl_spec_sets <- function(specs) {
+  vapply(specs, function(spec) {
+    if (!is.null(spec$set) && nzchar(spec$set)) spec$set else spec$vars[1]
+  }, character(1))
+}
+
 #' Parse GMPL Parameter Declaration
 #'
 #' @param stmt Parameter declaration statement
@@ -465,7 +493,8 @@ parse_gmpl_param <- function(stmt, model, verbose = FALSE) {
   dims <- if (!is.null(indexing)) {
     # Collect aliases: short var -> full set name
     for (spec in indexing$specs) {
-      if (!is.null(spec$set) && length(spec$vars) == 1) {
+      if (!is.null(spec$set) && length(spec$vars) == 1 &&
+          !identical(spec$vars[1], spec$set)) {
         var_name <- spec$vars[1]
         set_name <- spec$set
         # Store alias: SETNAME -> c(SETNAME, short_alias)
@@ -476,7 +505,7 @@ parse_gmpl_param <- function(stmt, model, verbose = FALSE) {
         }
       }
     }
-    sapply(indexing$specs, function(spec) spec$set)
+    .gmpl_spec_sets(indexing$specs)
   } else {
     character(0)
   }
@@ -493,7 +522,7 @@ parse_gmpl_param <- function(stmt, model, verbose = FALSE) {
         result[i] <- tolower(substr(spec$set, 1, 1))
       }
     }
-    names(result) <- sapply(indexing$specs, function(spec) spec$set)
+    names(result) <- .gmpl_spec_sets(indexing$specs)
     result
   } else {
     character(0)
@@ -634,7 +663,8 @@ parse_gmpl_var <- function(stmt, model, verbose = FALSE) {
   dims <- if (!is.null(indexing)) {
     # Collect aliases: short var -> full set name
     for (spec in indexing$specs) {
-      if (!is.null(spec$set) && length(spec$vars) == 1) {
+      if (!is.null(spec$set) && length(spec$vars) == 1 &&
+          !identical(spec$vars[1], spec$set)) {
         var_name <- spec$vars[1]
         set_name <- spec$set
         # Store alias: SETNAME -> c(SETNAME, short_alias)
@@ -645,7 +675,7 @@ parse_gmpl_var <- function(stmt, model, verbose = FALSE) {
         }
       }
     }
-    sapply(indexing$specs, function(spec) spec$set)
+    .gmpl_spec_sets(indexing$specs)
   } else {
     character(0)
   }
@@ -768,7 +798,8 @@ parse_gmpl_equation <- function(stmt, model, verbose = FALSE) {
   dims <- if (!is.null(indexing)) {
     # Collect aliases: short var -> full set name
     for (spec in indexing$specs) {
-      if (!is.null(spec$set) && length(spec$vars) == 1) {
+      if (!is.null(spec$set) && length(spec$vars) == 1 &&
+          !identical(spec$vars[1], spec$set)) {
         var_name <- spec$vars[1]
         set_name <- spec$set
         # Store alias: SETNAME -> c(SETNAME, short_alias)
@@ -779,7 +810,7 @@ parse_gmpl_equation <- function(stmt, model, verbose = FALSE) {
         }
       }
     }
-    sapply(indexing$specs, function(spec) spec$set)
+    .gmpl_spec_sets(indexing$specs)
   } else {
     character(0)
   }
@@ -787,7 +818,7 @@ parse_gmpl_equation <- function(stmt, model, verbose = FALSE) {
   # Create equation-specific index alias mapping
   dims_index_aliases <- if (!is.null(indexing)) {
     result <- character(length(indexing$specs))
-    names(result) <- sapply(indexing$specs, function(spec) spec$set)
+    names(result) <- .gmpl_spec_sets(indexing$specs)
     for (i in seq_along(indexing$specs)) {
       spec <- indexing$specs[[i]]
       if (length(spec$vars) == 1) {
@@ -903,7 +934,7 @@ parse_gmpl_objective <- function(stmt, model, verbose = FALSE) {
             dims_index_aliases[i] <- tolower(substr(spec$set, 1, 1))
           }
         }
-        names(dims_index_aliases) <- sapply(idx_result$indexing$specs, function(s) s$set)
+        names(dims_index_aliases) <- .gmpl_spec_sets(idx_result$indexing$specs)
       }
     }
   }, error = function(e) {
@@ -2130,7 +2161,13 @@ parse_set_declaration <- function(lines, start_line) {
     parts <- trimws(strsplit(cleaned, ",")[[1]])
     parts[nchar(parts) > 0]
   }
-  has_commas <- any(grepl(",", data_lines, fixed = TRUE))
+  # Commas separate the members of a tuple when the data is laid out one tuple
+  # per line. On a single line they are ordinary item separators, so
+  # `set L := a, b, c;` is a one-dimensional set of three members, which the
+  # token fallback below reads.
+  nonempty <- data_lines[nzchar(trimws(data_lines))]
+  has_commas <- any(grepl(",", data_lines, fixed = TRUE)) &&
+    length(nonempty) > 1L
   if (has_commas) {
     tuples <- lapply(data_lines, parse_tuple_line)
     dims <- max(vapply(tuples, length, integer(1)))
@@ -2162,7 +2199,8 @@ parse_set_declaration <- function(lines, start_line) {
     ))
   }
   # Fallback: whitespace separated values interpreted as 1-D set
-  tokens <- unlist(strsplit(paste(data_lines, collapse = " "), "\\s+"))
+  tokens <- unlist(strsplit(
+    .gmpl_commas_to_space(paste(data_lines, collapse = " ")), "\\s+"))
   tokens <- tokens[nchar(tokens) > 0]
   list(
     name = name,
@@ -2347,12 +2385,12 @@ parse_sliced_table_format <- function(name, header, text, default_val) {
     # Extract column headers
     col_match <- regexpr(":\\s*([^:]+):=", block_text, perl = TRUE)
     col_text <- sub(".*:\\s*([^:]+):=.*", "\\1", block_text, perl = TRUE)
-    col_names <- strsplit(trimws(col_text), "\\s+")[[1]]
+    col_names <- strsplit(.gmpl_commas_to_space(trimws(col_text)), "\\s+")[[1]]
     col_names <- col_names[nchar(col_names) > 0]
 
     # Extract data
     data_text <- sub(".*:=\\s*", "", block_text, perl = TRUE)
-    data_tokens <- strsplit(trimws(data_text), "\\s+")[[1]]
+    data_tokens <- strsplit(.gmpl_commas_to_space(trimws(data_text)), "\\s+")[[1]]
     data_tokens <- data_tokens[nchar(data_tokens) > 0]
 
     if (length(data_tokens) == 0 || length(col_names) == 0) next
@@ -2407,16 +2445,39 @@ parse_sliced_table_format <- function(name, header, text, default_val) {
 }
 
 
+# Commas are optional separators in a MathProg data section, equivalent to
+# whitespace. Inside brackets they separate the members of a tuple or of a
+# slice specification, which the callers split on themselves, so only the
+# commas outside brackets become spaces.
+.gmpl_commas_to_space <- function(x) {
+  vapply(x, function(s) {
+    if (!grepl(",", s, fixed = TRUE)) return(s)
+    chars <- strsplit(s, "", fixed = TRUE)[[1]]
+    depth <- 0L
+    for (i in seq_along(chars)) {
+      ch <- chars[i]
+      if (ch == "(" || ch == "[") {
+        depth <- depth + 1L
+      } else if (ch == ")" || ch == "]") {
+        depth <- max(0L, depth - 1L)
+      } else if (ch == "," && depth == 0L) {
+        chars[i] <- " "
+      }
+    }
+    paste(chars, collapse = "")
+  }, character(1), USE.NAMES = FALSE)
+}
+
 #' Parse simple table format: : cols := rows values
 #'
 #' @keywords internal
 parse_simple_table_format <- function(name, header, text, default_val) {
   # Column headers from extracted header
-  col_names <- strsplit(trimws(header), "\\s+")[[1]]
+  col_names <- strsplit(.gmpl_commas_to_space(trimws(header)), "\\s+")[[1]]
   col_names <- col_names[nchar(col_names) > 0]
 
   # Extract data tokens
-  data_tokens <- strsplit(trimws(text), "\\s+")[[1]]
+  data_tokens <- strsplit(.gmpl_commas_to_space(trimws(text)), "\\s+")[[1]]
   data_tokens <- data_tokens[nchar(data_tokens) > 0]
 
   if (length(data_tokens) == 0 || length(col_names) == 0) {
@@ -2536,7 +2597,7 @@ parse_list_format <- function(name, text, default_val) {
                 data = data.frame()))
   }
 
-  tokens <- strsplit(text_cleaned, "\\s+")[[1]]
+  tokens <- strsplit(.gmpl_commas_to_space(text_cleaned), "\\s+")[[1]]
   tokens <- tokens[nchar(tokens) > 0]
 
   if (length(tokens) == 0) {

@@ -34,6 +34,19 @@
 
 ## Bug fixes
 
+* The matrix backend expands a variable or an equation declared over sets
+  rather than over a mapping, which is how MathProg declares them. Each one
+  became a single scalar column or row, so the assembled problem bore no
+  relation to the model. An equation restricted by a condition is refused
+  for now rather than expanded without it.
+* MathProg data sections take commas as item separators: `param w := a 1,
+  b 2, c 10;`, `set L := a, b, c;` and comma-separated table headers.
+* A MathProg file may carry its own `data;` section, which is read as data
+  instead of being passed to the expression parser.
+* A bare index set in a declaration keeps its dimensions, so `param w{L}`
+  reads as `param w{l in L}` does.
+* `as_gams()` renders an iterated minimum or maximum as `smin()` / `smax()`
+  and a lag or lead as `y-1`, in subscript position too.
 * MathProg: `*` and `/` belong inside an iterated operator, so
   `sum{l in L} x[l] * w[l]` sums the products; `+` and `-` end its scope.
 * MathProg: `{(i,j) in S}` reads as one indexing specification, so

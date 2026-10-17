@@ -49,6 +49,42 @@
 #' Block for a symbol with no domain: exactly one scalar row/column
 #' @keywords internal
 #' @noRd
+#' Index tuples for a symbol declared over plain sets
+#'
+#' MathProg declares a symbol over sets rather than over a mapping -
+#' `var x{l in L, m in M}` - so it carries `dims` and no domain, and its index
+#' set is the cross product of those sets. energyRt models always supply a
+#' mapping, which is the other branch in [build_col_index()].
+#'
+#' @param model The model holding the set members.
+#' @param dims A `dims` node, or NULL.
+#' @return A data.table of tuples, one column per dimension; an empty table if
+#'   a set has no members; NULL when there are no usable dimensions, which
+#'   means the symbol really is a scalar.
+#' @keywords internal
+.dims_tuples <- function(model, dims) {
+  nms <- tryCatch(get_dim_names(dims), error = function(e) character())
+  if (!length(nms) || anyNA(nms) || !all(nzchar(nms))) return(NULL)
+
+  members <- vector("list", length(nms))
+  for (i in seq_along(nms)) {
+    d <- tryCatch(get_data(model, nms[i], type = "set"), error = function(e) NULL)
+    v <- if (is.data.frame(d)) d[[1]] else d
+    if (is.null(v) || !length(v)) return(data.table::data.table())
+    members[[i]] <- as.character(v)
+  }
+
+  # `sorted = FALSE` keeps the members in declaration order, and a set may
+  # appear twice (`{r in REGION, rr in REGION}`), so the grid is built under
+  # unique names and the real ones are restored on the block afterwards.
+  grid <- do.call(
+    data.table::CJ,
+    c(stats::setNames(members, make.unique(nms)),
+      list(sorted = FALSE, unique = FALSE)))
+  data.table::setattr(grid, "mm_dim_names", nms)
+  grid
+}
+
 .scalar_block <- function(symbol, names = TRUE) {
   blk <- if (names) {
     data.table::data.table(symbol = symbol, name = symbol)
@@ -149,7 +185,20 @@ build_col_index <- function(model, verbose = FALSE, names = TRUE) {
     nm <- base::names(vars)[k]
     dn <- .domain_name(v$domain)
     if (is.na(dn)) {
-      blk <- .scalar_block(nm, names = names)     # ungated scalar -> 1 column
+      # No mapping: expand the sets the variable is declared over. Without this
+      # a MathProg variable became a single scalar column.
+      tp <- .dims_tuples(model, v$dims)
+      if (is.null(tp)) {
+        blk <- .scalar_block(nm, names = names)   # genuinely scalar
+      } else {
+        if (!nrow(tp)) {                          # a set with no members
+          if (verbose) message(sprintf("  %-30s %8d  (empty set)", nm, 0L))
+          next
+        }
+        real <- attr(tp, "mm_dim_names")
+        blk <- .symbol_block(tp, nm, names = names)
+        data.table::setattr(blk, "dim_names", real)
+      }
     } else {
       tp <- .domain_tuples(model, dn)
       if (!nrow(tp)) {                            # empty map -> no columns at all
@@ -215,7 +264,27 @@ build_row_index <- function(model, verbose = FALSE, names = TRUE) {
     nm <- base::names(eqs)[k]
     dn <- .domain_name(e$domain)
     if (is.na(dn)) {
-      blk <- .scalar_block(nm, names = names)     # ungated scalar -> 1 row
+      # A domain that is an expression rather than a mapping is a filter on the
+      # index set (MathProg's `{r in R: test}`). Expanding the sets and
+      # ignoring it would add rows the model excludes, so refuse instead.
+      if (!is.null(e$domain)) {
+        stop("Equation '", nm, "' is restricted by a condition, which the ",
+             "matrix backend cannot yet evaluate; it gates by joining a ",
+             "mapping. Render the model through a text backend, or give the ",
+             "equation a gating map.", call. = FALSE)
+      }
+      tp <- .dims_tuples(model, e$dims)
+      if (is.null(tp)) {
+        blk <- .scalar_block(nm, names = names)   # genuinely scalar
+      } else {
+        if (!nrow(tp)) {                          # a set with no members
+          if (verbose) message(sprintf("  %-30s %8d  (empty set)", nm, 0L))
+          next
+        }
+        real <- attr(tp, "mm_dim_names")
+        blk <- .symbol_block(tp, nm, names = names)
+        data.table::setattr(blk, "dim_names", real)
+      }
     } else {
       tp <- .domain_tuples(model, dn)
       if (!nrow(tp)) {                            # empty map -> no rows at all
