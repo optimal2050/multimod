@@ -145,7 +145,17 @@ as.character.mm_set <- function(x, ...) {
 #' @method as.character dims
 as.character.dims <- function(x, brackets = "[", ...) {
   if (length(x) == 0) return("")
-  out <- paste(sapply(x, function(y) y$name), collapse = ",")
+  out <- paste(vapply(x, function(y) {
+    if (!is.null(y$name)) return(as.character(y$name)[1])
+    # A lag or lead carries `symbol` and `offset` instead of a name, and in
+    # subscript position both are wanted: `y-1`, not `y`.
+    if (!is.null(y$symbol)) {
+      off <- y$offset
+      if (is.null(off) || off == 0) return(as.character(y$symbol)[1])
+      return(paste0(y$symbol, if (off > 0) "+" else "-", abs(off)))
+    }
+    dim_entry_to_name(y)
+  }, character(1)), collapse = ",")
   if (is.null(brackets) || all(brackets == "")) return(out)
   brackets <- brackets_pair(brackets)
   out <- paste0(brackets[1], out, brackets[2])

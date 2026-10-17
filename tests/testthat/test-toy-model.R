@@ -58,3 +58,21 @@ test_that("GAMS brackets a multi-set sum index and JuMP iterates over sets", {
   code <- paste(suppressWarnings(write_jump(toy)), collapse = "\n")
   expect_match(code, "for h in tech, r in region", fixed = TRUE)
 })
+
+test_that("as_gams renders every node the other writers render", {
+  # as_gams was the only writer without methods for setmin/setmax and shift,
+  # so those nodes fell through to as_gams.default() and printed raw R lists
+  # into the middle of an equation.
+  expect_equal(
+    as_gams(ast_setmin(index = ast_dims("YEAR"), value = ast_symbol("yy"))),
+    "smin(YEAR, yy)")
+  expect_equal(
+    as_gams(ast_setmax(index = ast_dims("YEAR"), value = ast_symbol("yy"))),
+    "smax(YEAR, yy)")
+  expect_equal(as_gams(ast_shift("y", -1)), "y-1")
+  expect_equal(as_gams(ast_shift("y", 2)), "y+2")
+
+  # and a lag in subscript position keeps its offset
+  v <- ast_variable("vStock", dims = ast_dims("region", ast_shift("y", -1)))
+  expect_equal(as_gams(v), "vStock[region,y-1]")
+})

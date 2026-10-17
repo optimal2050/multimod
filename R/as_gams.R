@@ -141,6 +141,31 @@ as_gams.prod <- function(x, ...) {
 }
 
 #' @export
+#' @method as_gams shift
+as_gams.shift <- function(x, ...) {
+  # a lag or lead on a set index: y-1, y+1
+  offset <- x$offset
+  if (is.null(offset) || offset == 0) return(x$symbol)
+  paste0(x$symbol, if (offset > 0) "+" else "-", abs(offset))
+}
+
+#' @export
+#' @method as_gams setmin
+as_gams.setmin <- function(x, ...) {
+  idx <- as_gams(x$index, brackets = .gams_index_brackets(x$index), ...)
+  val <- as_gams(x$value, ...)
+  paste0("smin(", idx, ", ", val, ")")
+}
+
+#' @export
+#' @method as_gams setmax
+as_gams.setmax <- function(x, ...) {
+  idx <- as_gams(x$index, brackets = .gams_index_brackets(x$index), ...)
+  val <- as_gams(x$value, ...)
+  paste0("smax(", idx, ", ", val, ")")
+}
+
+#' @export
 #' @method as_gams func
 #' @rdname as_gams
 as_gams.func <- function(x, ...) {

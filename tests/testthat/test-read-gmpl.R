@@ -121,3 +121,91 @@ test_that("an iterated operator keeps `*` and `/` inside the summation", {
   # a factor in front of the sum is not swallowed by it
   expect_equal(lhs_of("2 * sum{l in L} x[l]"),      "2 * sum(L, x[L])")
 })
+
+test_that("commas separate data items, as MathProg allows", {
+  m <- read_gmpl(c(
+    "set L;", "set M;",
+    "param w{l in L};",
+    "param z{l in L, m in M};",
+    "var x{l in L} >= 0;",
+    "s.t. budget: sum{l in L} x[l] <= 1;",
+    "data;",
+    "set L := a, b, c;",
+    "set M := p, q;",
+    "param w := a 1, b 2, c 10;",
+    "param z : p, q :=",
+    "  a  1, 2",
+    "  b  3, 4",
+    "  c  5, 6;",
+    "end;"))
+  expect_equal(m$sets$L$data, c("a", "b", "c"))
+  expect_equal(m$sets$M$data, c("p", "q"))
+  expect_equal(m$parameters$w$data$value, c(1, 2, 10))
+  expect_equal(nrow(m$parameters$z$data), 6L)
+  expect_equal(sort(m$parameters$z$data$value), as.numeric(1:6))
+})
+
+test_that("a model file may carry its own data section", {
+  m <- read_gmpl(c(
+    "set L;",
+    "param w{l in L};",
+    "var x{l in L} >= 0;",
+    "maximize obj: sum{l in L} x[l] * w[l];",
+    "s.t. budget: sum{l in L} x[l] <= 1;",
+    "data;",
+    "set L := a b c;",
+    "param w := a 1 b 2 c 10;",
+    "end;"))
+  # an inline data section stands in for `data_file`, so the result is a model
+  expect_s3_class(m, "mm_model")
+  expect_equal(m$sets$L$data, c("a", "b", "c"))
+  expect_equal(m$parameters$w$data$value, c(1, 2, 10))
+})
+
+test_that("a bare index set keeps its dimensions", {
+  m <- suppressWarnings(as_multimod(read_gmpl(c(
+    "set L;", "set M;",
+    "param w{L};",
+    "param z{L, M};",
+    "var x{L} >= 0;",
+    "s.t. budget: sum{l in L} x[l] <= 1;",
+    "end;"))))
+  # `param w{L}` is `param w{l in L}` with the index left implicit
+  expect_equal(get_dim_names(m$parameters$w$dims), "L")
+  expect_equal(get_dim_names(m$parameters$z$dims), c("L", "M"))
+  expect_equal(get_dim_names(m$variables$x$dims), "L")
+  # and the set is not recorded as an alias of itself
+  expect_null(m$aliases[["L"]])
+})
+
+test_that("a model declared over plain sets reaches the matrix backend", {
+  skip_if_not_installed("highs")
+  # glpsol's optimum for this model is 10: spend the budget on the member with
+  # the largest weight. Every variable here is declared over a set rather than
+  # a mapping, which used to collapse to a single scalar column.
+  m <- read_gmpl(c(
+    "set L;",
+    "param w{l in L};",
+    "var x{l in L} >= 0;",
+    "maximize obj: sum{l in L} x[l] * w[l];",
+    "s.t. budget: sum{l in L} x[l] <= 1;",
+    "data;",
+    "set L := a b c;",
+    "param w := a 1 b 2 c 10;",
+    "end;"))
+  ci <- build_col_index(m)
+  expect_equal(nrow(ci[ci$symbol == "x", ]), 3L)
+  expect_equal(solve_highs(m, attach = FALSE)$objective, 10, tolerance = 1e-9)
+})
+
+test_that("an equation restricted by a condition is refused, not over-generated", {
+  m <- suppressWarnings(as_multimod(read_gmpl(c(
+    "set L;",
+    "param w{l in L};",
+    "var x{l in L} >= 0;",
+    "s.t. cap{l in L: w[l] > 1}: x[l] <= 1;",
+    "end;"))))
+  # the matrix backend gates by joining a mapping and cannot evaluate a test
+  # over the data, so it must refuse rather than emit rows the model excludes
+  expect_error(build_row_index(m), "restricted by a condition")
+})
