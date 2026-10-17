@@ -3,11 +3,14 @@
 \name{as_gams}
 \alias{as_gams}
 \alias{as_gams.func}
+\alias{as_gams.call}
 \title{Convert multimod object to GAMS syntax}
 \usage{
 as_gams(x, ...)
 
 \method{as_gams}{func}(x, ...)
+
+\method{as_gams}{call}(x, ...)
 }
 \arguments{
 \item{x}{A \code{multimod} object.}

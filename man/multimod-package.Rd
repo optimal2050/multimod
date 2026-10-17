@@ -8,7 +8,7 @@
 \description{
 \if{html}{\figure{logo.png}{options: style='float: right' alt='logo' width='120'}}
 
-A domain-specific language for defining the sets, parameters, variables, mappings and equations of an algebraic optimization model in R, and rendering the model to several mathematical programming languages, including 'GAMS', 'GNU MathProg', 'Pyomo' and 'JuMP', or to an LP matrix solved in R. Models can be folded, trimmed, validated, compared and stored, and solutions read back into R.
+A domain-specific language for defining the sets, parameters, variables, mappings and equations of an algebraic optimization model in R, and rendering the model to several mathematical programming languages, including 'GAMS', 'GNU MathProg', 'Pyomo' and 'JuMP', or to an LP matrix solved in R. Models can be folded, trimmed, validated, compared and stored, and solutions read back into R. Linear programs with continuous variables are the tested class; integer and binary variables are carried in the model and written by some backends, and nonlinear expressions have no tested route to a solver.
 }
 \seealso{
 Useful links:

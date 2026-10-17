@@ -348,7 +348,12 @@ load_jump_solution <- function(model, model_dir, data_ext, verbose = TRUE) {
   
   # Load solution for each variable
   for (var_name in names(model$variables)) {
-    var_file <- file.path(solution_dir, var_name, paste0("data", data_ext))
+    # model.jl writes solution/<var>.<ext>; the older save_solution() helper
+    # wrote solution/<var>/data.<ext>. Accept both.
+    candidates <- c(file.path(solution_dir, paste0(var_name, data_ext)),
+                    file.path(solution_dir, var_name, paste0("data", data_ext)))
+    var_file <- candidates[file.exists(candidates)][1]
+    if (is.na(var_file)) var_file <- candidates[1]
     
     if (file.exists(var_file)) {
       solution_data <- if (data_ext == ".csv") {
@@ -358,6 +363,13 @@ load_jump_solution <- function(model, model_dir, data_ext, verbose = TRUE) {
         arrow::read_feather(var_file)
       }
       
+      # model.jl names the key columns dim1, dim2, ...; use the declared dims
+      dn <- get_dim_names(model$variables[[var_name]]$dims)
+      generic <- grepl("^dim[0-9]+$", names(solution_data))
+      if (sum(generic) > 0 && sum(generic) == length(dn)) {
+        names(solution_data)[generic] <- dn
+      }
+
       # Store in model
       model$variables[[var_name]]$solution <- solution_data
       variables_loaded <- c(variables_loaded, var_name)

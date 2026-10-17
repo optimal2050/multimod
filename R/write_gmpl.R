@@ -574,7 +574,6 @@ write_gmpl_internal <- function(model, file = NULL, format_expr = FALSE, include
     }
 
     lines <- c(lines, "")
-    lines <- c(lines, "end;")
 
     # Determine which variables to export
     do_custom_export <- !identical(export_vars, FALSE) && !identical(export_vars, character(0))
@@ -754,40 +753,9 @@ generate_variable_output <- function(var) {
   # For now, assume there's a mapping with these dimensions
   # In practice, we'd need to look this up in the model
 
-  # Generate dummy iterator variable names from dimension names
-  iter_vars <- sapply(seq_along(dim_names_vec), function(i) {
-    d <- dim_names_vec[i]
-    # Use first letter if set name, or abbreviated form
-    if (nchar(d) > 0) {
-      # Common convention: tech->t, comm->c, region->r, year->y, slice->s, etc.
-      abbrev <- switch(d,
-        "tech" = "t",
-        "comm" = "c",
-        "region" = "r",
-        "year" = "y",
-        "slice" = "s",
-        "sup" = "s1",
-        "dem" = "d",
-        "stg" = "st1",
-        "trade" = "t1",
-        "expp" = "e",
-        "imp" = "i",
-        "slicep" = "sp",
-        "yearp" = "yp",
-        "src" = "src",
-        "dst" = "dst",
-        substr(d, 1, 1)  # Default: first letter
-      )
-      # Handle duplicate iterator names by adding suffix
-      count <- sum(dim_names_vec[1:i] == d)
-      if (count > 1) {
-        abbrev <- paste0(abbrev, count)
-      }
-      abbrev
-    } else {
-      "i"
-    }
-  })
+  # Iterator names: first letter of each dimension, made unique, so tech and
+  # timeslice do not both become `t` (MathProg rejects a repeated iterator)
+  iter_vars <- unname(default_index_aliases(dim_names_vec))
 
   # Build the iterator tuple
   if (length(iter_vars) == 1) {

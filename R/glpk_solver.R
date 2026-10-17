@@ -69,27 +69,7 @@ solve_glpk <- function(mod_file, dat_file, output_dir = NULL, glpsol_path = NULL
   }
 
   # Parse variables (columns)
-  col_start <- which(grepl("Column name", sol_text))
-  col_end <- which(grepl("End of output", sol_text))
-
-  variables <- NULL
-  if (length(col_start) > 0 && length(col_end) > 0) {
-    var_lines <- sol_text[(col_start[1] + 1):(col_end[1] - 1)]
-    var_lines <- var_lines[nchar(trimws(var_lines)) > 0]
-
-    variables <- lapply(var_lines, function(line) {
-      parts <- strsplit(trimws(line), "\\s+")[[1]]
-      if (length(parts) >= 4) {
-        data.frame(
-          name = parts[2],
-          value = as.numeric(parts[4]),
-          stringsAsFactors = FALSE
-        )
-      }
-    })
-
-    variables <- do.call(rbind, variables[!sapply(variables, is.null)])
-  }
+  variables <- .parse_glpsol_columns(sol_text)
 
   # Return results
   list(
@@ -195,132 +175,106 @@ solve_gmpl <- function(model = NULL,
 #' @keywords internal
 .solve_gmpl_glpsol <- function(gmpl_dir, glpsol_path, verbose, timeout) {
 
-  # Build glpsol command - use relative paths since we'll run from gmpl_dir
-  args <- c(
-    "-m", "model.mod",
-    "-d", "data.dat",
-    "-o", "solution.sol",
-    "--log", "solver.log"
-  )
+  # The glpsol package ships the executable and a reader for the machine-
+  # readable solution `-w` writes. Where it is installed, prefer it: its
+  # timeout works on every platform, and the reader returns duals and the
+  # row/column names that the human-readable `-o` file does not carry.
+  use_pkg <- requireNamespace("glpsol", quietly = TRUE)
 
-  # Run glpsol from gmpl_dir so relative paths in model file work
-  if (verbose) cat("Solving with GLPK glpsol...\n")
+  args <- c("-m", "model.mod", "-d", "data.dat",
+            "-o", "solution.sol", "--log", "solver.log")
+  if (use_pkg) args <- c(args, "-w", "solution.txt", "--wglp", "problem.glp")
 
+  if (verbose) cat("Solving with GLPK glpsol...
+")
   start_time <- Sys.time()
 
-  # Save current directory and change to gmpl_dir
-  old_wd <- getwd()
-  on.exit(setwd(old_wd), add = TRUE)
-  setwd(gmpl_dir)
-
-  # Use relative paths now that we're in gmpl_dir
-  sol_file <- "solution.sol"
-  log_file <- "solver.log"
-
-  if (is.null(timeout)) {
-    output <- system2(glpsol_path, args = args,
-                     stdout = TRUE, stderr = TRUE, wait = TRUE)
-    exit_code <- attr(output, "status")
-    if (is.null(exit_code)) exit_code <- 0
+  if (use_pkg) {
+    run <- glpsol::glpsol_run(args, wd = gmpl_dir, echo = verbose,
+                              timeout = if (is.null(timeout)) 0 else timeout)
+    output <- run$log
+    exit_code <- run$status
+    timed_out <- isTRUE(run$timed_out)
   } else {
-    # Use timeout (platform-specific)
-    if (.Platform$OS.type == "windows") {
-      # Windows timeout is tricky with glpsol, just run normally
-      warning("Timeout not supported on Windows for glpsol")
-      output <- system2(glpsol_path, args = args,
-                       stdout = TRUE, stderr = TRUE, wait = TRUE)
-      exit_code <- attr(output, "status")
-      if (is.null(exit_code)) exit_code <- 0
+    old_wd <- getwd()
+    on.exit(setwd(old_wd), add = TRUE)
+    setwd(gmpl_dir)
+    if (!is.null(timeout) && .Platform$OS.type != "windows") {
+      output <- system2("timeout", args = c(as.character(timeout), glpsol_path, args),
+                        stdout = TRUE, stderr = TRUE, wait = TRUE)
     } else {
-      # Unix: use timeout command
-      output <- system2("timeout", args = c(as.character(timeout),
-                                            glpsol_path, args),
-                       stdout = TRUE, stderr = TRUE, wait = TRUE)
-      exit_code <- attr(output, "status")
-      if (is.null(exit_code)) exit_code <- 0
+      if (!is.null(timeout)) {
+        warning("timeout needs the glpsol package on Windows; ignoring it.",
+                call. = FALSE)
+      }
+      output <- system2(glpsol_path, args = args,
+                        stdout = TRUE, stderr = TRUE, wait = TRUE)
     }
+    exit_code <- attr(output, "status")
+    if (is.null(exit_code)) exit_code <- 0L
+    timed_out <- FALSE
+    setwd(old_wd)
   }
 
-  end_time <- Sys.time()
-  solve_time <- as.numeric(difftime(end_time, start_time, units = "secs"))
-
-  # Print output if verbose
-  if (verbose && length(output) > 0) {
-    cat(paste(output, collapse = "\n"), "\n")
+  solve_time <- as.numeric(difftime(Sys.time(), start_time, units = "secs"))
+  if (verbose && !use_pkg && length(output) > 0) {
+    cat(paste(output, collapse = "
+"), "
+")
   }
 
-  # Initialize result
   result <- list(
     success = FALSE,
     objective = NA_real_,
     solve_time = solve_time,
     status = "UNKNOWN",
-    exit_code = exit_code,
+    exit_code = as.integer(exit_code),
+    timed_out = timed_out,
     solver_output = output
   )
 
-  # Check if solution file was created
-  if (!file.exists(sol_file)) {
-    if (verbose) cat("Solver failed to produce solution file\n")
-    return(result)
-  }
-
-  # Parse solution file
-  sol_text <- readLines(sol_file)
-
-  # Extract status
-  status_line <- grep("Status:", sol_text, value = TRUE)
-  if (length(status_line) > 0) {
-    result$status <- trimws(gsub(".*Status:\\s+", "", status_line[1]))
-  }
-
-  # Check for optimal/feasible solution
-  result$success <- grepl("OPTIMAL|FEASIBLE", result$status, ignore.case = TRUE)
-
-  # Extract objective value
-  obj_line <- grep("Objective:", sol_text, value = TRUE)
-  if (length(obj_line) > 0) {
-    # Parse "Objective:  OBJ = 1234.56 (MINimum)"
-    obj_match <- regexec("=\\s*([0-9eE.+-]+)", obj_line[1])
-    if (obj_match[[1]][1] > 0) {
-      result$objective <- as.numeric(regmatches(obj_line[1], obj_match)[[1]][2])
+  machine_sol <- file.path(gmpl_dir, "solution.txt")
+  if (use_pkg && file.exists(machine_sol)) {
+    s <- glpsol::glpsol_read_solution(machine_sol,
+                                      file.path(gmpl_dir, "problem.glp"))
+    # the -o parser reported GLPK's upper-case words; keep that contract
+    result$status    <- toupper(s$status)
+    result$success   <- s$status %in% c("optimal", "feasible")
+    result$objective <- s$objective
+    result$rows      <- s$rows        # primal and dual, named
+    result$cols      <- s$cols
+    result$variables <- s$cols
+  } else {
+    sol_file <- file.path(gmpl_dir, "solution.sol")
+    if (!file.exists(sol_file)) {
+      if (verbose) cat("Solver failed to produce solution file
+")
+      return(result)
     }
-  }
-
-  # Parse variables (columns) - simplified version
-  col_start <- which(grepl("Column name", sol_text))
-  col_end <- which(grepl("^\\s*$", sol_text[seq(from = max(1, col_start[1] + 1),
-                                                  to = length(sol_text))]))[1]
-
-  if (length(col_start) > 0 && !is.na(col_end)) {
-    col_end_line <- col_start[1] + col_end
-    var_lines <- sol_text[(col_start[1] + 2):(col_end_line - 1)]
-    var_lines <- var_lines[nchar(trimws(var_lines)) > 0]
-
-    if (length(var_lines) > 0) {
-      variables <- lapply(var_lines, function(line) {
-        # Parse fixed-width format: No. Column name Activity ...
-        parts <- strsplit(trimws(line), "\\s+")[[1]]
-        if (length(parts) >= 4) {
-          data.frame(
-            name = parts[2],
-            value = as.numeric(parts[4]),
-            stringsAsFactors = FALSE
-          )
-        } else {
-          NULL
-        }
-      })
-
-      variables <- do.call(rbind, variables[!sapply(variables, is.null)])
-      result$variables <- variables
+    sol_text <- readLines(sol_file)
+    status_line <- grep("Status:", sol_text, value = TRUE)
+    if (length(status_line) > 0) {
+      result$status <- trimws(gsub(".*Status:[[:space:]]+", "", status_line[1]))
     }
+    result$success <- grepl("OPTIMAL|FEASIBLE", result$status, ignore.case = TRUE)
+    obj_line <- grep("Objective:", sol_text, value = TRUE)
+    if (length(obj_line) > 0) {
+      m <- regexec("=[[:space:]]*([0-9eE.+-]+)", obj_line[1])
+      if (m[[1]][1] > 0) {
+        result$objective <- as.numeric(regmatches(obj_line[1], m)[[1]][2])
+      }
+    }
+    variables <- .parse_glpsol_columns(sol_text)
+    if (!is.null(variables)) result$variables <- variables
   }
 
   if (verbose) {
-    cat(sprintf("Status: %s\n", result$status))
-    cat(sprintf("Objective: %.2f\n", result$objective))
-    cat(sprintf("Solve time: %.2f seconds\n", result$solve_time))
+    cat(sprintf("Status: %s
+", result$status))
+    cat(sprintf("Objective: %.2f
+", result$objective))
+    cat(sprintf("Solve time: %.2f seconds
+", result$solve_time))
   }
 
   result
@@ -431,4 +385,45 @@ read_csv_results <- function(model, model_dir, verbose = TRUE) {
                           length(variables_loaded), length(var_csv_files)))
   
   model
+}
+
+
+#' Column table of a glpsol printable solution (`-o` file)
+#'
+#' The table has one row per column: No., name, status, activity, bounds,
+#' marginal. glpsol wraps a row whose name is longer than the name field onto
+#' two lines (number and name, then the remaining fields), so lines are
+#' re-joined before splitting. Returns a data frame with `name` and `value`
+#' (the activity), or `NULL` when the file has no column table.
+#' @noRd
+.parse_glpsol_columns <- function(sol_text) {
+  start <- grep("Column name", sol_text)
+  if (!length(start)) return(NULL)
+  rest <- sol_text[-seq_len(start[1] + 1)]      # skip header and dashes
+  stop_at <- grep("End of output|^\\s*$", rest)
+  if (length(stop_at)) rest <- rest[seq_len(stop_at[1] - 1)]
+  if (!length(rest)) return(NULL)
+
+  # join a wrapped row: "<No.> <name>" followed by "<St> <Activity> ..."
+  rows <- character(0); carry <- NULL
+  for (line in rest) {
+    parts <- strsplit(trimws(line), "\\s+")[[1]]
+    if (!is.null(carry)) {
+      rows <- c(rows, paste(carry, trimws(line))); carry <- NULL
+    } else if (length(parts) <= 2) {
+      carry <- trimws(line)
+    } else {
+      rows <- c(rows, trimws(line))
+    }
+  }
+  if (!is.null(carry)) rows <- c(rows, carry)
+
+  parsed <- lapply(strsplit(rows, "\\s+"), function(parts) {
+    if (length(parts) < 4) return(NULL)
+    value <- suppressWarnings(as.numeric(parts[4]))
+    data.frame(name = parts[2], value = value, stringsAsFactors = FALSE)
+  })
+  parsed <- parsed[!vapply(parsed, is.null, TRUE)]
+  if (!length(parsed)) return(NULL)
+  do.call(rbind, parsed)
 }

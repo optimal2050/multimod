@@ -430,7 +430,8 @@ write_jump.model_structure <- function(model, file = NULL, model_dir = NULL, sol
       iter_vars <- NULL
     }
     if (!is.null(dims) && length(dims) > 0 && !is.null(dim_names) && !is.null(iter_vars)) {
-      var_names <- setNames(as.list(dim_names), iter_vars)
+      # as_jump() reads var_names as set name -> iterator (REGION -> r)
+      var_names <- setNames(as.list(iter_vars), dim_names)
       formula_expr <- as_jump(formula_ast, model = model, var_names = var_names, use_haskey = FALSE, shifts_tracker = shifts_needed)
       key_tuple <- if (length(iter_vars) == 1) iter_vars else paste0("(", paste(iter_vars, collapse=","), ")")
       iter_clauses <- paste(iter_vars, "in", dim_names, collapse=", ")
@@ -717,6 +718,12 @@ write_jump_internal <- function(model, file = NULL, model_dir = NULL, solver_dir
   # Determine output file path
   if (is.null(file)) {
     if (!is.null(model_dir)) {
+      # data.jl reads sets, mappings and parameters from the workspace at
+      # run time, so the workspace must exist. An empty (or missing) model_dir
+      # is turned into one; save_model(overwrite = TRUE) would wipe anything
+      # else, so a non-empty non-workspace directory is refused.
+      if (identical(data_mode, "external")) .ensure_workspace(model, model_dir)
+
       # Create solvers/solver_dir structure
       solver_path <- file.path(model_dir, "solvers", solver_dir)
 

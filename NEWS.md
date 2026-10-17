@@ -20,6 +20,13 @@
 
 ## New
 
+* `mm_equation()` writes an equation as text instead of nested constructors:
+  `mm_equation(m, "eqCapLim{(tech,region) in mTR}: vGen[tech,region] <=
+  pAvail[tech,region] * vCap[tech,region]")`. MathProg is the default
+  notation, `lang = "gams"` reads the GAMS form, and both produce the same
+  AST the `ast_*()` constructors build. Declarations stay in R - `new_set()`,
+  `new_parameter()` and `new_variable()` are flat and read well; only the
+  expression needs a notation.
 * `example_models$toy`: a small, fully populated capacity-expansion LP built
   with the constructors (`data-raw/toy_model.R`). It goes through every route
   in well under a second and is what `vignette("ast")` builds step by step.
@@ -29,6 +36,17 @@
 
 ## Fixes
 
+* The MathProg reader splits an indexing list at bracket depth 0, so the
+  tuple form `{(i,j) in S}` stays one specification. A plain comma split cut
+  it into `(i` and `j) in S`, which left the first index without a set and
+  gave the second a stray parenthesis; in `sum{(i,j) in S}` it silently
+  dropped an index from the summation. A tuple over a mapping now builds the
+  same restricted-sum node the GAMS reader builds for `sum((i,j)$S(i,j), ...)`.
+* `as_gams()` gained the `call` method it was missing, so a function call in
+  an expression (`log(vCap)`) renders with its arguments instead of erroring.
+* `as_latex()` reads the index names of an equation's domain positionally.
+  `dims` is the one node whose contents are unnamed, so `names()` on it
+  returned NULL and every equation header rendered as `\{\} \in mTR`.
 * The matrix backend evaluates `sum`/`prod` nodes produced by `ast_sum()` /
   `ast_prod()` (GAMS sums arrive as `func` nodes and were the only form
   handled); `ast_sum(domain = )` gates the summation like a `$`-condition.
@@ -57,6 +75,38 @@
 * `solve_pyomo(load_results = TRUE)` is implemented: variable values exported
   with `write_pyomo(export_vars = TRUE)` are read into the model, and the
   objective value is recorded in `status.json` and returned.
+* `read_gmpl()` works again under schema validation: a parenthesised
+  reference no longer carries a `brackets` field. The OSeMOSYS model (UTOPIA)
+  reads, validates, and solves through JuMP to its published objective.
+* `write_gmpl()` emitted `end;` before the solution-export block, so glpsol
+  never wrote the per-variable CSVs and `solve_gmpl()` loaded nothing. Export
+  loops over two dimensions starting with the same letter (`tech`,
+  `timeslice`) produced a repeated iterator, which MathProg rejects.
+* `write_jump()` and `write_pyomo()` create the workspace the generated code
+  reads when `model_dir` is empty or holds only earlier solver output.
+* JuMP: a sum's own iterator now shadows an outer iterator over the same set
+  (`rr` next to `r`); formula parameters are keyed by their declared
+  iterators; a parametric default (`default DiscountRate[r]`) is rendered
+  inline from parameter references as well as from symbols.
+* `solve_jump()` reads the `solution/<variable>.csv` layout `model.jl`
+  writes and names the key columns after the variable's dimensions.
+* Five `stop()` calls in `read_gams()` had a trailing comma that masked the
+  message.
+* `solve_gmpl()` reads glpsol's printable solution correctly when a column
+  name is long enough to be wrapped onto two lines; it used to misread those
+  rows and warn once per row.
+
+## Documentation
+
+* The GMPL, JuMP and Pyomo articles are replaced by "Solving and reading
+  results", one narrative from the model object through the workspace, the
+  generated code, the solve and the results to the checks for disagreeing
+  routes, on `example_models$toy`; and by "Two models from the field", which
+  runs the energyRt reference model and OSeMOSYS (read from its repository;
+  see `LICENSE.note`). The configuration,
+  workspace and LaTeX articles are rewritten on the toy model with evaluated
+  code; the README describes what is tested, and the reference index groups
+  the untested exports under "Experimental".
 
 ## CRAN preparation
 
