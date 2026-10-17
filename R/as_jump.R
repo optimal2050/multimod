@@ -312,27 +312,16 @@ as_jump.mm_parameter <- function(x, declaration = FALSE, desc = declaration, mod
       subscripts <- as_jump(x$dims, model = model, var_names = var_names, use_index_aliases = use_index_aliases, in_filter = in_filter, ...)
       is_single_dim <- length(x$dims) == 1
       tuple_index <- if (is_single_dim) subscripts else paste0("(", subscripts, ")")
-      use_haskey <- isTRUE(dots$use_haskey)
-      in_sum_filter <- isTRUE(dots$in_sum_filter)
-      if (use_haskey && !in_sum_filter) {
-        has_data <- FALSE
-        if (!is.null(model) && !is.null(model$base_path)) {
-          data_file <- file.path(model$base_path, "parameters", x$name, "data.csv")
-          has_data <- file.exists(data_file) && file.size(data_file) > 100
-        }
-        default_val <- paste0(x$name, "Def")
-        if (has_data) {
-          # Always use get() for sparse parameters, both in filters and constraint body
-          paste0("get(", x$name, ", ", tuple_index, ", ", default_val, ")")
-        } else {
-          # Always use get() for sparse parameters, both in filters and constraint body
-          paste0("get(", x$name, ", ", tuple_index, ", ", default_val, ")")
-        }
-      } else {
-        default_val <- paste0(x$name, "Def")
-        # Always use get() for sparse parameters, both in filters and constraint body
-        paste0("get(", x$name, ", ", tuple_index, ", ", default_val, ")")
+      # Sparse data: get() with the declared default. A parametric default
+      # (MathProg `default DiscountRate[r]`) is rendered inline with the
+      # same iterator bindings, as the `symbol` method does.
+      default_val <- paste0(x$name, "Def")
+      decl <- if (!is.null(model) && !is.null(model$parameters)) model$parameters[[x$name]] else NULL
+      if (!is.null(decl) && inherits(decl$defVal, "ast_formula") && !is.null(decl$defVal$expr)) {
+        default_val <- as_jump(decl$defVal$expr, model = model, var_names = var_names,
+                               use_index_aliases = use_index_aliases, in_filter = in_filter, ...)
       }
+      paste0("get(", x$name, ", ", tuple_index, ", ", default_val, ")")
     } else {
       x$name
     }
@@ -1236,7 +1225,11 @@ as_jump.sum <- function(x, model = NULL, ...) {
     # Sum iterators take precedence (shadow outer variables)
     dots <- list(...)
     outer_var_names <- if ("var_names" %in% names(dots)) dots$var_names else NULL
-    merged_var_names <- c(outer_var_names, sum_var_names)  # sum_var_names shadows outer
+    # `[[` on a name returns the first match, so the sum's own iterators come
+    # first and shadow an outer iterator over the same set (rr over r). The
+    # outer entries stay in the list: a symbol is recognised as an iterator by
+    # appearing among the values (y in the body of a sum over yy).
+    merged_var_names <- c(as.list(sum_var_names), as.list(outer_var_names))
     
     # Remove var_names from dots to avoid duplication
     dots$var_names <- NULL

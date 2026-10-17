@@ -695,7 +695,7 @@ read_gams <- function(
         stop(
           "Unrecognized code after set(s) declaration: '",
           the_rest, "'\n",
-          "Expected a new line. Check the parser logic or the GAMS file.",
+          "Expected a new line. Check the parser logic or the GAMS file."
         )
       }
       i <- i + 1
@@ -709,7 +709,7 @@ read_gams <- function(
         stop(
           "Unrecognized code after alias(es) declaration: '",
           the_rest, "'\n",
-          "Expected a new line. Check the parser logic or the GAMS file.",
+          "Expected a new line. Check the parser logic or the GAMS file."
         )
       }
       i <- i + 1
@@ -723,7 +723,7 @@ read_gams <- function(
         stop(
           "Unrecognized code after parameter(s) declaration: '",
           the_rest, "'\n",
-          "Expected a new line. Check the parser logic or the GAMS file.",
+          "Expected a new line. Check the parser logic or the GAMS file."
         )
       }
       i <- i + 1
@@ -745,7 +745,7 @@ read_gams <- function(
         stop(
           "Unrecognized code after variable(s) declaration: '",
           the_rest, "'\n",
-          "Expected a new line. Check the parser logic or the GAMS file.",
+          "Expected a new line. Check the parser logic or the GAMS file."
         )
       }
 
@@ -759,7 +759,7 @@ read_gams <- function(
         stop(
           "Unrecognized code after equation(s) declaration: '",
           the_rest, "'\n",
-          "Expected a new line. Check the parser logic or the GAMS file.",
+          "Expected a new line. Check the parser logic or the GAMS file."
         )
       }
       i <- i + 1

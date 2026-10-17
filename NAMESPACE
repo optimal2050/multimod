@@ -13,6 +13,7 @@ S3method(as.character,sum)
 S3method(as.character,symbol)
 S3method(as.character,unary)
 S3method(as.character,when)
+S3method(as_gams,call)
 S3method(as_gams,character)
 S3method(as_gams,constant)
 S3method(as_gams,default)
@@ -334,6 +335,7 @@ export(load_parameter)
 export(log_solution_load)
 export(make_valid)
 export(mm_check_python)
+export(mm_equation)
 export(mm_session)
 export(mm_setup_python)
 export(model_from_json)
@@ -412,18 +414,14 @@ export(write_solution)
 importFrom(magrittr,"%>%")
 importFrom(purrr,pluck_depth)
 importFrom(rlang,is_empty)
-importFrom(stats,
-  ave,
-  setNames
-)
-importFrom(utils,
-  capture.output,
-  globalVariables,
-  head,
-  modifyList,
-  object.size,
-  read.csv,
-  str,
-  tail,
-  write.csv
-)
+importFrom(stats,ave)
+importFrom(stats,setNames)
+importFrom(utils,capture.output)
+importFrom(utils,globalVariables)
+importFrom(utils,head)
+importFrom(utils,modifyList)
+importFrom(utils,object.size)
+importFrom(utils,read.csv)
+importFrom(utils,str)
+importFrom(utils,tail)
+importFrom(utils,write.csv)

@@ -163,6 +163,9 @@ preprocess_gmpl <- function(lines) {
   # Remove single-line comments (# to end of line)
   lines <- gsub("#.*$", "", lines)
 
+  # Tabs are whitespace to MathProg; the header patterns below expect spaces
+  lines <- gsub("\t", " ", lines, fixed = TRUE)
+
   # Trim whitespace
   lines <- trimws(lines)
 
@@ -993,8 +996,12 @@ extract_indexing <- function(stmt) {
 #' @return List of index specifications
 #' @keywords internal
 parse_index_list <- function(str) {
-  # Simple comma split for now (should handle nested braces properly)
-  specs_raw <- strsplit(str, ",")[[1]]
+  # Split on commas at bracket depth 0, so the tuple form `(i,j) in S` stays
+  # one spec. A plain comma split cut it into "(i" and "j) in S", which left
+  # the first index setless and the second carrying a stray parenthesis - and
+  # the tuple form is how MathProg binds an equation to a domain mapping.
+  if (!nzchar(trimws(str))) return(list())
+  specs_raw <- split_top_level_args(str)
 
   specs <- lapply(specs_raw, function(spec) {
     spec <- trimws(spec)
@@ -1231,8 +1238,9 @@ parse_gmpl_expr <- function(expr, symbols = list(), depth = 0, max_depth = 50) {
   if (startsWith(expr, "(") && endsWith(expr, ")") && matching_paren(expr) == nchar(expr)) {
     inner <- substring(expr, 2, nchar(expr) - 1)
     result <- parse_gmpl_expr(inner, symbols, depth + 1, max_depth)
-    # Mark that this expression was explicitly parenthesized
-    result$brackets <- TRUE
+    # Only `expression` nodes carry a brackets field in the schema; a
+    # parenthesised reference or constant renders the same without it.
+    if (inherits(result, "expression")) result$brackets <- TRUE
     return(result)
   }
 
@@ -1523,31 +1531,40 @@ parse_indexed_func <- function(expr, func, symbols, depth, max_depth) {
     NULL
   }
 
-  # Parse index specifications: "r in REGION, y in YEAR"
-  index_parts <- strsplit(indices_str, ",")[[1]]
+  # Index specifications: "r in REGION, y in YEAR" or "(i,j) in S". The split
+  # is at bracket depth 0, so a tuple stays one spec - a plain comma split cut
+  # `(i,j) in S` into "(i" and "j) in S", dropping an index from the sum.
+  specs <- parse_index_list(indices_str)
   index_list <- list()
+  map_conds <- list()
 
-  for (part in index_parts) {
-    part <- trimws(part)
-    # Pattern: "name in set" or just "name"
-    if (grepl("\\bin\\b", part, ignore.case = TRUE)) {
-      match <- regexec("^\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s+in\\s+(.+)$", part, ignore.case = TRUE)[[1]]
-      if (match[1] > 0) {
-        captures <- regmatches(part, regexec("^\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s+in\\s+(.+)$", part, ignore.case = TRUE))[[1]]
-        idx_name <- captures[2]
-        set_expr <- captures[3]
-        # Store as mapping: r = REGION
-        index_list[[idx_name]] <- parse_gmpl_expr(set_expr, symbols, depth + 1, max_depth)
+  for (sp in specs) {
+    if (length(sp$vars) > 1L) {
+      # A tuple binds several indices to one mapping: the indices become plain
+      # dims and the mapping restricts them, which is the node the GAMS reader
+      # builds for `sum((i,j)$S(i,j), ...)`.
+      for (v in sp$vars) index_list[[length(index_list) + 1L]] <- ast_symbol(v)
+      if (!is.null(sp$set)) {
+        map_conds[[length(map_conds) + 1L]] <- ast_mapping(
+          sp$set, dims = do.call(ast_dims, as.list(sp$vars)))
       }
+    } else if (!is.null(sp$set)) {
+      index_list[[sp$vars]] <- parse_gmpl_expr(sp$set, symbols, depth + 1, max_depth)
     } else {
       # Just a name (implicit set)
-      idx_name <- part
-      index_list[[idx_name]] <- ast_symbol(idx_name)
+      index_list[[sp$vars]] <- ast_symbol(sp$vars)
     }
   }
 
-  # Create ast_dims from the named list
   index_ast <- do.call(ast_dims, index_list)
+
+  if (length(map_conds) > 0L) {
+    cond <- map_conds[[1]]
+    for (k in seq_along(map_conds)[-1]) {
+      cond <- ast_expression("and", lhs = cond, rhs = map_conds[[k]])
+    }
+    index_ast <- ast_when(condition = cond, then = index_ast)
+  }
 
   value_ast <- parse_gmpl_expr(value_expr, symbols, depth + 1, max_depth)
 
@@ -1892,6 +1909,8 @@ read_gmpl_data <- function(file) {
     # It's already file contents (character vector)
     lines <- file
   }
+  # A comment inside a data block would otherwise be read as tokens
+  lines <- gsub("#.*$", "", lines)
 
   # Initialize result structure
   result <- list(

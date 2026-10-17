@@ -1141,8 +1141,16 @@ as_latex.mm_equation <- function(x,
     model_aliases <- extra_args$model$index_aliases
     # Get equation dims, could be from domain (mapping) or direct dims
     eq_dim_names <- if (!is.null(x$domain) && inherits(x$domain, "mm_mapping")) {
-      # If domain is a mapping, use its dims
-      if (!is.null(x$domain$dims)) names(x$domain$dims) else character()
+      # A `dims` node holds its members positionally, not by name, so the set
+      # names come from each child's `$name`. Reading `names()` here returned
+      # NULL and the header rendered an empty index set, `\{\} \in mTR`.
+      if (!is.null(x$domain$dims)) {
+        vapply(x$domain$dims, function(d) {
+          if (!is.null(d$name)) d$name else NA_character_
+        }, character(1))
+      } else {
+        character()
+      }
     } else if (!is.null(x$dims)) {
       # Extract set names from dims elements (symbol/set nodes)
       sapply(x$dims, function(d) {

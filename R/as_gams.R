@@ -162,6 +162,23 @@ as_gams.func <- function(x, ...) {
 }
 
 
+#' @export
+#' @method as_gams call
+#' @rdname as_gams
+as_gams.call <- function(x, ...) {
+  # A generic function application: name(arg, ...). Without this method the
+  # node fell through to as_gams.default, which warned and printed the list
+  # structure, so log(x) and the other transcendentals left broken GAMS.
+  stopifnot(!is.null(x$name))
+  if (!is.null(x$args) && length(x$args) > 0) {
+    args_text <- paste(vapply(x$args, as_gams, character(1), ...), collapse = ", ")
+    paste0(x$name, "(", args_text, ")")
+  } else {
+    paste0(x$name, "()")
+  }
+}
+
+
 
 #' @export
 #' @method as_gams when

@@ -18,6 +18,19 @@ This content is derived from energyRt's model templates and remains under the
 Apache License 2.0, the same license as multimod itself, so bundling it raises
 no compatibility question. Full text: https://www.apache.org/licenses/LICENSE-2.0
 
+## Used by the documentation, not in the package
+
+The website article "Two models from the field" reads the OSeMOSYS model
+from a local clone of its repository (path in the environment variable
+`MULTIMOD_OSEMOSYS_DIR`); the test `tests/testthat/test-read-gmpl.R` does the
+same. Nothing of OSeMOSYS is bundled in the package.
+
+- **Source:** https://github.com/OSeMOSYS/OSeMOSYS_GNU_MathProg
+- **Files read:** `src/osemosys.txt`, `tests/utopia.txt`
+- **License:** Apache License 2.0
+- **Copyright:** [2010-2015] OSeMOSYS Forum steering committee — www.osemosys.org
+- **Cite:** Howells et al. (2011), reference below.
+
 ## In the repository, not in the package
 
 `drafts/` is excluded from the built package (`^drafts$` in `.Rbuildignore`).

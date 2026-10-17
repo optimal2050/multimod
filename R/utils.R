@@ -829,3 +829,33 @@ compare_jump_stats <- function(model_dir1,
   }
   invisible(TRUE)
 }
+
+#' Make sure a model_dir holds a workspace the generated code can read
+#'
+#' The JuMP and Pyomo scaffolds read sets, mappings and parameters from the
+#' workspace at run time. A missing or empty `model_dir`, or one holding only
+#' a `solvers/` folder from another writer, is initialised with
+#' [save_model()] (CSV). Anything else without `model.rds` is refused:
+#' `save_model(overwrite = TRUE)` would wipe it.
+#' @noRd
+.ensure_workspace <- function(model, model_dir) {
+  if (file.exists(file.path(model_dir, "model.rds"))) return(invisible(model_dir))
+  entries <- if (dir.exists(model_dir)) {
+    list.files(model_dir, all.files = TRUE, no.. = TRUE)
+  } else {
+    character(0)
+  }
+  # what the writers and solve_*() leave behind beside the workspace data
+  own <- c("solvers", "variables", "solution_log.txt")
+  if (length(setdiff(entries, own)) > 0) {
+    stop("`model_dir` (", model_dir, ") is not empty and holds no model ",
+         "workspace (model.rds); pass an empty directory or one written by save_model().")
+  }
+  staging <- tempfile("mm_ws_")
+  save_model(model, staging, format = "csv", verbose = FALSE)
+  dir.create(model_dir, recursive = TRUE, showWarnings = FALSE)
+  file.copy(list.files(staging, full.names = TRUE, all.files = TRUE, no.. = TRUE),
+            model_dir, recursive = TRUE)
+  unlink(staging, recursive = TRUE)
+  invisible(model_dir)
+}

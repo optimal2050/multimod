@@ -78,14 +78,7 @@ write_pyomo_internal <- function(model, model_dir = NULL, solver_dir = "pyomo",
   }
   # The generated code resolves the workspace from its own location
   # (`<model_dir>/solvers/<solver_dir>/model.py`), so the data must be there.
-  if (!file.exists(file.path(model_dir, "model.rds"))) {
-    if (dir.exists(model_dir) &&
-        length(list.files(model_dir, all.files = TRUE, no.. = TRUE)) > 0) {
-      stop("`model_dir` (", model_dir, ") is not empty and holds no model ",
-           "workspace (model.rds); pass an empty directory or one written by save_model().")
-    }
-    save_model(model, model_dir, format = "csv", verbose = FALSE)
-  }
+  .ensure_workspace(model, model_dir)
 
   solver_path <- file.path(model_dir, "solvers", solver_dir)
   if (cleanup && dir.exists(solver_path)) {
