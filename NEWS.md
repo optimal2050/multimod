@@ -18,45 +18,36 @@
   configuration directory returned by `tools::R_user_dir("multimod",
   "config")` instead of `~/.multimod/`.
 
-## New
+## New features
 
-* `mm_equation()` writes an equation as text instead of nested constructors:
+* `mm_equation()` builds an equation from text rather than nested
+  constructors, in MathProg (the default), GAMS or JuMP notation:
   `mm_equation(m, "eqCapLim{(tech,region) in mTR}: vGen[tech,region] <=
-  pAvail[tech,region] * vCap[tech,region]")`. MathProg is the default
-  notation, `lang = "gams"` reads the GAMS form, and both produce the same
-  AST the `ast_*()` constructors build. Declarations stay in R - `new_set()`,
-  `new_parameter()` and `new_variable()` are flat and read well; only the
-  expression needs a notation.
+  pAvail[tech,region] * vCap[tech,region]")`. Declarations stay in R.
+* `parse_jump_equation()` reads a JuMP `@constraint()` statement: generators
+  with several iterators, tuple iterators over a mapping, an `if` filter,
+  `if`/`else` conditionals and `get(p, i, default)`.
 * `example_models$toy`: a small, fully populated capacity-expansion LP built
-  with the constructors (`data-raw/toy_model.R`). It goes through every route
-  in well under a second and is what `vignette("ast")` builds step by step.
-* `vignette("ast")` is now the guide to writing a model in R: sets, mappings,
-  parameters, variables, expressions, equations, validation, the matrix
-  route, the file routes and the JSON round trip.
+  with the constructors, used step by step in `vignette("ast")`.
+* `vignette("ast")` is the guide to writing a model in R, from sets through
+  validation to the matrix, file and JSON routes.
 
-## Fixes
+## Bug fixes
 
-* The MathProg reader splits an indexing list at bracket depth 0, so the
-  tuple form `{(i,j) in S}` stays one specification. A plain comma split cut
-  it into `(i` and `j) in S`, which left the first index without a set and
-  gave the second a stray parenthesis; in `sum{(i,j) in S}` it silently
-  dropped an index from the summation. A tuple over a mapping now builds the
-  same restricted-sum node the GAMS reader builds for `sum((i,j)$S(i,j), ...)`.
-* `as_gams()` gained the `call` method it was missing, so a function call in
-  an expression (`log(vCap)`) renders with its arguments instead of erroring.
-* `as_latex()` reads the index names of an equation's domain positionally.
-  `dims` is the one node whose contents are unnamed, so `names()` on it
-  returned NULL and every equation header rendered as `\{\} \in mTR`.
-* The matrix backend evaluates `sum`/`prod` nodes produced by `ast_sum()` /
-  `ast_prod()` (GAMS sums arrive as `func` nodes and were the only form
-  handled); `ast_sum(domain = )` gates the summation like a `$`-condition.
-* GMPL rendering of models built in R: sums over an unnamed `ast_dims()` get
-  iterator names (`sum{t in tech}`) and references inside use them;
-  one-dimensional domains render as `{r in mR}`, which MathProg requires;
-  equations without `dims_index_aliases` get default iterators instead of an
-  error.
-* GAMS rendering brackets a multi-set sum index, `sum((tech,region), ...)`,
-  and `prod()` separates index and body with a comma.
+* MathProg: `*` and `/` belong inside an iterated operator, so
+  `sum{l in L} x[l] * w[l]` sums the products; `+` and `-` end its scope.
+* MathProg: `{(i,j) in S}` reads as one indexing specification, so
+  `sum{(i,j) in S}` keeps both indices and an equation picks up its domain
+  mapping.
+* `as_gams()` renders the arguments of a function call, and brackets a
+  multi-set sum index as `sum((tech,region), ...)`.
+* `as_latex()` renders an equation's index names in its header, which came
+  out as `\{\} \in mTR`.
+* `as_gmpl()` names the iterators of a sum over an unnamed `ast_dims()`,
+  renders a one-dimensional domain as `{r in mR}` as MathProg requires, and
+  falls back to default iterators instead of erroring.
+* The matrix backend evaluates the `sum`/`prod` nodes `ast_sum()` and
+  `ast_prod()` build, and `ast_sum(domain = )` gates the summation.
 * `untrim_model()` accepts `mm_model` objects.
 * `get_active_dims()` returned no dimensions for a parameter read from a
   source file (an empty `active_dims`); it now returns the declared dims, and

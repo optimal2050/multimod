@@ -91,3 +91,33 @@ test_that("OSeMOSYS (UTOPIA) solves through JuMP to the published objective", {
   expect_true(r$success)
   expect_equal(r$objective, 29446.86, tolerance = 1e-6)
 })
+
+test_that("an iterated operator keeps `*` and `/` inside the summation", {
+  # Checked against glpsol 5.0 on
+  #   set L; param w{l in L}; var x{l in L} >= 0;
+  #   maximize obj: <form>;   s.t. budget: sum{l in L} x[l] <= 1;
+  #   data; set L := a b c;   param w := a 1 b 2 c 10;
+  # which is optimal at 10 for `x[l] * w[l]` (the sum of the products) and at
+  # 1 for `x[l] / w[l]`, and which glpsol rejects for `x[l] + w[l]` because
+  # `l` is unbound once outside the sum. So `*` and `/` are part of the
+  # integrand, and `+` and `-` end its scope.
+  decl <- c("set L;", "param w{l in L};", "var x{l in L} >= 0;")
+  lhs_of <- function(form) {
+    m <- suppressWarnings(as_multimod(read_gmpl(
+      c(decl, paste0("s.t. e: ", form, " <= 1;"), "end;"))))
+    as_gams(m$equations$e$lhs)
+  }
+
+  expect_equal(lhs_of("sum{l in L} x[l] * w[l]"),   "sum(L, x[L] * w[L])")
+  expect_equal(lhs_of("sum{l in L} (x[l] * w[l])"), "sum(L, x[L] * w[L])")
+  expect_equal(lhs_of("sum{l in L} w[l] * x[l]"),   "sum(L, w[L] * x[L])")
+  expect_equal(lhs_of("sum{l in L} x[l] / w[l]"),   "sum(L, x[L] / w[L])")
+  expect_equal(lhs_of("prod{l in L} x[l] * w[l]"),  "prod(L, x[L] * w[L])")
+
+  # `+` and `-` end the scope, so the trailing term stays outside
+  expect_equal(lhs_of("sum{l in L} x[l] + w[l]"),   "sum(L, x[L]) + w[L]")
+  expect_equal(lhs_of("sum{l in L} x[l] - w[l]"),   "sum(L, x[L]) - w[L]")
+
+  # a factor in front of the sum is not swallowed by it
+  expect_equal(lhs_of("2 * sum{l in L} x[l]"),      "2 * sum(L, x[L])")
+})

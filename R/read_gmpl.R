@@ -1208,6 +1208,18 @@ parse_gmpl_expr <- function(expr, symbols = list(), depth = 0, max_depth = 50) {
     }
   }
 
+  # An iterated operator takes a multiplicative term as its integrand: `*` and
+  # `/` belong inside it, while `+` and `-` end its scope and are split above.
+  # This has to be settled before the split below, which would otherwise cut
+  # `sum{l in L} x[l] * w[l]` into `sum{l in L} x[l]` and `w[l]` and leave `l`
+  # unbound outside the summation.
+  for (func in c("sum", "prod", "min", "max")) {
+    if (grepl(paste0("^", func, "\\s*\\{"), expr, ignore.case = TRUE)) {
+      result <- parse_indexed_func(expr, func, symbols, depth, max_depth)
+      if (!is.null(result)) return(result)
+    }
+  }
+
   # Multiplication, division, mod, div
   for (op in c("\\*", "/", "\\bmod\\b", "\\bdiv\\b")) {
     if (has_top_level_op(expr, op)) {

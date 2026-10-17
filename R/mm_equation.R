@@ -16,10 +16,13 @@
 #'   `name{indexing}: lhs <op> rhs` with an optional `s.t.` prefix and
 #'   trailing `;`, where `<op>` is `<=`, `>=` or `=`. For `lang = "gams"` it
 #'   is `name(dims)$domain(dims) .. lhs <op> rhs` with `=l=`, `=g=` or `=e=`.
-#'   Newlines are allowed in both.
+#'   For `lang = "jump"` it is one `@constraint(model, name[i in S],
+#'   lhs <op> rhs)` statement, with `==` for equality. Newlines are
+#'   allowed in all three.
 #' @param desc Description to attach to the equation.
 #' @param lang The notation `text` is written in. MathProg is the default: it
-#'   is an open language and uses the ordinary relational operators.
+#'   is an open language and uses the ordinary relational operators. JuMP
+#'   and GAMS are read as well; all three produce the same AST.
 #'
 #' @return An equation node, ready to assign into `model$equations`.
 #' @seealso [new_equation()] builds the same object from constructors, which
@@ -44,13 +47,27 @@
 #'      vGen(tech,region) =l= pAvail(tech,region) * vCap(tech,region)",
 #'   lang = "gams"
 #' )
-mm_equation <- function(model, text, desc = "", lang = c("gmpl", "gams")) {
+#'
+#' # and in JuMP
+#' eq3 <- mm_equation(
+#'   m,
+#'   "@constraint(model, eqCapLim[(h, r) in mTR],
+#'      vGen[(h, r)] <= get(pAvail, (h, r), pAvailDef) * vCap[(h, r)])",
+#'   lang = "jump"
+#' )
+mm_equation <- function(model, text, desc = "",
+                        lang = c("gmpl", "gams", "jump")) {
   lang <- match.arg(lang)
   if (!(inherits(model, "multimod") || inherits(model, "model"))) {
     stop("`model` must be a multimod model.", call. = FALSE)
   }
   if (!is.character(text) || length(text) != 1L || !nzchar(trimws(text))) {
     stop("`text` must be a single non-empty equation statement.", call. = FALSE)
+  }
+
+  if (lang == "jump") {
+    return(parse_jump_equation(text, build_symbols_list(model),
+                               model = model, desc = desc))
   }
 
   if (lang == "gams") {
