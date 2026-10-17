@@ -271,6 +271,7 @@ reference:
   - -check_matrix_numbers
   - -parse_equation_header
   - -parse_gams_equation
+  - -parse_jump_equation
   - -validate_ast
   - -format_latex_aligned
   - -schema_node_types

@@ -4,7 +4,7 @@
 \alias{mm_equation}
 \title{Write an equation as MathProg or GAMS text}
 \usage{
-mm_equation(model, text, desc = "", lang = c("gmpl", "gams"))
+mm_equation(model, text, desc = "", lang = c("gmpl", "gams", "jump"))
 }
 \arguments{
 \item{model}{A multimod model. Its declarations resolve the names used in
@@ -15,12 +15,14 @@ already be in it.}
 \verb{name\{indexing\}: lhs <op> rhs} with an optional \code{s.t.} prefix and
 trailing \verb{;}, where \verb{<op>} is \code{<=}, \code{>=} or \code{=}. For \code{lang = "gams"} it
 is \verb{name(dims)$domain(dims) .. lhs <op> rhs} with \verb{=l=}, \verb{=g=} or \verb{=e=}.
-Newlines are allowed in both.}
+For \code{lang = "jump"} it is one \verb{@constraint(model, name[i in S], lhs <op> rhs)} statement, with \code{==} for equality. Newlines are
+allowed in all three.}
 
 \item{desc}{Description to attach to the equation.}
 
 \item{lang}{The notation \code{text} is written in. MathProg is the default: it
-is an open language and uses the ordinary relational operators.}
+is an open language and uses the ordinary relational operators. JuMP
+and GAMS are read as well; all three produce the same AST.}
 }
 \value{
 An equation node, ready to assign into \code{model$equations}.
@@ -54,6 +56,14 @@ eq2 <- mm_equation(
   "eqCapLim(tech,region)$mTR(tech,region) ..
      vGen(tech,region) =l= pAvail(tech,region) * vCap(tech,region)",
   lang = "gams"
+)
+
+# and in JuMP
+eq3 <- mm_equation(
+  m,
+  "@constraint(model, eqCapLim[(h, r) in mTR],
+     vGen[(h, r)] <= get(pAvail, (h, r), pAvailDef) * vCap[(h, r)])",
+  lang = "jump"
 )
 }
 \seealso{
