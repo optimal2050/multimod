@@ -34,6 +34,8 @@
 
 ## Bug fixes
 
+* `as_pyomo()` renders a named sub-expression, the one node kind it was
+  missing. A test now holds every node kind against every writer.
 * The matrix backend expands a variable or an equation declared over sets
   rather than over a mapping, which is how MathProg declares them. Each one
   became a single scalar column or row, so the assembled problem bore no

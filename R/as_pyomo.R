@@ -735,6 +735,13 @@ pyomo_iter_from_index <- function(index_node, model = NULL, var_names = NULL, sc
 }
 
 #' @export
+as_pyomo.where <- function(x, ...) {
+  # A named sub-expression renders as the expression itself, as it does for
+  # GAMS and JuMP.
+  as_pyomo(x$content, ...)
+}
+
+#' @export
 as_pyomo.when <- function(x, model = NULL, var_names = NULL, scope = NULL, ...) {
   cond <- pyomo_condition(x$condition, model = model, var_names = var_names,
                           scope = scope, ...)
