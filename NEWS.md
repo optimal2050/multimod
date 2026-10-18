@@ -34,6 +34,20 @@
 
 ## Bug fixes
 
+* The matrix backend evaluates an equation's condition, so one restricted by
+  a filter rather than a mapping contributes the rows that satisfy it.
+* Lags and leads resolve to the member they point at, counting positions in
+  the set's member order. A linear lag off the end drops the term;
+  `circular = TRUE` wraps. GAMS reads and writes both forms (`y-1`, `y--1`);
+  the writers with no syntax for a wrap refuse rather than flatten it.
+* `^` no longer distributes over the terms of its base. `(1 + rate)^n` was
+  computed as `1 + rate^n`, so a discount factor came out as 1 and a
+  sinking-fund denominator as 0, silently zeroing the terms built on them.
+* A sum binds the iterator names its body uses, not the names of the sets
+  they range over, and finds the members of a set its iterator does not name.
+* The matrix backend evaluates a bare index used as a number, a set minimum
+  or maximum, and `min`/`max`/`abs`.
+* `ast_dims()` accepts a single AST node instead of unwrapping its fields.
 * `as_pyomo()` renders a named sub-expression, the one node kind it was
   missing. A test now holds every node kind against every writer.
 * The matrix backend expands a variable or an equation declared over sets

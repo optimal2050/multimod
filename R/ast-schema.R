@@ -214,9 +214,14 @@
                     fields = list(index = .f("node", TRUE),
                                   value = .f("node", TRUE))),
 
+  # `circular` distinguishes a wrap from a plain lag: linear when absent, as
+  # GAMS's `y-1` is, and TRUE for its `y--1`. The offset counts positions in
+  # the set's member order, not arithmetic on the member's label, so it means
+  # the same thing on a sparse set (2025, 2026, 2030) as on a consecutive one.
   shift      = list(kind = "expr", s3 = "shift",
-                    fields = list(symbol = .f("node", TRUE),
-                                  offset = .f("integer", TRUE))),
+                    fields = list(symbol   = .f("node", TRUE),
+                                  offset   = .f("integer", TRUE),
+                                  circular = .f("logical"))),
 
   call       = list(kind = "expr", s3 = "call",
                     fields = list(name = .f("string", TRUE),

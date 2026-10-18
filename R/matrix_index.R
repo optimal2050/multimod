@@ -264,15 +264,6 @@ build_row_index <- function(model, verbose = FALSE, names = TRUE) {
     nm <- base::names(eqs)[k]
     dn <- .domain_name(e$domain)
     if (is.na(dn)) {
-      # A domain that is an expression rather than a mapping is a filter on the
-      # index set (MathProg's `{r in R: test}`). Expanding the sets and
-      # ignoring it would add rows the model excludes, so refuse instead.
-      if (!is.null(e$domain)) {
-        stop("Equation '", nm, "' is restricted by a condition, which the ",
-             "matrix backend cannot yet evaluate; it gates by joining a ",
-             "mapping. Render the model through a text backend, or give the ",
-             "equation a gating map.", call. = FALSE)
-      }
       tp <- .dims_tuples(model, e$dims)
       if (is.null(tp)) {
         blk <- .scalar_block(nm, names = names)   # genuinely scalar
@@ -284,6 +275,19 @@ build_row_index <- function(model, verbose = FALSE, names = TRUE) {
         real <- attr(tp, "mm_dim_names")
         blk <- .symbol_block(tp, nm, names = names)
         data.table::setattr(blk, "dim_names", real)
+      }
+      # A domain that is an expression rather than a mapping filters the index
+      # set (MathProg's `{r in R: test}`); keep the rows that satisfy it.
+      if (!is.null(e$domain)) {
+        keep <- .mx_filter_rows(e, blk, model)
+        n_in <- nrow(blk)
+        blk <- blk[keep]
+        data.table::setattr(blk, "dim_names", attr(tp, "mm_dim_names"))
+        if (verbose) {
+          message(sprintf("  %-30s %8d  (%d of %d pass the condition)",
+                          nm, nrow(blk), nrow(blk), n_in))
+        }
+        if (!nrow(blk)) next
       }
     } else {
       tp <- .domain_tuples(model, dn)

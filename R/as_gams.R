@@ -143,10 +143,13 @@ as_gams.prod <- function(x, ...) {
 #' @export
 #' @method as_gams shift
 as_gams.shift <- function(x, ...) {
-  # a lag or lead on a set index: y-1, y+1
+  # A lag or lead on a set index. GAMS doubles the operator for the circular
+  # form: `y-1` stops at the ends, `y--1` wraps.
   offset <- x$offset
   if (is.null(offset) || offset == 0) return(x$symbol)
-  paste0(x$symbol, if (offset > 0) "+" else "-", abs(offset))
+  op <- if (offset > 0) "+" else "-"
+  if (isTRUE(x$circular)) op <- paste0(op, op)
+  paste0(x$symbol, op, abs(offset))
 }
 
 #' @export
