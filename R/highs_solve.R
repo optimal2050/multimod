@@ -55,6 +55,8 @@ model_to_lp <- function(model, col_index = NULL, row_index = NULL,
   on_duplicate <- match.arg(on_duplicate)
   on_empty_row <- match.arg(on_empty_row)
   stopifnot(inherits(model, "multimod") || inherits(model, "mm_model"))
+  t0 <- Sys.time()
+  if (verbose) message(format(t0, "[%H:%M:%S] "), "building matrix")
   model <- .mx_materialise_formulas(model, verbose = verbose)
   if (is.null(col_index)) col_index <- build_col_index(model, verbose = verbose,
                                                        names = index_names)
@@ -97,10 +99,12 @@ model_to_lp <- function(model, col_index = NULL, row_index = NULL,
   )
   .check_empty_rows(lp, on_empty_row)
   if (verbose) {
-    message(sprintf("LP: %d rows x %d cols, %d nonzeros (%s %s)",
+    message(sprintf("%sLP: %d rows x %d cols, %d nonzeros (%s %s), built in %.0f s",
+                    format(Sys.time(), "[%H:%M:%S] "),
                     nrow_lp, ncol_lp, length(A@x),
                     if (obj_spec$maximum) "maximise" else "minimise",
-                    obj_spec$symbol))
+                    obj_spec$symbol,
+                    as.numeric(difftime(Sys.time(), t0, units = "secs"))))
   }
   lp
 }
@@ -284,13 +288,17 @@ solve_highs <- function(model, lp = NULL, attach = TRUE, control = list(),
 #' @return Invisibly, a list of the paths written.
 #' @export
 write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
-                      format = c("parquet", "ipc", "csv"), verbose = FALSE) {
+                      format = c("parquet", "ipc", "csv"), verbose = FALSE,
+                      presolve = getOption("multimod.presolve", FALSE)) {
   if (!requireNamespace("highs", quietly = TRUE)) {
     stop("write_mps() needs the 'highs' package. Install it with ",
          "install.packages(\"highs\").")
   }
   format <- match.arg(format)
   if (is.null(lp)) lp <- model_to_lp(model, verbose = verbose)
+  if (isTRUE(presolve)) lp <- lp_presolve(lp, verbose = verbose)
+  t0 <- Sys.time()
+  if (verbose) message(format(t0, "[%H:%M:%S] "), "writing MPS ", file)
 
   dir.create(dirname(file), recursive = TRUE, showWarnings = FALSE)
   dir.create(index_dir, recursive = TRUE, showWarnings = FALSE)
@@ -315,13 +323,23 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
   }
   .save_dataframe(.index_df(lp$col_index), col_path, format = format)
   .save_dataframe(.index_df(lp$row_index), row_path, format = format)
+  # the decoder expands eliminated columns from this table; a stale one from an
+  # earlier run with elimination must not survive a run without it
+  elim_path <- file.path(index_dir, paste0(base, "_eliminated"))
+  unlink(paste0(elim_path, c("", ".parquet", ".arrow", ".feather", ".ipc", ".csv")))
+  if (!is.null(lp$eliminated)) {
+    .save_dataframe(data.table::setDF(data.table::copy(lp$eliminated)),
+                    elim_path, format = format)
+  }
   # dim_names rides along inside parquet/feather but is lost by CSV, so write it
   # explicitly too - otherwise a csv bundle cannot be mapped back to symbols
   .write_dim_names(attr(lp$col_index, "dim_names"), index_dir, base)
 
   if (verbose) {
-    message("wrote ", file, " (", nrow(lp$row_index), " rows x ",
-            nrow(lp$col_index), " cols) plus index tables in ", index_dir)
+    message(format(Sys.time(), "[%H:%M:%S] "), "wrote MPS ", file, " (",
+            nrow(lp$row_index), " rows x ", nrow(lp$col_index),
+            " cols) plus index tables in ", index_dir, sprintf(", %.0f s",
+            as.numeric(difftime(Sys.time(), t0, units = "secs"))))
   }
   invisible(list(mps = file, col_index = col_path, row_index = row_path))
 }

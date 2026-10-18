@@ -174,9 +174,14 @@ read_cuopt_solution <- function(file, require_optimal = TRUE) {
     file(file, "rt")
   }
   on.exit(close(con), add = TRUE)
-  ln <- readLines(con, warn = FALSE)
-
-  hdr <- grep("^#", ln, value = TRUE)
+  # the header is a few `#` lines at the top; the body is read by fread
+  top <- readLines(con, n = 50L, warn = FALSE)
+  n_hdr <- 0L
+  while (n_hdr < length(top) &&
+         (startsWith(top[n_hdr + 1L], "#") || !nzchar(trimws(top[n_hdr + 1L])))) {
+    n_hdr <- n_hdr + 1L
+  }
+  hdr <- grep("^#", top[seq_len(n_hdr)], value = TRUE)
   status <- .cuopt_header(hdr, "Status")
   obj <- suppressWarnings(as.numeric(.cuopt_header(hdr, "Objective value")))
 
@@ -186,18 +191,27 @@ read_cuopt_solution <- function(file, require_optimal = TRUE) {
          "  Pass require_optimal = FALSE to read it anyway.")
   }
 
-  body <- ln[!startsWith(ln, "#") & nzchar(trimws(ln))]
-  if (!length(body)) stop("cuOpt solution file has no values: ", file)
-
-  parts <- strsplit(trimws(body), "[[:space:]]+")
-  nm <- vapply(parts, function(p) p[1], character(1))
-  vl <- suppressWarnings(as.numeric(vapply(
-    parts, function(p) if (length(p) > 1) p[2] else NA_character_,
-    character(1))))
+  if (n_hdr >= length(top)) stop("cuOpt solution file has no values: ", file)
+  body <- if (grepl("\\.gz$", file, ignore.case = TRUE)) {
+    data.table::fread(text = readLines(file, warn = FALSE)[-seq_len(n_hdr)],
+                      header = FALSE, fill = TRUE, sep = " ",
+                      colClasses = "character", blank.lines.skip = TRUE,
+                      showProgress = FALSE)
+  } else {
+    data.table::fread(file, skip = n_hdr, header = FALSE, fill = TRUE,
+                      sep = " ", colClasses = "character", blank.lines.skip = TRUE,
+                      showProgress = FALSE)
+  }
+  body <- body[!startsWith(body[[1]], "#")]
+  if (!nrow(body)) stop("cuOpt solution file has no values: ", file)
+  nm <- body[[1]]
+  vl <- if (ncol(body) >= 2) suppressWarnings(as.numeric(body[[2]])) else
+    rep(NA_real_, nrow(body))
   bad <- which(is.na(vl))
+  if (ncol(body) > 2) bad <- sort(unique(c(bad, which(nzchar(body[[3]])))))
   if (length(bad)) {
     stop("cuOpt solution file is malformed: entry ", bad[1], " reads '",
-         body[bad[1]], "'.\n",
+         trimws(paste(unlist(body[bad[1]]), collapse = " ")), "'.\n",
          "  A partial download must not be read as a partial solution.")
   }
 
@@ -292,31 +306,53 @@ read_mps_solution <- function(sol, index_dir = NULL, col_index = NULL,
 
   ci <- data.table::as.data.table(col_index)
   ri <- data.table::as.data.table(row_index)
+  elim <- attr(col_index, "eliminated")
 
   # Carry the index columns through: the per-variable reshape needs i1..iN to
   # rebuild dimension-named results.
   primal <- data.table::copy(ci)
-  data.table::set(primal, j = "value",
-                  value = .place_by_position(sol$columns$name,
-                                             sol$columns$primal,
-                                             nrow(ci), "c", "column"))
-  data.table::set(primal, j = "reduced_cost",
-                  value = .place_by_position(sol$columns$name,
-                                             sol$columns$dual,
-                                             nrow(ci), "c", "column"))
+  if ("jred" %in% names(ci)) {
+    # a reduced LP (lp_presolve()): the solution covers the kept
+    # columns; the eliminated ones are rebuilt from their references
+    jred <- ci$jred
+    n_red <- sum(!is.na(jred))
+    data.table::set(primal, j = "value", value = .expand_eliminated(
+      .place_by_position(sol$columns$name, sol$columns$primal, n_red, "c",
+                         "column"), jred, elim))
+    data.table::set(primal, j = "reduced_cost", value = .expand_eliminated(
+      .place_by_position(sol$columns$name, sol$columns$dual, n_red, "c",
+                         "column"), jred, elim, fill_eliminated = FALSE))
+    data.table::set(primal, j = "jred", value = NULL)
+  } else {
+    data.table::set(primal, j = "value",
+                    value = .place_by_position(sol$columns$name,
+                                               sol$columns$primal,
+                                               nrow(ci), "c", "column"))
+    data.table::set(primal, j = "reduced_cost",
+                    value = .place_by_position(sol$columns$name,
+                                               sol$columns$dual,
+                                               nrow(ci), "c", "column"))
+  }
   dual <- data.table::copy(ri)
+  ired <- if ("ired" %in% names(ri)) ri$ired else NULL
+  if (!is.null(ired)) data.table::set(dual, j = "ired", value = NULL)
+  n_rows <- if (is.null(ired)) nrow(ri) else sum(!is.na(ired))
   if (is.null(sol$rows) || !nrow(sol$rows)) {
     # cuOpt writes primal values only. An absent dual section is a property of
     # the solver, not a damaged file, so the rows carry NA rather than erroring.
     data.table::set(dual, j = "value", value = NA_real_)
     data.table::set(dual, j = "marginal", value = NA_real_)
   } else {
-    data.table::set(dual, j = "value",
-                    value = .place_by_position(sol$rows$name, sol$rows$primal,
-                                               nrow(ri), "r", "row"))
-    data.table::set(dual, j = "marginal",
-                    value = .place_by_position(sol$rows$name, sol$rows$dual,
-                                               nrow(ri), "r", "row"))
+    rv <- .place_by_position(sol$rows$name, sol$rows$primal, n_rows, "r", "row")
+    rmg <- .place_by_position(sol$rows$name, sol$rows$dual, n_rows, "r", "row")
+    if (!is.null(ired)) {
+      # an eliminated row is an equality with zero right-hand side: its
+      # activity is 0 by construction; its dual is not available
+      rv <- ifelse(is.na(ired), 0, rv[ired])
+      rmg <- rmg[ired]
+    }
+    data.table::set(dual, j = "value", value = rv)
+    data.table::set(dual, j = "marginal", value = rmg)
   }
   data.table::setattr(primal, "dim_names", attr(col_index, "dim_names"))
 
@@ -334,12 +370,20 @@ read_mps_solution <- function(sol, index_dir = NULL, col_index = NULL,
 #' out-of-range index -- into an error naming the offending entry.
 #' @keywords internal
 #' @noRd
+# `c123` -> 123; NA where the name does not start with the prefix
+.position_of <- function(names_vec, prefix) {
+  pos <- suppressWarnings(
+    as.integer(substr(names_vec, nchar(prefix) + 1L, nchar(names_vec))))
+  pos[!startsWith(names_vec, prefix)] <- NA_integer_
+  pos
+}
+
 .place_by_position <- function(names_vec, values, n_index, prefix, what) {
   if (length(names_vec) != n_index) {
     stop("Solution has ", length(names_vec), " ", what, "s but the index table",
          " has ", n_index, ". They must describe the same model.")
   }
-  pos <- suppressWarnings(as.integer(sub(paste0("^", prefix), "", names_vec)))
+  pos <- .position_of(names_vec, prefix)
   bad <- which(is.na(pos) | pos < 0L | pos >= n_index)
   if (length(bad)) {
     stop("Solution ", what, " name '", names_vec[bad[1]], "' is not a ",
@@ -367,7 +411,7 @@ read_mps_solution <- function(sol, index_dir = NULL, col_index = NULL,
     stop("Solution has ", length(names_vec), " ", what, "s but the index table",
          " has ", n_index, ". They must describe the same model.")
   }
-  pos <- suppressWarnings(as.integer(sub(paste0("^", prefix), "", names_vec)))
+  pos <- .position_of(names_vec, prefix)
   if (anyNA(pos) || !identical(pos, seq_len(n_index) - 1L)) {
     bad <- which(is.na(pos) | pos != (seq_len(n_index) - 1L))[1]
     stop("Solution ", what, " names are not the expected positional sequence",
@@ -397,6 +441,15 @@ read_mps_solution <- function(sol, index_dir = NULL, col_index = NULL,
   }
   dn <- .read_dim_names(index_dir, base)
   if (!is.null(dn)) data.table::setattr(ci, "dim_names", dn)
+  el_path <- file.path(index_dir, paste0(base, "_eliminated"))
+  el <- if ("jred" %in% names(ci)) .load_dataframe(el_path, format) else NULL
+  if ("jred" %in% names(ci) && is.null(el)) {
+    stop("Index tables for '", base, "' describe a reduced LP but the ",
+         "eliminated-column table is missing in ", index_dir)
+  }
+  if (!is.null(el)) {
+    data.table::setattr(ci, "eliminated", data.table::as.data.table(el))
+  }
   list(col_index = ci, row_index = ri)
 }
 

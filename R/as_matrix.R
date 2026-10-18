@@ -296,24 +296,17 @@
   data.table::setnames(lk, cols, ref)
   lk <- lk[, c(ref, "value"), with = FALSE]
 
+  .mx_chr_keys(lk, ref)
+
   # A wildcard (NA) index means "every member of this dimension" - energyRt
-  # writes them when interpolating with fold = TRUE. They must have been
-  # expanded at import; if one reaches the join it matches nothing, the tuple
-  # takes the parameter's default, and the model solves to a wrong answer with
-  # no error at all. Refuse instead.
+  # writes them when interpolating with fold = TRUE. Joining on an NA key would
+  # match nothing and silently substitute the default, so wildcard rows are
+  # looked up on their explicit dimensions only, most explicit first: an
+  # explicit value wins over a wildcard one, as when the rows are expanded.
   wild <- vapply(ref, function(k) anyNA(lk[[k]]), logical(1))
   if (any(wild)) {
-    stop("as_matrix: parameter '", nm, "' has wildcard (NA) values in index ",
-         "column(s) ", paste(ref[wild], collapse = ", "), ".
-  This is a ",
-         "folded parameter that was not expanded on import. Joining on an NA ",
-         "key silently substitutes the default, so the matrix would be wrong ",
-         "rather than missing.
-  Re-import with inMemory = TRUE, or ",
-         "re-interpolate the scenario with fold = FALSE.")
+    return(.mx_param_wildcard(lk, ref, env, defv, nm, ctx))
   }
-
-  .mx_chr_keys(lk, ref)
 
   # A repeated index tuple would multiply rows on the join. Repeats that all
   # carry the same value are harmless and get collapsed; repeats carrying
@@ -353,6 +346,53 @@
   # NOT zero (energyRt stores sparsely, e.g. only the 'lo' rows of a bound)
   out <- lk[env, on = ref]
   coef <- out$value
+  coef[is.na(coef)] <- defv
+  data.table::data.table(.k = env$.k, j = NA_integer_, coef = as.numeric(coef))
+}
+
+#' Look up a parameter whose index columns carry wildcards (NA)
+#'
+#' Rows are grouped by which columns are explicit; groups are tried from the
+#' most explicit to the least, each joined on its explicit columns only, and a
+#' tuple keeps the first value found. Within a group, repeated keys follow the
+#' parameter's duplicate policy, as in the plain lookup.
+#' @keywords internal
+#' @noRd
+.mx_param_wildcard <- function(lk, ref, env, defv, nm, ctx) {
+  pat <- do.call(paste0, lapply(ref, function(k) ifelse(is.na(lk[[k]]), "0", "1")))
+  pats <- unique(pat)
+  nexp <- vapply(strsplit(pats, ""), function(x) sum(x == "1"), integer(1))
+  pats <- pats[order(-nexp)]
+  coef <- rep(NA_real_, nrow(env))
+  for (pt in pats) {
+    todo <- which(is.na(coef))
+    if (!length(todo)) break
+    keys <- ref[strsplit(pt, "")[[1]] == "1"]
+    sub <- lk[pat == pt, c(keys, "value"), with = FALSE]
+    if (!length(keys)) {
+      v <- if (identical(ctx$on_duplicate, "first")) sub$value[1] else sub$value[nrow(sub)]
+      if (length(unique(sub$value)) > 1L &&
+          (is.null(ctx$on_duplicate) || identical(ctx$on_duplicate, "error"))) {
+        stop("as_matrix: parameter '", nm, "' has more than one distinct ",
+             "all-wildcard value; the lookup is ambiguous.")
+      }
+      coef[todo] <- v
+      next
+    }
+    if (anyDuplicated(sub, by = keys)) {
+      nd <- sub[, list(n = length(unique(value))), by = keys]
+      if (any(nd$n > 1L) &&
+          (is.null(ctx$on_duplicate) || identical(ctx$on_duplicate, "error"))) {
+        stop("as_matrix: parameter '", nm, "' has wildcard rows with more ",
+             "than one distinct value for the same explicit index tuple; the ",
+             "lookup is ambiguous.")
+      }
+      sub <- unique(sub, by = keys,
+                    fromLast = !identical(ctx$on_duplicate, "first"))
+    }
+    hit <- sub[env[todo, keys, with = FALSE], on = keys]$value
+    coef[todo] <- hit
+  }
   coef[is.na(coef)] <- defv
   data.table::data.table(.k = env$.k, j = NA_integer_, coef = as.numeric(coef))
 }
@@ -750,17 +790,43 @@
   # over 2,000 technologies would otherwise materialise env x 2,000 rows before
   # discarding almost all of them - on a large model that exceeds R's 2^31 row
   # limit outright. The map already holds exactly the valid combinations.
+  #
+  # Candidates are the sum's own conditions plus the mapping gates of its body
+  # (`sum(i$A, x$B)` sums over i in A and B, so B may bind i too). Each round
+  # first applies every mapping condition whose indices are all bound (a
+  # semi-join: rows only shrink), then joins the candidate whose exact output
+  # size - counted per shared key before anything is built - is smallest. A
+  # join above the row budget runs in chunks, each filtered before the next.
   conds <- .mx_flatten_and(cond)
-  used <- rep(FALSE, length(conds))
-  for (n in seq_along(conds)) {
-    if (all(iters %in% names(cur))) break
-    j <- .mx_join_cond(cur, conds[[n]], iters, ctx)
-    if (!is.null(j)) {
-      cur <- j
-      used[n] <- TRUE
-      if (!nrow(cur)) return(NULL)
+  gates <- .mx_body_gates(node$value)
+  cands <- c(conds, gates)
+  own <- seq_along(cands) <= length(conds)
+  used <- rep(FALSE, length(cands))
+  repeat {
+    for (n in which(!used)) {
+      f <- .mx_semi_join(cur, cands[[n]], ctx, iters, resolve = own[n])
+      if (!is.null(f)) {
+        cur <- f
+        used[n] <- TRUE
+        if (!nrow(cur)) return(NULL)
+      }
     }
+    if (all(iters %in% names(cur))) break
+    best <- NULL
+    for (n in which(!used)) {
+      pl <- .mx_join_plan(cur, cands[[n]], iters, ctx)
+      if (!is.null(pl) && (is.null(best) || pl$n < best$n)) {
+        best <- pl
+        best$i <- n
+      }
+    }
+    if (is.null(best)) break
+    used[best$i] <- TRUE
+    rest <- cands[!used]
+    cur <- .mx_budget_merge(cur, best, rest, own[!used], iters, ctx)
+    if (!nrow(cur)) return(NULL)
   }
+  used <- used[own]
 
   # Anything still unbound has no map to drive it: expand densely, with a guard.
   remaining <- setdiff(iters, names(cur))
@@ -830,6 +896,128 @@
   .mx_chr_keys(lk, ref)
   lk <- unique(lk, by = ref)
   merge(cur, lk, by = shared, allow.cartesian = TRUE)
+}
+
+#' Mapping gates that zero a sum's whole body
+#'
+#' `x$m` without an else branch, or a product with such a factor, is zero
+#' wherever `m` fails, so `m` may restrict the summation index as well.
+#' @keywords internal
+#' @noRd
+.mx_body_gates <- function(v) {
+  if (is.null(v)) return(list())
+  if (inherits(v, "when") && is.null(v$otherwise)) {
+    cs <- .mx_flatten_and(v$condition)
+    return(c(Filter(function(x) inherits(x, "mm_mapping"), cs),
+             .mx_body_gates(v$then)))
+  }
+  if (inherits(v, "expression") && identical(v$op, "*")) {
+    return(c(.mx_body_gates(v$lhs), .mx_body_gates(v$rhs)))
+  }
+  if (inherits(v, "expression") && identical(v$op, "/")) {
+    return(.mx_body_gates(v$lhs))
+  }
+  list()
+}
+
+#' Filter by a mapping whose indices are all bound
+#'
+#' Returns the surviving rows, or NULL when the condition is not a mapping or
+#' references an index that is not bound yet - including a summation index
+#' `iters` still to be bound, which alias resolution would otherwise read as a
+#' bound one (`yearp` as `year`). `resolve = FALSE` matches index
+#' names literally: a body gate may name an alias (`timeslicep`) that an inner
+#' sum binds later, which must not be read as the bound `timeslice`.
+#' @keywords internal
+#' @noRd
+.mx_semi_join <- function(cur, cond, ctx, iters = character(), resolve = TRUE) {
+  if (!inherits(cond, "mm_mapping")) return(NULL)
+  ref <- .mx_ref_dims(cond)
+  if (any(ref %in% setdiff(iters, names(cur)))) return(NULL)
+  dat <- .mx_map_data(cond$name, ctx)
+  if (resolve) ref <- .mx_ref_names(ref, cur, ctx)
+  if (!length(ref) || anyDuplicated(ref) || !all(ref %in% names(cur))) {
+    return(NULL)
+  }
+  if (!nrow(dat)) return(cur[0])
+  if (length(names(dat)) != length(ref)) return(NULL)
+  lk <- data.table::copy(dat)
+  data.table::setnames(lk, names(lk), ref)
+  .mx_chr_keys(lk, ref)
+  lk <- unique(lk[, ref, with = FALSE], by = ref)
+  lk[cur, on = ref, nomatch = NULL]
+}
+
+#' Plan an index-binding join: its lookup table and exact output row count
+#' @keywords internal
+#' @noRd
+.mx_join_plan <- function(cur, cond, iters, ctx) {
+  if (!inherits(cond, "mm_mapping")) return(NULL)
+  dat <- .mx_map_data(cond$name, ctx)
+  if (!nrow(dat)) return(list(lk = NULL, shared = character(), n = 0,
+                              name = cond$name))
+  ref <- .mx_ref_dims(cond)
+  if (!length(ref) || length(names(dat)) != length(ref)) return(NULL)
+  shared <- intersect(ref, names(cur))
+  newc <- setdiff(ref, names(cur))
+  if (!length(shared) || !length(newc) || !all(newc %in% iters)) return(NULL)
+  lk <- data.table::copy(dat)
+  data.table::setnames(lk, names(lk), ref)
+  .mx_chr_keys(lk, ref)
+  lk <- unique(lk, by = ref)
+  a <- cur[, .N, by = shared]
+  b <- lk[, .N, by = shared]
+  m <- b[a, on = shared, nomatch = NULL]
+  list(lk = lk, shared = shared, name = cond$name,
+       n = sum(as.numeric(m$N) * as.numeric(m$i.N)))
+}
+
+#' Row budget for one join step (`options(multimod.join_rows = )`)
+#' @keywords internal
+#' @noRd
+.mx_join_budget <- function() {
+  as.numeric(getOption("multimod.join_rows", 5e7))
+}
+
+#' Execute a planned join within the row budget
+#'
+#' Rows of `cur` are taken in blocks whose exact join output fits the budget;
+#' each block is joined and immediately filtered by the remaining candidates
+#' that its new columns complete, then the blocks are bound together.
+#' @keywords internal
+#' @noRd
+.mx_budget_merge <- function(cur, plan, rest, resolve, iters, ctx) {
+  if (is.null(plan$lk)) return(cur[0])
+  budget <- .mx_join_budget()
+  sh <- plan$shared
+  join1 <- function(x) {
+    out <- merge(x, plan$lk, by = sh, allow.cartesian = TRUE)
+    for (k in seq_along(rest)) {
+      if (!nrow(out)) break
+      f <- .mx_semi_join(out, rest[[k]], ctx, iters, resolve = resolve[k])
+      if (!is.null(f)) out <- f
+    }
+    out
+  }
+  if (plan$n <= budget) return(join1(cur))
+  cnt <- plan$lk[, .N, by = sh]
+  w <- cnt[cur[, sh, with = FALSE], on = sh]$N
+  w[is.na(w)] <- 0
+  blk <- pmax(1, ceiling(cumsum(as.numeric(w)) / budget))
+  big <- max(w)
+  if (big > 2^31 - 1) {
+    stop("as_matrix: joining mapping '", plan$name, "' on (",
+         paste(sh, collapse = ", "),
+         ") gives ", format(big, big.mark = ","), " rows for a single row of ",
+         "the equation, beyond R's vector limit.", call. = FALSE)
+  }
+  parts <- lapply(split(seq_len(nrow(cur)), blk), function(ix) join1(cur[ix]))
+  out <- data.table::rbindlist(parts, use.names = TRUE)
+  if (nrow(out) > 2^31 - 1) {
+    stop("as_matrix: a summation needs ", format(nrow(out), big.mark = ","),
+         " rows after filtering, beyond R's vector limit.", call. = FALSE)
+  }
+  out
 }
 
 #' Replicate rows once per member of each still-unbound iterator

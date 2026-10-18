@@ -20,6 +20,15 @@
 
 ## New features
 
+* `lp_presolve()` removes equality rows of the form `a * x + b * y = 0`
+  together with `x`, substituting `x = c * y` into the matrix, objective and
+  bounds; `write_mps(presolve = TRUE)` (or `options(multimod.presolve = TRUE)`)
+  writes the reduced LP and `read_mps_solution()` restores the eliminated
+  columns. On a 48-country energyRt model it removes 82% of the columns and
+  two thirds of the nonzeros.
+* The matrix backend looks up parameters with wildcard (`NA`) index values on
+  their explicit columns, most explicit first, so energyRt scenarios
+  interpolated with `fold = TRUE` need not be expanded on import.
 * `as_gams()` writes a parameter defined by a formula as a declaration
   followed by an assignment, which is how GAMS expresses a computed
   parameter; MathProg's inline `:=` has no GAMS equivalent.
@@ -37,6 +46,17 @@
 
 ## Bug fixes
 
+* `model_to_lp()` no longer builds huge intermediate tables in sums whose
+  index is bound by a coarse map and filtered by the summand's own gate
+  (`sum(i$A, x$B)`): the gate binds the index too, the smallest join runs
+  first, and a join above `options(multimod.join_rows)` (default 5e7 rows)
+  runs in blocks. A 48-country model failed with "Join results in more than
+  2^31 rows" before.
+* `model_to_lp(verbose = TRUE)` and `write_mps(verbose = TRUE)` report clock
+  time and elapsed seconds.
+* `read_cuopt_solution()` reads the value section with `data.table::fread()`;
+  decoding an 11-million-column solution takes 24 s instead of 62 s, with
+  identical results.
 * The matrix backend computes the parameters a model defines by a formula.
   They hold no data of their own, and fell back to a scalar default, so
   every index took one value. The text backends are unaffected: they hand
