@@ -1107,6 +1107,8 @@ utils::globalVariables(c(".k", ".outer", ".mx_hit", "coef", "j", "v", "seq_len")
 #' carry de-duplicated names such as `comm.1` where a set repeats).
 #' @keywords internal
 #' @noRd
+NULL
+
 #' The index names an equation's body binds to
 #'
 #' A mapping domain carries the definition's names and is authoritative. A

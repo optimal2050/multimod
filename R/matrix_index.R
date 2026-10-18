@@ -47,8 +47,6 @@
 }
 
 #' Block for a symbol with no domain: exactly one scalar row/column
-#' @keywords internal
-#' @noRd
 #' Index tuples for a symbol declared over plain sets
 #'
 #' MathProg declares a symbol over sets rather than over a mapping -
@@ -62,6 +60,7 @@
 #'   a set has no members; NULL when there are no usable dimensions, which
 #'   means the symbol really is a scalar.
 #' @keywords internal
+#' @noRd
 .dims_tuples <- function(model, dims) {
   nms <- tryCatch(get_dim_names(dims), error = function(e) character())
   if (!length(nms) || anyNA(nms) || !all(nzchar(nms))) return(NULL)
