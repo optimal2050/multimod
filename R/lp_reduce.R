@@ -1,0 +1,196 @@
+# =============================================================================
+# Doubleton elimination: x = c * y equality rows removed before solving
+# =============================================================================
+#
+# Many columns of a generated LP are exact multiples of another: an activity
+# equal to its single output, an auxiliary flow proportional to an output. Each
+# such pair is an equality row with two nonzeros and a zero right-hand side,
+# a * x + b * y = 0. Substituting x = c * y (c = -b / a) removes the row and the
+# column; the solver never sees either, and the solution is expanded back.
+#
+# The reduction is exact: y takes x's column (scaled by c) in every other row
+# and in the objective, and x's bounds become bounds on y. It runs in passes,
+# so chains (x = c y, y = d z) resolve; within a pass no eliminated column is
+# also a target, which keeps the substitution matrix a single product.
+# =============================================================================
+
+#' Presolve an assembled LP
+#'
+#' Exact reductions applied before the matrix is handed to a solver. The one
+#' step implemented, `"doubletons"`, removes every equality row of the form `a * x + b * y = 0` together with
+#' column `x`, substituting `x = c * y` (`c = -b / a`) into the rest of the
+#' matrix, the objective and `y`'s bounds. Integer columns are never
+#' eliminated. The reduced LP solves to the same optimum; [read_mps_solution()]
+#' restores the eliminated columns from the table kept in the result.
+#'
+#' @param lp An LP from [model_to_lp()].
+#' @param steps Reductions to apply; `"doubletons"` is the only one so far.
+#' @param max_pass Maximum number of passes; chains need one pass per link.
+#' @param tol Entries smaller than this in absolute value after substitution
+#'   are dropped (exact cancellations that floating point leaves behind).
+#' @param verbose Logical; report each pass.
+#'
+#' @return The LP with `A`, `obj` and the bounds reduced. `col_index` and
+#'   `row_index` stay complete and gain `jred` / `ired`, the position of each
+#'   kept column / row in the reduced LP (`NA` when eliminated); `eliminated`
+#'   lists the removed columns (`col`, `ref`, `coef`, `pass`, positions in the
+#'   full index) so that `value[col] = coef * value[ref]`, applied from the last
+#'   pass to the first.
+#' @export
+lp_presolve <- function(lp, steps = "doubletons", max_pass = 50L,
+                        tol = 1e-12, verbose = FALSE) {
+  steps <- match.arg(steps, "doubletons", several.ok = TRUE)
+  if (!is.null(lp$eliminated)) return(lp)
+  A <- methods::as(lp$A, "CsparseMatrix")
+  rid <- seq_len(nrow(A))
+  cid <- seq_len(ncol(A))
+  obj <- as.numeric(lp$obj)
+  clo <- lp$col_lo
+  cup <- lp$col_up
+  rlo <- lp$row_lo
+  rup <- lp$row_up
+  vt <- if ("vtype" %in% names(lp$col_index)) lp$col_index[["vtype"]] else NULL
+  int <- if (is.null(vt)) rep(FALSE, length(cid)) else
+    tolower(as.character(vt)) %in% c("integer", "binary", "int", "bin", "i", "b")
+  elim <- list()
+  n0r <- nrow(A)
+  n0c <- ncol(A)
+
+  for (pass in seq_len(max_pass)) {
+    ri <- A@i + 1L
+    cj <- rep.int(seq_len(ncol(A)), diff(A@p))
+    rc <- tabulate(ri, nrow(A))
+    cand <- rc == 2L & rlo == 0 & rup == 0
+    if (!any(cand)) break
+    s <- which(cand[ri])
+    o <- order(ri[s], cj[s])
+    s <- s[o]
+    one <- s[c(TRUE, FALSE)]
+    two <- s[c(FALSE, TRUE)]
+    r <- ri[one]
+    u <- cj[one]
+    v <- cj[two]
+    au <- A@x[one]
+    av <- A@x[two]
+    nnz <- diff(A@p)
+    # Which of the two to eliminate: never an integer column; prefer one that
+    # no other candidate row would keep (eliminating a column another row
+    # substitutes INTO would need two products in one pass); then the one with
+    # fewer entries (less fill). Chains resolve over successive passes.
+    pref <- function(w, other) {
+      (!int[w]) * 4L + (!(w %in% c(u, v)[duplicated(c(u, v))])) * 2L +
+        (nnz[w] <= nnz[other])
+    }
+    pick_u <- pref(u, v) >= pref(v, u)
+    x <- ifelse(pick_u, u, v)
+    y <- ifelse(pick_u, v, u)
+    ax <- ifelse(pick_u, au, av)
+    ay <- ifelse(pick_u, av, au)
+    k <- !int[x] & ax != 0
+    k[k] <- !duplicated(x[k])
+    # a kept target must not be eliminated in the same pass
+    k <- k & !(x %in% y[k])
+    k <- k & !(y %in% x[k])
+    if (!any(k)) break
+    r <- r[k]; x <- x[k]; y <- y[k]
+    cf <- -ay[k] / ax[k]
+
+    # x's bounds, divided by c, bound y (the sign of c swaps them)
+    lo_y <- ifelse(cf > 0, clo[x] / cf, cup[x] / cf)
+    up_y <- ifelse(cf > 0, cup[x] / cf, clo[x] / cf)
+    b <- data.table::data.table(y = y, lo = lo_y, up = up_y)[
+      , list(lo = max(lo), up = min(up)), by = "y"]
+    clo[b$y] <- pmax(clo[b$y], b$lo)
+    cup[b$y] <- pmin(cup[b$y], b$up)
+
+    keepc <- rep(TRUE, ncol(A))
+    keepc[x] <- FALSE
+    newpos <- cumsum(keepc)
+    kc <- which(keepc)
+    Tm <- Matrix::sparseMatrix(
+      i = c(kc, x), j = c(newpos[kc], newpos[y]),
+      x = c(rep(1, length(kc)), cf), dims = c(ncol(A), length(kc)))
+    keepr <- rep(TRUE, nrow(A))
+    keepr[r] <- FALSE
+    A <- Matrix::drop0(A[keepr, , drop = FALSE] %*% Tm, tol = tol)
+    obj <- as.numeric(Matrix::crossprod(Tm, obj))
+    elim[[pass]] <- data.table::data.table(col = cid[x], ref = cid[y],
+                                           coef = cf, pass = pass)
+    cid <- cid[keepc]
+    clo <- clo[keepc]
+    cup <- cup[keepc]
+    int <- int[keepc]
+    rid <- rid[keepr]
+    rlo <- rlo[keepr]
+    rup <- rup[keepr]
+    if (verbose) {
+      message(sprintf("doubletons pass %d: %d columns and rows eliminated",
+                      pass, length(x)))
+    }
+  }
+
+  # rows the substitutions emptied: a zero right-hand side is satisfied and
+  # dropped; anything else is an infeasibility the solver must report
+  emp <- tabulate(A@i + 1L, nrow(A)) == 0L
+  drop <- emp & rlo <= 0 & rup >= 0
+  if (any(drop)) {
+    A <- A[!drop, , drop = FALSE]
+    rid <- rid[!drop]
+    rlo <- rlo[!drop]
+    rup <- rup[!drop]
+  }
+  bad <- which(clo > cup + 1e-9 * pmax(1, abs(clo)))
+  if (length(bad)) {
+    warning("lp_presolve(): ", length(bad), " column(s) have ",
+            "crossing bounds after substitution; the LP is infeasible.",
+            call. = FALSE)
+  }
+
+  ci <- data.table::copy(data.table::as.data.table(lp$col_index))
+  data.table::set(ci, j = "jred", value = match(seq_len(n0c), cid))
+  data.table::setattr(ci, "dim_names", attr(lp$col_index, "dim_names"))
+  ri2 <- data.table::copy(data.table::as.data.table(lp$row_index))
+  data.table::set(ri2, j = "ired", value = match(seq_len(n0r), rid))
+  el <- data.table::rbindlist(elim)
+  if (!nrow(el)) {
+    el <- data.table::data.table(col = integer(), ref = integer(),
+                                 coef = numeric(), pass = integer())
+  }
+  if (verbose) {
+    message(sprintf("doubletons: %d -> %d columns, %d -> %d rows, %d nonzeros",
+                    n0c, ncol(A), n0r, nrow(A), length(A@x)))
+  }
+  lp$A <- A
+  lp$obj <- obj
+  lp$col_lo <- clo
+  lp$col_up <- cup
+  lp$row_lo <- rlo
+  lp$row_up <- rup
+  lp$col_index <- ci
+  lp$row_index <- ri2
+  lp$eliminated <- el
+  lp
+}
+
+#' Expand a reduced-LP column vector to the full index
+#'
+#' @param x Values of the kept columns, in reduced order.
+#' @param jred Position of each full-index column in the reduced LP (`NA` when
+#'   eliminated).
+#' @param eliminated The table from [lp_presolve()].
+#' @param fill_eliminated Logical; `TRUE` rebuilds eliminated columns from
+#'   their references (primal values), `FALSE` leaves them `NA` (reduced costs).
+#' @keywords internal
+#' @noRd
+.expand_eliminated <- function(x, jred, eliminated, fill_eliminated = TRUE) {
+  out <- rep(NA_real_, length(jred))
+  k <- !is.na(jred)
+  out[k] <- x[jred[k]]
+  if (fill_eliminated && !is.null(eliminated) && nrow(eliminated)) {
+    for (p in sort(unique(eliminated$pass), decreasing = TRUE)) {
+      e <- eliminated[eliminated$pass == p]
+      out[e$col] <- e$coef * out[e$ref]
+    }
+  }
+  out
+}
