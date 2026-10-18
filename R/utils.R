@@ -859,3 +859,13 @@ compare_jump_stats <- function(model_dir1,
   unlink(staging, recursive = TRUE)
   invisible(model_dir)
 }
+
+# A circular lag has no syntax in MathProg, JuMP or Pyomo. Writing it as a
+# plain `y-1` would hand back a different model - the wrap would be gone - so
+# those writers stop here instead.
+.mm_no_circular <- function(lang) {
+  stop("multimod: ", lang, " has no syntax for a circular lag or lead, so ",
+       "`circular = TRUE` cannot be written to it without changing the ",
+       "model. Render to GAMS, which spells it `y--1`, or solve through the ",
+       "matrix backend, which resolves the wrap directly.", call. = FALSE)
+}

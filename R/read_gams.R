@@ -299,15 +299,17 @@ parse_gams_expr <- function(
 
   # Check for index shift patterns (y-1, y+1, ls-1, etc.) BEFORE expression parsing
   # This must come before arithmetic operators are processed
-  if (grepl("^[a-zA-Z][a-zA-Z0-9_]*[+-][0-9]+$", expr)) {
-    # Extract symbol and offset
-    match <- regmatches(expr, regexec("^([a-zA-Z][a-zA-Z0-9_]*)([+-])([0-9]+)$", expr))[[1]]
+  # GAMS doubles the operator for the circular form: `y-1` stops at the ends of
+  # the set, `y--1` wraps onto the other end.
+  if (grepl("^[a-zA-Z][a-zA-Z0-9_]*(\\+\\+|--|[+-])[0-9]+$", expr)) {
+    match <- regmatches(expr, regexec(
+      "^([a-zA-Z][a-zA-Z0-9_]*)(\\+\\+|--|[+-])([0-9]+)$", expr))[[1]]
     if (length(match) == 4) {
       symbol <- match[2]
-      sign <- match[3]
+      op <- match[3]
       offset_val <- as.integer(match[4])
-      offset <- if (sign == "-") -offset_val else offset_val
-      return(ast_shift(symbol, offset))
+      offset <- if (substr(op, 1, 1) == "-") -offset_val else offset_val
+      return(ast_shift(symbol, offset, circular = nchar(op) == 2L))
     }
   }
 

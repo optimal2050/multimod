@@ -4,7 +4,7 @@
 \alias{ast_shift}
 \title{Create an index shift AST node for ordered set references}
 \usage{
-ast_shift(symbol, offset, ...)
+ast_shift(symbol, offset, circular = FALSE, ...)
 }
 \arguments{
 \item{symbol}{A character string representing the index symbol (e.g., "y", "ls", "ld").}

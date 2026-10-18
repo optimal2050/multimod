@@ -140,8 +140,11 @@ ast_dims <- function(...) {
   dims <- flatten_dim_entries(dims)
 
   # check if ... is an unnamed list of objects
+  # A single AST node is one dimension, not a list to unwrap: unwrapping it
+  # iterated over its own fields, so `ast_dims(ast_shift("y", -1))` tried to
+  # parse "y" and -1 as separate dimensions.
   if (length(dims) == 1 && !inherits(dims, "ast") &&
-      #is.null(names(dims)) &&
+      !inherits(dims[[1]], "ast") &&
       (is.list(dims[[1]]) || is.vector(dims[[1]]))
       ) {
     # Unwrap single-element list but preserve names if they exist
@@ -274,12 +277,21 @@ ast_symbol <- function(name, ...) {
 #' ast_shift("y", -1)  # y-1 (previous year)
 #' ast_shift("y", 1)   # y+1 (next year)
 #' ast_shift("ls", -1) # ls-1 (previous season)
-ast_shift <- function(symbol, offset, ...) {
+ast_shift <- function(symbol, offset, circular = FALSE, ...) {
   stopifnot(is.character(symbol), length(symbol) == 1)
   stopifnot(is.numeric(offset), length(offset) == 1)
   stopifnot(offset == round(offset))  # must be integer
   stopifnot(offset != 0)  # zero offset doesn't make sense
-  new_ast("shift", symbol = symbol, offset = as.integer(offset), ...)
+  stopifnot(is.logical(circular), length(circular) == 1, !is.na(circular))
+  # The offset counts positions in the set's member order. `circular` wraps at
+  # the ends, as GAMS's `y--1` does; a linear lag off the end yields no member
+  # and the term it sits in drops out.
+  if (circular) {
+    new_ast("shift", symbol = symbol, offset = as.integer(offset),
+            circular = TRUE, ...)
+  } else {
+    new_ast("shift", symbol = symbol, offset = as.integer(offset), ...)
+  }
 }
 
 #' Create a constant AST node

@@ -181,6 +181,7 @@ as_pyomo.symbol <- function(x, var_names = NULL, scope = NULL, model = NULL, ...
 
 #' @export
 as_pyomo.shift <- function(x, var_names = NULL, scope = NULL, model = NULL, ...) {
+  if (isTRUE(x$circular)) .mm_no_circular("Pyomo")
   # shift nodes represent index offsets like ls+1 or y-1
   symbol <- pyomo_resolve_symbol(x$symbol, var_names = var_names, scope = scope, model = model)
   offset <- x$offset

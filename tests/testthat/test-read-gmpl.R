@@ -198,14 +198,18 @@ test_that("a model declared over plain sets reaches the matrix backend", {
   expect_equal(solve_highs(m, attach = FALSE)$objective, 10, tolerance = 1e-9)
 })
 
-test_that("an equation restricted by a condition is refused, not over-generated", {
-  m <- suppressWarnings(as_multimod(read_gmpl(c(
+test_that("an equation restricted by a condition keeps only the rows that pass", {
+  m <- read_gmpl(c(
     "set L;",
     "param w{l in L};",
     "var x{l in L} >= 0;",
     "s.t. cap{l in L: w[l] > 1}: x[l] <= 1;",
-    "end;"))))
-  # the matrix backend gates by joining a mapping and cannot evaluate a test
-  # over the data, so it must refuse rather than emit rows the model excludes
-  expect_error(build_row_index(m), "restricted by a condition")
+    "data;",
+    "set L := a b c;",
+    "param w := a 1 b 2 c 10;",
+    "end;"))
+  # the condition holds for b and c only, so the equation contributes 2 rows
+  ri <- build_row_index(m)
+  expect_equal(sum(ri$symbol == "cap"), 2L)
+  expect_setequal(ri$i1[ri$symbol == "cap"], c("b", "c"))
 })

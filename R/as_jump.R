@@ -542,6 +542,7 @@ as_jump.symbol <- function(x, model = NULL, in_filter = FALSE, use_haskey = FALS
 #' @method as_jump shift
 as_jump.shift <- function(x, model = NULL, var_names = NULL, shifts_tracker = NULL, ...) {
   stopifnot(inherits(x, "shift"))
+  if (isTRUE(x$circular)) .mm_no_circular("JuMP")
   
   # Get the set name from the symbol using var_names (local scope) or index_aliases (global)
   symbol <- x$symbol

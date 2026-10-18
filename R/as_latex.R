@@ -744,6 +744,10 @@ as_latex.shift <- function(x, brackets = NULL, ...) {
   }
   if (is.null(offset) || offset == 0) {
     shifted <- base
+  } else if (isTRUE(x$circular)) {
+    # a wrap, written with the modular operators rather than + and -
+    sign <- if (offset > 0) "\\oplus" else "\\ominus"
+    shifted <- paste0(base, " ", sign, " ", abs(offset))
   } else {
     sign <- if (offset > 0) "+" else "-"
     shifted <- paste0(base, sign, abs(offset))

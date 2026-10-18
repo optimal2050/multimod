@@ -120,6 +120,10 @@
   switch(
     cls,
     constant   = .mx_eval_constant(node, env, ctx),
+    symbol     = .mx_eval_symbol(node, env, ctx),
+    setmin     = .mx_eval_extremum(node, env, ctx, min),
+    setmax     = .mx_eval_extremum(node, env, ctx, max),
+    call       = .mx_eval_call(node, env, ctx),
     parameter  = .mx_eval_parameter(node, env, ctx),
     variable   = .mx_eval_variable(node, env, ctx),
     expression = .mx_eval_expression(node, env, ctx),
@@ -142,10 +146,106 @@
   .mx_const(env, v)
 }
 
+#' A bare index used as a number
+#'
+#' MathProg set members are often numeric labels (`set YEAR := 1990 .. 2010`)
+#' and arithmetic on the index itself is idiomatic: `y + OperationalLife[r,t]`.
+#' GAMS spells that `ord()` or `val()`, so a bare symbol in arithmetic reaches
+#' here only from MathProg. A non-numeric member still fails loudly.
+#' @keywords internal
+#' @noRd
+.mx_eval_symbol <- function(node, env, ctx) {
+  raw <- dim_binding_name(node)
+  nm <- .mx_env_name(ctx, env, raw)
+  if (!nm %in% names(env)) {
+    stop("as_matrix: index '", raw, "' is used as a value but is not bound ",
+         "here.")
+  }
+  v <- suppressWarnings(as.numeric(as.character(env[[nm]])))
+  if (anyNA(v)) {
+    stop("as_matrix: index '", nm, "' is used as a number, but member(s) ",
+         paste(utils::head(unique(env[[nm]][is.na(v)]), 3), collapse = ", "),
+         " are not numeric labels.")
+  }
+  data.table::data.table(.k = env$.k, j = NA_integer_, coef = v)
+}
+
+#' A scalar function call
+#'
+#' Only the ones that stay linear are evaluated, and only over variable-free
+#' arguments: `min`/`max` compare their arguments row by row, `abs` takes a
+#' magnitude. `max(yy)` over a single argument is that argument, which is how
+#' MathProg's `max{yy in YEAR} max(yy)` reads.
+#' @keywords internal
+#' @noRd
+.mx_eval_call <- function(node, env, ctx) {
+  nm <- tolower(node$name %||% "")
+  args <- node$args
+  if (!length(args)) {
+    stop("as_matrix: '", node$name, "()' has no arguments.")
+  }
+  vals <- lapply(args, function(a) {
+    tm <- .mx_eval(a, env, ctx)
+    if (!.mx_is_const(tm)) {
+      stop("as_matrix: '", node$name, "()' of a variable-bearing expression ",
+           "is non-linear.")
+    }
+    v <- tm[, list(v = sum(coef)), by = ".k"]
+    out <- v[data.table::data.table(.k = env$.k), on = ".k"]
+    ifelse(is.na(out$v), 0, out$v)
+  })
+  res <- switch(
+    nm,
+    max = Reduce(pmax, vals),
+    min = Reduce(pmin, vals),
+    abs = abs(vals[[1]]),
+    stop("as_matrix: function '", node$name, "()' cannot be evaluated into a ",
+         "linear matrix. Supported: min, max, abs.")
+  )
+  data.table::data.table(.k = env$.k, j = NA_integer_, coef = as.numeric(res))
+}
+
+#' Smallest or largest value an expression takes over a set
+#'
+#' `min{yy in YEAR} yy` and its max counterpart are scalars: the index is bound
+#' to each member in turn, the body evaluated, and the extremum taken. The
+#' result does not vary over `env`, so it is returned as a constant term.
+#' @keywords internal
+#' @noRd
+.mx_eval_extremum <- function(node, env, ctx, f) {
+  iters <- .mx_index_names(node$index)
+  if (length(iters) != 1L) {
+    stop("as_matrix: a set minimum or maximum over ", length(iters),
+         " indices is not supported; one index is.")
+  }
+  isets <- .mx_index_sets(node$index)
+  base <- if (iters %in% names(isets)) isets[[iters]] else iters
+  members <- .mx_set_members(ctx, .mx_base_set(ctx$model, base))
+  if (!length(members)) {
+    stop("as_matrix: set '", base, "' has no members, so its extremum is ",
+         "undefined.")
+  }
+  sub <- data.table::data.table(.k = seq_along(members))
+  sub[[iters]] <- members
+  tm <- .mx_eval(node$value, sub, ctx)
+  if (!.mx_is_const(tm)) {
+    stop("as_matrix: a set extremum over a variable-bearing expression is ",
+         "non-linear.")
+  }
+  vals <- tm[, list(v = sum(coef)), by = ".k"]$v
+  if (!length(vals) || anyNA(vals)) {
+    stop("as_matrix: a set extremum did not evaluate to a number.")
+  }
+  .mx_const(env, f(vals))
+}
+
 #' @keywords internal
 #' @noRd
 .mx_eval_parameter <- function(node, env, ctx) {
   nm <- node$name
+  # a lag or lead points at a different member; resolve it before the join
+  env <- .mx_shift_env(node, env, ctx)
+  if (!nrow(env)) return(.mx_no_terms())
   dat <- ctx$param_cache[[nm]]
   if (is.null(dat)) {
     dat <- get_data(ctx$model, nm, type = "parameter")
@@ -169,7 +269,7 @@
   # reference solution this backend is checked against.
   if (!is.finite(defv)) defv <- 0
 
-  ref <- .mx_ref_dims(node)
+  ref <- .mx_ref_names(.mx_ref_dims(node), env, ctx)
 
   # scalar parameter
   if (!length(ref)) {
@@ -261,6 +361,9 @@
 #' @noRd
 .mx_eval_variable <- function(node, env, ctx) {
   nm <- node$name
+  # a lag or lead points at a different column; resolve it before the join
+  env <- .mx_shift_env(node, env, ctx)
+  if (!nrow(env)) return(.mx_no_terms())
   ci <- ctx$col_cache[[nm]]
   if (is.null(ci)) {
     ci <- ctx$col_index[ctx$col_index$symbol == nm]
@@ -272,7 +375,7 @@
     return(.mx_no_terms())
   }
 
-  ref <- .mx_ref_dims(node)
+  ref <- .mx_ref_names(.mx_ref_dims(node), env, ctx)
   if (!length(ref)) {                       # scalar variable, e.g. vObjective
     return(data.table::data.table(.k = env$.k, j = ci$j[1], coef = 1))
   }
@@ -349,11 +452,89 @@
     if (!.mx_is_const(l) || !.mx_is_const(r)) {
       stop("as_matrix: exponentiation involving variables is non-linear.")
     }
-    return(.mx_scale(l, r, "^"))
+    # A power does not distribute over terms: `(1 + r)^n` is not `1^n + r^n`,
+    # and a discount base is written as exactly that sum. Scaling term by term
+    # computed `1 + r^n`, which is ~1 for a small rate, so a discount factor
+    # came out as 1 and a sinking-fund denominator as 0.
+    return(data.table::data.table(
+      .k = env$.k, j = NA_integer_,
+      coef = .mx_reduce(l, env) ^ .mx_reduce(r, env)))
   }
 
   stop("as_matrix: unsupported operator '", op, "' in an equation body. ",
        "Comparison/logical operators are only valid inside a condition.")
+}
+
+#' Resolve lag and lead indices in a reference to the members they point at
+#'
+#' `vStock[r, y-1]` refers to a different column than `vStock[r, y]`, so the
+#' environment's `y` is rewritten to the member one position earlier before the
+#' join. The offset counts positions in the set's member order, which is why
+#' that order is preserved end to end.
+#'
+#' A linear lag that runs off the end has no member to point at, and the row is
+#' dropped: the term simply does not exist, which is what GAMS's `y-1` and
+#' MathProg's arithmetic both do. A circular one wraps instead.
+#' @param node A reference node whose `dims` may contain `shift` entries.
+#' @param env Bound index tuples.
+#' @param ctx Evaluation context.
+#' @return `env`, with shifted columns rewritten and out-of-range rows removed.
+#' @keywords internal
+#' @noRd
+.mx_shift_env <- function(node, env, ctx) {
+  d <- node$dims
+  if (is.null(d) || !length(d)) return(env)
+  if (!any(vapply(d, function(e) inherits(e, "shift"), logical(1)))) return(env)
+
+  out <- env
+  for (e in d) {
+    if (!inherits(e, "shift")) next
+    nm <- .mx_env_name(ctx, out, as.character(e$symbol)[1])
+    if (!nm %in% names(out)) next        # unbound; the caller reports it
+    members <- as.character(.mx_set_members(ctx, .mx_base_set(ctx$model, nm)))
+    if (!length(members)) return(out[0])
+
+    pos <- match(as.character(out[[nm]]), members)
+    tgt <- pos + as.integer(e$offset)
+    if (isTRUE(e$circular)) {
+      tgt <- ((tgt - 1L) %% length(members)) + 1L
+    }
+    ok <- !is.na(tgt) & tgt >= 1L & tgt <= length(members)
+    out <- data.table::copy(out[ok])
+    if (!nrow(out)) return(out)
+    data.table::set(out, j = nm, value = members[tgt[ok]])
+  }
+  out
+}
+
+#' Reference index names, as the environment actually binds them
+#'
+#' A reference and the index that binds it need not be spelled the same: a
+#' MathProg sum binds the iterator (`sum{l in L}` binds `l`) while the body may
+#' name the set (`x[L]`), and the model's alias groups say the two are one
+#' index. Resolving here keeps the join in step with the binding.
+#' @keywords internal
+#' @noRd
+.mx_ref_names <- function(ref, env, ctx) {
+  if (!length(ref)) return(ref)
+  vapply(ref, function(x) .mx_env_name(ctx, env, x), character(1),
+         USE.NAMES = FALSE)
+}
+
+#' Collapse terms to one value per env row
+#'
+#' A constant expression arrives as several terms sharing a `.k` - `1 + r` is
+#' two - which assembly would sum. Any operator that does not distribute over
+#' that sum has to do the summing first.
+#' @keywords internal
+#' @noRd
+.mx_reduce <- function(tm, env) {
+  v <- rep(0, nrow(env))
+  if (nrow(tm)) {
+    agg <- tm[, list(v = sum(coef)), by = ".k"]
+    v[match(agg$.k, env$.k)] <- agg$v
+  }
+  v
 }
 
 #' Scale terms by a per-env-row constant
@@ -532,7 +713,7 @@
   # Anything still unbound has no map to drive it: expand densely, with a guard.
   remaining <- setdiff(iters, names(cur))
   if (length(remaining)) {
-    cur <- .mx_cross_dense(cur, remaining, ctx)
+    cur <- .mx_cross_dense(cur, remaining, ctx, sets = .mx_index_sets(idx))
     if (is.null(cur) || !nrow(cur)) return(NULL)
   }
 
@@ -606,11 +787,12 @@
 #' than failing with "long vectors not supported yet".
 #' @keywords internal
 #' @noRd
-.mx_cross_dense <- function(cur, iters, ctx) {
+.mx_cross_dense <- function(cur, iters, ctx, sets = NULL) {
   cur <- data.table::copy(cur)
   for (it in iters) {
     if (it %in% names(cur)) next
-    members <- .mx_set_members(ctx, .mx_base_set(ctx$model, it))
+    base <- if (!is.null(sets) && it %in% names(sets)) sets[[it]] else it
+    members <- .mx_set_members(ctx, .mx_base_set(ctx$model, base))
     if (!length(members)) return(NULL)
     n_out <- as.numeric(nrow(cur)) * length(members)
     if (n_out > 2^31 - 1) {
@@ -629,16 +811,95 @@
   cur[]
 }
 
+#' Iterator names paired with the sets they range over
+#'
+#' MathProg writes `sum{t in TECHNOLOGY}`: the entry's name is the iterator the
+#' body binds to, and the entry itself names the set whose members it takes.
+#' The two differ whenever the model does not declare the iterator as an alias
+#' (`sum{yy in YEAR}`), so the members cannot be found from the name alone. A
+#' GAMS sum leaves entries unnamed and both come out the same.
+#' @return Character vector of set names, named by iterator.
+#' @keywords internal
+#' @noRd
+.mx_index_sets <- function(idx) {
+  nms <- .mx_index_names(idx)
+  if (!length(nms)) return(character())
+  sets <- if (inherits(idx, "dims")) {
+    vapply(idx, dim_binding_name, character(1), USE.NAMES = FALSE)
+  } else {
+    dim_binding_name(idx)
+  }
+  if (length(sets) != length(nms)) sets <- nms
+  stats::setNames(sets, nms)
+}
+
 #' Iterator names introduced by a sum/prod index
 #' @keywords internal
 #' @noRd
 .mx_index_names <- function(idx) {
   if (is.null(idx)) return(character())
   if (inherits(idx, "dims")) {
-    return(vapply(idx, dim_binding_name, character(1), USE.NAMES = FALSE))
+    out <- vapply(idx, dim_binding_name, character(1), USE.NAMES = FALSE)
+    # A MathProg sum names its iterators - `sum{t in TECHNOLOGY}` - and the
+    # body binds to those names, not to the set's. The entry name carries the
+    # iterator, while dim_binding_name() reads the set it ranges over. A GAMS
+    # sum leaves the entries unnamed, so nothing changes there.
+    nms <- names(idx)
+    if (!is.null(nms)) {
+      use <- nzchar(nms) & !is.na(nms)
+      out[use] <- nms[use]
+    }
+    return(out)
   }
   nm <- dim_binding_name(idx)
   if (nzchar(nm)) nm else character()
+}
+
+#' Keep the rows of an index block that satisfy an equation's condition
+#'
+#' A domain that is an expression rather than a mapping filters the index set
+#' (MathProg's `{r in R: test}`). [build_row_index()] has already materialised
+#' those rows, so the condition is evaluated over them with the same evaluator
+#' the equation bodies use - no Cartesian expansion beyond the rows that exist.
+#'
+#' Index names come from the equation's iterator aliases when it has them: a
+#' condition is written in terms of the iterators (`TradeRoute[r,rr,f,y]`), and
+#' a set that repeats would otherwise give two columns of the same name.
+#' @param eq The equation, carrying `$domain` and `$dims_index_aliases`.
+#' @param blk Index block with `i1..iN` columns and a `dim_names` attribute.
+#' @param model The model, for parameter and set data.
+#' @return Logical vector over the rows of `blk`.
+#' @keywords internal
+#' @noRd
+.mx_filter_rows <- function(eq, blk, model) {
+  dims <- .mx_eq_dims(eq)
+  if (!length(dims)) {
+    dims <- attr(blk, "dim_names")
+    if (is.null(dims)) dims <- character()
+  }
+  if (anyDuplicated(dims)) {
+    stop("as_matrix: equation '", eq$name, "' binds duplicate index name(s): ",
+         paste(unique(dims[duplicated(dims)]), collapse = ", "),
+         ". Its condition cannot be resolved without distinct iterator names.",
+         call. = FALSE)
+  }
+
+  env <- data.table::data.table(.k = seq_len(nrow(blk)))
+  idx <- paste0("i", seq_along(dims))
+  for (n in seq_along(dims)) env[[dims[n]]] <- blk[[idx[n]]]
+
+  ctx <- new.env(parent = emptyenv())
+  ctx$model <- model
+  ctx$param_cache <- list()
+  ctx$map_cache <- list()
+  ctx$set_cache <- list()
+
+  keep <- .mx_condition(eq$domain, env, ctx)
+  if (!is.logical(keep) || length(keep) != nrow(blk)) {
+    stop("as_matrix: the condition on equation '", eq$name, "' did not reduce ",
+         "to one logical value per row.", call. = FALSE)
+  }
+  keep & !is.na(keep)
 }
 
 # --- conditions -------------------------------------------------------------
@@ -714,7 +975,7 @@
   dat <- .mx_map_data(nm, ctx)
   if (!nrow(dat)) return(rep(FALSE, nrow(env)))   # empty map: nothing qualifies
 
-  ref <- .mx_ref_dims(node)
+  ref <- .mx_ref_names(.mx_ref_dims(node), env, ctx)
   cols <- names(dat)
   if (length(cols) != length(ref)) {
     stop("as_matrix: mapping '", nm, "' has ", length(cols),
@@ -794,12 +1055,30 @@ utils::globalVariables(c(".k", ".outer", ".mx_hit", "coef", "j", "v", "seq_len")
 #' carry de-duplicated names such as `comm.1` where a set repeats).
 #' @keywords internal
 #' @noRd
-.mx_equation_env <- function(eq, rows) {
+#' The index names an equation's body binds to
+#'
+#' A mapping domain carries the definition's names and is authoritative. A
+#' filter domain has no such node, and the body is then written in terms of the
+#' iterators the equation declared - `SpecifiedAnnualDemand[r,f,y]` - so those
+#' are used: the declared set names would not match the references, and a set
+#' that repeats could not be bound at all.
+#' @keywords internal
+#' @noRd
+.mx_eq_dims <- function(eq) {
   dims <- .mx_ref_dims(eq$domain)
-  if (!length(dims)) {
-    dims <- if (is.null(eq$dims)) character() else
-      vapply(eq$dims, dim_binding_name, character(1), USE.NAMES = FALSE)
+  if (length(dims)) return(dims)
+  decl <- if (is.null(eq$dims)) character() else
+    vapply(eq$dims, dim_binding_name, character(1), USE.NAMES = FALSE)
+  al <- eq$dims_index_aliases
+  if (!is.null(al) && length(al) == length(decl) &&
+      all(nzchar(al)) && !anyDuplicated(unname(al))) {
+    return(unname(al))
   }
+  decl
+}
+
+.mx_equation_env <- function(eq, rows) {
+  dims <- .mx_eq_dims(eq)
   if (anyDuplicated(dims)) {
     stop("as_matrix: equation '", eq$name, "' binds duplicate index name(s): ",
          paste(unique(dims[duplicated(dims)]), collapse = ", "),

@@ -520,6 +520,7 @@ as_gmpl.symbol <- function(x, ...) {
 #' @export
 #' @method as_gmpl shift
 as_gmpl.shift <- function(x, ...) {
+  if (isTRUE(x$circular)) .mm_no_circular("MathProg")
   # Convert shift to GMPL arithmetic: y-1, y+1, ls-1, etc.
   symbol_name <- x$symbol
   offset <- x$offset
