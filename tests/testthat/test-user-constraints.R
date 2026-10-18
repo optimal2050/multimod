@@ -67,37 +67,35 @@ test_that("a populated gating map still binds the summation index", {
                                   as.character(span$year) == yr])))
 })
 
-test_that("a wildcard reaching the matrix is an error, not a default", {
-  skip_if_not_installed("highs")
-  data(example_models, package = "multimod")
-  m <- example_models$energyRt$multimod
+test_that("a wildcard (NA) index is looked up on its explicit columns", {
+  # energyRt writes NA for "every member" when interpolating with fold = TRUE.
+  # Joining on the NA key would match nothing and silently take the default;
+  # the lookup instead matches wildcard rows on their explicit columns, most
+  # explicit first.
+  lk <- data.table::data.table(
+    region = c("R1", NA, NA),
+    year   = c("2030", "2030", NA),
+    value  = c(5, 7, 9))
+  env <- data.table::data.table(
+    .k = 1:4,
+    region = c("R1", "R2", "R1", "R2"),
+    year   = c("2030", "2030", "2040", "2040"))
+  ctx <- new.env(parent = emptyenv())
+  tm <- multimod:::.mx_param_wildcard(lk, c("region", "year"), env, defv = 0,
+                                      nm = "pX", ctx = ctx)
+  # R1/2030 explicit; R2/2030 from the year-only row; 2040 from the all-NA row
+  expect_equal(tm$coef, c(5, 7, 9, 9))
 
-  # the parameter has to be one an equation actually references, or the
-  # evaluator never looks at it
-  used <- character()
-  walk <- function(n) {
-    if (is.null(n) || !is.list(n)) return(invisible())
-    if (inherits(n, "mm_parameter") && !is.null(n$name)) used <<- c(used, n$name)
-    for (el in n) if (is.list(el)) walk(el)
-  }
-  for (eq in m$equations) walk(eq)
+  # without the all-wildcard row the unmatched tuples take the default
+  tm2 <- multimod:::.mx_param_wildcard(lk[1:2], c("region", "year"), env,
+                                       defv = -1, nm = "pX", ctx = ctx)
+  expect_equal(tm2$coef, c(5, 7, -1, -1))
 
-  cand <- Filter(function(nm) {
-    p <- m$parameters[[nm]]
-    !is.null(p) && !is.null(p$data) && is.data.frame(p$data) &&
-      nrow(p$data) > 1 && "value" %in% names(p$data) &&
-      length(setdiff(names(p$data), "value")) > 0
-  }, unique(used))
-  skip_if(length(cand) == 0)
-  pname <- cand[1]
-
-  idx <- setdiff(names(m$parameters[[pname]]$data), "value")[1]
-  m$parameters[[pname]]$data[[idx]][1] <- NA
-
-  # silently substituting defVal here is exactly how the folded model solved
-  # to a wrong answer, so this must refuse rather than proceed
-  expect_error(model_to_lp(m), "wildcard")
-  expect_error(model_to_lp(m), pname, fixed = TRUE)
+  # two different values for the same wildcard key are ambiguous
+  amb <- data.table::data.table(region = c(NA, NA), year = c("2030", "2030"),
+                                value = c(1, 2))
+  expect_error(multimod:::.mx_param_wildcard(amb, c("region", "year"), env, 0,
+                                             "pX", ctx), "ambiguous")
 })
 
 test_that("a tuple index list parses without the separator's whitespace", {

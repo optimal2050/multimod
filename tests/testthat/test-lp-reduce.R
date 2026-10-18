@@ -52,6 +52,12 @@ test_that("the fixture solves to the same optimum through an eliminated MPS", {
   expect_lt(max(pmax(lp$row_lo - ax, ax - lp$row_up, 0)), 1e-6)
   expect_lt(max(pmax(lp$col_lo - x, x - lp$col_up, 0)), 1e-9)
 
+  # the decoded tables carry no copy of the elimination table
+  expect_null(attr(s$primal, "eliminated"))
+  out <- file.path(d, "output")
+  write_energyrt_output(s, out, format = "arrow")
+  expect_lt(file.size(file.path(out, "vTechCap.arrow")), 1e6)
+
   # a later run without elimination removes the stale table
   write_mps(m, file.path(d, "model.mps"), lp = lp, presolve = FALSE)
   expect_false(file.exists(file.path(d, "model_eliminated.parquet")))

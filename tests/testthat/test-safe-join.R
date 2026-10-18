@@ -5,7 +5,7 @@
 # `sum(tech$mTechOutComm(tech, comm), vTechOut(tech, comm, region, ...)$mvTechOut(...))`
 # bound `tech` from the sum's own map, on `comm` alone, and crossed every row
 # with every technology of that commodity before the body's region-keyed gate
-# filtered it. On a 48-country model that passed 2^31 rows. Body gates now bind
+# filtered it. On a large model that passed 2^31 rows. Body gates now bind
 # the index too, the smallest exact join runs first, and a join above
 # `multimod.join_rows` runs in blocks.
 # =============================================================================
