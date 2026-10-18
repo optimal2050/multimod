@@ -465,6 +465,58 @@
        "Comparison/logical operators are only valid inside a condition.")
 }
 
+#' Compute the parameters a model defines by a formula
+#'
+#' A parameter written `param DiscountFactor{r, y} := (1 + DiscountRate[r])^...`
+#' carries a formula and no data. The text backends hand that formula to the
+#' target language and never need its values; the matrix backend has no target
+#' language, so it has to work them out.
+#'
+#' Left alone, such a parameter falls back to its scalar default, which is a
+#' silent error: every index takes one number. That only surfaced because a
+#' default of 0 produced infinities an equation divided by - a default of 1
+#' would have given a plausible wrong answer instead.
+#'
+#' [evaluate_parameters()] clears a formula once it has computed it, so a
+#' parameter that still carries one was not evaluated at all - an ordering it
+#' could not resolve, say - and is refused by name rather than left to its
+#' default. A formula over an empty index set is evaluated and yields no rows,
+#' which is the right answer and is not refused.
+#'
+#' The values are computed on a local copy; the caller's model is unchanged.
+#' @param model A model, possibly carrying formula parameters.
+#' @param verbose Passed to [evaluate_parameters()].
+#' @return The model, with formula parameters valued.
+#' @keywords internal
+#' @noRd
+.mx_materialise_formulas <- function(model, verbose = FALSE) {
+  has_fml <- function(p) !is.null(p$formula)
+  no_data <- function(p) is.null(p$data) || NROW(p$data) == 0L
+  pend <- vapply(model$parameters, function(p) has_fml(p) && no_data(p),
+                 logical(1))
+  if (!any(pend)) return(model)
+
+  out <- tryCatch(evaluate_parameters(model, verbose = verbose),
+                  error = function(e) {
+                    stop("as_matrix: could not compute the parameter(s) ",
+                         "defined by a formula (",
+                         paste(names(model$parameters)[pend], collapse = ", "),
+                         "): ", conditionMessage(e), call. = FALSE)
+                  })
+
+  still <- vapply(out$parameters, function(p) has_fml(p) && no_data(p),
+                  logical(1))
+  if (any(still)) {
+    stop("as_matrix: parameter(s) ",
+         paste(names(out$parameters)[still], collapse = ", "),
+         " are defined by a formula but still hold no values, so the matrix ",
+         "would be built from their scalar default instead. Compute them ",
+         "with evaluate_parameters() and check the inputs the formula ",
+         "refers to.", call. = FALSE)
+  }
+  out
+}
+
 #' Resolve lag and lead indices in a reference to the members they point at
 #'
 #' `vStock[r, y-1]` refers to a different column than `vStock[r, y]`, so the
