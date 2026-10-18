@@ -141,6 +141,25 @@ as_gams.prod <- function(x, ...) {
 }
 
 #' @export
+#' @method as_gams ast_formula
+as_gams.ast_formula <- function(x, ...) {
+  # A parameter defined by a formula is a declaration plus an assignment in
+  # GAMS, not MathProg's inline `:=`. This renders the assignment.
+  if (is.null(x$expr)) {
+    stop("as_gams: a formula with no expression cannot be written.",
+         call. = FALSE)
+  }
+  idx <- x$index_vars
+  if (is.null(idx) || !length(idx)) idx <- x$index_sets
+  lhs <- if (length(idx)) {
+    paste0(x$target, "(", paste(idx, collapse = ","), ")")
+  } else {
+    x$target
+  }
+  paste0(lhs, " = ", as_gams(x$expr, ...), ";")
+}
+
+#' @export
 #' @method as_gams shift
 as_gams.shift <- function(x, ...) {
   # A lag or lead on a set index. GAMS doubles the operator for the circular

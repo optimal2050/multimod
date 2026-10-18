@@ -88,6 +88,23 @@ write_gams.mm_model <- function(model, file = NULL, format_expr = TRUE,
   }
   lines <- c(lines, ";")
 
+  # A parameter defined by a formula is declared above like any other, then
+  # assigned: GAMS has no inline `:=`. Written after the declarations so every
+  # name a formula refers to already exists.
+  computed <- Filter(function(p) !is.null(p$formula), model$parameters %||% list())
+  if (length(computed)) {
+    lines <- c(lines, "", "* computed parameters")
+    for (p in computed) {
+      f <- p$formula
+      if (!inherits(f, "ast_formula")) {
+        # a bare expression: assign it over the parameter's own dimensions
+        f <- new_ast_formula(target = p$name, field = "value", expr = f,
+                             index_vars = get_dim_names(p$dims))
+      }
+      lines <- c(lines, as_gams(f))
+    }
+  }
+
   lines <- c(lines, "")
   # A bare `variable` is free in GAMS; a non-negative one is `positive`.
   vars <- model$variables %||% list()

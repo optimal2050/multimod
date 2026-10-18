@@ -20,6 +20,9 @@
 
 ## New features
 
+* `as_gams()` writes a parameter defined by a formula as a declaration
+  followed by an assignment, which is how GAMS expresses a computed
+  parameter; MathProg's inline `:=` has no GAMS equivalent.
 * `mm_equation()` builds an equation from text rather than nested
   constructors, in MathProg (the default), GAMS or JuMP notation:
   `mm_equation(m, "eqCapLim{(tech,region) in mTR}: vGen[tech,region] <=
@@ -34,6 +37,10 @@
 
 ## Bug fixes
 
+* The matrix backend computes the parameters a model defines by a formula.
+  They hold no data of their own, and fell back to a scalar default, so
+  every index took one value. The text backends are unaffected: they hand
+  the formula to the target language.
 * The matrix backend evaluates an equation's condition, so one restricted by
   a filter rather than a mapping contributes the rows that satisfy it.
 * Lags and leads resolve to the member they point at, counting positions in
