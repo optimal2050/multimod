@@ -24,7 +24,7 @@
   together with `x`, substituting `x = c * y` into the matrix, objective and
   bounds; `write_mps(presolve = TRUE)` (or `options(multimod.presolve = TRUE)`)
   writes the reduced LP and `read_mps_solution()` restores the eliminated
-  columns. On a 48-country energyRt model it removes 82% of the columns and
+  columns. On a model of 11 million columns it removed 82% of the columns and
   two thirds of the nonzeros.
 * The matrix backend looks up parameters with wildcard (`NA`) index values on
   their explicit columns, most explicit first, so energyRt scenarios
@@ -50,10 +50,16 @@
   index is bound by a coarse map and filtered by the summand's own gate
   (`sum(i$A, x$B)`): the gate binds the index too, the smallest join runs
   first, and a join above `options(multimod.join_rows)` (default 5e7 rows)
-  runs in blocks. A 48-country model failed with "Join results in more than
-  2^31 rows" before.
+  runs in blocks. Large models failed with "Join results in more than 2^31
+  rows" before.
 * `model_to_lp(verbose = TRUE)` and `write_mps(verbose = TRUE)` report clock
   time and elapsed seconds.
+* `model_to_lp()` sets right-hand sides and bounds below
+  `getOption("multimod.zero_tol", 1e-12)` in absolute value to 0 (floating-point
+  remainders such as 2e-17), reports how many it changed, and keeps the counts
+  in `lp$zeroed`.
+* `read_mps_solution()` no longer copies the eliminated-column table into the
+  decoded results, where it was written into every output file.
 * `read_cuopt_solution()` reads the value section with `data.table::fread()`;
   decoding an 11-million-column solution takes 24 s instead of 62 s, with
   identical results.

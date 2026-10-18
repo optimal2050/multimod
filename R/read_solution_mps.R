@@ -323,6 +323,9 @@ read_mps_solution <- function(sol, index_dir = NULL, col_index = NULL,
       .place_by_position(sol$columns$name, sol$columns$dual, n_red, "c",
                          "column"), jred, elim, fill_eliminated = FALSE))
     data.table::set(primal, j = "jred", value = NULL)
+    # the table is large and would be copied into every file written from
+    # `primal` (Arrow keeps R attributes as metadata)
+    data.table::setattr(primal, "eliminated", NULL)
   } else {
     data.table::set(primal, j = "value",
                     value = .place_by_position(sol$columns$name,

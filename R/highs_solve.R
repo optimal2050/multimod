@@ -14,6 +14,13 @@
 # the mapping back to (symbol, index tuple), and must travel with any .mps.
 # =============================================================================
 
+# values below `tol` in absolute value set to exactly 0 (infinite ones kept)
+.zero_small <- function(x, tol) {
+  if (is.null(x)) return(x)
+  x[is.finite(x) & abs(x) < tol] <- 0
+  x
+}
+
 #' Assemble a model into LP arrays
 #'
 #' @param model A multimod model with data attached.
@@ -79,6 +86,13 @@ model_to_lp <- function(model, col_index = NULL, row_index = NULL,
   rhs <- rep(0, nrow_lp)
   if (nrow(tr$rhs)) rhs[tr$rhs$i] <- tr$rhs$rhs
 
+  # floating-point remainders (stock x survival shares, 2e-17) are zeros; left
+  # in they widen the right-hand-side range the solvers report and scale on
+  ztol <- as.numeric(getOption("multimod.zero_tol", 1e-12))
+  tiny <- function(x) sum(is.finite(x) & x != 0 & abs(x) < ztol)
+  n_zeroed <- c(rhs = tiny(rhs), col_lo = tiny(col_index$lo),
+                col_up = tiny(col_index$up))
+  rhs[abs(rhs) < ztol] <- 0
   sense <- row_index$sense
   row_lo <- ifelse(sense == "<=", -Inf, rhs)
   row_up <- ifelse(sense == ">=",  Inf, rhs)
@@ -90,13 +104,19 @@ model_to_lp <- function(model, col_index = NULL, row_index = NULL,
     obj = obj_spec$obj,
     row_lo = row_lo,
     row_up = row_up,
-    col_lo = col_index$lo,
-    col_up = col_index$up,
+    col_lo = .zero_small(col_index$lo, ztol),
+    col_up = .zero_small(col_index$up, ztol),
     maximum = obj_spec$maximum,
     objective_symbol = obj_spec$symbol,
     row_index = row_index,
     col_index = col_index
   )
+  lp$zeroed <- n_zeroed
+  if (sum(n_zeroed) > 0) {
+    message(sprintf(paste0("model_to_lp(): set to 0 values below %g: %d right-hand ",
+                           "side(s), %d lower and %d upper bound(s)"),
+                    ztol, n_zeroed[["rhs"]], n_zeroed[["col_lo"]], n_zeroed[["col_up"]]))
+  }
   .check_empty_rows(lp, on_empty_row)
   if (verbose) {
     message(sprintf("%sLP: %d rows x %d cols, %d nonzeros (%s %s), built in %.0f s",
