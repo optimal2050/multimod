@@ -34,7 +34,7 @@ development:
 navbar:
   # bg: light
   structure:
-    left:  [intro, reference, roadmap, articles, news]
+    left:  [intro, reference, articles, news]
     right: [search, github, lightswitch]
   components:
     news:
@@ -66,9 +66,6 @@ navbar:
         href: articles/configuration.html
       - text: LaTeX rendering
         href: articles/latex.html
-    roadmap:
-      text: "{{dev}}"
-      href: articles/roadmap.html
 
 reference:
 - title: Multimod classes

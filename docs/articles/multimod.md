@@ -1,23 +1,46 @@
 # multimod
 
-\[The Vignette is under revision\]
+multimod stores an optimization model as an abstract syntax tree — sets,
+mappings, parameters, variables and equations — independent of any
+modeling language. A model becomes coupled to the language it was first
+written in; multimod separates three concerns: the model’s *meaning*
+(the AST), its *representation* (LaTeX, executable code in another
+language, JSON, or a sparse LP matrix) and its *execution* (a local
+solver, an institutional modeling environment, or remote hardware). That
+separation lets one formulation be compared across backends, documented
+as the exact model being solved, manipulated before execution, and
+reused across solver ecosystems.
 
-This vignette provides an overview of the current functionality of the
-`multimod` package, which is designed to parse GAMS models and convert
-them into a structured format for further analysis, visualization,
-rendering to LaTeX, and other mathematical programming languages.
+A model enters in three ways: written in R with the constructors,
+written as MathProg, GAMS or JuMP text with
+[`mm_equation()`](https://optimal2050.github.io/multimod/reference/mm_equation.md),
+or read from an existing GAMS or MathProg source. It leaves as rendered
+code for GAMS, MathProg, JuMP or Pyomo, as a LaTeX formulation, or as
+the LP matrix multimod assembles and solves in R with HiGHS. This
+vignette walks through that representation and what the package does
+with it.
+
+Linear programs with continuous variables are the tested class. Integer
+and binary variables are carried in the AST and written by the JuMP and
+Pyomo writers; nonlinear expressions have AST nodes but no tested route
+to a solver. The
+[roadmap](https://optimal2050.github.io/multimod/articles/roadmap.html)
+lists the limitations in full.
 
 ## Installation
 
-The development version of the package is available for installation
-from GitHub using the `pak` package. The package is not yet available on
-CRAN.
+Install the development version from GitHub with the `pak` package:
 
 ``` r
 
 # install.packages("pak")
 pak::pkg_install("optimal2050/multimod", dependencies = TRUE)
 ```
+
+The matrix route needs only the ‘highs’ package. The GLPK route’s
+`glpsol` binary ships with the ‘glpsol’ package; Julia with JuMP and
+Python with Pyomo are configured as described in the “Configuring solver
+paths” article.
 
 ## Setup
 
@@ -28,21 +51,13 @@ library(multimod)
 
 ## Example model
 
-Download example model
+The package ships the GAMS source of the energyRt model in
+`example_models`, both as text and as an already converted `multimod`
+object.
 
 ``` r
 
-gams_source <- file.path(tempdir(), "energyRt.gms")
-
-# Download "energyRt.gms" GAMS model source file from GitHub
-download.file(
-  url = file.path("https://raw.githubusercontent.com/optimal2050/energyRt",
-                  "refs/heads/master/gams/energyRt.gms"),
-  destfile = gams_source,
-  method = "curl"
-)
-
-file.exists(gams_source)
+gams_source <- example_models$energyRt$gams$model
 ```
 
 ## Parse model structure
@@ -56,7 +71,7 @@ class `model_structure`.
 
 ``` r
 
-mod_str <- read_gams(gams_source, include = FALSE, verbose = FALSE)
+mod_str <- read_gams(file_or_text = gams_source, include = FALSE, verbose = FALSE)
 print(mod_str)
 ```
 
@@ -236,8 +251,8 @@ alias_map <- list(
   comm = "c", 
   commp = "cp", 
   tech = "t", 
-  year = "y", 
-  slice = "s"
+  year = "y",
+  timeslice = "s"
 )
 # eq <- mod$equations$eqTechVarom # the same equation as above
 eq_tex_file <- paste0("tmp/", eq$name, "_short.tex")
@@ -259,7 +274,7 @@ write_latex(mod, file = "tmp/example_model.tex",
             title = "Base energyRt model",
             subtitle = "Imported from GAMS and rendered to LaTeX by multimod",
             author = "energyRt authors",
-            alias_map = multimod::example_model$short_aliases)
+            alias_map = mod$index_aliases)
 tinytex::pdflatex("tmp/example_model.tex")
 ```
 
@@ -269,11 +284,12 @@ tinytex::pdflatex("tmp/example_model.tex")
 
 The idea of the `multimod` package is to provide a way to convert the
 model structure back to GAMS, Julia/JuMP, Python/Pyomo, or other
-mathematical programming languages. The current version has a drafted
-implementation of the `as_gams` method, which converts the multimod
-object back to GAMS code. This feature does not create a fully
-functional GAMS model yet, it exports declarations only. Connections
-with data is planned for future releases.
+mathematical programming languages. The `as_gams` method converts a
+multimod object or equation back to GAMS code;
+[`write_gams()`](https://optimal2050.github.io/multimod/reference/write_gams.md)
+renders the whole model to a `.gms` file and
+[`write_gams_data()`](https://optimal2050.github.io/multimod/reference/write_gams_data.md)
+exports the data as a GDX.
 
 ``` r
 
@@ -283,11 +299,45 @@ as_gams(mod$equations$eqTechCapUp) |> cat()
 #>   pTechCapUp[tech,region,year];
 ```
 
-Render full model.
+Render the full model and its data.
 
 ``` r
 
-write_gams(mod, file = "tmp/example_model.gms")
+write_gams(mod, file = file.path(tempdir(), "example_model.gms"))
+write_gams_data(mod, file = file.path(tempdir(), "example_model.gdx"))
+```
+
+## Routes to a solver
+
+A model with data attached can be solved two ways. The matrix route
+assembles the LP in R:
+[`model_to_lp()`](https://optimal2050.github.io/multimod/reference/model_to_lp.md)
+builds the coefficient matrix from the equations,
+[`solve_highs()`](https://optimal2050.github.io/multimod/reference/solve_highs.md)
+solves it in process with HiGHS, and
+[`mm_session()`](https://optimal2050.github.io/multimod/reference/mm_session.md)
+keeps the matrix between repeated solves. The file routes write the
+model in another language and run its toolchain:
+[`write_gmpl()`](https://optimal2050.github.io/multimod/reference/write_gmpl.md)
+with
+[`solve_gmpl()`](https://optimal2050.github.io/multimod/reference/solve_gmpl.md)
+(GLPK),
+[`write_jump()`](https://optimal2050.github.io/multimod/reference/write_jump.md)
+with
+[`solve_jump()`](https://optimal2050.github.io/multimod/reference/solve_jump.md)
+(Julia),
+[`write_pyomo()`](https://optimal2050.github.io/multimod/reference/write_pyomo.md)
+with
+[`solve_pyomo()`](https://optimal2050.github.io/multimod/reference/solve_pyomo.md)
+(Python). `example_models$toy` is a small LP to try them on; the website
+article “Solving and reading results” takes it through every route, and
+“Two models from the field” does the same for the energyRt reference
+model and OSeMOSYS.
+
+``` r
+
+r <- solve_highs(example_models$toy, attach = FALSE)
+r$objective
 ```
 
 ## Summary
@@ -297,6 +347,6 @@ This vignette provides an overview of the current functionality of the
 converting them into a structured format, rendering to LaTeX, and
 converting back to GAMS code. The package is still under development,
 not all styles of GAMS models and syntax are supported, more features
-will be added in the future. See the
-[{dev-status}](https://optimal2050.github.io/multimod/articles/roadmap.md)
+will be added in the future. See the [Development
+status](https://optimal2050.github.io/multimod/articles/roadmap.md)
 article for details.

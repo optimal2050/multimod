@@ -8,7 +8,7 @@ positive represents forward shift (lead).
 ## Usage
 
 ``` r
-ast_shift(symbol, offset, ...)
+ast_shift(symbol, offset, circular = FALSE, ...)
 ```
 
 ## Arguments

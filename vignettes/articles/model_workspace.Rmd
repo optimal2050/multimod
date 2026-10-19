@@ -1,514 +1,148 @@
 ---
-title: "Model Workspace and Data Management"
+title: "Model workspace and data"
 output: rmarkdown::html_vignette
 ---
 
 ```{r, include = FALSE}
-knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "#>",
-  eval = FALSE
-)
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+has_arrow <- requireNamespace("arrow", quietly = TRUE)
 ```
 
 ```{r setup}
 library(multimod)
 ```
 
-## Overview
+A model's data can be large. multimod keeps the model structure and the
+data apart on disk: `save_model()` writes a *workspace*, a directory with
+the R object for the structure and one data file per set, mapping and
+parameter, in CSV, Arrow IPC or Parquet. `load_model()` reads it back, with
+or without the data, and `get_data()` fetches a table from disk on demand.
+The generated JuMP and Pyomo code reads the same files at run time, which
+is why `write_jump()` and `write_pyomo()` create a workspace when they are
+given an empty `model_dir`.
 
-The `multimod` package provides a flexible workspace system for managing models and their data on disk. This vignette demonstrates:
-
-- Creating and managing model workspaces
-- Saving and loading models in different formats
-- Working with in-memory vs on-disk data
-- Updating parameters and mappings
-- Lazy loading for large models
-- Cross-language data interoperability
-
-## Storage Architecture
-
-### Hybrid Approach
-
-The storage system uses a **hybrid approach** that balances R-specific needs with cross-language compatibility:
-
-- **model.rds**: Complete R model object (structure, metadata, equations, variables, ASTs)
-- **Data files**: Stored separately in cross-language formats (Arrow IPC, CSV, Parquet)
-- **metadata.json**: Human-readable summary for non-R users
-
-This design allows:
-- Fast loading of R model structure (single RDS file)
-- Cross-language access to data (Python, Julia can read Arrow/CSV)
-- Atomic updates (one model.rds contains all structure)
-
-### Directory Structure
+## Layout
 
 ```
-model_path/
-  model.rds              # Complete R model object with all structure
-  metadata.json          # Human-readable summary
-  format.txt             # Data format: "csv", "ipc", or "parquet"
-  solution_log.txt       # Log of solution loads (appended on each load)
-  sets/
-    set_name.txt         # Set members (one per line)
-  parameters/
-    param_name/
-      data.{csv|arrow|parquet}      # Parameter data only
-      folded_data/
-        data.{csv|arrow|parquet}    # Folded data if exists
-  mappings/
-    mapping_name/
-      data.{csv|arrow|parquet}      # Mapping data only
-  variables/             # Solution values (moved from solver on load_results)
-    var_name/
-      data.{csv|arrow|parquet}      # Variable solution values
-  solvers/
-    jump/                # JuMP (Julia) solver files
-      model.jl           # Generated Julia/JuMP code
-      data.jl            # Data loading functions
-      solution/          # Latest solve results (overwritten each run)
-        var_name/
-          data.{csv|arrow|parquet}  # Variable solution values
-    gmpl/                # GMPL (GLPK) solver files
-      model.mod          # Generated GMPL code
+<model_dir>/
+  model.rds              the model structure, as saved
+  metadata.json          counts and format, for readers outside R
+  format.txt             "csv", "ipc" or "parquet"
+  sets/<name>/data.*     one file per set, column `member`
+  mappings/<name>/data.* one file per mapping, one column per dimension
+  parameters/<name>/data.*          dimension columns plus `value`
+  parameters/<name>/folded_data/data.*   if the parameter is folded
+  variables/<name>/data.*           solution values, after a solve
+  solution_log.txt       one line per solution load
+  solvers/<backend>/     generated code and the backend's output
 ```
 
-## Storage Formats
+## Save and load
 
-### CSV (Universal)
-
-```{r csv-format}
-# Default format - human-readable, works everywhere
-model <- save_model(
-  model,
-  path = "models/my_model",
-  format = "csv"
-)
+```{r save}
+toy <- example_models$toy
+ws <- tempfile("toy-")
+toy <- save_model(toy, ws, format = "csv", verbose = FALSE)
+list.files(ws, recursive = TRUE)[1:8]
+toy$base_path == ws
 ```
 
-**Pros:**
-- Universal compatibility
-- Human-readable
-- Easy debugging
+`save_model()` returns the model with `base_path` set to the workspace.
+With `format = "ipc"` or `"parquet"` the data files are Arrow files, smaller
+and faster to read; both need the 'arrow' package, and the generated Julia
+and Python read them as readily as CSV.
 
-**Cons:**
-- Largest file size
-- Slower I/O
-
-### IPC/Arrow (Recommended)
-
-```{r ipc-format}
-# Recommended format - fast and compact
-model <- save_model(
-  model,
-  path = "models/my_model",
-  format = "ipc",
-  compression = "zstd",
-  compression_level = 15
-)
+```{r save-ipc, eval = has_arrow}
+ws_ipc <- tempfile("toy-ipc-")
+save_model(toy, ws_ipc, format = "ipc", verbose = FALSE)
+list.files(file.path(ws_ipc, "parameters"), recursive = TRUE)
 ```
 
-**Pros:**
-- Fast I/O (10-20x faster than CSV)
-- Good compression (2-3x smaller than CSV)
-- Cross-language (Python, Julia, R)
-- Column-oriented (efficient queries)
+`load_model()` reads the structure and, by default, every data table:
 
-**Cons:**
-- Binary format (not human-readable)
-- Requires Arrow library
-
-### Parquet (Compact)
-
-```{r parquet-format}
-# Most compact but slower
-model <- save_model(
-  model,
-  path = "models/my_model",
-  format = "parquet",
-  compression = "zstd",
-  compression_level = 15
-)
+```{r load}
+m <- load_model(ws, verbose = FALSE)
+head(m$parameters$pAvail$data)
 ```
 
-**Pros:**
-- Best compression (3-4x smaller than CSV)
-- Wide ecosystem support
+## Data on demand
 
-**Cons:**
-- Slower than IPC
-- More complex format
+A large model is loaded without its data and asked for one table at a time.
+`get_data()` reads the table from the workspace and caches it in the model
+object it returns from.
 
-## Basic Workflow
-
-### 1. Save a Model
-
-```{r save-basic}
-library(multimod)
-
-# Load or create a model
-data(example_models)
-demo_model <- example_models$energyRt$multimod
-model <- demo_model
-
-# Save with default settings (CSV format)
-model <- save_model(
-  model,
-  path = "models/utopia",
-  verbose = TRUE
-)
+```{r lazy}
+m <- load_model(ws, load_data = FALSE, verbose = FALSE)
+is.null(m$parameters$pAvail$data)
+get_data(m, "pAvail", type = "parameter")
+get_data(m, "mTR", type = "mapping")
+get_data(m, "tech", type = "set")
 ```
 
-### 2. Load a Model
+## Changing data
 
-```{r load-basic}
-# Load complete model with all data
-model <- load_model(
-  path = "models/utopia",
-  verbose = TRUE
-)
+`update_parameter()` replaces a parameter's table; with `auto_save = TRUE`
+the file in the workspace is rewritten at the same time.
 
-# Access parameters
-tech_cost <- model$parameters$pTechInvcost$data
-demand <- model$parameters$pDemand$data
+```{r update}
+d <- get_data(m, "pDemand", type = "parameter")
+d$value <- d$value * 1.1
+m <- update_parameter(m, "pDemand", d, auto_save = TRUE)
+read.csv(file.path(ws, "parameters", "pDemand", "data.csv"))
 ```
 
-### 3. Update Parameters
+The structure is unchanged, so the model can be re-solved on the new data
+through any route, for example in R:
 
-```{r update-basic}
-# Modify parameter data
-new_demand <- demand
-new_demand$value <- new_demand$value * 1.1  # 10% increase
-
-# Update in model
-model <- update_parameter(
-  model,
-  name = "pDemand",
-  data = new_demand
-)
-
-# Save changes
-model <- save_model(model, path = "models/utopia", overwrite = TRUE)
+```{r resolve, eval = requireNamespace("highs", quietly = TRUE)}
+m <- load_model(ws, verbose = FALSE)
+solve_highs(m, attach = FALSE)$objective
 ```
 
-## Advanced Features
+## Solutions
 
-### Lazy Loading
+The file routes write their results under `solvers/<backend>/solution/`.
+With `load_results = TRUE` (the default when a model is passed),
+`solve_gmpl()`, `solve_jump()` and `solve_pyomo()` read the variable values
+into `model$variables[[name]]$solution`, copy them to `variables/`, and
+append a line to `solution_log.txt`, so the workspace always holds the
+latest solution and a record of when it was loaded.
 
-For large models, load structure without data:
-
-```{r lazy-loading}
-# Load only model structure (no data in memory)
-model <- load_model(
-  path = "models/utopia",
-  load_data = FALSE
-)
-
-# Model structure is available
-print(names(model$parameters))
-print(model$parameters$pDemand$sets)
-
-# Load specific parameters on demand
-demand_data <- get_data(model, "pDemand", type = "parameter")
-
-# get_data() automatically loads from disk and caches in model
-# Subsequent calls use the cached data
-demand_data2 <- get_data(model, "pDemand", type = "parameter")  # From cache
+```{r solutions, eval = FALSE}
+r <- solve_jump(m, ws)
+r$model$variables$vGen$solution
+r$model$solution_metadata$variables_loaded
+readLines(file.path(ws, "solution_log.txt"))
 ```
 
-### Auto-Save on Update
+## Folded data
 
-```{r auto-save}
-# Load model from disk
-model <- load_model("models/utopia")
+A folded parameter (see `vignette("folding")`) keeps both tables: the
+original under `data.*` and the reduced one under `folded_data/data.*`.
+`save_model()` writes both, `load_model()` reads both, and the writers take
+the folded table when the model is folded.
 
-# Update parameter with immediate save to disk
-model <- update_parameter(
-  model,
-  name = "pDemand",
-  data = new_demand_data,
-  auto_save = TRUE  # Writes immediately to disk
-)
+## Reading the files elsewhere
 
-# No need for separate save_model() call
-```
-
-### Memory Management
-
-```{r memory-management}
-# Save model and free data from memory
-model <- save_model(
-  model,
-  path = "models/utopia",
-  keep_in_memory = FALSE  # Removes data from model object
-)
-
-# Model structure remains, but data is NULL
-is.null(model$parameters$pDemand$data)  # TRUE
-
-# Use get_data() to load from disk when needed
-demand <- get_data(model, "pDemand", type = "parameter")
-```
-
-### Solution Management
-
-The package provides integrated solution storage for solver results:
-
-```{r solution-management}
-# Solve model and load results
-result <- solve_jump(
-  model = demo_model,
-  model_dir = "models/utopia",
-  load_results = TRUE
-)
-
-# Update model with loaded solutions
-model <- result$model
-
-# Solutions are now in model$variables[[var_name]]$solution
-vObjective <- model$variables$vObjective$solution
-vTechCap <- model$variables$vTechCap$solution
-
-# Solution metadata
-print(model$solution_metadata$loaded_at)
-print(model$solution_metadata$variables_loaded)
-
-# Check solution log
-log <- readLines("models/utopia/solution_log.txt")
-print(tail(log, 5))
-```
-
-**Solution Storage Workflow:**
-
-1. **Solver writes**: Solutions saved to `solvers/jump/solution/` (overwrites previous)
-2. **Load results**: If `load_results=TRUE`, solutions copied to `variables/` (overwrites previous)
-3. **Log append**: Each load appends timestamp and variable list to `solution_log.txt`
-
-**Benefits:**
-- Simple structure: one current solution in solver directory
-- Audit trail: log tracks all solution loads with timestamps
-- Clean workspace: no proliferation of timestamped directories
-- Overwrite behavior: easy to re-run and update solutions
-
-## Working with Folded Data
-
-Models with folded parameters store both regular and folded data:
-
-```{r folded-data}
-# Apply folding
-fold_spec <- create_fold_spec(
-  model,
-  fold_dims = list(timeslice = list(tech = "mTechTimeslice", comm = "mCommTimeslice"))
-)
-model <- fold_model(model, fold_spec)
-
-# Save model - both data and folded_data are saved
-model <- save_model(model, path = "models/utopia_folded", format = "ipc")
-
-# Load and access folded data
-model <- load_model("models/utopia_folded")
-demand_regular <- model$parameters$pDemand$data
-demand_folded <- model$parameters$pDemand$folded_data$data
-
-# Update with folded data
-model <- update_parameter(
-  model,
-  name = "pDemand",
-  data = new_regular_data,
-  folded_data = new_folded_data
-)
-```
-
-## Cross-Language Interoperability
-
-### From R
-
-```{r r-access}
-# Save in Arrow IPC format
-save_model(model, "models/shared", format = "ipc")
-```
-
-### From Python
+The data files are plain CSV or Arrow and need nothing from multimod:
 
 ```python
 import pyarrow.feather as feather
-import pandas as pd
-
-# Read parameter data
-demand = feather.read_feather("models/shared/parameters/pDemand/data.arrow")
-print(demand.head())
-
-# Read set members
-with open("models/shared/sets/region.txt", "r") as f:
-    regions = [line.strip() for line in f]
+demand = feather.read_feather("ws/parameters/pDemand/data.arrow")
 ```
-
-### From Julia
 
 ```julia
-using Arrow
-
-# Read parameter data
-demand = Arrow.Table("models/shared/parameters/pDemand/data.arrow")
-df = DataFrame(demand)
+using Arrow, DataFrames
+demand = DataFrame(Arrow.Table("ws/parameters/pDemand/data.arrow"))
 ```
 
-## Complete Example
+`metadata.json` lists the counts and the format so a reader can orient
+itself without R.
 
-```{r complete-example}
-library(multimod)
-
-# 1. Create or load model
-data(example_models)
-demo_model <- example_models$energyRt$multimod
-model <- demo_model
-
-# 2. Modify some parameters
-demand <- model$parameters$pDemand$data
-demand$value <- demand$value * 1.05  # 5% increase
-
-model <- update_parameter(model, "pDemand", demand)
-
-# 3. Save with recommended format
-model <- save_model(
-  model,
-  path = "models/utopia_scenario1",
-  format = "ipc",
-  compression = "zstd",
-  compression_level = 15,
-  overwrite = TRUE,
-  verbose = TRUE
-)
-
-# 4. Generate and solve with JuMP
-write_jump(model, model_dir = "models/utopia_scenario1")
-
-result <- solve_jump(
-  model = model,
-  model_dir = "models/utopia_scenario1",
-  method = "system",
-  load_results = TRUE
-)
-
-# Update model with solutions
-model <- result$model
-
-# 5. Access solution values
-vObjective <- model$variables$vObjective$solution
-vTechCap <- model$variables$vTechCap$solution
-
-print(paste("Objective value:", vObjective$value))
-print(head(vTechCap))
-
-# 6. Check solution log
-solution_log <- readLines("models/utopia_scenario1/solution_log.txt")
-cat(tail(solution_log, 3), sep = "\n")
-
-# 7. For large models: lazy loading
-model_structure <- load_model(
-  "models/utopia_scenario1",
-  load_data = FALSE
-)
-
-# Load only needed parameters
-demand <- get_data(model_structure, "pDemand", type = "parameter")
-tech_cost <- get_data(model_structure, "pTechInvcost", type = "parameter")
+```{r metadata}
+cat(readLines(file.path(ws, "metadata.json")), sep = "\n")
 ```
 
-## Performance Comparison
-
-Approximate performance for a typical model:
-
-| Format  | Size    | Save Time | Load Time | Compression |
-|---------|---------|-----------|-----------|-------------|
-| CSV     | 1.2 MB  | 100%      | 100%      | 1.0x        |
-| IPC     | 0.6 MB  | 15%       | 10%       | 2.0x        |
-| Parquet | 0.3 MB  | 40%       | 30%       | 3.6x        |
-
-**Recommendation:** Use IPC format for best balance of speed, size, and compatibility.
-
-## Best Practices
-
-1. **Use IPC format** for production models (fast, compact, cross-language)
-2. **Use lazy loading** for large models to minimize memory usage
-3. **Use auto_save** when making incremental updates to on-disk models
-4. **Keep model.rds** together with data files (don't separate them)
-5. **Use version control** for model.rds (it's deterministic for same model state)
-6. **Document changes** in metadata.json (edit manually if needed)
-7. **Check solution_log.txt** to track when solutions were loaded and updated
-8. **Use `load_results=TRUE`** to automatically move solutions from solver to model root
-
-## Workflow Summary
-
-```{r workflow-diagram, echo=FALSE, eval=FALSE}
-# Complete workflow with solving:
-
-# Import/Create Data
-#       ↓
-# update_parameter() ← Modify values
-#       ↓
-# save_model() ← Persist to disk
-#       ↓
-# write_jump() / write_gmpl() ← Generate solver code
-#       ↓
-# solve_jump() ← Solve and load results
-#       ↓
-# Access solutions in model$variables[[name]]$solution
-#       ↓
-# Check solution_log.txt for audit trail
+```{r cleanup, include = FALSE}
+unlink(c(ws, if (exists("ws_ipc")) ws_ipc), recursive = TRUE)
 ```
-
-**Import/Create** → **Update** → **Save** → **Generate** → **Solve** → **Access Solutions**
-
-## Troubleshooting
-
-### Large Models
-
-```{r large-models}
-# Use lazy loading
-model <- load_model("models/large_model", load_data = FALSE)
-
-# Process parameters one at a time
-for (param_name in names(model$parameters)) {
-  data <- get_data(model, param_name, type = "parameter")
-  # ... process data ...
-  # Clear from memory if needed
-  model$parameters[[param_name]]$data <- NULL
-}
-```
-
-### Disk Space
-
-```{r disk-space}
-# Use Parquet for maximum compression
-save_model(model, "models/compact", format = "parquet")
-
-# Or remove data from memory after saving
-model <- save_model(model, "models/compact", keep_in_memory = FALSE)
-```
-
-### Corrupted Files
-
-```{r recovery}
-# Model structure is separate from data
-# If data file corrupted, structure is still in model.rds
-
-model <- readRDS("models/my_model/model.rds")
-
-# Re-import or regenerate the corrupted parameter
-model <- update_parameter(model, "pDemand", new_data, auto_save = TRUE)
-```
-
-## See Also
-
-- `?save_model` - Save model to disk
-- `?load_model` - Load model from disk
-- `?update_parameter` - Update parameter data
-- `?update_mapping` - Update mapping data
-- `?get_data` - Lazy load data from disk
-- `?solve_jump` - Solve model with JuMP and load results
-- `?write_jump` - Generate JuMP/Julia code
-- `?write_gmpl` - Generate GMPL code
-- `vignette("jump")` - Complete JuMP workflow guide
-- `vignette("gmpl")` - Complete GMPL workflow guide
-- `vignette("folding")` - Parameter folding for model reduction

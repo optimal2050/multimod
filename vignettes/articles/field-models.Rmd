@@ -1,0 +1,221 @@
+---
+title: "Two models from the field"
+output: rmarkdown::html_vignette
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+has_highs  <- requireNamespace("highs", quietly = TRUE)
+has_glpsol <- !is.null(tryCatch(multimod::get_multimod_glpsol(), error = function(e) NULL)) &&
+  file.exists(multimod::get_multimod_glpsol())
+has_julia  <- nzchar(Sys.which(multimod::get_multimod_julia()))
+has_python <- isTRUE(tryCatch(multimod::mm_check_python(packages = c("pyomo", "highspy"))$ok,
+                              error = function(e) FALSE))
+osemosys_dir <- Sys.getenv("MULTIMOD_OSEMOSYS_DIR", unset = "")
+has_osemosys <- nzchar(osemosys_dir) &&
+  file.exists(file.path(osemosys_dir, "src", "osemosys.txt"))
+```
+
+```{r setup}
+library(multimod)
+```
+
+The toy model of the other articles fits on one screen. This article runs
+two models written by other people for real work: OSeMOSYS, which is read
+from its public source, and the energyRt reference model, which ships with
+multimod. Both are energy system models; neither was written with
+multimod in mind. Chunks that need a solver or the OSeMOSYS files run only
+where those are present; the numbers quoted in the text are from a run with
+everything installed.
+
+## OSeMOSYS
+
+[OSeMOSYS](http://www.osemosys.org/), the Open Source Energy Modelling
+System, is written in GNU MathProg. Its repository
+[OSeMOSYS/OSeMOSYS_GNU_MathProg](https://github.com/OSeMOSYS/OSeMOSYS_GNU_MathProg)
+(Apache License 2.0, copyright 2010-2015 OSeMOSYS Forum steering committee)
+holds the model file `src/osemosys.txt` and the UTOPIA test case
+`tests/utopia.txt`. Nothing of it is bundled with multimod; this section
+reads a local clone whose path is in the environment variable
+`MULTIMOD_OSEMOSYS_DIR`. The reference result for UTOPIA is the objective
+glpsol reports on those two files, 29446.86.
+
+Cite: Howells, M., Rogner, H., Strachan, N., Heaps, C., Huntington, H.,
+Kypreos, S., Hughes, A., Silveira, S., DeCarolis, J., Bazilian, M. and
+Roehrl, A. (2011). OSeMOSYS: The Open Source Energy Modeling System. An
+introduction to its ethos, structure and development. *Energy Policy*,
+39(10), 5850-5870. <https://doi.org/10.1016/j.enpol.2011.06.033>
+
+```{r osemosys-read, eval = has_osemosys}
+ose <- read_gmpl(file.path(osemosys_dir, "src", "osemosys.txt"),
+                 file.path(osemosys_dir, "tests", "utopia.txt"))
+ose
+```
+
+The reader returns 11 sets, 61 parameters, 68 variables and 95 equations.
+Twenty-six parameters carry UTOPIA data; six are formulas over other
+parameters (discount factors, the capital recovery factor, the annuity),
+and the rest take their declared defaults, among them a *parametric*
+default, `DiscountRateIdv` defaulting to `DiscountRate[r]`.
+
+```{r osemosys-structure, eval = has_osemosys}
+validate(ose, stop_on_error = FALSE)$valid
+as_gams(ose$parameters$CapitalRecoveryFactor$formula$expr)
+cat(as_latex(ose$equations$CAa1_TotalNewCapacity$rhs))
+```
+
+### JuMP
+
+Formula parameters become Julia dictionaries computed from the data at run
+time, and the parametric default becomes a nested `get()`:
+
+```{julia, eval = FALSE}
+# Each variable is declared over a full set product
+@variable(model, RateOfDemand[REGION, TIMESLICE, FUEL, YEAR] >= 0)
+@variable(model, Demand[REGION, TIMESLICE, FUEL, YEAR] >= 0)
+@variable(model, StorageLevelYearStart[REGION, STORAGE, YEAR] >= 0)
+
+@objective(model, Min, sum(TotalDiscountedCost[r, y] for r in REGION, y in YEAR))
+
+optimize!(model)
+println("Termination status: ", termination_status(model))
+println("Objective value: ", objective_value(model))
+```
+
+
+```{r osemosys-jump-write, eval = has_osemosys}
+ws <- tempfile("osemosys-")
+dir.create(ws)
+write_jump(ose, model_dir = ws)
+data_jl <- readLines(file.path(ws, "solvers", "jump", "data.jl"))
+cat(substr(grep("^CapitalRecoveryFactor = Dict", data_jl, value = TRUE), 1, 160), "...\n")
+```
+
+
+```{r osemosys-jump-solve, eval = has_osemosys && has_julia}
+j <- solve_jump(ose, ws, verbose = FALSE)
+j$objective
+j$status
+```
+
+The objective matches glpsol's 29446.86.
+
+### Solved in R, from the matrix
+
+The same model goes through the matrix route without any generated code.
+OSeMOSYS declares every symbol over a set product with no domain mapping,
+restricts 34 of its 95 equations with data-dependent conditions, references
+lagged years (`y-1`, `y+1`) and defines six parameters by formula; the matrix
+backend expands the declared sets, evaluates the conditions, resolves the
+lags and computes the formulas itself.
+
+```{r osemosys-highs, eval = has_osemosys && requireNamespace("highs", quietly = TRUE)}
+h <- solve_highs(ose, attach = FALSE)
+h$objective
+nrow(build_row_index(ose))   # glpsol generates exactly this many rows
+```
+
+### What does not work yet
+
+Four storage-bracket equations (`SC2_*`, `SC4_*`) assemble with no
+coefficients on this case; UTOPIA's storage is inactive, so the objective is
+unaffected, and `model_to_lp()` says so in a warning rather than hiding it.
+`write_gams()` output of this model is readable but not yet runnable without
+edits. There is no Pyomo reader.
+
+```{r osemosys-cleanup, include = FALSE}
+if (exists("ws")) unlink(ws, recursive = TRUE)
+```
+
+## energyRt
+
+[energyRt](https://github.com/optimal2050/energyRt) is an R package for
+energy system models that writes its own GAMS, MathProg, JuMP and Pyomo
+code. `example_models$energyRt` holds one of its reference scenarios, the
+"TOPIA" kit (seven regions, seasonal time slices, a base horizon), parsed by
+`read_gams()` from the GAMS template energyRt generates and populated with
+the scenario's data.
+
+```{r energyrt-provenance}
+str(example_models$energyRt$metadata)
+```
+
+The dataset is derived from energyRt, Apache License 2.0, copyright the
+energyRt development team. The GAMS source is kept beside the parsed model:
+
+```{r energyrt-source}
+gms <- example_models$energyRt$gams$model
+length(gms)
+i <- grep("^eqTechCap", gms)[1]
+cat(gms[i:(i + 4)], sep = "\n")
+m <- example_models$energyRt$multimod
+m
+```
+
+### The matrix route
+
+```{r energyrt-lp, eval = has_highs}
+lp <- model_to_lp(m)
+dim(lp$A)
+r <- solve_highs(m, attach = FALSE)
+r$objective
+```
+
+Nineteen thousand rows and columns assemble and solve in a few seconds.
+
+### The file routes
+
+The same model goes through each generated language; the objective is the
+one to compare.
+
+```{r energyrt-ws}
+ws <- tempfile("energyrt-")
+dir.create(ws)
+```
+
+```{r energyrt-gmpl, eval = has_glpsol}
+write_gmpl(m, model_dir = ws)
+g <- solve_gmpl(m, ws, verbose = FALSE)
+c(objective = g$objective, status = g$status)
+```
+
+```{r energyrt-jump, eval = has_julia}
+write_jump(m, model_dir = ws)
+j <- solve_jump(m, ws, verbose = FALSE)
+c(objective = j$objective, status = j$status)
+```
+
+The generated Julia, one constraint:
+
+```{r energyrt-jump-code, eval = has_julia, results = "asis"}
+jl <- readLines(file.path(ws, "solvers", "jump", "model.jl"))
+i <- grep("@constraint", jl, fixed = TRUE)[1]
+cat("```julia", jl[i:(i + 4)], "```", sep = "\n")
+```
+
+```{r energyrt-pyomo, eval = has_python}
+write_pyomo(m, model_dir = ws, export_vars = TRUE)
+p <- solve_pyomo(m, ws, solver = "highs", verbose = FALSE, load_results = TRUE)
+c(objective = p$objective, status = p$status$termination)
+```
+
+With everything installed the four routes return 46398.42; GLPK takes
+about ten seconds on this model, Pyomo and JuMP somewhat longer, mostly in
+start-up.
+
+The GAMS source this model came from can also be regenerated:
+
+```{r energyrt-gams}
+out <- write_gams(m)
+length(out)
+```
+
+Any energyRt scenario enters the same way: energyRt's
+`multimod_from_energyRt()` builds the model from an interpolated scenario,
+with the structure from the GAMS template and the data from the scenario's
+tables.
+
+```{r energyrt-cleanup, include = FALSE}
+unlink(ws, recursive = TRUE)
+```
+

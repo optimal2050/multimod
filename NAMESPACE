@@ -421,14 +421,18 @@ export(write_solution)
 importFrom(magrittr,"%>%")
 importFrom(purrr,pluck_depth)
 importFrom(rlang,is_empty)
-importFrom(stats,ave)
-importFrom(stats,setNames)
-importFrom(utils,capture.output)
-importFrom(utils,globalVariables)
-importFrom(utils,head)
-importFrom(utils,modifyList)
-importFrom(utils,object.size)
-importFrom(utils,read.csv)
-importFrom(utils,str)
-importFrom(utils,tail)
-importFrom(utils,write.csv)
+importFrom(stats,
+  ave,
+  setNames
+)
+importFrom(utils,
+  capture.output,
+  globalVariables,
+  head,
+  modifyList,
+  object.size,
+  read.csv,
+  str,
+  tail,
+  write.csv
+)

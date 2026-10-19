@@ -7,7 +7,7 @@ Authors@R:
           email = "olugovoy@optimalsolution.dev", 
           role = c("aut", "cre"), 
           comment = c(ORCID = "0000-0001-5546-9875")))
-Description: A domain-specific language for defining the sets, parameters,
+Description: A domain-specific language for defining sets, parameters,
     variables, mappings and equations of an algebraic optimization model in R,
     and rendering the model to several mathematical programming languages,
     including 'GAMS', 'GNU MathProg', 'Pyomo' and 'JuMP', or to an LP matrix
@@ -60,4 +60,4 @@ Config/testthat/edition: 3
 VignetteBuilder: knitr
 LazyData: true
 Config/Needs/website: rmarkdown
-Config/roxygen2/version: 8.1.0
+Config/roxygen2/version: 8.1.1

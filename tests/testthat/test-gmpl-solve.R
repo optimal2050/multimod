@@ -3,7 +3,7 @@
 # =============================================================================
 #
 # This test suite validates the solve_gmpl() function for solving multimod
-# models using GMPL (GNU MathProg Language) via glpkAPI.
+# models using GMPL (GNU MathProg Language) via the glpsol executable.
 #
 # Tests cover:
 # • Basic solve functionality with UTOPIA model
@@ -15,13 +15,13 @@
 #
 # solve_gmpl() workflow:
 # 1. Read GMPL code (model.mod) and data (data.dat)
-# 2. Build problem with glpkAPI
+# 2. Solve the written model with glpsol
 # 3. Solve with specified method (simplex/interior/mixed)
 # 4. Extract solution (objective, status, timing)
 # 5. Optionally load results back into model object
 #
 # Dependencies:
-# - glpkAPI package (GLPK solver interface)
+# - glpsol package (bundled GLPK executable)
 # - save_model, write_gmpl for model preparation
 #
 # Note: Warning tracking is enabled to catch excessive warnings that may

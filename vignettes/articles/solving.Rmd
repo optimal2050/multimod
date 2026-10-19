@@ -1,0 +1,395 @@
+---
+title: "Solving and reading results"
+output: rmarkdown::html_vignette
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+has_highs  <- requireNamespace("highs", quietly = TRUE)
+has_glpsol <- !is.null(tryCatch(multimod::get_multimod_glpsol(), error = function(e) NULL)) &&
+  file.exists(multimod::get_multimod_glpsol())
+has_julia  <- nzchar(Sys.which(multimod::get_multimod_julia()))
+has_python <- isTRUE(tryCatch(multimod::mm_check_python(packages = c("pyomo", "highspy"))$ok,
+                              error = function(e) FALSE))
+```
+
+```{r setup}
+library(multimod)
+```
+
+`vignette("ast")` builds a model in R. This article takes that model to a
+solution and back: what the model object contains once it has data, where
+its files go, how multimod turns it into a matrix or into code for another
+toolchain, how to run that code, how the results come back, and what to
+look at when two routes disagree. The example is `example_models$toy`,
+three technologies supplying two regions. The chunks that need a solver run
+where it is installed; the text quotes the numbers from a run with all of
+them present.
+
+## The model as an object
+
+```{r model}
+toy <- example_models$toy
+toy
+```
+
+A model is a list of named components. Two kinds of content live in it and
+it pays to keep them apart:
+
+- **Declarations** say what exists. A parameter has dimensions, a variable
+  has dimensions and a *domain*, an equation has sides, a relation and a
+  domain. Rendering to any language only needs declarations.
+- **Data** says how much of it exists. Sets carry their members, mappings
+  their tuples, parameters their values. Solving needs data.
+
+The domain is the hinge between the two. A variable declared over
+`c("tech", "region")` with domain `"mTR"` has one instance per row of the
+mapping `mTR`, not one per combination of the sets. That is how a sparse
+model stays sparse, and it is also the first thing to check when an
+equation produces no rows.
+
+```{r domain}
+toy$variables$vGen$domain
+nrow(toy$mappings$mTR$data)
+toy$equations$eqDemand$domain$name
+toy$parameters$pDemand$data
+```
+
+## The workspace
+
+Everything written for a solver goes into one directory, the *workspace*.
+Its layout is fixed so that the generated code can find the data and so
+that results land where multimod expects to read them:
+
+```
+<model_dir>/
+  model.rds, metadata.json, format.txt    the structure and the data format
+  sets/<name>/data.csv                    one file per set
+  mappings/<name>/data.csv                one file per mapping
+  parameters/<name>/data.csv              one file per parameter
+  solvers/gmpl/   model.mod, data.dat     MathProg, written by write_gmpl()
+  solvers/jump/   model.jl,  data.jl      JuMP,     written by write_jump()
+  solvers/pyomo/  model.py,  data.py      Pyomo,    written by write_pyomo()
+  solvers/<backend>/solution/             what the solver run leaves behind
+  variables/<name>/data.csv               solutions loaded back into the model
+```
+
+`save_model()` creates a workspace explicitly (see "Model workspace and
+data" for formats and lazy loading). The writers create one themselves when
+the directory they are given is empty, which is what this article does:
+
+```{r workspace}
+ws <- tempfile("toy-")
+dir.create(ws)
+```
+
+## Solving in R
+
+The matrix route does not generate code. `model_to_lp()` walks the
+equations and the data and assembles the LP arrays directly.
+
+```{r lp}
+lp <- model_to_lp(toy)
+names(lp)
+dim(lp$A)
+```
+
+Each equation contributes one row per tuple of its domain mapping: six for
+`eqCapLim` (every tuple of `mTR`), two for `eqDemand` (every region in
+`mR`), one for the scalar `eqCost`. Each variable contributes one column per
+tuple of its domain: six, six, and one for `vCost`. The two index tables
+are the dictionary between matrix positions and model symbols, and every
+result table is built on them:
+
+```{r index}
+lp$row_index
+lp$col_index[c(1, 7, 13), ]
+lp$objective_symbol
+```
+
+`row_lo`/`row_up` and `col_lo`/`col_up` hold the bounds; an equality row
+has both equal, a `<=` row has `-Inf` below. Before solving a large model,
+`check_matrix_numbers()` reports the magnitude spectrum of the
+coefficients, right-hand sides and bounds. Coefficients spanning more than
+about eight orders of magnitude, or infinite entries, are the usual cause
+of a solver reporting "unbounded" or "infeasible" for a model that is
+neither, and the `offenders_*` tables name the equations and variables
+responsible.
+
+```{r numbers}
+cm <- check_matrix_numbers(lp)
+names(cm)
+```
+
+`solve_highs()` passes the arrays to the HiGHS solver in the 'highs'
+package. `attach = FALSE` returns the result as a list rather than storing
+it in the model.
+
+```{r highs, eval = has_highs}
+r <- solve_highs(toy, attach = FALSE)
+r$objective
+r$status_message
+```
+
+`status` is HiGHS's model-status code and `status_message` its name; 7 is
+"Optimal". The primal table is the column index with the solution and the
+reduced cost added, the dual table the row index with the row activity and
+the marginal. Here the marginal on `eqDemand` is the cost of one more unit
+of demand in each region:
+
+```{r highs-tables, eval = has_highs}
+r$primal[r$primal$value > 0, c("symbol", "i1", "i2", "value", "reduced_cost")]
+r$dual[r$dual$symbol == "eqDemand", c("symbol", "i1", "value", "marginal")]
+```
+
+The arrays can also leave R: `write_mps()` writes them as an MPS file for
+any solver that reads one, and `solve_mps()` solves such a file locally with
+HiGHS and writes a solution file `read_mps_solution()` understands.
+`mm_session()` keeps the assembled matrix between repeated solves of the
+same structure with changed data.
+
+## Generating code
+
+The file routes render the model in another language and leave the solve
+to that language's toolchain. MathProg is the one to read first: the whole
+generated model fits on a screen, and the other two backends differ from it
+in ways that are easier to see once this one is understood.
+
+### MathProg, in full
+
+```{r gmpl-write}
+f <- write_gmpl(toy, model_dir = ws)
+mod <- readLines(f$model)
+cat(mod[1:grep("^solve;", mod)], sep = "\n")
+```
+
+Reading top to bottom:
+
+- Sets are declared without members, mappings as sets of tuples with their
+  dimension (`dimen 2`). Members and tuples come from the data file.
+- `_IF_` is a one-element set multimod uses to express GAMS-style
+  `$` conditions as MathProg set filters; the toy has no conditions, so it
+  is declared and not used.
+- Parameters are declared with their index sets only; values come from the
+  data file.
+- Variables are declared over the full set product with iterator names
+  taken from the model's index aliases (`t`, `r`). Equations are declared
+  over their *domain mapping*, `{(h,r) in mTR}`, with the iterator names the
+  equation itself carries. This is where the domain shows up in generated
+  code: a tuple absent from `mTR` yields no constraint.
+- The objective equation `eqCost` is not written as a constraint. The
+  objective statement takes its right-hand side, because
+  `toy$objectives` names `eqCost` as the equation defining `vCost`.
+
+After `solve;` the file continues with `printf` statements, in two groups.
+The first writes `constraint_stats.csv` and `variable_stats.csv`, one line
+per equation and variable with the number of instances. The second writes
+the solution: one CSV per variable with the index columns and the value,
+filtered to non-zero entries, plus a log. These files are what
+`solve_gmpl()` reads back.
+
+```{r gmpl-export}
+cat(mod[grep("^printf \"tech,region,value", mod)[1] + 0:3], sep = "\n")
+```
+
+The data file is a MathProg data section:
+
+```{r gmpl-data}
+dat <- readLines(f$data)
+cat(dat[grep("^param pAvail", dat) + 0:7], sep = "\n")
+```
+
+Two rules of the format matter when a model misbehaves. MathProg has no
+implicit default: a parameter referenced for a tuple that is not in the
+data is an error unless the declaration carries `default`, so every
+parameter is written with one (the model's `defVal`, else 0). And every
+declared set, mapping and parameter must appear in the data section even
+when it is empty, so an empty mapping is written as `set name := ;`. A
+model whose data lives on disk is written one parameter at a time, so the
+data file for a large model never requires the whole model in memory.
+
+### JuMP
+
+`write_jump()` writes two files. `model.jl` holds the declarations and the
+constraints; `data.jl` loads the data from the workspace at run time, so
+data can change without regenerating the model.
+
+```{r jump-write}
+jl <- write_jump(toy, model_dir = ws)
+cat(grep("^@variable|^@objective", jl, value = TRUE), sep = "\n")
+i <- grep("eqCapLim\\[", jl)[1]
+cat(jl[(i - 2):(i + 2)], sep = "\n")
+```
+
+Three choices in this code are worth knowing about:
+
+- **Variables are indexed by their domain mapping**, `vCap[mTR]`, and
+  constraints iterate over it, `eqCapLim[(h, r) in mTR]`. The mapping is
+  loaded as a Julia `Set` of tuples (or of strings when it has one
+  dimension), so membership tests are constant time.
+- **Parameters are dictionaries read through `get()` with a default**,
+  `get(pCapCost, h, pCapCostDef)`. A tuple missing from the data yields the
+  declared default rather than an error, which mirrors the GAMS semantics
+  the AST follows.
+- **Every constraint block is timed and counted.** The generated code
+  writes `constraint_stats.csv` (instances, dimension, size of the domain
+  mapping, build time, non-zeros per row) and `variable_stats.csv`
+  (instances, bound types). On a translated model these two files are the
+  first thing to read: an equation with zero instances or a variable with
+  no finite bound is visible there before any solve.
+
+`data.jl` finds the workspace relative to its own location and detects the
+format from `format.txt`, so the same file works for CSV, Arrow IPC and
+Parquet workspaces. With `data_mode = "embedded"` the data is written into
+the Julia source instead, which makes a model file that runs anywhere but
+has to be regenerated when the data changes.
+
+### Pyomo
+
+`write_pyomo()` also writes two files, `model.py` and `data.py`. The model
+is a Pyomo `AbstractModel`: declarations only, instantiated with data by
+`data.py` at run time.
+
+```{r pyomo-write}
+py <- write_pyomo(toy, model_dir = ws, export_vars = TRUE)
+mp <- readLines(py)
+cat(grep("^model\\.(tech|mTR|pAvail|vGen|eqCapLim) ", mp, value = TRUE), sep = "\n")
+```
+
+Sets and parameters are declared with their index sets and defaults;
+variables over their domain mapping; constraints through a rule function
+per equation. The runner at the end of `model.py` builds the instance,
+picks the solver named in the `PYOMO_SOLVER` environment variable (set by
+`solve_pyomo(solver = )`), solves, and writes `solution/status.json`. With
+`export_vars = TRUE` it also writes `solution/variables.json`, which is
+what `load_results` reads.
+
+## Running the code
+
+Each `solve_*()` function runs the toolchain on the workspace and returns a
+list with `success`, `objective`, `status`, timing, the raw solver output,
+and, when a model is passed, the model with solutions attached under
+`$model`.
+
+```{r gmpl-solve, eval = has_glpsol}
+g <- solve_gmpl(toy, ws, verbose = FALSE)
+g$objective
+g$status
+```
+
+```{r jump-solve, eval = has_julia}
+j <- solve_jump(toy, ws, verbose = FALSE)
+j$objective
+j$status
+```
+
+```{r pyomo-solve, eval = has_python}
+p <- solve_pyomo(toy, ws, solver = "highs", verbose = FALSE, load_results = TRUE)
+p$objective
+p$status$termination
+```
+
+What each one runs, which is also how to run the code by hand from the
+backend's directory when something needs a closer look:
+
+| Route | Command | Leaves behind in `solvers/<backend>/` |
+|---|---|---|
+| GLPK | `glpsol -m model.mod -d data.dat -o solution.sol --log solver.log` | `solution.sol`, `solver.log`, `solution/*.csv`, the two stats files |
+| JuMP | `julia model.jl` | `solution/*.csv`, the two stats files, the Julia output |
+| Pyomo | `python model.py` | `solution/status.json`, `solution/variables.json` |
+
+The first Julia run installs the packages the model needs and compiles
+them, which takes minutes; later runs take seconds. `solve_jump()` and
+`solve_gmpl()` accept `timeout =`; `solve_pyomo()` checks the Python
+environment with `mm_check_python()` before running unless
+`ensure_env = FALSE`.
+
+## Results back in R
+
+With `load_results = TRUE` (the default when a model is passed) every route
+stores each variable's values as a data frame under
+`model$variables[[name]]$solution`, with the dimension names as columns and
+`value` last, and copies the files to `variables/` in the workspace.
+
+```{r results, eval = has_glpsol}
+g$model$variables$vGen$solution
+g$model$solution_metadata$variables_loaded
+```
+
+Because every table has the same shape, results from different routes
+line up directly. The objective is the simplest comparison:
+
+```{r compare, eval = has_highs}
+objectives <- c(highs = r$objective)
+if (has_glpsol) objectives["gmpl"]  <- g$objective
+if (has_julia)  objectives["jump"]  <- j$objective
+if (has_python) objectives["pyomo"] <- p$objective
+objectives
+```
+
+and one variable across routes is a merge on the index columns:
+
+```{r compare-var, eval = has_highs && has_glpsol}
+v_highs <- r$primal[r$primal$symbol == "vGen", c("i1", "i2", "value")]
+names(v_highs) <- c("tech", "region", "highs")
+v_gmpl <- g$model$variables$vGen$solution
+names(v_gmpl)[3] <- "gmpl"
+merge(v_highs, v_gmpl, all = TRUE)
+```
+
+The GLPK table lists only non-zero entries (the generated `printf` loop
+filters them), so the merge fills the zeros with `NA`; the matrix route
+reports every column.
+
+## When routes disagree
+
+Same model, same data, different objective: the translation has read
+something differently. The cases below account for nearly all of them, in
+the order to check.
+
+1. **An equation produces no rows.** Its domain mapping has no tuples, or
+   the tuples do not match the data. In R, `table(lp$row_index$symbol)`
+   shows the row count per equation, and `model_to_lp(on_empty_row = )`
+   decides whether an empty row is an error (the default for user
+   constraints), a warning or ignored. In JuMP, `constraint_stats.csv`
+   shows `count` 0; in MathProg the same file shows the cardinality
+   product, which is only an upper bound.
+2. **A parameter's default differs.** The matrix route and JuMP use the
+   declared `defVal` for a tuple missing from the data; MathProg uses the
+   `default` written in the data file, which is `defVal` or 0. A parameter
+   whose `defVal` is `NULL` and whose data is incomplete is read as 0 by
+   every route, which may not be what the model meant. `validate()` lists
+   parameters without data.
+3. **Infinite values.** `Inf` in parameter data cannot enter a matrix. The
+   matrix route drops the affected rows and maps an infinite default to 0,
+   as the energyRt writers do; MathProg receives `1e20`
+   (`write_gmpl(INF = )`); JuMP and Pyomo receive `Inf` as a bound where the
+   value is a bound and as a coefficient otherwise, where the solver
+   decides. Search the data for `Inf` before comparing.
+4. **Missing index aliases.** The text backends write iterator names from
+   the model's index aliases. A model built in R has none until
+   `add_index_aliases()` adds them; without them a `sum{}` is written with
+   no iterator and glpsol rejects the file. `has_index_aliases()` tells.
+5. **Row counts, not objectives.** When the objectives differ, compare
+   per-equation instance counts first (`table(lp$row_index$symbol)` against
+   `constraint_stats.csv`), then per-variable bounds
+   (`lp$col_index` against `variable_stats.csv`). A count that differs
+   points at the equation; an objective that differs points nowhere.
+
+## Choosing a route
+
+| Route | Needs | Returns | Use when |
+|---|---|---|---|
+| `solve_highs()` | the 'highs' R package | primal, duals, reduced costs, the LP arrays | the model fits in memory and you want duals or repeated solves (`mm_session()`) |
+| `write_mps()` | nothing | an MPS file | the solver is elsewhere, including cloud hardware |
+| `solve_gmpl()` | `glpsol` | primal values | a small or medium LP, or when a readable model file is the point |
+| `solve_jump()` | Julia | primal values, build statistics | a large model, or a solver only JuMP wraps (`optimizer =`) |
+| `solve_pyomo()` | Python with pyomo | primal values, status | the results continue in a Python pipeline |
+| `write_gams()` | GAMS elsewhere | GAMS source | hand-over to a GAMS installation or NEOS |
+
+Whatever the route, the same model object, data and workspace are behind
+it, which is what makes the comparison in the previous section possible.
+
+```{r cleanup, include = FALSE}
+unlink(ws, recursive = TRUE)
+```

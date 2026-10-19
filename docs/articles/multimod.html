@@ -43,26 +43,21 @@
       <ul class="navbar-nav me-auto">
 <li class="active nav-item"><a class="nav-link" href="../articles/multimod.html">Get started</a></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Development Status</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-tutorials" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Tutorials</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials">
-<li><h6 class="dropdown-header" data-toc-skip>Getting Started</h6></li>
-    <li><a class="dropdown-item" href="../articles/multimod.html">Overview</a></li>
+<li><h6 class="dropdown-header" data-toc-skip>A model from R</h6></li>
+    <li><a class="dropdown-item" href="../articles/ast.html">Writing a model in R</a></li>
+    <li><a class="dropdown-item" href="../articles/solving.html">Solving and reading results</a></li>
+    <li><a class="dropdown-item" href="../articles/model_workspace.html">Model workspace and data</a></li>
+    <li><a class="dropdown-item" href="../articles/folding.html">Folding and trimming</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Code Generation</h6></li>
-    <li><h6 class="dropdown-header" data-toc-skip>JuMP Integration</h6></li>
-    <li><h6 class="dropdown-header" data-toc-skip>GMPL Integration</h6></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Pyomo Integration</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>An existing model</h6></li>
+    <li><a class="dropdown-item" href="../articles/field-models.html">Two models from the field</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Model Management</h6></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Configuration System</h6></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Model Workspace</h6></li>
-    <li><h6 class="dropdown-header" data-toc-skip>LaTeX Generation</h6></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Advanced</h6></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Model Optimization (Folding &amp; Trimming)</h6></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Abstract Syntax Tree (AST)</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Reference</h6></li>
+    <li><a class="dropdown-item" href="../articles/configuration.html">Configuring solver paths</a></li>
+    <li><a class="dropdown-item" href="../articles/latex.html">LaTeX rendering</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
@@ -102,21 +97,40 @@
 
     
     
-<p>[The Vignette is under revision]</p>
-<p>This vignette provides an overview of the current functionality of
-the <code>multimod</code> package, which is designed to parse GAMS
-models and convert them into a structured format for further analysis,
-visualization, rendering to LaTeX, and other mathematical programming
-languages.</p>
+<p>multimod stores an optimization model as an abstract syntax tree —
+sets, mappings, parameters, variables and equations — independent of any
+modeling language. A model becomes coupled to the language it was first
+written in; multimod separates three concerns: the model’s
+<em>meaning</em> (the AST), its <em>representation</em> (LaTeX,
+executable code in another language, JSON, or a sparse LP matrix) and
+its <em>execution</em> (a local solver, an institutional modeling
+environment, or remote hardware). That separation lets one formulation
+be compared across backends, documented as the exact model being solved,
+manipulated before execution, and reused across solver ecosystems.</p>
+<p>A model enters in three ways: written in R with the constructors,
+written as MathProg, GAMS or JuMP text with <code><a href="../reference/mm_equation.html">mm_equation()</a></code>,
+or read from an existing GAMS or MathProg source. It leaves as rendered
+code for GAMS, MathProg, JuMP or Pyomo, as a LaTeX formulation, or as
+the LP matrix multimod assembles and solves in R with HiGHS. This
+vignette walks through that representation and what the package does
+with it.</p>
+<p>Linear programs with continuous variables are the tested class.
+Integer and binary variables are carried in the AST and written by the
+JuMP and Pyomo writers; nonlinear expressions have AST nodes but no
+tested route to a solver. The <a href="https://optimal2050.github.io/multimod/articles/roadmap.html">roadmap</a>
+lists the limitations in full.</p>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
-<p>The development version of the package is available for installation
-from GitHub using the <code>pak</code> package. The package is not yet
-available on CRAN.</p>
+<p>Install the development version from GitHub with the <code>pak</code>
+package:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># install.packages("pak")</span></span>
 <span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pkg_install.html" class="external-link">pkg_install</a></span><span class="op">(</span><span class="st">"optimal2050/multimod"</span>, dependencies <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<p>The matrix route needs only the ‘highs’ package. The GLPK route’s
+<code>glpsol</code> binary ships with the ‘glpsol’ package; Julia with
+JuMP and Python with Pyomo are configured as described in the
+“Configuring solver paths” article.</p>
 </div>
 <div class="section level2">
 <h2 id="setup">Setup<a class="anchor" aria-label="anchor" href="#setup"></a>
@@ -127,19 +141,11 @@ available on CRAN.</p>
 <div class="section level2">
 <h2 id="example-model">Example model<a class="anchor" aria-label="anchor" href="#example-model"></a>
 </h2>
-<p>Download example model</p>
+<p>The package ships the GAMS source of the energyRt model in
+<code>example_models</code>, both as text and as an already converted
+<code>multimod</code> object.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">gams_source</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"energyRt.gms"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Download "energyRt.gms" GAMS model source file from GitHub</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/download.file.html" class="external-link">download.file</a></span><span class="op">(</span></span>
-<span>  url <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="st">"https://raw.githubusercontent.com/optimal2050/energyRt"</span>,</span>
-<span>                  <span class="st">"refs/heads/master/gams/energyRt.gms"</span><span class="op">)</span>,</span>
-<span>  destfile <span class="op">=</span> <span class="va">gams_source</span>,</span>
-<span>  method <span class="op">=</span> <span class="st">"curl"</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.exists</a></span><span class="op">(</span><span class="va">gams_source</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">gams_source</span> <span class="op">&lt;-</span> <span class="va">example_models</span><span class="op">$</span><span class="va">energyRt</span><span class="op">$</span><span class="va">gams</span><span class="op">$</span><span class="va">model</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="parse-model-structure">Parse model structure<a class="anchor" aria-label="anchor" href="#parse-model-structure"></a>
@@ -151,7 +157,7 @@ equations/constraints. Data and operations on data are not imported–the
 parser focuses on the model structure, which is stored in an object of
 class <code>model_structure</code>.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">mod_str</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_gams.html">read_gams</a></span><span class="op">(</span><span class="va">gams_source</span>, include <span class="op">=</span> <span class="cn">FALSE</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">mod_str</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_gams.html">read_gams</a></span><span class="op">(</span>file_or_text <span class="op">=</span> <span class="va">gams_source</span>, include <span class="op">=</span> <span class="cn">FALSE</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/print.html">print</a></span><span class="op">(</span><span class="va">mod_str</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
@@ -296,8 +302,8 @@ and the values are the shorter aliases.</p>
 <span>  comm <span class="op">=</span> <span class="st">"c"</span>, </span>
 <span>  commp <span class="op">=</span> <span class="st">"cp"</span>, </span>
 <span>  tech <span class="op">=</span> <span class="st">"t"</span>, </span>
-<span>  year <span class="op">=</span> <span class="st">"y"</span>, </span>
-<span>  slice <span class="op">=</span> <span class="st">"s"</span></span>
+<span>  year <span class="op">=</span> <span class="st">"y"</span>,</span>
+<span>  timeslice <span class="op">=</span> <span class="st">"s"</span></span>
 <span><span class="op">)</span></span>
 <span><span class="co"># eq &lt;- mod$equations$eqTechVarom # the same equation as above</span></span>
 <span><span class="va">eq_tex_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"tmp/"</span>, <span class="va">eq</span><span class="op">$</span><span class="va">name</span>, <span class="st">"_short.tex"</span><span class="op">)</span></span>
@@ -317,7 +323,7 @@ parameters, and variables.</p>
 <span>            title <span class="op">=</span> <span class="st">"Base energyRt model"</span>,</span>
 <span>            subtitle <span class="op">=</span> <span class="st">"Imported from GAMS and rendered to LaTeX by multimod"</span>,</span>
 <span>            author <span class="op">=</span> <span class="st">"energyRt authors"</span>,</span>
-<span>            alias_map <span class="op">=</span> <span class="fu">multimod</span><span class="fu">::</span><span class="va">example_model</span><span class="op">$</span><span class="va">short_aliases</span><span class="op">)</span></span>
+<span>            alias_map <span class="op">=</span> <span class="va">mod</span><span class="op">$</span><span class="va">index_aliases</span><span class="op">)</span></span>
 <span><span class="fu">tinytex</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/tinytex/man/latexmk.html" class="external-link">pdflatex</a></span><span class="op">(</span><span class="st">"tmp/example_model.tex"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="images/example_model.png" class="r-plt" alt="" width="1275"></p>
 </div>
@@ -327,19 +333,38 @@ parameters, and variables.</p>
 </h2>
 <p>The idea of the <code>multimod</code> package is to provide a way to
 convert the model structure back to GAMS, Julia/JuMP, Python/Pyomo, or
-other mathematical programming languages. The current version has a
-drafted implementation of the <code>as_gams</code> method, which
-converts the multimod object back to GAMS code. This feature does not
-create a fully functional GAMS model yet, it exports declarations only.
-Connections with data is planned for future releases.</p>
+other mathematical programming languages. The <code>as_gams</code>
+method converts a multimod object or equation back to GAMS code;
+<code><a href="../reference/write_gams.html">write_gams()</a></code> renders the whole model to a <code>.gms</code>
+file and <code><a href="../reference/write_gams_data.html">write_gams_data()</a></code> exports the data as a GDX.</p>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/as_gams.html">as_gams</a></span><span class="op">(</span><span class="va">mod</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqTechCapUp</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; eqTechCapUp[tech,region,year]$mTechCapUp[tech,region,year]..</span></span>
 <span><span class="co">#&gt;   vTechCap[tech,region,year] =l=</span></span>
 <span><span class="co">#&gt;   pTechCapUp[tech,region,year];</span></span></code></pre></div>
-<p>Render full model.</p>
+<p>Render the full model and its data.</p>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/write_gams.html">write_gams</a></span><span class="op">(</span><span class="va">mod</span>, file <span class="op">=</span> <span class="st">"tmp/example_model.gms"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/write_gams.html">write_gams</a></span><span class="op">(</span><span class="va">mod</span>, file <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"example_model.gms"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/write_gams_data.html">write_gams_data</a></span><span class="op">(</span><span class="va">mod</span>, file <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"example_model.gdx"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="routes-to-a-solver">Routes to a solver<a class="anchor" aria-label="anchor" href="#routes-to-a-solver"></a>
+</h2>
+<p>A model with data attached can be solved two ways. The matrix route
+assembles the LP in R: <code><a href="../reference/model_to_lp.html">model_to_lp()</a></code> builds the coefficient
+matrix from the equations, <code><a href="../reference/solve_highs.html">solve_highs()</a></code> solves it in
+process with HiGHS, and <code><a href="../reference/mm_session.html">mm_session()</a></code> keeps the matrix
+between repeated solves. The file routes write the model in another
+language and run its toolchain: <code><a href="../reference/write_gmpl.html">write_gmpl()</a></code> with
+<code><a href="../reference/solve_gmpl.html">solve_gmpl()</a></code> (GLPK), <code><a href="../reference/write_jump.html">write_jump()</a></code> with
+<code><a href="../reference/solve_jump.html">solve_jump()</a></code> (Julia), <code><a href="../reference/write_pyomo.html">write_pyomo()</a></code> with
+<code><a href="../reference/solve_pyomo.html">solve_pyomo()</a></code> (Python). <code>example_models$toy</code> is
+a small LP to try them on; the website article “Solving and reading
+results” takes it through every route, and “Two models from the field”
+does the same for the energyRt reference model and OSeMOSYS.</p>
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">r</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_highs.html">solve_highs</a></span><span class="op">(</span><span class="va">example_models</span><span class="op">$</span><span class="va">toy</span>, attach <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="va">r</span><span class="op">$</span><span class="va">objective</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="summary">Summary<a class="anchor" aria-label="anchor" href="#summary"></a>
@@ -349,7 +374,7 @@ the <code>multimod</code> package, which allows for parsing certain GAMS
 models, converting them into a structured format, rendering to LaTeX,
 and converting back to GAMS code. The package is still under
 development, not all styles of GAMS models and syntax are supported,
-more features will be added in the future. See the <a href="roadmap.html">{dev-status}</a> article for details.</p>
+more features will be added in the future. See the <a href="roadmap.html">Development status</a> article for details.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
