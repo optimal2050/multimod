@@ -1,801 +1,430 @@
-# Parameter Folding: Reducing Model Size Through Redundancy Elimination
+# Folding and trimming
 
 ``` r
 
 library(multimod)
-library(energyRt)
-#> energyRt 0.90.0.9016-dev (2026-10-07)
-#> Development version, please report bugs/issues:
-#> https://github.com/optimal2050/energyRt/issues
-#> 
-#> Attaching package: 'energyRt'
-#> The following objects are masked from 'package:multimod':
-#> 
-#>     load_model, save_model, update_parameter
+mod <- example_models$energyRt$multimod
+mod
+#> Model: 
+#> Source:  C:/Users/admin/Documents/R/energyRt/gams/energyRt.gms 
+#> Language:  GAMS 
+#> Sets:  27 
+#> Mappings:  324 
+#> Aliases:  7 
+#> Parameters:  218 
+#> Variables:  93 
+#> Equations:  153
 ```
 
-## Overview
+## The flexibility-performance tradeoff
 
-Parameter folding is an optimization technique that reduces model size
-by removing dimensions from parameters when those dimensions contain
-only redundant (repeated) values. This can significantly reduce:
+Framework models such as energyRt are written for maximum flexibility:
+one generic set of equations covers technologies, storage, trade,
+emissions and more, and every parameter is indexed over every dimension
+it could ever vary by (technology, commodity, region, year, timeslice).
+A given scenario uses only part of that:
 
-- **Model file size** (both `.mod` and `.dat` files)
-- **Memory usage** during model generation and solving
-- **Solve time** by reducing the number of non-zero coefficients
+- a single-region model has no interregional trade,
+- most technologies have the same efficiency in every timeslice,
+- features the scenario does not use leave sets and mappings empty, and
+  the equations that depend on them generate no constraints.
 
-### The Core Idea
+The flexibility is paid for at model-build time and in the solver: data
+that is repeated across a dimension inflates the data files and the
+coefficient count, and equations with empty domains are still processed.
+`multimod` offers two complementary transformations that remove this
+redundancy without changing the optimum:
 
-Many energy system models have parameters indexed by multiple
-dimensions, but not all dimension combinations are actually used. For
-example:
+1.  **Folding** removes a dimension from a parameter when the values are
+    constant across it (data redundancy).
+2.  **Trimming** marks sets, parameters, mappings, variables and
+    equations that have no data or no instances, so code generators skip
+    them (structural redundancy).
 
-    # Original parameter: 5D with 1080 rows
-    pTechCinp2use{tech, comm, region, year, slice}
+Both are reversible and both are honoured by every writer and by the
+direct matrix route.
 
-    # But if values are constant across 'slice' dimension:
-    pTechCinp2use[E01, ELC, R1, 2025, SPRING] = 0.95
-    pTechCinp2use[E01, ELC, R1, 2025, SUMMER] = 0.95
-    pTechCinp2use[E01, ELC, R1, 2025, AUTUMN] = 0.95
-    pTechCinp2use[E01, ELC, R1, 2025, WINTER] = 0.95
+## Folding
 
-    # Can be folded to: 4D with 90 rows (12x compression)
-    pTechCinp2use{tech, comm, region, year}
-    pTechCinp2use[E01, ELC, R1, 2025] = 0.95
+### The idea
 
-When equations reference the folded parameter, the slice index is simply
-omitted:
+Take a 5-dimensional parameter whose values do not depend on the
+timeslice:
 
-    # Before folding:
+    pTechCinp2use[E01, ELC, R1, 2025, s1] = 0.95
+    pTechCinp2use[E01, ELC, R1, 2025, s2] = 0.95
+    ...
+
+Folding drops the `timeslice` dimension and keeps one row per remaining
+index combination. Equations that reference the parameter are rewritten
+to omit the folded index:
+
+    # before
     vTechInp[t,c,r,y,s] >= pTechCinp2use[t,c,r,y,s] * vTechAct[t,r,y,s]
+    # after
+    vTechInp[t,c,r,y,s] >= pTechCinp2use[t,c,r,y]   * vTechAct[t,r,y,s]
 
-    # After folding:
-    vTechInp[t,c,r,y,s] >= pTechCinp2use[t,c,r,y] * vTechAct[t,r,y,s]
+### Diagnose redundancy
 
-## Diagnostic Analysis
-
-Before folding, it’s useful to analyze which parameters have high
-redundancy and would benefit from folding.
-
-### Load Example Model
-
-``` r
-
-# Read GAMS model structure
-gams_file <- 'dev/scenarios/BASE_UTOPIA/script/gams_cbc/energyRt.gms'
-model_struct <- read_gams(gams_file)
-model <- as_multimod(model_struct)
-
-# Import scenario data
-load('dev/scenarios/BASE_UTOPIA/scen.RData')
-model$base_path <- 'dev/scenarios/BASE_UTOPIA'
-model <- import_energyRt_data(model, scen, inMemory = TRUE)
-```
-
-### Analyze Redundancy
-
-The
 [`analyze_parameter_redundancy()`](https://optimal2050.github.io/multimod/reference/analyze_parameter_redundancy.md)
-function calculates redundancy metrics for all parameters:
+reports, per parameter, how many rows carry a repeated value. High
+redundancy marks a folding candidate.
 
 ``` r
 
-# Analyze redundancy before folding
-redundancy_before <- analyze_parameter_redundancy(
-  model, 
-  verbose = TRUE,
-  return_details = TRUE
-)
+red <- analyze_parameter_redundancy(mod, verbose = FALSE)
+red <- red[order(-red$orig_redundancy_pct), ]
+head(red[, c("param_name", "dims", "orig_rows", "orig_unique",
+             "orig_redundancy_pct")], 8)
+#>          param_name                                   dims orig_rows
+#> 3     pTechCinp2use    tech, comm, region, year, timeslice      1344
+#> 30      pTradeIrEff trade, region, region, year, timeslice       576
+#> 8         pTechAfLo          tech, region, year, timeslice       336
+#> 23   pStorageInpEff     stg, comm, region, year, timeslice       336
+#> 24   pStorageOutEff     stg, comm, region, year, timeslice       336
+#> 20    pTimesliceAgg             year, timeslice, timeslice       180
+#> 19 pTimesliceWeight                        year, timeslice        68
+#> 35    pTradeInvcost                    trade, region, year        48
+#>    orig_unique orig_redundancy_pct
+#> 3            3                99.8
+#> 30           1                99.8
+#> 8            1                99.7
+#> 23           1                99.7
+#> 24           1                99.7
+#> 20           1                99.4
+#> 19           1                98.5
+#> 35           1                97.9
 ```
 
-**Output:**
+### Build a fold specification
 
-    === Parameter Redundancy Analysis ===
-    Total parameters analyzed: 94
-
-    Summary Statistics:
-      Min redundancy: 0.0%
-      Median redundancy: 88.9%
-      Mean redundancy: 77.1%
-      Max redundancy: 99.7%
-
-    High Redundancy Parameters (>50%): 46 parameters
-      pTechAct2AOut: 99.7% (1512 rows, 5 unique values)
-      pTechCinp2use: 98.9% (1080 rows, 12 unique values)
-      pTechUse2cact: 98.9% (1080 rows, 12 unique values)
-      ...
-
-Key metrics: - **Original redundancy**: Percentage of rows with repeated
-values - **Rows**: Total data rows - **Unique values**: Number of
-distinct values (lower = more redundancy)
-
-## Creating a Fold Specification
-
-The fold specification determines which parameters can be folded and
-which dimension to remove.
-
-### Option 1: Simple Generic Interface
-
-For simple cases, use
 [`create_fold_spec()`](https://optimal2050.github.io/multimod/reference/create_fold_spec.md)
-with dimension-to-mapping pairs:
-
-``` r
-
-# Fold slice dimension using mCommSlice for validation
-fold_spec <- create_fold_spec(
-  model,
-  fold_dims = list(slice = "mCommSlice")
-)
-```
-
-### Option 2: energyRt-Specific Interface
-
-For energyRt models with entity-specific mappings, use
-[`create_fold_spec()`](https://optimal2050.github.io/multimod/reference/create_fold_spec.md):
+takes `fold_dims`, a named list: one entry per dimension to fold, whose
+value names the *validation mappings* to check against. For an energyRt
+model the technology parameters are validated against `mTechTimeslice`
+and the commodity parameters against `mCommTimeslice`:
 
 ``` r
 
 fold_spec <- create_fold_spec(
-  model,
+  mod,
   fold_dims = list(
-    slice = list(
-      tech = 'mTechSlice',      # Technology parameters use mTechSlice mapping
-      sup = 'mSupSlice',        # Supply parameters use mSupSlice mapping
-      comm = 'mCommSlice',      # Commodity parameters use mCommSlice mapping
-      stg = c('mStorageComm', 'mCommSlice')  # Storage uses chain: storage→comm→slice
-    )
-  )
+    timeslice = list(tech = "mTechTimeslice", comm = "mCommTimeslice")
+  ),
+  verbose = FALSE
 )
-
-# View foldable parameters
-cat("Foldable parameters:", sum(fold_spec$can_fold), "\n")
+fold_spec[, c("param_name", "validation_mapping", "can_fold", "unproven")]
+#>         param_name validation_mapping can_fold unproven
+#> 1    pTechCinp2use     mTechTimeslice     TRUE    FALSE
+#> 2        pTechAfLo     mTechTimeslice     TRUE    FALSE
+#> 3         pSupCost     mCommTimeslice     TRUE    FALSE
+#> 4 pTimesliceWeight               <NA>     TRUE    FALSE
+#> 5    pTimesliceAgg               <NA>    FALSE    FALSE
+#> 6   pStorageInpEff     mCommTimeslice     TRUE    FALSE
+#> 7   pStorageOutEff     mCommTimeslice     TRUE    FALSE
+#> 8      pTradeIrEff               <NA>    FALSE    FALSE
+#> 9  pImportRowPrice               <NA>    FALSE     TRUE
 ```
 
-**Key concepts:**
+The result is a data frame with one row per parameter that carries the
+dimension. `can_fold` is `TRUE` when the values are constant across the
+dimension in every group formed by the other indices. `unproven` flags
+parameters that failed only because no validation mapping was found for
+their entity type; supplying one (for example `sup = "mSupTimeslice"`)
+would let them be checked.
 
-1.  **Validation mappings**: Specify which entity mapping (e.g.,
-    `mTechSlice`) to use for validating that folding is safe
-2.  **Mapping chains**: For parameters requiring multi-hop validation
-    (e.g., storage parameters need `mStorageComm → mCommSlice`)
-3.  **Automatic detection**: The function analyzes each parameter’s data
-    to determine if values are constant across the dimension
+Why validate against a mapping? A parameter may be constant across the
+timeslice *in the data* only because the scenario never varied it. The
+mapping says which entities are allowed to vary by that dimension, so
+folding stays consistent with the model structure, not just with one
+dataset. A value of `c("mStorageComm", "mCommTimeslice")` chains two
+mappings when the entity is linked to the dimension indirectly.
 
-### Understanding Validation Mappings
-
-Folding is only safe when values are constant across a dimension **for
-each relevant entity**. The validation mapping specifies which entities
-to check:
-
-    # For technology parameter with dims {tech, comm, region, year, slice}
-    # Check if values constant across slice FOR EACH tech
-
-    # Using mTechSlice (which techs have slice variation):
-    FOR EACH (tech, comm, region, year) group:
-      - If tech is in mTechSlice: SKIP (needs slice detail)
-      - Otherwise: check if all slice values are identical
-      
-    # If all groups pass → can fold
-
-## Applying the Fold
+Several dimensions can be folded in one specification; they are applied
+in the order given, each on the result of the previous one:
 
 ``` r
 
-model_folded <- fold_model(model, fold_spec = fold_spec, verbose = TRUE)
+create_fold_spec(
+  mod,
+  fold_dims = list(
+    timeslice = list(tech = "mTechTimeslice", comm = "mCommTimeslice"),
+    region    = list(comm = "mCommRegion")
+  )
+)
 ```
 
-**Output:**
+### Apply the fold
 
-    === Folding Model ===
-    Parameters specified: 23
+``` r
 
-    ✓ pTechCinp2use: 5D → 4D (1080 → 90 rows, 12.0x)
-    ✓ pTechUse2cact: 5D → 4D (1080 → 90 rows, 12.0x)
-    ✓ pTechCact2cout: 5D → 4D (1080 → 90 rows, 12.0x)
-    ✓ pTechAct2AOut: 5D → 4D (1512 → 126 rows, 12.0x)
-    ✓ pTechAfLo: 4D → 3D (72 → 6 rows, 12.0x)
-    ...
+mod_folded <- fold_model(mod, fold_spec = fold_spec, verbose = FALSE)
+is_folded(mod)
+#> [1] FALSE
+is_folded(mod_folded)
+#> [1] TRUE
+```
 
-    === Fold Summary ===
-    Parameters folded: 19
-    Total data rows: 6,705 → 629 (10.7x compression)
-
-    === Folding Equations ===
-    Equations with folded params: 22
-
-The folding process: 1. Reduces parameter dimensions and data 2. Updates
-all equations that reference folded parameters 3. Preserves model
-structure and metadata
-
-## Analyzing Results
-
-### Get Folding Statistics
-
-Use
+[`fold_model()`](https://optimal2050.github.io/multimod/reference/fold_model.md)
+collapses the data of every parameter with `can_fold = TRUE`, rewrites
+each equation that references one of them, and records what it did in
+`model$misc$fold_summary`.
 [`get_fold_summary()`](https://optimal2050.github.io/multimod/reference/get_fold_summary.md)
-to extract comprehensive folding statistics:
+reads that record:
 
 ``` r
 
-# Get formatted text summary
-get_fold_summary(model_folded, format = "text")
+get_fold_summary(mod_folded, format = "data.frame")[
+  , c("parameter", "removed_dims", "original_rows", "folded_rows", "compression")]
+#>          parameter removed_dims original_rows folded_rows compression
+#> 1    pTechCinp2use    timeslice          1344         112       12.0x
+#> 2        pTechAfLo    timeslice           336          28       12.0x
+#> 3         pSupCost    timeslice            76          76        1.0x
+#> 4 pTimesliceWeight    timeslice            68           4       17.0x
+#> 5   pStorageInpEff    timeslice           336          28       12.0x
+#> 6   pStorageOutEff    timeslice           336          28       12.0x
 ```
 
-**Output:**
+With `format = "text"` the same information is printed as a report;
+`format = "list"` returns it as nested lists.
 
-    === Folding Statistics ===
+### Inspect a folded parameter
 
-    Parameters folded: 19 / 151 (12.6%)
-
-    Parameter                        Original Dims          Folded Dims            Rows Compression
-    pTechCinp2use             tech × comm × year × slice tech × comm × year   1080→18          60.0x
-    pTechUse2cact             tech × comm × year × slice tech × comm × year   1080→18          60.0x
-    ...
-
-    Removed dimensions by parameter:
-      pTechCinp2use            : region, slice
-      pTechUse2cact            : region, slice
-      ...
+[`is_folded()`](https://optimal2050.github.io/multimod/reference/is_folded.md)
+also works on a single parameter, and
+[`get_active_dims()`](https://optimal2050.github.io/multimod/reference/get_active_dims.md)
+returns the dimensions in force after folding; the declaration stays in
+`$dims`.
 
 ``` r
 
-# Get as data frame for analysis
-summary_df <- get_fold_summary(model_folded, format = "data.frame")
-print(summary_df[1:5, ])
+p <- mod_folded$parameters$pTechCinp2use
+is_folded(p)
+#> [1] TRUE
+p$dims              # as declared
+#> <AST dims> 
+#> [tech,comm,region,year,timeslice]
+get_active_dims(p)  # in force after folding
+#> <AST dims> 
+#> [tech,comm,region,year]
+
+# parameters the fold did not touch keep their declaration
+is_folded(mod_folded$parameters$pTechInvcost)
+#> [1] FALSE
 ```
 
-**Output:**
-
-           parameter                       original_dims                  folded_dims removed_dims
-    1  pTechCinp2use tech × comm × region × year × slice tech × comm × region × year        slice
-    2  pTechUse2cact tech × comm × region × year × slice tech × comm × region × year        slice
-    ...
+The fold metadata lives in `p$misc$fold_info`:
 
 ``` r
 
-# Get as structured list for programmatic access
-stats <- get_fold_summary(model_folded, format = "list")
-cat("Folded:", stats$n_folded, "/", stats$n_total, "parameters\n")
-cat("Example:", stats$parameters[[1]]$parameter, 
-    "compressed", stats$parameters[[1]]$compression, "\n")
+p$misc$fold_info[c("original_dims", "removed_dims", "original_rows",
+                   "folded_rows", "compression_ratio")]
+#> $original_dims
+#> [1] "tech"      "comm"      "region"    "year"      "timeslice"
+#> 
+#> $removed_dims
+#> [1] "timeslice"
+#> 
+#> $original_rows
+#> [1] 1344
+#> 
+#> $folded_rows
+#> [1] 112
+#> 
+#> $compression_ratio
+#> [1] 12
 ```
 
-**Output:**
+### Unfold
 
-    Folded: 19 / 151 parameters
-    Example: pTechCinp2use compressed 12.0x
-
-### Analyze Remaining Redundancy
-
-After folding, analyze the remaining redundancy:
+[`unfold_model()`](https://optimal2050.github.io/multimod/reference/unfold_model.md)
+restores the original data and dimensions of every folded parameter:
 
 ``` r
 
-redundancy_after <- analyze_parameter_redundancy(
-  model_folded,
-  verbose = TRUE,
-  return_details = TRUE
-)
+mod_unfolded <- unfold_model(mod_folded, verbose = FALSE)
+nrow(mod_unfolded$parameters$pTechCinp2use$data)
+#> [1] 1344
+nrow(mod$parameters$pTechCinp2use$data)
+#> [1] 1344
 ```
 
-**Output:**
+### Aliases and repeated dimensions
 
-    === Parameter Redundancy Analysis ===
+A parameter can be declared with one dimension name while its data uses
+an alias column (`comm` declared, `acomm` in the data), or a dimension
+can appear twice in different roles (`{region, region}` stored as `src`,
+`dst`). Folding resolves the first through `model$aliases` and keeps
+every data column other than the folded one for the second, so both
+cases fold without special handling.
 
-    Folded Parameters with Remaining Redundancy (>20%): 16 parameters
-      pTechUse2cact: 90.1% after fold (90 rows, 9 unique)
-        - Original: 1080 rows, 98.9% redundancy
-        - Compression: 12.0x
-        - Remaining potential: 10.0x more
+## Trimming
 
-      pStorageCostStore: 66.7% after fold (3 rows, 1 unique)
-        - Original: 36 rows, 97.2% redundancy
-        - Compression: 12.0x
-        - Remaining potential: 3.0x more
+### The idea
 
-This analysis reveals: - **Remaining redundancy**: Some parameters still
-have high redundancy after folding one dimension - **Multi-dimensional
-folding potential**: Parameters like `pTechUse2cact` could potentially
-fold additional dimensions (region, year, etc.)
+A scenario rarely exercises every feature of a framework model. Elements
+that end up without data or without instances are:
 
-## Special Cases: Alias Handling
+- **empty sets and mappings** (no storage technologies, no trade
+  routes),
+- **empty parameters**,
+- **variables** indexed by an empty set,
+- **equations** whose domain is empty, or that only reference trimmed
+  variables.
 
-The folding implementation handles two types of dimension aliasing:
+Trimming marks these with `$trimmed = TRUE`. Nothing is deleted; code
+generators and
+[`write_latex()`](https://optimal2050.github.io/multimod/reference/write_latex.md)
+check the flag and skip (or annotate) the element.
 
-### 1. Simple Aliases
+### Four phases
 
-When a parameter is declared with one dimension name but data uses an
-alias:
+    1. mark sets, parameters and mappings with no data
+    2. mark variables whose domain is empty
+    3. mark equations with an empty domain, or with only trimmed variables
+    4. untrim anything a non-trimmed equation still uses
 
-    # Declaration in model
-    param pTechAct2AOut{tech, comm, region, year, slice};
+Phase 4 is what keeps trimming conservative: an element is only trimmed
+when no surviving equation needs it.
 
-    # But data has 'acomm' (auxiliary commodity alias) instead of 'comm'
-    data: tech, acomm, region, year, slice, value
+### Apply the trim
 
-    # Folding automatically resolves: comm → acomm
-
-The algorithm uses `model$aliases` to map dimension names to actual
-column names in the data.
-
-### 2. Positional Aliases
-
-When a dimension appears multiple times in different roles:
-
-    # Declaration: region appears twice
-    param pTradeIrEff{trade, region, region, year, slice};
-
-    # Data uses positional aliases: src (source region), dst (destination region)
-    data: trade, src, dst, year, slice, value
-
-    # After folding slice:
-    param pTradeIrEff{trade, region, region, year};
-    data: trade, src, dst, year, value  # Both region columns preserved
-
-The folding algorithm preserves duplicate dimension names in
-`active_dims` and keeps all original data columns (excluding only the
-folded dimension).
-
-## Algorithm Details
-
-The folding algorithm consists of 5 steps:
-
-### 1. Basic Validation
-
-- Check if dimension to fold exists
-- Ensure parameter has data
-- Skip if parameter would become scalar (all dimensions folded)
-
-### 2. Validation Mapping Setup
-
-- Resolve mapping chains (e.g., `mStorageComm → mCommSlice`)
-- Handle both direct mappings and multi-hop chains
-- Identify entity dimension and slice dimension in the mapping
-
-### 3. Scalar Parameter Check
-
-- If parameter has only one dimension (the one being folded), check if
-  all values are identical
-- If yes → can fold to scalar
-- If no → cannot fold
-
-### 4. Per-Group Variance Analysis
-
-- Group data by all dimensions EXCEPT the one being folded
-- For each group, check if values are constant (within tolerance)
-- Uses
-  [`dplyr::n_distinct()`](https://dplyr.tidyverse.org/reference/n_distinct.html)
-  to count unique values per group
-- **Alias handling**: Groups by `any_of(dims_with_aliases)` to handle
-  aliased column names
-
-### 5. Coverage Validation
-
-- For each group, check if the relevant entity is in the validation
-  mapping
-- If entity IS in mapping (e.g., tech in `mTechSlice`): SKIP (needs
-  detail)
-- If entity NOT in mapping: values must be constant
-- Ensures we don’t fold away required detail
-
-**Example:**
-
-    # mTechSlice = {E01, E21}  (these techs vary by slice)
-    # mTechSlice mapping: {(E01, ANNUAL), (E21, ANNUAL)}
-
-    # For pTechCinp2use group (RHO, ..., ...):
-    # - RHO not in mTechSlice → can fold ✓
-
-    # For group (E01, ..., ...):
-    # - E01 in mTechSlice → SKIP, cannot fold for this tech
-    # - But ALL groups need to pass, so entire parameter cannot fold
-
-    # UNLESS: E01 values are actually constant across slice
-    # Then it passes the variance check even though E01 is in mapping
-
-## Writing Folded Models
+Fold first, then trim: folding can empty a parameter that trimming then
+removes.
 
 ``` r
 
-# Write folded model and data
-write_gmpl(model_folded, file = "tmp/model_folded.mod", include_solve = TRUE)
-write_gmpl_data(model_folded, file = "tmp/model_folded.dat", use_folded = TRUE)
-
-# Compare sizes
-cat("Unfolded model:", file.size("model_unfolded.mod"), "bytes\n")
-cat("Folded model:  ", file.size("model_folded.mod"), "bytes\n")
-cat("Unfolded data: ", file.size("model_unfolded.dat"), "bytes\n")
-cat("Folded data:   ", file.size("model_folded.dat"), "bytes\n")
+mod_trimmed <- trim_model(mod_folded, verbose = FALSE)
+is_trimmed(mod)
+#> [1] FALSE
+is_trimmed(mod_trimmed)
+#> [1] TRUE
+get_trim_summary(mod_trimmed, format = "data.frame")
+#>   element_type total trimmed remaining percent_trimmed
+#> 1         sets    27       6        21            22.2
+#> 2   parameters   218       1       217             0.5
+#> 3     mappings   324     160       164            49.4
+#> 4    variables    93      10        83            10.8
+#> 5    equations   153     103        50            67.3
 ```
 
-**Output:**
-
-    Unfolded model: 79154 bytes
-    Folded model:   78928 bytes (similar, equations mostly unchanged)
-    Unfolded data:  926941 bytes
-    Folded data:    654010 bytes (29% reduction!)
-
-## Solving Folded Models
-
-Folded models solve identically to unfolded models:
+The example scenario uses a small share of the energyRt equations, so
+most of them trim away. As with folding, `format = "text"` prints a
+report and `format = "list"` returns nested lists.
+[`is_trimmed()`](https://optimal2050.github.io/multimod/reference/is_trimmed.md)
+works on individual elements too:
 
 ``` r
 
-# Solve unfolded
-result_unfolded <- execute_glpkAPI(
-  model_dir = "tmp/",
-  mod_file = "unfolded.mod",
-  dat_file = "unfolded.dat",
-  verbose = TRUE
-)
-
-# Solve folded
-result_folded <- execute_glpkAPI(
-  model_dir = "tmp/",
-  mod_file = "folded.mod",
-  dat_file = "folded.dat",
-  verbose = TRUE
-)
-
-# Compare results
-cat("Unfolded objective:", result_unfolded$objective, "\n")
-cat("Folded objective:  ", result_folded$objective, "\n")
-cat("Match:", all.equal(result_unfolded$objective, result_folded$objective), "\n")
+is_trimmed(mod_trimmed$equations$eqTechCap)
+#> [1] FALSE
+is_trimmed(mod_trimmed$equations$eqTechInpTot)
+#> [1] FALSE
+head(get_trim_summary(mod_trimmed, format = "list")$equations$names)
+#> [1] "eqTechGrp2Sng"    "eqTechSng2Grp"    "eqTechGrp2Grp"    "eqTechShareInpLo"
+#> [5] "eqTechShareInpUp" "eqTechShareOutLo"
 ```
 
-**Output:**
+### Untrim
 
-    Unfolded objective: 35478.91
-    Folded objective:   35478.91
-    Match: TRUE ✓
-
-## Inspecting Folding Status
-
-Use the helper functions to check folding status:
+[`untrim_model()`](https://optimal2050.github.io/multimod/reference/untrim_model.md)
+clears the flags, on all element types by default or on the ones named
+in `elements`:
 
 ``` r
 
-# Check if model is folded
-is_folded(model_folded)
-# [1] TRUE
-
-# Check specific parameters
-is_folded(model_folded$parameters$pTechCinp2use)
-# [1] TRUE
-
-is_folded(model_folded$parameters$pDemand)  # Not affected by slice fold
-# [1] FALSE
-
-# Get active dimensions (returns folded dims if available, otherwise original)
-active_dims <- get_active_dims(model_folded$parameters$pTechCinp2use)
-sapply(active_dims, function(d) d$name)
-# [1] "tech" "comm" "region" "year"
-
-# Get only folded dimensions (NULL if not folded)
-folded_dims <- get_active_dims(model_folded$parameters$pTechCinp2use, folded = TRUE)
-# Returns active_dims if parameter is folded, NULL otherwise
+mod_back <- untrim_model(mod_trimmed)
+is_trimmed(mod_back)
+#> [1] FALSE
 ```
 
-For detailed information about individual parameters:
+## Folding versus trimming
+
+|  | Folding | Trimming |
+|----|----|----|
+| Targets | data redundancy | structural redundancy |
+| Mechanism | collapses a constant dimension | flags unused elements |
+| Reduces | parameter rows, coefficient count | sets, parameters, variables, equations emitted |
+| Needs | a fold specification (validation mappings) | nothing; driven by the data |
+| Reversed by | [`unfold_model()`](https://optimal2050.github.io/multimod/reference/unfold_model.md) | [`untrim_model()`](https://optimal2050.github.io/multimod/reference/untrim_model.md) |
+
+**Fold** when parameters are constant across a dimension the scenario
+does not need (timeslice is the usual case), when data files or solver
+memory are the bottleneck, or when a model written for many regions or
+years is run with one.
+
+**Trim** when the scenario leaves optional features unused, when empty
+sets or parameters exist, or when many equations generate no
+constraints.
+
+**Do both** for framework models: fold first, then trim. Check that the
+objective is unchanged before relying on a transformed model (see the
+appendix).
+
+Folding and trimming change what the generated model *contains*; they do
+not change what it *means*. Do not fold a dimension that genuinely
+varies in the data
+([`create_fold_spec()`](https://optimal2050.github.io/multimod/reference/create_fold_spec.md)
+refuses, but a hand-edited specification can override it), and keep an
+untrimmed copy when the complete structure is wanted for documentation
+or comparison.
+
+## Writing transformed models
+
+Every writer honours the flags.
+[`write_gmpl()`](https://optimal2050.github.io/multimod/reference/write_gmpl.md),
+[`write_jump()`](https://optimal2050.github.io/multimod/reference/write_jump.md)
+and
+[`write_pyomo()`](https://optimal2050.github.io/multimod/reference/write_pyomo.md)
+use the folded dimensions by default and skip trimmed elements;
+[`write_latex()`](https://optimal2050.github.io/multimod/reference/write_latex.md)
+chooses `model_view = "reduced"` for a folded or trimmed model and
+annotates the removed elements in `model_view = "full"`.
+[`model_to_lp()`](https://optimal2050.github.io/multimod/reference/model_to_lp.md)
+and
+[`solve_highs()`](https://optimal2050.github.io/multimod/reference/solve_highs.md)
+assemble the matrix from the active dimensions directly.
 
 ``` r
 
-# Access fold metadata directly
-param <- model_folded$parameters$pTechCinp2use
-param$misc$fold_info$removed_dims      # [1] "slice"
-param$misc$fold_info$compression_ratio # [1] 12
-param$misc$fold_info$original_rows     # [1] 1080
-param$misc$fold_info$folded_rows       # [1] 90
+dir <- file.path(tempdir(), "trimmed")
+save_model(mod_trimmed, dir, format = "ipc")
+write_gmpl(mod_trimmed, model_dir = dir)
+write_jump(mod_trimmed, model_dir = dir)
+write_latex(mod_trimmed, file = file.path(dir, "model.tex"), model_view = "full")
 ```
 
-## Best Practices
-
-### 1. Start with Diagnostic Analysis
-
-Always run
-[`analyze_parameter_redundancy()`](https://optimal2050.github.io/multimod/reference/analyze_parameter_redundancy.md)
-first to identify high-redundancy parameters and understand folding
-potential. Use
-[`get_fold_summary()`](https://optimal2050.github.io/multimod/reference/get_fold_summary.md)
-after folding to verify results.
-
-### 2. Use Appropriate Validation Mappings
-
-- Choose mappings that reflect actual model structure
-- For energyRt models, use entity-specific mappings (mTechSlice,
-  mSupSlice, etc.)
-- Use mapping chains when parameters relate to multiple entity types
-
-### 3. Fold Conservative Dimensions First
-
-- Time slices are usually safest to fold (many technologies don’t vary
-  by slice)
-- Region and year folding is more aggressive and less common
-- Always validate results by comparing objective values
-
-### 4. Verify Results
-
-After folding: - Compare objective values (should be identical within
-tolerance) - Check constraint violations (should be identical) - Analyze
-remaining redundancy for further optimization opportunities
-
-### 5. Document Fold Specifications
-
-Save fold specifications for reproducibility:
-
-``` r
-
-# Save for later use
-saveRDS(fold_spec, "fold_spec_utopia.rds")
-
-# Load and apply
-fold_spec <- readRDS("fold_spec_utopia.rds")
-model_folded <- fold_model(model, fold_spec = fold_spec)
-```
-
-## Advanced: Multi-Dimensional Folding
-
-The folding feature can remove multiple dimensions from parameters when
-they contain redundant data. This is particularly useful for:
-
-- **Single-region models** where region dimension is unnecessary
-- **Steady-state models** where parameters don’t vary by year
-- **Models with uniform time slices** where slice aggregation makes
-  sense
-
-### Example 1: Region Dimension Folding
-
-For single-region models or parameters constant across regions:
-
-``` r
-
-# Create fold spec for region dimension
-fold_spec_region <- create_fold_spec(
-  model,
-  fold_dims = list(
-    region = list(
-      tech = "mTechRegion",
-      sup = "mSupRegion",
-      dem = "mDemRegion",
-      stg = "mStorageRegion",
-      trade = "mTradeRegion",
-      imp = "mImportRegion"
-    )
-  )
-)
-
-# Apply folding
-model_region_folded <- fold_model(model, fold_spec = fold_spec_region)
-
-# Results for UTOPIA model:
-# - 35 parameters folded
-# - Compression: 2.0x - 7.0x per parameter
-# - Successfully removes region index from all equations
-```
-
-### Example 2: Year Dimension Folding
-
-For time-invariant parameters or representative year models:
-
-``` r
-
-# Create fold spec for year dimension
-fold_spec_year <- create_fold_spec(
-  model,
-  fold_dims = list(
-    year = list(
-      tech = "mTechYear",
-      sup = "mSupYear",
-      dem = "mDemYear",
-      stg = "mStorageYear",
-      trade = "mTradeYear",
-      imp = "mImportYear"
-    )
-  )
-)
-
-# Apply folding
-model_year_folded <- fold_model(model, fold_spec = fold_spec_year)
-
-# Solve and compare
-write_gmpl(model, file = 'unfolded.mod', include_solve = TRUE)
-write_gmpl_data(model, file = 'unfolded.dat')
-
-write_gmpl(model_year_folded, file = 'folded.mod', include_solve = TRUE)
-write_gmpl_data(model_year_folded, file = 'folded.dat', use_folded = TRUE)
-
-# Results for UTOPIA model:
-# - 31 parameters folded (5D → 4D, 4D → 3D, 3D → 2D, 2D → 1D)
-# - Overall compression: 3.0x (3 years → 1 representative year)
-# - Objectives: 35478.905288 (unfolded) = 35478.905288 (folded)
-```
-
-### Example 3: Multi-Dimensional Folding
-
-Fold multiple dimensions in a single call - the function applies them
-sequentially:
-
-``` r
-
-# Fold slice, region, AND year in one specification
-# The function will apply them sequentially: slice → region → year
-fold_spec_multi <- create_fold_spec(
-  model,
-  fold_dims = list(
-    slice = list(
-      tech = "mTechSlice",
-      comm = "mCommSlice",
-      stg = c("mStorageComm", "mCommSlice")  # Chain mapping
-    ),
-    region = list(
-      tech = "mTechRegion",
-      sup = "mSupRegion"
-    ),
-    year = list(
-      tech = "mTechYear",
-      stg = "mStorageYear"
-    )
-  )
-)
-
-# Apply all folds - automatically done sequentially
-model_multi_folded <- fold_model(model, fold_spec = fold_spec_multi)
-
-# Analyze the result
-summary(fold_spec_multi)
-cat(sprintf("Parameters folded: %d\n", sum(fold_spec_multi$can_fold)))
-cat(sprintf("Dimensions: %s\n", paste(unique(fold_spec_multi$dim_to_fold), collapse = ", ")))
-```
-
-### Verify Correctness
-
-Always verify that multi-dimensional folding preserves model correctness
-by comparing objectives:
-
-``` r
-
-# Export and solve both models
-write_gmpl(model, file = "tmp/model_unfolded.mod", include_solve = TRUE)
-write_gmpl(model_multi_folded, file = "tmp/model_folded.mod", include_solve = TRUE)
-
-# Solve unfolded
-# result_unfolded <- system2("glpsol", 
-#                            args = c("--model", "tmp/model_unfolded.mod"),
-#                            stdout = TRUE, stderr = TRUE)
-
-result_unfolded <- execute_glpkAPI(
-  model_dir = "tmp/",
-  mod_file = "unfolded.mod",
-  dat_file = "unfolded.dat",
-  verbose = TRUE
-)
-
-# Solve folded
-# result_folded <- system2("glpsol", 
-#                          args = c("--model", "tmp/model_folded.mod"),
-#                          stdout = TRUE, stderr = TRUE)
-
-result_folded <- execute_glpkAPI(
-  model_dir = "tmp/",
-  mod_file = "unfolded.mod",
-  dat_file = "unfolded.dat",
-  verbose = TRUE
-)
-
-
-# Extract objectives
-# extract_objective <- function(output) {
-#   for (line in output) {
-#     if (grepl("Objective.*vTotalCost.*=", line)) {
-#       return(as.numeric(gsub(".*=\\s*([0-9.]+).*", "\\1", line)))
-#     }
-#   }
-#   return(NA)
-# }
-
-# obj_unfolded <- extract_objective(result_unfolded)
-# obj_folded <- extract_objective(result_folded)
-# 
-# cat(sprintf("Unfolded objective: %.6f\n", obj_unfolded))
-# cat(sprintf("Folded objective:   %.6f\n", obj_folded))
-# cat(sprintf("Match: %s\n", abs(obj_unfolded - obj_folded) < 1e-6))
-
-cat("Unfolded objective:", result_unfolded$objective, "\n")
-cat("Folded objective:  ", result_folded$objective, "\n")
-cat("Match:", all.equal(result_unfolded$objective, result_folded$objective), "\n")
-```
-
-**Expected result**: Both models should produce identical objectives,
-confirming that folding preserves model correctness despite reducing
-data size.
-
-**Caution**: Multi-dimensional folding can over-simplify models. Always
-validate that the folded model produces correct results by comparing
-solve outcomes.
+A fold specification is an ordinary data frame; save it with
+[`saveRDS()`](https://rdrr.io/r/base/readRDS.html) to reproduce the
+transformation on another scenario of the same model.
 
 ## Limitations
 
-1.  **Validation mapping required**: Folding requires knowing which
-    entities (techs, commodities, etc.) actually vary by the dimension
-    being folded
+- Folding is all-or-nothing per parameter: either every group is
+  constant across the dimension or the parameter is left alone.
+- Folding needs validation mappings that reflect the model’s structure;
+  for a non-energyRt model, name the mappings that link each entity to
+  the dimension.
+- Folding loads the parameter data into memory while it runs.
+- Trimming only flags elements; the data stays on disk and in the
+  object.
+- Trimming is conservative by design: it never removes an element a
+  surviving equation references, so unused variables inside non-empty
+  equations are kept.
 
-2.  **Data must be constant**: Folding only works when values are truly
-    constant across the dimension (within tolerance)
+## Appendix: the objective is unchanged
 
-3.  **No partial folding**: Either all instances of a parameter fold, or
-    none do (no per-entity folding)
-
-4.  **Memory during folding**: The folding process itself requires
-    loading all parameter data into memory
-
-## Implementation Notes
-
-### Preserving Duplicate Dimensions
-
-The implementation correctly handles parameters with repeated dimensions
-(e.g., `{region, region}` for trade parameters):
-
-``` r
-
-# Uses position-based removal instead of set operations
-dim_names <- sapply(dims, function(d) d$name)
-dims_to_remove_match <- dim_names == dim_to_fold
-active_dims <- dims[!dims_to_remove_match]  # Preserves duplicates
-```
-
-### Data Collapsing Strategy
-
-Instead of mapping dimension names to column names (which fails for
-positional aliases), the implementation uses actual data columns:
+The transformed models must solve to the same objective as the original.
+The check below uses the in-process HiGHS route; it is not run when the
+vignette is built because it needs the `highs` package and takes a few
+seconds.
 
 ``` r
 
-# Use all columns except 'value' and the folded dimension
-data_cols <- setdiff(names(param$data), c("value", dim_to_fold))
-folded_data <- param$data %>%
-  dplyr::group_by(dplyr::across(dplyr::any_of(data_cols))) %>%
-  dplyr::summarize(value = dplyr::first(value), .groups = "drop")
+r0 <- solve_highs(mod, attach = FALSE)
+r1 <- solve_highs(mod_folded, attach = FALSE)
+r2 <- solve_highs(mod_trimmed, attach = FALSE)
+c(original = r0$objective, folded = r1$objective, trimmed = r2$objective)
+all.equal(r0$objective, r1$objective)
+all.equal(r0$objective, r2$objective)
 ```
-
-This handles both simple aliases (`comm→acomm`) and positional aliases
-(`{region,region}→{src,dst}`).
-
-## Conclusion
-
-Parameter folding is a powerful optimization technique that can
-significantly reduce model size and improve solve times without changing
-model results. The key is identifying which dimensions contain redundant
-information and safely removing them while preserving model semantics.
-
-### Validation Results
-
-The folding feature has been extensively tested on the UTOPIA model with
-multiple dimensions:
-
-**Slice dimension folding**: - 19 parameters folded (5D → 4D, 4D → 3D) -
-Overall compression: 10.7x - Data file reduction: 29% - **Objectives
-match**: 35478.91 (unfolded) = 35478.91 (folded)
-
-**Region dimension folding**: - 35 parameters folded - Compression:
-2.0x - 7.0x per parameter - Successfully removes region index from
-equations - All parameters fold correctly
-
-**Year dimension folding**: - 31 parameters folded (5D → 4D, 4D → 3D, 3D
-→ 2D, 2D → 1D) - Overall compression: 3.0x (3 years → 1 representative
-year) - **Objectives match**: 35478.905288 (unfolded) = 35478.905288
-(folded) - Bug fix: Added `node$index` handling in
-[`fold_ast_node()`](https://optimal2050.github.io/multimod/reference/fold_ast_node.md)
-to process parameter references in sum/prod iterator conditions
-
-For typical energyRt models: - **Slice folding**: Most common, often
-10-12x compression - **Region folding**: Useful for single-region models
-or parameters constant across regions - **Year folding**: Applicable
-when time-invariant parameters are used
-
-The identical solve results confirm that folding preserves model
-semantics perfectly while achieving significant size reductions. -
-**Data reduction**: 20-30% reduction in data file size - **Identical
-results**: Folded models solve to the same objective value
-
-Start with diagnostic analysis, fold conservatively, and always validate
-results!

@@ -3,7 +3,7 @@
 # =============================================================================
 #
 # This test suite validates trimming and folding transformations with the
-# GMPL (GNU MathProg Language) solver backend using glpkAPI.
+# GMPL (GNU MathProg Language) solver backend using the glpsol executable.
 #
 # Tests cover:
 # • Trimmed model objective preservation (vs. original)
@@ -25,7 +25,7 @@
 # - GMPL code generation handles trimmed/folded elements
 #
 # Dependencies:
-# - glpkAPI package for solving
+# - glpsol package for solving
 # - save_model, write_gmpl, solve_gmpl functions
 # - trim_model, fold_model transformation functions
 # =============================================================================

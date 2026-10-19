@@ -7,9 +7,9 @@ is invoked so that a Conda environment named "multimod" (configurable)
 is created, populated with Pyomo, and activated via the `reticulate`
 toolkit. Once the environment is ready the solver script is executed
 with [`system2()`](https://rdrr.io/r/base/system2.html) or `processx`
-and basic status information is returned. Result loading is not
-implemented yet but the metadata emitted by `solve.py` (e.g.
-`solution/status.json`) is surfaced when available.
+and basic status information is returned, together with the status the
+script writes to `solution/status.json`. With `load_results = TRUE` the
+variable values the script exports are read back into `model`.
 
 ## Usage
 
@@ -38,9 +38,9 @@ solve_pyomo(
 
 - model:
 
-  Optional multimod model; currently only used when
-  `load_results = TRUE` to indicate where solutions should be loaded
-  (not yet implemented).
+  Optional multimod model. Required when `load_results = TRUE`: the
+  solution of each variable is stored in
+  `model$variables[[name]]$solution`.
 
 - model_dir:
 
@@ -111,8 +111,10 @@ solve_pyomo(
 
 - load_results:
 
-  Logical; reserved for future work. When `TRUE` a warning is issued
-  because loading solutions back into R is not yet implemented.
+  Logical; when `TRUE`, read `solution/variables.json` into `model` and
+  return the model as `result$model`. The file is written by the
+  generated script only when the scaffold was produced with
+  `write_pyomo(export_vars = TRUE)`.
 
 - verbose:
 
@@ -132,4 +134,6 @@ solve_pyomo(
 
 A list describing the solver run (exit code, success flag, elapsed time,
 raw output, parsed status metadata when available, and environment
-details).
+details). With `load_results = TRUE`, also `model`, the input model with
+a `solution` data frame on every variable the solver reported.
+`objective` is the objective value the script records in `status.json`.

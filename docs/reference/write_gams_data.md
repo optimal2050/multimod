@@ -34,7 +34,8 @@ write_gams_data(
 - gams_dir:
 
   GAMS system directory for the GDX library. `NULL` lets
-  `gdxtools::igdx()` find one.
+  [`gdxtools::igdx()`](https://rdrr.io/pkg/gdxtools/man/igdx.html) find
+  one.
 
 - verbose:
 

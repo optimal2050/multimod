@@ -2,24 +2,20 @@
 
 ### All vignettes
 
-- [Abstract Syntax
-  Tree](https://optimal2050.github.io/multimod/articles/ast.md):
-- [Configuring Solver Paths in
-  multimod](https://optimal2050.github.io/multimod/articles/configuration.md):
-- [Parameter Folding: Reducing Model Size Through Redundancy
-  Elimination](https://optimal2050.github.io/multimod/articles/folding.md):
-- [multimod to
-  GMPL](https://optimal2050.github.io/multimod/articles/gmpl.md):
-- [multimod to
-  JuMP](https://optimal2050.github.io/multimod/articles/jump.md):
+- [Writing a model in
+  R](https://optimal2050.github.io/multimod/articles/ast.md):
+- [Configuring solver
+  paths](https://optimal2050.github.io/multimod/articles/configuration.md):
+- [Two models from the
+  field](https://optimal2050.github.io/multimod/articles/field-models.md):
+- [Folding and
+  trimming](https://optimal2050.github.io/multimod/articles/folding.md):
 - [LaTeX
-  Generation](https://optimal2050.github.io/multimod/articles/latex.md):
-- [Model Workspace and Data
-  Management](https://optimal2050.github.io/multimod/articles/model_workspace.md):
+  rendering](https://optimal2050.github.io/multimod/articles/latex.md):
+- [Model workspace and
+  data](https://optimal2050.github.io/multimod/articles/model_workspace.md):
 - [multimod](https://optimal2050.github.io/multimod/articles/multimod.md):
-- [multimod to
-  Pyomo](https://optimal2050.github.io/multimod/articles/pyomo.md):
-- [Model Redundancy Elimination: Trimming and
-  Folding](https://optimal2050.github.io/multimod/articles/redundancy.md):
-- [Development Status and
-  Roadmap](https://optimal2050.github.io/multimod/articles/roadmap.md):
+- [Development status and
+  roadmap](https://optimal2050.github.io/multimod/articles/roadmap.md):
+- [Solving and reading
+  results](https://optimal2050.github.io/multimod/articles/solving.md):

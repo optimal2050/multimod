@@ -9,7 +9,7 @@ editor_options:
   chunk_output_type: console
 ---
 
-```{r, include = FALSE, message = FALSE, warning = FALSE, eval=TRUE}
+```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
@@ -18,19 +18,40 @@ knitr::opts_chunk$set(
 has_vis <- requireNamespace("visNetwork", quietly = TRUE)
 ```
 
-This vignette provides an overview of the current functionality of the `multimod` package, which is designed to parse GAMS models and convert them into a structured format for further analysis, visualization, rendering to LaTeX, and other mathematical programming languages.
+multimod stores an optimization model as an abstract syntax tree — sets,
+mappings, parameters, variables and equations — independent of any modeling
+language. A model becomes coupled to the language it was first written in;
+multimod separates three concerns: the model's *meaning* (the AST), its
+*representation* (LaTeX, executable code in another language, JSON, or a
+sparse LP matrix) and its *execution* (a local solver, an institutional
+modeling environment, or remote hardware). That separation lets one
+formulation be compared across backends, documented as the exact model being
+solved, manipulated before execution, and reused across solver ecosystems.
+
+A model enters in three ways: written in R with the constructors, written as
+MathProg, GAMS or JuMP text with `mm_equation()`, or read from an existing
+GAMS or MathProg source. It leaves as rendered code for GAMS, MathProg, JuMP
+or Pyomo, as a LaTeX formulation, or as the LP matrix multimod assembles and
+solves in R with HiGHS. This vignette walks through that representation and
+what the package does with it.
+
+Linear programs with continuous variables are the tested class. Integer and
+binary variables are carried in the AST and written by the JuMP and Pyomo
+writers; nonlinear expressions have AST nodes but no tested route to a solver.
+The [roadmap](https://optimal2050.github.io/multimod/articles/roadmap.html)
+lists the limitations in full.
 
 ## Installation
-Install the released version from CRAN:
-```{r, eval=FALSE}
-install.packages("multimod")
-```
 
-Or the development version from GitHub using the `pak` package:
+Install the development version from GitHub with the `pak` package:
 ```{r, eval=FALSE}
 # install.packages("pak")
 pak::pkg_install("optimal2050/multimod", dependencies = TRUE)
 ```
+
+The matrix route needs only the 'highs' package. The GLPK route's `glpsol`
+binary ships with the 'glpsol' package; Julia with JuMP and Python with Pyomo
+are configured as described in the "Configuring solver paths" article.
 
 ## Setup
 ```{r setup}
@@ -222,7 +243,7 @@ write_gams_data(mod, file = file.path(tempdir(), "example_model.gdx"))
 ```
 
 ## Routes to a solver
-A model with data attached can be solved two ways. The matrix route assembles the LP in R: `model_to_lp()` builds the coefficient matrix from the equations, `solve_highs()` solves it in process with HiGHS, and `mm_session()` keeps the matrix between repeated solves. The file routes write the model in another language and run its toolchain: `write_gmpl()` with `solve_gmpl()` (GLPK), `write_jump()` with `solve_jump()` (Julia), `write_pyomo()` with `solve_pyomo()` (Python). `example_models$toy` is a small LP to try them on.
+A model with data attached can be solved two ways. The matrix route assembles the LP in R: `model_to_lp()` builds the coefficient matrix from the equations, `solve_highs()` solves it in process with HiGHS, and `mm_session()` keeps the matrix between repeated solves. The file routes write the model in another language and run its toolchain: `write_gmpl()` with `solve_gmpl()` (GLPK), `write_jump()` with `solve_jump()` (Julia), `write_pyomo()` with `solve_pyomo()` (Python). `example_models$toy` is a small LP to try them on; the website article "Solving and reading results" takes it through every route, and "Two models from the field" does the same for the energyRt reference model and OSeMOSYS.
 ```{r, eval=FALSE}
 r <- solve_highs(example_models$toy, attach = FALSE)
 r$objective

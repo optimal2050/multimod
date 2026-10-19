@@ -128,5 +128,5 @@ write_jump(m, model_dir = ws, solver_dir = "jump-highs")
 # Barrier method for large models
 write_jump(m, model_dir = ws,
            optimizer_attributes = list(solver = "ipm", parallel = "on"))
-#> Removing existing solver directory: C:\Users\admin\AppData\Local\Temp\RtmpQVAZuj/energyRt_ws/solvers/jump
+#> Removing existing solver directory: C:\Users\admin\AppData\Local\Temp\Rtmp0u9C8p/energyRt_ws/solvers/jump
 ```

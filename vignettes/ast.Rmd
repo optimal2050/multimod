@@ -234,7 +234,7 @@ Python; `vignette("multimod")` lists them with their `solve_*()` counterparts.
 
 ```{r write}
 mod_file <- tempfile(fileext = ".mod")
-invisible(write_gmpl(toy, file = mod_file))
+write_gmpl(toy, file = mod_file)
 cat(head(readLines(mod_file), 12), sep = "\n")
 ```
 

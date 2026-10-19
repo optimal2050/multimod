@@ -42,8 +42,9 @@ param <- m$parameters$pTechCinp2use
 # Active dimensions: the folded ones if folded, else the declared ones
 get_active_dims(param)
 #> <AST dims> 
+#> [tech,comm,region,year,timeslice]
 
 # Folded dimensions only
 get_active_dims(param, folded = TRUE)
-#> <AST dims> 
+#> NULL
 ```

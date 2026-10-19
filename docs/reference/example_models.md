@@ -13,7 +13,20 @@ example_models
 
 ## Format
 
-A list with 1 element:
+A list with 2 elements:
+
+- toy:
+
+  A two-region capacity-expansion LP (3 technologies, 2 regions, 4
+  parameters, 3 variables, 3 equations) written with the multimod
+  constructors in `data-raw/toy_model.R`. Every parameter carries data,
+  so
+  [`model_to_lp()`](https://optimal2050.github.io/multimod/reference/model_to_lp.md)
+  gives a 9 x 13 LP and
+  [`solve_highs()`](https://optimal2050.github.io/multimod/reference/solve_highs.md)
+  finds the optimum (198000) in well under a second. Used by
+  [`vignette("ast")`](https://optimal2050.github.io/multimod/articles/ast.md)
+  and the solver examples.
 
 - energyRt:
 
@@ -100,7 +113,7 @@ data(example_models)
 
 # Inspect structure
 names(example_models)
-#> [1] "energyRt"
+#> [1] "energyRt" "toy"     
 names(example_models$energyRt)
 #> [1] "gams"     "multimod" "metadata"
 

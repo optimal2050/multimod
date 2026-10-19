@@ -92,6 +92,25 @@ test_that("OSeMOSYS (UTOPIA) solves through JuMP to the published objective", {
   expect_equal(r$objective, 29446.86, tolerance = 1e-6)
 })
 
+test_that("OSeMOSYS (UTOPIA) solves through the matrix backend to the published objective", {
+  skip_on_cran()
+  skip_if_no_osemosys()
+  skip_if_not_installed("highs")
+  # The model is declared over plain sets, filters 34 of its equations with
+  # data-dependent conditions, references lagged years and defines six
+  # parameters by formula - every one of them a thing the matrix route once
+  # could not do. glpsol gives 29446.86 on the same two files.
+  m <- read_osemosys()
+  # Four SC2/SC4 storage-bracket equations assemble with no coefficients on
+  # this case. Pinned rather than muffled: when they gain coefficients, the
+  # objective below is what must still hold.
+  r <- NULL
+  expect_warning(r <- solve_highs(m, attach = FALSE), "carry no coefficients")
+  expect_equal(r$objective, 29446.86, tolerance = 1e-6)
+  # and the row count is glpsol's exactly
+  expect_equal(nrow(build_row_index(m)), 119273L)
+})
+
 test_that("an iterated operator keeps `*` and `/` inside the summation", {
   # Checked against glpsol 5.0 on
   #   set L; param w{l in L}; var x{l in L} >= 0;

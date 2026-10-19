@@ -1,8 +1,9 @@
 # GDX symbol records for gdxtools
 
 Builds the list `wgdx()` takes. Written here rather than via
-`gdxtools::write.gdx()` because that drops zero-valued parameter
-records, and those are needed as EPS.
+[`gdxtools::write.gdx()`](https://rdrr.io/pkg/gdxtools/man/write.gdx.html)
+because that drops zero-valued parameter records, and those are needed
+as EPS.
 
 ## Usage
 

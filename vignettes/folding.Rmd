@@ -158,8 +158,8 @@ the dimensions in force after folding; the declaration stays in `$dims`.
 ```{r active-dims}
 p <- mod_folded$parameters$pTechCinp2use
 is_folded(p)
-sapply(p$dims, function(d) d$name)
-sapply(get_active_dims(p), function(d) d$name)
+p$dims              # as declared
+get_active_dims(p)  # in force after folding
 
 # parameters the fold did not touch keep their declaration
 is_folded(mod_folded$parameters$pTechInvcost)
@@ -240,8 +240,8 @@ elements too:
 
 ```{r trim-elements}
 is_trimmed(mod_trimmed$equations$eqTechCap)
-trimmed_eqs <- Filter(is_trimmed, mod_trimmed$equations)
-head(names(trimmed_eqs))
+is_trimmed(mod_trimmed$equations$eqTechInpTot)
+head(get_trim_summary(mod_trimmed, format = "list")$equations$names)
 ```
 
 ### Untrim

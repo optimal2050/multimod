@@ -9,6 +9,9 @@ as_gams(x, ...)
 
 # S3 method for class 'func'
 as_gams(x, ...)
+
+# S3 method for class 'call'
+as_gams(x, ...)
 ```
 
 ## Arguments

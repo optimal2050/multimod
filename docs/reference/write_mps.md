@@ -15,7 +15,8 @@ write_mps(
   index_dir = dirname(file),
   lp = NULL,
   format = c("parquet", "ipc", "csv"),
-  verbose = FALSE
+  verbose = FALSE,
+  presolve = getOption("multimod.presolve", FALSE)
 )
 ```
 
