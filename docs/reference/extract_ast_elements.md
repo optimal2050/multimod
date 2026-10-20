@@ -29,6 +29,7 @@ A list of all matching elements
 ## Examples
 
 ``` r
-extract_elements_by_name(model, "when")
-#> Error in extract_elements_by_name(model, "when"): could not find function "extract_elements_by_name"
+eq <- example_models$energyRt$multimod$equations[[1]]
+length(extract_ast_elements(eq, "when"))
+#> [1] 0
 ```

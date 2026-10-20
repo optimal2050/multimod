@@ -13,6 +13,11 @@ write_latex(x, file, ...)
 
 \item{...}{Additional arguments passed to the specific method.}
 }
+\value{
+For an \code{mm_equation}, invisibly \code{file}. For an \code{mm_model}, invisibly
+\code{file} when a path is given, otherwise the LaTeX source as a single
+character string.
+}
 \description{
 Write LaTeX representation of an equation or model
 }

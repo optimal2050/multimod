@@ -10,4 +10,4 @@ preferred_dummy_names
 
 ## Format
 
-An object of class `list` of length 13.
+A named list mapping set names to preferred short iterator names.

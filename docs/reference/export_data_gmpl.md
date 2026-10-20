@@ -37,9 +37,17 @@ Character string with GMPL export statements
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
-model <- read_gmpl("model.mod", "data.dat")
-export_code <- export_data_gmpl(model)
-cat(export_code)
-} # }
+m <- example_models$energyRt$multimod
+export_code <- export_data_gmpl(m)
+cat(substr(export_code, 1, 400))
+#> # ========== DATA EXPORT ==========
+#> printf "Exporting model data to data_export/...\n";
+#> 
+#> # Export sets
+#> printf "comm\n" > "data_export/comm.csv";
+#> for {i in comm} { printf "%s\n", i >> "data_export/comm.csv"; }
+#> printf "region\n" > "data_export/region.csv";
+#> for {i in region} { printf "%s\n", i >> "data_export/region.csv"; }
+#> printf "year\n" > "data_export/year.csv";
+#> for {i in year} { printf "%s\n", i 
 ```

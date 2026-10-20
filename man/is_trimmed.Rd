@@ -16,9 +16,11 @@ Logical indicating if trimmed
 Check if model or object is trimmed
 }
 \examples{
-\dontrun{
-is_trimmed(model)
-is_trimmed(model$parameters$pDemand)
-}
+m <- example_models$energyRt$multimod
+is_trimmed(m)
+
+m_trimmed <- trim_model(m, verbose = FALSE)
+is_trimmed(m_trimmed)
+is_trimmed(m_trimmed$parameters$pTechOlife)
 
 }

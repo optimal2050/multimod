@@ -37,7 +37,7 @@ as_r.ast_symbol <- function(x, ...) {
 }
 
 #' @export
-as_r.parameter <- function(x, ...) {
+as_r.mm_parameter <- function(x, ...) {
   if (!is.null(x$dims) && length(x$dims) > 0) {
     # Parameter with indices: Name[i,j,k]
     indices_code <- sapply(x$dims, as_r, ...)
@@ -607,7 +607,6 @@ extract_args.ast_formula <- function(x, args = character()) {
 #' @return An R function that evaluates the AST expression
 #'
 #' @examples
-#' \dontrun{
 #' # Simple expression: DiscountRate[r]
 #' ast <- ast_expression(
 #'   op = "[",
@@ -616,11 +615,7 @@ extract_args.ast_formula <- function(x, args = character()) {
 #' )
 #' fn <- as_rfunction(ast)
 #' # Creates: function(DiscountRate, r) { DiscountRate[r] }
-#' 
-#' # Call it
-#' result <- fn(DiscountRate = c(R1=0.05, R2=0.07), r = "R1")
-#' # Returns: 0.05
-#' }
+#' fn(DiscountRate = c(R1 = 0.05, R2 = 0.07), r = "R1")
 #'
 #' @export
 as_rfunction <- function(x, args = NULL, envir = parent.frame(), ...) {
@@ -656,6 +651,7 @@ as_rfunction <- function(x, args = NULL, envir = parent.frame(), ...) {
 #'
 #' @param x A function created by as_rfunction
 #' @param ... Additional arguments (unused)
+#' @return Invisibly, `x`.
 #'
 #' @export
 print.ast_function <- function(x, ...) {

@@ -23,6 +23,11 @@ ast_expression(op, lhs, rhs, brackets = NULL)
 
   The right-hand side AST node.
 
+- brackets:
+
+  Optional bracket type to wrap the expression in when rendered: `"("`,
+  `"["` or the curly brace; `NULL` for none.
+
 ## Value
 
 An `expression` S3 object (subclass of `ast`).

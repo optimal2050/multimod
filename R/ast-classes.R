@@ -8,6 +8,8 @@
 #' @param node_type The type of AST node (e.g., `"expression"`, `"variable"`,
 #' `"constant"`, `"parameter"`, `"symbol"`).
 #' @param ... Additional named fields passed as components of the AST node.
+#' @param inherits_class Optional character vector of extra classes inserted
+#'   between `node_type` and `"ast"` in the class attribute.
 #'
 #' @return A structured S3 object of class `ast`, with a subclass
 #' matching `node_type`.
@@ -16,9 +18,15 @@ new_ast <- function(node_type, ..., inherits_class = NULL) {
   stopifnot(is.character(node_type))
   stopifnot(length(node_type) == 1)
   stopifnot(is.null(inherits_class) || !is.na(inherits_class) || is.character(inherits_class))
-  structure(list(...),
-            class = c(node_type, inherits_class, "ast"))
-            # class = c(paste0("", node_type), inherits_class, "ast"))
+  out <- structure(list(...),
+                   class = c(node_type, inherits_class, "ast"))
+  # Checked against ast_schema() at construction: a node missing a required
+  # field otherwise travels until a renderer declines to dispatch on it and
+  # emits nothing at all, which is the trap CLAUDE.md warns about. The check is
+  # shallow - children were validated when they were built - so it stays O(1)
+  # per node rather than re-walking the subtree.
+  .check_node(out, node_type)
+  out
 }
 
 #' Create an AST node representing a set
@@ -37,7 +45,7 @@ new_ast <- function(node_type, ..., inherits_class = NULL) {
 ast_set <- function(name) {
   stopifnot(is.character(name), length(name) == 1)
   # if (!is.null(domain)) stopifnot(inherits(domain, "ast") && domain$type == "set")
-  new_ast("set", name = name)
+  new_ast("mm_set", name = name)
 }
 # @param domain Optional. Another AST set node representing the parent set
 # (e.g., "a" in b(a)), indicating that this set is a subset of the parent set.
@@ -82,7 +90,6 @@ ast_set <- function(name) {
 #' ast_dims(list(ast_set("tech"), ast_set("region")))
 #' ast_dims(ast_symbol("t"))
 ast_dims <- function(...) {
-  # browser()
   args <- list(...)
   if (!is.null(args$symbols)) {
     symb_list <- args$symbols
@@ -133,8 +140,11 @@ ast_dims <- function(...) {
   dims <- flatten_dim_entries(dims)
 
   # check if ... is an unnamed list of objects
+  # A single AST node is one dimension, not a list to unwrap: unwrapping it
+  # iterated over its own fields, so `ast_dims(ast_shift("y", -1))` tried to
+  # parse "y" and -1 as separate dimensions.
   if (length(dims) == 1 && !inherits(dims, "ast") &&
-      #is.null(names(dims)) &&
+      !inherits(dims[[1]], "ast") &&
       (is.list(dims[[1]]) || is.vector(dims[[1]]))
       ) {
     # Unwrap single-element list but preserve names if they exist
@@ -148,13 +158,14 @@ ast_dims <- function(...) {
   }
 
   dims <- lapply(dims, function(x) {
-    # browser()
     if (inherits(x, "ast")) {
       return(x)
     }
     if (is_simple_identifier(x)) {
       return(ast_symbol(x))
     }
+    
+    # Parse as expression with language context (handles set names with hyphens, etc.)
     ast_parse_expr(x, symbols = symb_list)
   })
 
@@ -172,7 +183,7 @@ ast_dims <- function(...) {
   #   stop("Invalid input for `dims`: ",
   #        "must be set, symbol, or characters.")
   # }
-  if (!is.list(dims)) browser()
+  if (!is.list(dims)) .dev_break("ast-classes.R:177")
   out <- do.call(new_ast, c("dims", dims))
   return(out)
 }
@@ -183,6 +194,7 @@ ast_dims <- function(...) {
 #'
 #' @param name A character string representing the mapping name.
 #' @param dims An `dims` object representing the dimensions of the mapping.
+#' @param ... Additional fields stored on the node (passed to [new_ast()]).
 #'
 #' @return An `mapping` S3 object (subclass of `ast`).
 #' @export
@@ -194,7 +206,7 @@ ast_mapping <- function(name, dims = ast_dims(), ...) {
   # if (!is.null(domain)) {
   #   stopifnot(inherits(domain, "ast") && domain$type == "mapping")
   # }
-  new_ast("mapping", name = name, dims = dims, ...)
+  new_ast("mm_mapping", name = name, dims = dims, ...)
 }
 # @param domain An optional `mapping` object representing the parent mapping,
 # indicating that this mapping is a subset of the parent mapping.
@@ -205,6 +217,10 @@ ast_mapping <- function(name, dims = ast_dims(), ...) {
 #'
 #' @param name Name of the variable.
 #' @param dims Optional vector of dimension `dims` objects.
+#' @param vtype Optional variable type as declared in the source model
+#'   (e.g. `"positive"`, `"binary"`, `"integer"`).
+#' @param bounds Optional list of bounds with elements `lo` and/or `up`.
+#' @param ... Additional fields stored on the node (passed to [new_ast()]).
 #'
 #' @return An `variable` S3 object (subclass of `ast`).
 #' @export
@@ -215,25 +231,27 @@ ast_variable <- function(name, dims = ast_dims(), vtype = NULL, bounds = NULL, .
   args <- list(name = name, dims = dims, ...)
   if (!is.null(vtype)) args$vtype <- vtype
   if (!is.null(bounds)) args$bounds <- bounds
-  do.call(new_ast, c(list("variable"), args))
+  do.call(new_ast, c(list("mm_variable"), args))
 }
 
 #' Create a parameter AST node
 #'
 #' @param name Name of the parameter.
 #' @param dims Optional vector of dimension `dims` objects.
+#' @param ... Additional fields stored on the node (passed to [new_ast()]).
 #'
 #' @return An `parameter` S3 object (subclass of `ast`).
 #' @export
 ast_parameter <- function(name, dims = ast_dims(), ...) {
   stopifnot(is.character(name))
   stopifnot(length(name) == 1)
-  new_ast("parameter", name = name, dims = dims, ...)
+  new_ast("mm_parameter", name = name, dims = dims, ...)
 }
 
 #' Create a symbol AST node (for unclassified identifiers)
 #'
 #' @param name A character string representing the symbol.
+#' @param ... Additional fields stored on the node (passed to [new_ast()]).
 #'
 #' @return An `symbol` S3 object (subclass of `ast`).
 #' @export
@@ -251,6 +269,7 @@ ast_symbol <- function(name, ...) {
 #'
 #' @param symbol A character string representing the index symbol (e.g., "y", "ls", "ld").
 #' @param offset An integer offset. Negative for backward shift (e.g., -1 for y-1), positive for forward shift (e.g., +1 for y+1).
+#' @param ... Additional fields stored on the node (passed to [new_ast()]).
 #'
 #' @return A `shift` S3 object (subclass of `ast`).
 #' @export
@@ -258,17 +277,27 @@ ast_symbol <- function(name, ...) {
 #' ast_shift("y", -1)  # y-1 (previous year)
 #' ast_shift("y", 1)   # y+1 (next year)
 #' ast_shift("ls", -1) # ls-1 (previous season)
-ast_shift <- function(symbol, offset, ...) {
+ast_shift <- function(symbol, offset, circular = FALSE, ...) {
   stopifnot(is.character(symbol), length(symbol) == 1)
   stopifnot(is.numeric(offset), length(offset) == 1)
   stopifnot(offset == round(offset))  # must be integer
   stopifnot(offset != 0)  # zero offset doesn't make sense
-  new_ast("shift", symbol = symbol, offset = as.integer(offset), ...)
+  stopifnot(is.logical(circular), length(circular) == 1, !is.na(circular))
+  # The offset counts positions in the set's member order. `circular` wraps at
+  # the ends, as GAMS's `y--1` does; a linear lag off the end yields no member
+  # and the term it sits in drops out.
+  if (circular) {
+    new_ast("shift", symbol = symbol, offset = as.integer(offset),
+            circular = TRUE, ...)
+  } else {
+    new_ast("shift", symbol = symbol, offset = as.integer(offset), ...)
+  }
 }
 
 #' Create a constant AST node
 #'
 #' @param value A numeric or character constant.
+#' @param ... Additional fields stored on the node (passed to [new_ast()]).
 #'
 #' @return An `constant` S3 object (subclass of `ast`).
 #' @export
@@ -290,6 +319,7 @@ ast_constant <- function(value, ...) {
 #' @param otherwise Optional expression to evaluate if the condition is false.
 #' This part is not available in GAMS `$` statements, but is useful for other
 #' languages.
+#' @param ... Additional fields stored on the node (passed to [new_ast()]).
 #'
 #' @return An object of class `ast` and subclass `when`.
 #' @export
@@ -300,7 +330,6 @@ ast_constant <- function(value, ...) {
 #'   then = ast_variable("x", c("i"))
 #' )
 ast_when <- function(condition, then, otherwise = NULL, ...) {
-  # browser()
   stopifnot(inherits(then, "ast") || is.null(then))
   stopifnot(inherits(condition, "ast"))
 
@@ -314,21 +343,20 @@ ast_when <- function(condition, then, otherwise = NULL, ...) {
 #' index. The index is typically a `set`, `dims` or `when` object if
 #' filtering is applied to the index.
 #'
-#' @param index Character. The index variable (e.g., `"t"`).
+#' @param index An AST node representing the index variable(s) (e.g., `ast_dims("t")`).
 #' @param value An AST node representing the expression to be summed.
+#' @param domain An optional AST node representing a domain condition.
+#'   This can be a mapping, a logical condition (e.g., from a `$`-filter), or a parameter.
+#'   Use `NULL` if there is no restriction.
 #'
 #' @return An object of class `ast` and `sum`.
 #' @export
-ast_sum <- function(index = ast_dims(), value) {
+ast_sum <- function(index = ast_dims(), value, domain = NULL) {
   stopifnot(inherits(index, "ast"))
-  # stopifnot(inherits(domain, "ast") || is.null(domain))
   stopifnot(inherits(value, "ast"))
-  # if (!is.null(domain)) stopifnot(inherits(domain, "ast"))
-  new_ast("sum", index = index, value = value)
+  if (!is.null(domain)) stopifnot(inherits(domain, "ast"))
+  new_ast("sum", index = index, value = value, domain = domain)
 }
-# @param domain An optional AST node (class `ast`) representing a domain condition.
-#   This can be a mapping, a logical condition (e.g., from a `$`-filter), or a parameter.
-#   Use `NULL` if there is no restriction.
 
 
 #' Create a product AST node
@@ -340,11 +368,11 @@ ast_sum <- function(index = ast_dims(), value) {
 #' @inheritParams ast_sum
 #' @return An object of class `ast` and `prod`.
 #' @export
-ast_prod <- function(index, value) {
+ast_prod <- function(index, value, domain = NULL) {
   stopifnot(inherits(index, "ast"))
-  # if (!is.null(domain)) stopifnot(inherits(domain, "ast"))
   stopifnot(inherits(value, "ast"))
-  new_ast("prod", index = index, value = value)
+  if (!is.null(domain)) stopifnot(inherits(domain, "ast"))
+  new_ast("prod", index = index, value = value, domain = domain)
 }
 
 #' Create a function AST node
@@ -353,10 +381,10 @@ ast_prod <- function(index, value) {
 #' @param name A character string representing the function name.
 #' @param value An AST node representing the function body or expression.
 #' @param index An AST node (typically dims or when) defining the index set.
+#' @param ... Additional fields stored on the node (passed to [new_ast()]).
 #' @return An `ast` object of class `function`.
 #' @export
 ast_func <- function(name, value, index = NULL, ...) {
-  # browser()
   stopifnot(is.character(name), length(name) == 1)
 
   # index must be NULL or a single ast (like ast_dims or ast_when)
@@ -400,6 +428,8 @@ ast_func <- function(name, value, index = NULL, ...) {
 #' @param op A character string representing the operator (e.g., `+`, `*`, `/`).
 #' @param lhs The left-hand side AST node.
 #' @param rhs The right-hand side AST node.
+#' @param brackets Optional bracket type to wrap the expression in when
+#'   rendered: `"("`, `"["` or the curly brace; `NULL` for none.
 #'
 #' @return An `expression` S3 object (subclass of `ast`).
 #' @export
@@ -407,7 +437,7 @@ ast_expression <- function(op, lhs, rhs, brackets = NULL) {
   stopifnot(is.character(op), !is.null(lhs), !is.null(rhs))
   stopifnot(inherits(lhs, "ast"), inherits(rhs, "ast"))
   stopifnot(length(op) == 1)
-  if (length(brackets) > 1) browser()
+  if (length(brackets) > 1) .dev_break("ast-classes.R:411")
   stopifnot(length(brackets) <= 1)
   new_ast("expression", op = op, lhs = lhs, rhs = rhs, brackets = brackets)
 }
@@ -451,12 +481,12 @@ ast_unary <- function(op, rhs) {
 #' @param rhs The right-hand side of the equation (an AST node).
 #' @param relation A character string representing the relation type.
 #'  One of `"=="`, `"<="`, or `">="`.
-#'  @param name Optional character string. The name of the equation.
-#'  @param domain Optional AST node representing the domain condition.
-#'  @param desc Optional character string. A description or label for the equation.
+#' @param name Optional character string. The name of the equation.
+#' @param domain Optional AST node representing the domain condition.
+#' @param desc Optional character string. A description or label for the equation.
 #'
-#'  @return An `equation` S3 object.
-#'  @export
+#' @return An `ast` node of class `equation`.
+#' @export
 ast_equation <- function(lhs, rhs, relation = "==",
                          name = NULL, domain = NULL, desc = NULL) {
   stopifnot(relation %in% c("==", "<=", ">=", "<", ">"))
@@ -526,7 +556,9 @@ node_type <- function(x) {
   if (!inherits(x, c("ast", "multimod"))) {
     return(NULL)
   }
-  class(x)[1]
+  # the node type is the first class without the package prefix:
+  # "mm_variable" -> "variable", "expression" -> "expression"
+  sub("^mm_", "", class(x)[1])
 }
 
 #' Generate a stable hash for an AST or multimod object (excluding internal hash fields)
@@ -622,6 +654,7 @@ ast_setmax <- function(index, value) {
 #' @param symbols Symbol table or similar object that may carry a `language` field/attribute.
 #' @param context Optional object (model structure, builder) that exposes `$language` or a
 #'   `language` attribute.
+#' @return A lower-case language identifier, e.g. `"gams"` or `"gmpl"`.
 #' @keywords internal
 resolve_ast_language <- function(language = NULL, symbols = NULL, context = NULL) {
   if (!is.null(language)) {
@@ -688,12 +721,20 @@ get_ast_parser <- function(language) {
     return(parse_gams_expr)
   } else if (lang == "gmpl") {
     return(parse_gmpl_expr)
+  } else if (lang == "linopy") {
+    stop("linopy AST parsing is not part of the package; ",
+         "the experimental reader lives in drafts/R/read_linopy.R")
   }
   stop("No AST parser registered for language: ", language)
 }
 
 #' Language-aware AST expression parser
 #'
+#' @param expr A character string to parse, or an AST node (returned as is).
+#' @param symbols Symbol table passed to the parser.
+#' @param language,context See [resolve_ast_language()].
+#' @param ... Passed on to the language parser.
+#' @return An AST node.
 #' @keywords internal
 ast_parse_expr <- function(expr, symbols = NULL, language = NULL, context = NULL, ...) {
   if (inherits(expr, "ast")) return(expr)

@@ -13,6 +13,10 @@ evaluate_formula(
   verbose = FALSE
 )
 }
+\value{
+A numeric scalar (no dimensions), a named numeric vector (one
+dimension) or a numeric array with \code{dimnames} (several dimensions).
+}
 \description{
 Evaluate formula AST over all dimension combinations
 }

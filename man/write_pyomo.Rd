@@ -6,7 +6,6 @@
 \usage{
 write_pyomo(
   model,
-  file = NULL,
   model_dir = NULL,
   solver_dir = "pyomo",
   model_name = "model",
@@ -24,9 +23,11 @@ write_pyomo(
 \arguments{
 \item{model}{A \code{multimod} model object}
 
-\item{file}{Output file path (optional, overrides model_dir/solver_dir)}
-
-\item{model_dir}{Directory where model was saved with save_model() (contains model.rds)}
+\item{model_dir}{Model workspace directory. The scaffold is written to
+\verb{<model_dir>/solvers/<solver_dir>/} and reads its data from the workspace,
+so the directory must hold one written by \code{\link[=save_model]{save_model()}}; if it does not,
+the model is saved there first (CSV format). Defaults to the directory the
+model was loaded from or saved to (\code{model$base_path}).}
 
 \item{solver_dir}{Solver subdirectory name (default: "jump", e.g., "jump-highs", "jump-cplex")}
 

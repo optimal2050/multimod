@@ -14,14 +14,22 @@
 #' @export
 #'
 #' @examples
-#' \dontrun{
-#' gmpl <- read_gmpl("model.mod")
+#' # A GMPL model with a computed parameter, parsed from text
+#' gmpl <- read_gmpl(c(
+#'   "set REGION;",
+#'   "param DiscountRate{r in REGION};",
+#'   "param GrowthFactor{r in REGION} := 1 + DiscountRate[r];",
+#'   "var x{r in REGION} >= 0;",
+#'   "minimize obj: sum{r in REGION} GrowthFactor[r] * x[r];",
+#'   "s.t. c1{r in REGION}: x[r] >= 1;",
+#'   "end;"
+#' ))
 #' data <- list(
 #'   REGION = c("R1", "R2"),
-#'   DiscountRate = c(R1=0.05, R2=0.07)
+#'   DiscountRate = c(R1 = 0.05, R2 = 0.07)
 #' )
 #' model <- evaluate_parameters(gmpl, data)
-#' }
+#' model$parameters$GrowthFactor$data
 evaluate_parameters <- function(
     model,
     data = list(),
@@ -271,6 +279,7 @@ evaluate_parameters <- function(
 
 
 #' Check if object is an AST node
+#' @return A logical scalar.
 #' @keywords internal
 is_ast_node <- function(x) {
   is.list(x) && inherits(x, "ast")
@@ -400,6 +409,8 @@ materialize_parameter_values <- function(param, data = NULL, dim_members = list(
 
 
 #' Convert evaluated parameter arrays into long-form data frames
+#' @return A data frame with one column per dimension and a `value` column, or
+#'   `NULL` when `result` is `NULL`.
 #' @keywords internal
 parameter_result_to_dataframe <- function(result, dims) {
   if (is.null(result)) {
@@ -447,6 +458,8 @@ parameter_result_to_dataframe <- function(result, dims) {
 
 
 #' Ensure parameters retain a scalar default after evaluation
+#' @return `param` with a scalar `defVal` (the mean of its data, else 0) and a
+#'   `misc$defVal_fallback` record when a fallback was applied.
 #' @keywords internal
 ensure_parameter_defval <- function(param) {
   if (!is.null(param$defVal) && !is_ast_node(param$defVal)) {
@@ -489,6 +502,7 @@ ensure_parameter_defval <- function(param) {
 
 
 #' Get dependencies from AST
+#' @return A character vector of unique parameter names referenced in `ast`.
 #' @keywords internal
 get_dependencies <- function(ast, model) {
   # Extract all symbols from AST
@@ -506,6 +520,8 @@ get_dependencies <- function(ast, model) {
 
 
 #' Topological sort of parameters by dependencies
+#' @return A character vector of parameter names in evaluation order,
+#'   dependencies first. Errors on circular dependencies.
 #' @keywords internal
 topological_sort <- function(needs_eval, verbose = FALSE) {
   # Simple topological sort using Kahn's algorithm
@@ -561,6 +577,8 @@ topological_sort <- function(needs_eval, verbose = FALSE) {
 
 
 #' Evaluate formula AST over all dimension combinations
+#' @return A numeric scalar (no dimensions), a named numeric vector (one
+#'   dimension) or a numeric array with `dimnames` (several dimensions).
 #' @keywords internal
 evaluate_formula <- function(formula_ast, dims, dims_index_aliases, all_data, model, verbose = FALSE) {
   
@@ -656,6 +674,7 @@ evaluate_formula <- function(formula_ast, dims, dims_index_aliases, all_data, mo
 }
 
 #' Normalize dimension specifications to a character vector of set names
+#' @return A character vector of set names; empty for `NULL` input.
 #' @keywords internal
 normalize_dim_names <- function(dims) {
   if (is.null(dims) || length(dims) == 0) {
@@ -676,6 +695,7 @@ normalize_dim_names <- function(dims) {
 }
 
 #' Convert a single dimension entry to its name
+#' @return A character string, or `NA_character_` for `NULL`.
 #' @keywords internal
 dim_entry_to_name <- function(entry) {
   if (is.null(entry)) return(NA_character_)
@@ -700,6 +720,8 @@ dim_entry_to_name <- function(entry) {
 }
 
 #' Resolve iterator variable names for dimensions
+#' @return A character vector named by `dim_names` giving the iterator alias
+#'   of each dimension.
 #' @keywords internal
 resolve_index_vars <- function(dims_index_aliases, dim_names) {
   if (length(dim_names) == 0) {
@@ -718,6 +740,8 @@ resolve_index_vars <- function(dims_index_aliases, dim_names) {
 }
 
 #' Normalize provided dimension aliases to align with dim names
+#' @return A character vector named by `dim_names`, `NA` where no alias was
+#'   supplied, or `NULL` when `aliases` is empty.
 #' @keywords internal
 normalize_index_aliases <- function(aliases, dim_names) {
   if (is.null(aliases) || length(aliases) == 0) {
@@ -751,6 +775,8 @@ normalize_index_aliases <- function(aliases, dim_names) {
 }
 
 #' Generate default iterator aliases from dimension names
+#' @return A character vector named by `dim_names`: the first letter of each
+#'   name, made unique.
 #' @keywords internal
 default_index_aliases <- function(dim_names) {
   aliases <- tolower(substr(dim_names, 1, 1))
@@ -761,6 +787,8 @@ default_index_aliases <- function(dim_names) {
 
 
 #' Evaluate default expression AST
+#' @return The evaluated default value (usually a numeric scalar), or the
+#'   unevaluated AST when it has index variables or evaluation fails.
 #' @keywords internal
 evaluate_default_expr <- function(defval_ast, all_data, model, verbose = FALSE) {
   

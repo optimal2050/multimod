@@ -21,7 +21,7 @@ save_model(
 
 \item{path}{Path to save the model files}
 
-\item{format}{File format for saving ("csv", "rds", "parquet", etc.)}
+\item{format}{Character. Data format: "csv" (default), "ipc" (Arrow IPC/Feather), or "parquet"}
 
 \item{compression}{Compression method to use}
 
@@ -36,13 +36,44 @@ save_model(
 \item{verbose}{Logical; if TRUE, print progress messages}
 }
 \value{
-Invisibly returns NULL
+Invisibly, the model with storage metadata attached.
 }
 \description{
 Save model data on disk
 }
-\examples{
-\dontrun{
-save_model(model, path = "model_data", format = "csv")
+\details{
+Directory structure created:
+\preformatted{
+model_path/
+  model.rds              # Model structure (thinned if keep_in_memory=FALSE)
+  metadata.json          # Human-readable metadata
+  format.txt             # Storage format
+  sets/
+    set_name.txt         # Set members (one per line)
+  parameters/
+    param_name/
+      data.{csv|arrow|parquet}   # Parameter data
+      metadata.rds               # Parameter metadata
+  mappings/
+    mapping_name/
+      data.{csv|arrow|parquet}
+  folded_data/           # If folding applied
+    param_name/
+      folded_data.{csv|arrow|parquet}
+  equations/
+    equations.rds        # All equations
+  variables/
+    variables.rds        # All variables
 }
+}
+\examples{
+m <- example_models$energyRt$multimod
+ws <- file.path(tempdir(), "energyRt_ws")
+
+# Save with the default CSV format
+m <- save_model(m, ws, verbose = FALSE)
+
+# Save and drop the data from memory; get_data() reloads it from disk
+m_light <- save_model(m, ws, keep_in_memory = FALSE, verbose = FALSE)
+head(get_data(m_light, "pTechOlife"))
 }

@@ -31,65 +31,12 @@
 NULL
 
 
-#' Save multimod model workspace to disk
+#' Write the sets and parameters metadata CSV files of a model workspace
 #'
-#' @description
-#' Save a complete multimod model to a workspace directory with efficient Arrow storage for
-#' data frames. The directory structure mirrors the model object structure
-#' for consistency and easy navigation.
-#'
-#' @param model A multimod model object
-#' @param path Character. Directory path for model workspace
-#' @param format Character. Data format: "csv" (default), "ipc" (Arrow IPC/Feather), or "parquet"
-#' @param compression Character. Compression codec for Arrow formats: "zstd" (default), "lz4", "snappy", or "uncompressed"
-#' @param compression_level Integer. Compression level (default: 15 for zstd)
-#' @param overwrite Logical. Overwrite existing model workspace directory
-#' @param keep_in_memory Logical. Keep data in memory after saving (default: TRUE)
-#' @param save_structure Logical. Save equations, variables, and other structure (default: TRUE)
-#' @param verbose Logical. Print progress messages
-#'
-#' @return Modified model object with storage metadata
-#' @export
-#'
-#' @details
-#' Directory structure created:
-#' \preformatted{
-#' model_path/
-#'   model.rds              # Model structure (thinned if keep_in_memory=FALSE)
-#'   metadata.json          # Human-readable metadata
-#'   format.txt             # Storage format
-#'   sets/
-#'     set_name.txt         # Set members (one per line)
-#'   parameters/
-#'     param_name/
-#'       data.{csv|arrow|parquet}   # Parameter data
-#'       metadata.rds               # Parameter metadata
-#'   mappings/
-#'     mapping_name/
-#'       data.{csv|arrow|parquet}
-#'   folded_data/           # If folding applied
-#'     param_name/
-#'       folded_data.{csv|arrow|parquet}
-#'   equations/
-#'     equations.rds        # All equations
-#'   variables/
-#'     variables.rds        # All variables
-#' }
-#'
-#' @examples
-#' \dontrun{
-#' # Save with default CSV format
-#' model <- save_model(model, "models/utopia")
-#'
-#' # Save with Arrow IPC (fastest)
-#' model <- save_model(model, "models/utopia", format = "ipc")
-#'
-#' # Save and free memory
-#' model <- save_model(model, "models/utopia",
-#'                     format = "ipc",
-#'                     keep_in_memory = FALSE)
-#' }
-#'
+#' @param model A multimod model object.
+#' @param model_dir Workspace directory; `sets/sets.csv` and
+#'   `parameters/parameters.csv` are written under it.
+#' @return Invisibly, `NULL`; called for its side effect of writing the files.
 #' @keywords internal
 .generate_model_metadata_csv <- function(model, model_dir) {
   # Generate sets/sets.csv
@@ -219,7 +166,7 @@ NULL
 #'
 #' @param model A multimod model object
 #' @param path Path to save the model files
-#' @param format File format for saving ("csv", "rds", "parquet", etc.)
+#' @param format Character. Data format: "csv" (default), "ipc" (Arrow IPC/Feather), or "parquet"
 #' @param compression Compression method to use
 #' @param compression_level Compression level (1-9)
 #' @param overwrite Logical; if TRUE, overwrite existing files
@@ -227,13 +174,44 @@ NULL
 #' @param save_structure Logical; if TRUE, save model structure separately
 #' @param verbose Logical; if TRUE, print progress messages
 #'
-#' @return Invisibly returns NULL
+#' @return Invisibly, the model with storage metadata attached.
 #' @export
 #'
-#' @examples
-#' \dontrun{
-#' save_model(model, path = "model_data", format = "csv")
+#' @details
+#' Directory structure created:
+#' \preformatted{
+#' model_path/
+#'   model.rds              # Model structure (thinned if keep_in_memory=FALSE)
+#'   metadata.json          # Human-readable metadata
+#'   format.txt             # Storage format
+#'   sets/
+#'     set_name.txt         # Set members (one per line)
+#'   parameters/
+#'     param_name/
+#'       data.{csv|arrow|parquet}   # Parameter data
+#'       metadata.rds               # Parameter metadata
+#'   mappings/
+#'     mapping_name/
+#'       data.{csv|arrow|parquet}
+#'   folded_data/           # If folding applied
+#'     param_name/
+#'       folded_data.{csv|arrow|parquet}
+#'   equations/
+#'     equations.rds        # All equations
+#'   variables/
+#'     variables.rds        # All variables
 #' }
+#'
+#' @examples
+#' m <- example_models$energyRt$multimod
+#' ws <- file.path(tempdir(), "energyRt_ws")
+#'
+#' # Save with the default CSV format
+#' m <- save_model(m, ws, verbose = FALSE)
+#'
+#' # Save and drop the data from memory; get_data() reloads it from disk
+#' m_light <- save_model(m, ws, keep_in_memory = FALSE, verbose = FALSE)
+#' head(get_data(m_light, "pTechOlife"))
 save_model <- function(
     model,
     path,
@@ -248,7 +226,7 @@ save_model <- function(
   format <- match.arg(format)
 
   # Validate model
-  if (!inherits(model, "model") && !inherits(model, "multimod")) {
+  if (!inherits(model, "mm_model") && !inherits(model, "multimod")) {
     stop("Object must be a multimod model")
   }
 
@@ -438,13 +416,14 @@ save_model <- function(
 #' @export
 #'
 #' @examples
-#' \dontrun{
+#' ws <- file.path(tempdir(), "energyRt_ws")
+#' save_model(example_models$energyRt$multimod, ws, verbose = FALSE)
+#'
 #' # Load model with all data
-#' model <- load_model("models/utopia")
+#' m <- load_model(ws, verbose = FALSE)
 #'
 #' # Load structure only (for inspection)
-#' model <- load_model("models/utopia", load_data = FALSE)
-#' }
+#' m_light <- load_model(ws, load_data = FALSE, verbose = FALSE)
 load_model <- function(
     path,
     load_data = TRUE,
@@ -556,18 +535,11 @@ load_model <- function(
 #' @export
 #'
 #' @examples
-#' \dontrun{
-#' # Update parameter data
-#' model <- update_parameter(model, "pTechCost", new_tech_cost_data)
-#'
-#' # Update with folded data
-#' model <- update_parameter(model, "pTechCost",
-#'                          data = tech_cost_data,
-#'                          folded_data = tech_cost_folded)
-#'
-#' # Update and immediately save to disk
-#' model <- update_parameter(model, "pTechCost", new_data, auto_save = TRUE)
-#' }
+#' m <- example_models$energyRt$multimod
+#' olife <- get_data(m, "pTechOlife")
+#' olife$value <- olife$value + 5
+#' m <- update_parameter(m, "pTechOlife", olife)
+#' head(get_data(m, "pTechOlife"))
 update_parameter <- function(model, name, data, folded_data = NULL, auto_save = FALSE) {
   if (!name %in% names(model$parameters)) {
     stop("Parameter '", name, "' not found in model")
@@ -654,10 +626,10 @@ update_parameter <- function(model, name, data, folded_data = NULL, auto_save = 
 #' @export
 #'
 #' @examples
-#' \dontrun{
-#' # Update mapping data
-#' model <- update_mapping(model, "mTechRegion", new_mapping_data)
-#' }
+#' m <- example_models$energyRt$multimod
+#' map <- get_data(m, "mCommTimeslice", type = "mapping")
+#' m <- update_mapping(m, "mCommTimeslice", map[1:10, ])
+#' nrow(get_data(m, "mCommTimeslice", type = "mapping"))
 update_mapping <- function(model, name, data, auto_save = FALSE) {
   if (!name %in% names(model$mappings)) {
     stop("Mapping '", name, "' not found in model")
@@ -706,6 +678,80 @@ update_mapping <- function(model, name, data, auto_save = FALSE) {
 
   model
 }
+# Does this object claim data that lives somewhere other than $data?
+#
+# energyRt's convert_parameter() records an on-disk source as misc$path /
+# misc$onDisk and leaves $data empty, but get_data() only ever looked in $data
+# and in model$storage -- two conventions that never met. The consequence was
+# silent: every parameter fell through to its scalar default and the model
+# built as a 1x1, while the import log still reported every symbol linked.
+.claims_external_data <- function(obj) {
+  if (is.null(obj)) return(FALSE)
+  m <- obj$misc
+  if (is.null(m)) return(FALSE)
+  isTRUE(!is.null(m$path)) || isTRUE(!is.null(m$onDisk)) || identical(m$inMemory, FALSE)
+}
+
+# A symbol that claims data elsewhere and yields none must not quietly become
+# its default. Wrong numbers with no error are worse than a stop, especially on
+# a large model where nobody can eyeball the result.
+#' Does the object's own on-disk record say the table is empty?
+#'
+#' energyRt stores a summary of the detached table in `misc$onDisk`, including
+#' its dimensions. A map that legitimately holds no tuples (`mvTechPhaseOut` in
+#' a scenario with no phase-outs) therefore *claims* external data while having
+#' nothing to load - which is not the same failure as a path that cannot be
+#' read, and must not be reported as one.
+#' @keywords internal
+#' @noRd
+.recorded_empty <- function(obj) {
+  d <- .ondisk_dim(obj$misc$onDisk)
+  !is.null(d) && isTRUE(as.integer(d[1]) == 0L)
+}
+
+#' Dimensions recorded in an on-disk summary, or NULL
+#'
+#' energyRt keys the record by slot name (`onDisk$data$dim`); a flat record
+#' (`onDisk$dim`) also occurs. Accept either.
+#' @keywords internal
+#' @noRd
+.ondisk_dim <- function(rec) {
+  if (is.null(rec)) return(NULL)
+  if (!is.null(rec$dim)) return(rec$dim)
+  rec[["data"]]$dim
+}
+
+#' A zero-row table with the object's declared columns
+#' @keywords internal
+#' @noRd
+.empty_like <- function(obj) {
+  nms <- tryCatch(
+    vapply(obj$dims, dim_binding_name, character(1), USE.NAMES = FALSE),
+    error = function(e) character()
+  )
+  nms <- nms[nzchar(nms)]
+  if (inherits(obj, "mm_parameter")) nms <- c(nms, "value")
+  if (!length(nms)) return(data.frame())
+  cols <- rep(list(character()), length(nms))
+  if (inherits(obj, "mm_parameter")) cols[[length(cols)]] <- numeric()
+  names(cols) <- nms
+  as.data.frame(cols, stringsAsFactors = FALSE)
+}
+
+.no_data_for <- function(obj, name, kind) {
+  stop(sprintf(paste0(
+    "%s '%s' declares data outside $data but none could be loaded.\n",
+    "  misc$path   : %s\n",
+    "  misc$inMemory: %s\n",
+    "Load it in memory (for an energyRt scenario, ",
+    "energyRt::multimod_import_data(..., inMemory = TRUE)) or make ",
+    "the path readable. Continuing would silently use the default value."),
+    kind, name,
+    if (is.null(obj$misc$path)) "<none>" else as.character(obj$misc$path)[1],
+    if (is.null(obj$misc$inMemory)) "<unset>" else as.character(obj$misc$inMemory)),
+    call. = FALSE)
+}
+
 
 
 #' Get data from model (with optional lazy loading)
@@ -723,23 +769,33 @@ update_mapping <- function(model, name, data, auto_save = FALSE) {
 #' @export
 #'
 #' @examples
-#' \dontrun{
-#' # Get parameter data
-#' data <- get_data(model, "pTechCost")
+#' m <- example_models$energyRt$multimod
 #'
-#' # Get mapping data
-#' data <- get_data(model, "mTechRegion", type = "mapping")
+#' # Parameter data
+#' head(get_data(m, "pTechOlife"))
 #'
-#' # Get set members
-#' members <- get_data(model, "tech", type = "set")
-#' }
+#' # Mapping data
+#' head(get_data(m, "mCommTimeslice", type = "mapping"))
 get_data <- function(model, name, type = c("parameter", "mapping", "set", "variable"), ...) {
   type <- match.arg(type)
 
   if (type == "set") {
-    if (!is.null(model$sets[[name]])) {
-      return(model$sets[[name]]$members)
+    set_obj <- model$sets[[name]]
+    if (is.null(set_obj)) return(NULL)
+
+    if (!is.null(set_obj$data) && length(set_obj$data) > 0) {
+      return(as.character(set_obj$data))
     }
+
+    # save_model() writes sets/<name>/data.<ext> with one column, `member`
+    if (!is.null(model$storage$path)) {
+      set_file <- file.path(model$storage$path, "sets", name, "data")
+      data <- .load_dataframe(set_file, model$storage$format)
+      if (!is.null(data) && "member" %in% names(data)) {
+        return(as.character(data$member))
+      }
+    }
+
     return(NULL)
   }
 
@@ -761,6 +817,16 @@ get_data <- function(model, name, type = c("parameter", "mapping", "set", "varia
         model$parameters[[name]]$data <- data
         return(data)
       }
+    }
+
+    # The per-object reference, which the model$storage path above does not
+    # know about. get_lazy_data() resolves misc$path/onDisk properly.
+    if (.claims_external_data(param)) {
+      d <- tryCatch(get_lazy_data(param, base_path = model$base_path),
+                    error = function(e) NULL)
+      if (!is.null(d) && NROW(d) > 0) return(d)
+      if (.recorded_empty(param)) return(.empty_like(param))
+      .no_data_for(param, name, "Parameter")
     }
 
     # Fallback to scalar default when no data or formula is available
@@ -789,6 +855,15 @@ get_data <- function(model, name, type = c("parameter", "mapping", "set", "varia
         model$mappings[[name]]$data <- data
         return(data)
       }
+    }
+
+    # Same per-object reference the parameter branch honours above.
+    if (.claims_external_data(mapping)) {
+      d <- tryCatch(get_lazy_data(mapping, base_path = model$base_path),
+                    error = function(e) NULL)
+      if (!is.null(d) && NROW(d) > 0) return(d)
+      if (.recorded_empty(mapping)) return(.empty_like(mapping))
+      .no_data_for(mapping, name, "Mapping")
     }
 
     return(NULL)
@@ -825,6 +900,8 @@ get_data <- function(model, name, type = c("parameter", "mapping", "set", "varia
 
 #' Internal: Save dataframe to disk
 #'
+#' @return Invisibly, the path of the written file, or `NULL` when `data` is
+#'   empty.
 #' @keywords internal
 .save_dataframe <- function(
     data,
@@ -891,6 +968,7 @@ get_data <- function(model, name, type = c("parameter", "mapping", "set", "varia
 
 #' Internal: Load dataframe from disk
 #'
+#' @return A data frame, or `NULL` when no file of `format` exists at `path`.
 #' @keywords internal
 .load_dataframe <- function(path, format) {
   # Try each format
@@ -924,7 +1002,7 @@ get_data <- function(model, name, type = c("parameter", "mapping", "set", "varia
 
 
 #' Null coalescing operator
-#' @keywords internal
+#' @noRd
 `%||%` <- function(x, y) {
   if (is.null(x)) y else x
 }

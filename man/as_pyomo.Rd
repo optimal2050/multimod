@@ -23,7 +23,6 @@ Character string containing Pyomo-compatible code.
 \description{
 This helper mirrors \code{as_jump()} but emits Python/Pyomo-friendly strings.
 The implementation focuses on linear expressions (sum/prod, arithmetic
-operators, variable/parameter references) which cover the current OSeMOSYS
-workflow. Unsupported node types raise informative errors so we can extend
-coverage incrementally.
+operators, variable/parameter references). Unsupported node types raise
+informative errors so coverage can be extended incrementally.
 }

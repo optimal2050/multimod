@@ -35,14 +35,10 @@ and can save to CSV/arrow format.
 \examples{
 \dontrun{
 # Read model structure
-model <- read_gmpl("osemosys.txt", as_multimod = TRUE)
+model <- read_gmpl("model.mod", as_multimod = TRUE)
 
 # Import data from file
-model <- import_gmpl_data(model, gmpl_data = "utopia.txt")
-
-# Import from character vector (e.g., package data)
-data(example_models)
-model <- import_gmpl_data(model, gmpl_data = example_models$OSeMOSYS$gmpl$data)
+model <- import_gmpl_data(model, gmpl_data = "data.dat")
 
 # Or import pre-parsed data
 data <- read_gmpl_data("utopia.txt")

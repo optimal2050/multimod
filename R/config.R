@@ -7,7 +7,7 @@
 #' **Priority order** (highest to lowest):
 #' 1. R option: `getOption("multimod.<solver>_path")`
 #' 2. Environment variable: `MULTIMOD_<SOLVER>`
-#' 3. YAML config file: `~/.multimod/config.yml` or `.multimod.yml`
+#' 3. YAML config file: the per-user directory given by `tools::R_user_dir("multimod", "config")` or `.multimod.yml`
 #' 4. Intelligent defaults (reticulate for Python, system PATH for others)
 #'
 #' @name multimod-config
@@ -32,7 +32,7 @@
 #' # Or use environment variables (system-wide):
 #' Sys.setenv(MULTIMOD_PYTHON = "C:/Python310/python.exe")
 #' 
-#' # Or use YAML config file (~/.multimod/config.yml):
+#' # Or use YAML config file (the config.yml under tools::R_user_dir("multimod", "config")):
 #' multimod_config_write(list(
 #'   python = list(path = "C:/Python310/python.exe", env_name = "multimod"),
 #'   julia = list(path = "C:/Julia-1.10/bin/julia.exe"),
@@ -89,6 +89,49 @@ get_multimod_python <- function(env_name = "multimod") {
   
   # 5. Fall back to system python
   "python"
+}
+
+#' Report on the Python environment multimod would use
+#'
+#' Resolves the interpreter the way [get_multimod_python()] does and reports
+#' whether it exists and carries the packages a route needs. [solve_pyomo()]
+#' calls this before bootstrapping, so an environment that is already usable
+#' is not reinstalled on every solve.
+#'
+#' @param env_name Conda environment to look for. Defaults to `"multimod"`.
+#' @param packages Python packages that must import. Defaults to `"pyomo"`.
+#' @param python Optional explicit interpreter, bypassing resolution.
+#'
+#' @return A list with `ok`, `path`, `version` and `missing`.
+#' @seealso [mm_setup_python()], [set_multimod_python()]
+#' @export
+mm_check_python <- function(env_name = "multimod", packages = "pyomo",
+                            python = NULL) {
+  path <- python %||% get_multimod_python(env_name = env_name)
+  out <- list(ok = FALSE, path = path, version = NA_character_,
+              missing = as.character(packages))
+  if (is.null(path) || is.na(path) || !nzchar(path)) return(out)
+
+  ver <- tryCatch(
+    suppressWarnings(system2(path, c("-c", shQuote("import sys; print(sys.version.split()[0])")),
+                             stdout = TRUE, stderr = FALSE)),
+    error = function(e) character(0))
+  if (length(ver) == 0 || !grepl("^[0-9]", ver[1])) return(out)
+  out$version <- ver[1]
+
+  missing <- character(0)
+  for (p in packages) {
+    probe <- tryCatch(
+      suppressWarnings(system2(path, c("-c", shQuote(paste0("import ", p))),
+                               stdout = TRUE, stderr = TRUE)),
+      error = function(e) "error")
+    if (!is.null(attr(probe, "status")) && attr(probe, "status") != 0) {
+      missing <- c(missing, p)
+    }
+  }
+  out$missing <- missing
+  out$ok <- length(missing) == 0
+  out
 }
 
 # Julia configuration ---------------------------------------------------------
@@ -149,7 +192,27 @@ get_multimod_glpsol <- function() {
   yaml_path <- .get_config_value("glpsol", "path")
   if (!is.null(yaml_path)) return(normalizePath(yaml_path, mustWork = FALSE))
   
-  # 4. Fall back to system glpsol
+  # 4. The glpsol package, which ships the executable itself. Preferred over
+  #    the ambient copies below: its version is known and it needs no separate
+  #    GLPK installation.
+  if (requireNamespace("glpsol", quietly = TRUE)) {
+    hit <- tryCatch(glpsol::glpsol_path(), error = function(e) NULL)
+    if (!is.null(hit) && nzchar(hit) && file.exists(hit)) return(hit)
+  }
+
+  # 5. The conda environment, whose bin directory is not on PATH unless it
+  #    has been activated. mm_setup_python() installs glpk there.
+  py <- tryCatch(get_multimod_python(), error = function(e) NULL)
+  if (!is.null(py) && nzchar(py) && py != "python" && file.exists(py)) {
+    root <- dirname(py)
+    cand <- c(file.path(root, "Library", "bin", "glpsol.exe"),
+              file.path(root, "glpsol"),
+              file.path(root, "bin", "glpsol"))
+    hit <- cand[file.exists(cand)]
+    if (length(hit) > 0) return(normalizePath(hit[1], winslash = "/"))
+  }
+
+  # 6. Fall back to system glpsol
   "glpsol"
 }
 
@@ -195,7 +258,7 @@ get_multimod_solver <- function(solver_name) {
 
 #' @rdname multimod-config
 #' @param config Named list of configuration values to write to YAML file.
-#' @param global Logical; if `TRUE`, writes to `~/.multimod/config.yml` (user-wide).
+#' @param global Logical; if `TRUE`, writes to the per-user directory given by `tools::R_user_dir("multimod", "config")` (user-wide).
 #'   If `FALSE` (default), writes to `.multimod.yml` in current working directory.
 #' @export
 multimod_config_write <- function(config, global = FALSE) {
@@ -205,7 +268,7 @@ multimod_config_write <- function(config, global = FALSE) {
   }
   
   config_file <- if (global) {
-    file.path(Sys.getenv("HOME"), ".multimod", "config.yml")
+    file.path(tools::R_user_dir("multimod", "config"), "config.yml")
   } else {
     file.path(getwd(), ".multimod.yml")
   }
@@ -231,7 +294,7 @@ multimod_config_read <- function(global = FALSE) {
   # Try project-level first, then global
   config_files <- c(
     file.path(getwd(), ".multimod.yml"),
-    file.path(Sys.getenv("HOME"), ".multimod", "config.yml")
+    file.path(tools::R_user_dir("multimod", "config"), "config.yml")
   )
   
   if (global) {
@@ -251,7 +314,7 @@ multimod_config_read <- function(global = FALSE) {
 #' @export
 multimod_config_path <- function(global = FALSE) {
   config_file <- if (global) {
-    file.path(Sys.getenv("HOME"), ".multimod", "config.yml")
+    file.path(tools::R_user_dir("multimod", "config"), "config.yml")
   } else {
     file.path(getwd(), ".multimod.yml")
   }

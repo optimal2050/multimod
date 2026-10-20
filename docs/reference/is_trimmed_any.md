@@ -28,14 +28,14 @@ Logical indicating if any elements are trimmed
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
-# Check if model has any trimmed elements
-if (is_trimmed_any(model)) {
-  cat("Model has trimmed elements\n")
-}
-# Check only data elements (excluding equations)
-if (is_trimmed_any(model, include_equations = FALSE)) {
-  cat("Model has trimmed data elements\n")
-}
-} # }
+m <- example_models$energyRt$multimod
+is_trimmed_any(m)
+#> [1] FALSE
+
+m_trimmed <- trim_model(m, verbose = FALSE)
+is_trimmed_any(m_trimmed)
+#> [1] TRUE
+# Only data elements (excluding equations)
+is_trimmed_any(m_trimmed, include_equations = FALSE)
+#> [1] TRUE
 ```

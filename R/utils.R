@@ -257,7 +257,8 @@ split_line_on_pattern <- function(
 #' @returns A list of all matching elements
 #' @export
 #' @examples
-#' extract_elements_by_name(model, "when")
+#' eq <- example_models$energyRt$multimod$equations[[1]]
+#' length(extract_ast_elements(eq, "when"))
 extract_ast_elements <- function(obj, name, recursive = TRUE) {
   results <- list()
 
@@ -290,12 +291,6 @@ replace_ast_elements <- function(obj, name, replacement) {
   obj
 }
 
-if (F) {
-  # ast_type <- list(
-  #   "when" = "cond",
-  # )
-  ast_type <- c("when", "mapping")
-}
 
 #' Replace AST elements with "ast_where" nodes
 #'
@@ -309,6 +304,11 @@ if (F) {
 #' (e.g., "when", "mapping").
 #' @param name_prefix A character string prefix for the new names of the
 #' replaced elements. Defaults to "m".
+#' @param n Integer; starting value of the counter used to number the
+#'   replaced elements (default 0).
+#' @param latex_max Numeric; elements whose rendered LaTeX is shorter than
+#'   this estimated length are left in place (default 10).
+#' @param ... Further arguments, currently ignored.
 #'
 #' @returns Modified AST object with remapped elements
 #' @export
@@ -320,7 +320,6 @@ remap_ast_elements <- function(obj,
                                latex_max = 10,
                                ...
                                ) {
-  # browser()
   if (is_empty(ast_type) || is_empty(obj)) return(obj)
 
   tmp_name <- "s"
@@ -354,7 +353,7 @@ remap_ast_elements <- function(obj,
   # remove duplicates by equations
   if (n > 0 && inherits(obj, "multimod") && !is.null(obj$equations)) {
     obj$equations <- lapply(obj$equations, replace_where_duplicates)
-  } else if (n > 0 && inherits(obj, "equation")) {
+  } else if (n > 0 && inherits(obj, "mm_equation")) {
     obj <- replace_where_duplicates(obj)
   }
 
@@ -362,6 +361,9 @@ remap_ast_elements <- function(obj,
 }
 
 #' Extract "where" nodes from an AST
+#' @param ast An AST node.
+#' @return A named list of the `where` nodes found in `ast`, keyed by name.
+#' @keywords internal
 extract_where_nodes <- function(ast) {
   result <- list()
 
@@ -389,7 +391,6 @@ replace_where_duplicates <- function(obj) {
     stringsAsFactors = FALSE
   )
   d$duplicates <- duplicated(d$hash)
-  # browser()
   if (nrow(d) == 0) return(obj)  # no duplicates, nothing to do
   d$new_name <- NA_character_
   d$new_name[!d$duplicates] <- paste0("m", seq_len(sum(!d$duplicates)))
@@ -402,11 +403,9 @@ replace_where_duplicates <- function(obj) {
 
   # replace names in obj with d$new_name
   rename_fun <- function(x) {
-    # browser()
     if (is_empty(x)) return(x)
     # message(as.character(x))
     if (inherits(x, "where") && isTRUE(x$name %in% d$name)) {
-      # browser()
       new_name <- d$new_name[d$name == x$name][1]
       x$name <- new_name
       # Recurse into subfields
@@ -435,49 +434,45 @@ replace_where_duplicates <- function(obj) {
 #' @param ast An AST object or list.
 #' @param alias_map A named list or character vector. Keys are aliases, values are original names.
 #' @param classes Character vector of AST classes to filter (optional).
+#' @param ... Further arguments, currently ignored.
 #'
 #' @return Modified AST with aliases applied.
 #' @export
 alias_ast_names <- function(ast, alias_map, classes = NULL, ...) {
-  # browser()
   stopifnot(is.list(alias_map))
-  # message(ast$name)
 
-  # reverse_aliases <- setNames(names(alias_map), unname(alias_map))  # e.g. region -> r
-  reverse_aliases <- alias_map
+  # `alias_map[[nm]]` is a hashed lookup. The previous form was
+  # `nm %in% names(alias_map)`, which allocated a fresh character vector of
+  # every key at every node visited -- the map is constant for a traversal, so
+  # that was pure waste repeated once per node.
 
-  # Recursive rename function
   rename_walk <- function(x) {
-    # browser()
-    x_length <- length(x) ; if (x_length == 0) return(x)
+    n <- length(x)
+    if (n == 0L) return(x)
+
     if (inherits(x, "ast")) {
-      node_cls <- node_type(x)
-      if (is.null(classes) || node_cls %in% classes) {
-        # Guard against malformed structures where $name is not character
-        if (!is.null(x$name) && is.character(x$name) && x$name %in% names(reverse_aliases)) {
-          x$name <- reverse_aliases[[x$name]]
+      if (is.null(classes) || class(x)[1L] %in% classes) {
+        nm <- x$name
+        if (!is.null(nm) && is.character(nm) && length(nm) == 1L) {
+          a <- alias_map[[nm]]
+          if (!is.null(a)) x$name <- a
         }
       }
-      # Recurse into subfields
-      for (i in 1:x_length) {
-        if (is.null(x[[i]])) next
-        # if (i > x_length) browser()
-        x_renamed <- rename_walk(x[[i]])
-        if (is.null(x_renamed)) browser()
-        # try(x[[i]] <- rename_walk(x[[i]]))
-        x[[i]] <- x_renamed
-      }
-      # for (nm in names(x)) {
-      #   x[[nm]] <- rename_walk(x[[nm]])
-      # }
-    } else if (is.list(x) && !is.data.frame(x)) {
-      for (i in seq_along(x)) {
-        if (is.null(x[[i]])) next
-        x[[i]] <- rename_walk(x[[i]])
-      }
+    } else if (!is.list(x) || is.data.frame(x)) {
+      # Atomic vectors and data frames carry no nested names to rewrite.
+      return(x)
+    }
+
+    for (i in seq_len(n)) {
+      xi <- x[[i]]
+      # Only lists can contain further nodes. Recursing into atomic leaves cost
+      # a function call each and returned them unchanged; an ast node is mostly
+      # scalar fields, so that was the bulk of the calls.
+      if (is.list(xi)) x[[i]] <- rename_walk(xi)
     }
     x
   }
+
   rename_walk(ast)
 }
 
@@ -537,70 +532,6 @@ short_names_sets <- list(
 )
 
 
-#' Resolve a dimension name to its alias
-#'
-#' @param name A character string or vector of dimension names.
-#' @param base Named list of base aliases.
-#' @param extended Named list of extended aliases.
-#' @param default If no alias is found, return `name`, `NA`, or `"?"`.
-#'
-#' @return A character vector of resolved aliases.
-#' @noRd
-resolve_alias <- function(name,
-                          base = base_aliases,
-                          extended = extended_aliases,
-                          default = NULL) {
-  name <- as.character(name)
-  out <- character(length(name))
-
-  for (i in seq_along(name)) {
-    n <- name[i]
-    if (n %in% names(extended)) {
-      out[i] <- extended[[n]]
-    } else if (n %in% names(base)) {
-      out[i] <- base[[n]]
-    } else {
-      out[i] <- if (!is.null(default)) default else n
-    }
-  }
-
-  out
-}
-
-#' Resolve alias to full set name
-#'
-#' @param alias A character vector of alias names (e.g., "r", "yp").
-#' @param base Named list of base aliases.
-#' @param extended Named list of extended aliases.
-#' @param default Fallback if alias not found.
-#'
-#' @return Character vector of full names.
-#' @export
-resolve_full_name <- function(alias,
-                              base = base_aliases,
-                              extended = extended_aliases,
-                              default = NULL) {
-  alias <- as.character(alias)
-
-  # Invert mappings
-  base_inv <- setNames(names(base), unname(base))
-  ext_inv  <- setNames(names(extended), unname(extended))
-
-  out <- character(length(alias))
-  for (i in seq_along(alias)) {
-    a <- alias[i]
-    if (a %in% names(ext_inv)) {
-      out[i] <- ext_inv[[a]]
-    } else if (a %in% names(base_inv)) {
-      out[i] <- base_inv[[a]]
-    } else {
-      out[i] <- if (!is.null(default)) default else a
-    }
-  }
-
-  out
-}
-
 
 #' Recursively apply a function to all nodes of an AST
 #'
@@ -632,11 +563,11 @@ map_ast <- function(node, func, include_class = TRUE) {
 #' @export
 #'
 #' @examples
-#' \dontrun{
-#' gmpl <- read_gmpl("model.mod")
-#' classes <- collect_ast_classes(gmpl)
-#' # Returns: c("symbol", "constant", "expression", "setmin", ...)
-#' }
+#' m <- example_models$energyRt$multimod
+#' collect_ast_classes(m$equations$eqTechSng2Sng)
+#'
+#' # All node classes used anywhere in the model
+#' collect_ast_classes(m)
 collect_ast_classes <- function(obj) {
   classes_found <- character(0)
   
@@ -690,28 +621,13 @@ extract_ast_names <- function(ast, types = c("variable", "parameter", "mapping")
       }
     }
 
-    # Recurse into child nodes based on node type
-    if (!is.null(node_class) && length(node_class) > 0) {
-      if (node_class == "expression") {
-        walk(node$lhs)
-        walk(node$rhs)
-        if (!is.null(node$operands)) {
-          lapply(node$operands, walk)
-        }
-      } else if (node_class %in% c("sum", "prod")) {
-        if (!is.null(node$domain)) walk(node$domain)
-        walk(node$value)
-      } else if (node_class == "when") {
-        walk(node$condition)
-        walk(node$then)
-        if (!is.null(node$else_)) walk(node$else_)
-      } else if (node_class == "condition") {
-        walk(node$lhs)
-        walk(node$rhs)
-      }
-    }
-
-    # For generic lists, recurse into all elements
+    # Recurse into every child exactly once.
+    #
+    # An AST node IS a list of its children, so this generic walk already
+    # reaches `lhs`/`rhs`/`value`/`domain`/`index`/`operands` and everything
+    # else. Do not add a per-class branch that walks named children: it reaches
+    # a strict subset of this loop, and unless it returns, these children are
+    # visited twice per level - 2^depth visits for a tree of depth d.
     if (is.list(node) && !is.data.frame(node)) {
       for (elem in node) {
         if (!is.null(elem) && (inherits(elem, "ast") || is.list(elem))) {
@@ -876,3 +792,80 @@ compare_jump_stats <- function(model_dir1,
 
 
 
+
+#' Marker for a state the author believed unreachable
+#'
+#' Replaces `browser()` calls left in package code. `browser()` stops an
+#' interactive session and waits for input with no message -- indistinguishable
+#' from a hang -- while under `Rscript` it is inert, so it survives CI and only
+#' ever bites a human. This warns and continues: the signal is kept, the block
+#' is not.
+#'
+#' @param context Where it fired, as "file.R:line".
+#' @return Invisibly, `NULL`; called for the warning it raises.
+#' @keywords internal
+.dev_break <- function(context = "") {
+  warning("multimod: reached a state believed unreachable",
+          if (nzchar(context)) paste0(" (", context, ")") else "",
+          call. = FALSE)
+  invisible(NULL)
+}
+
+# Evaluate `expr` with the GMPL binding-condition flag set, restoring the
+# caller's value on exit, including on error.
+.with_binding_condition <- function(expr) {
+  old <- getOption("multimod.in_binding_condition", FALSE)
+  options(multimod.in_binding_condition = TRUE)
+  on.exit(options(multimod.in_binding_condition = old), add = TRUE)
+  expr
+}
+
+# Stop with an installation hint when an optional (Suggests) package is
+# needed for `what`.
+.need_pkg <- function(pkg, what) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    stop("multimod: package '", pkg, "' is required for ", what,
+         "; install it with install.packages(\"", pkg, "\").", call. = FALSE)
+  }
+  invisible(TRUE)
+}
+
+#' Make sure a model_dir holds a workspace the generated code can read
+#'
+#' The JuMP and Pyomo scaffolds read sets, mappings and parameters from the
+#' workspace at run time. A missing or empty `model_dir`, or one holding only
+#' a `solvers/` folder from another writer, is initialised with
+#' [save_model()] (CSV). Anything else without `model.rds` is refused:
+#' `save_model(overwrite = TRUE)` would wipe it.
+#' @noRd
+.ensure_workspace <- function(model, model_dir) {
+  if (file.exists(file.path(model_dir, "model.rds"))) return(invisible(model_dir))
+  entries <- if (dir.exists(model_dir)) {
+    list.files(model_dir, all.files = TRUE, no.. = TRUE)
+  } else {
+    character(0)
+  }
+  # what the writers and solve_*() leave behind beside the workspace data
+  own <- c("solvers", "variables", "solution_log.txt")
+  if (length(setdiff(entries, own)) > 0) {
+    stop("`model_dir` (", model_dir, ") is not empty and holds no model ",
+         "workspace (model.rds); pass an empty directory or one written by save_model().")
+  }
+  staging <- tempfile("mm_ws_")
+  save_model(model, staging, format = "csv", verbose = FALSE)
+  dir.create(model_dir, recursive = TRUE, showWarnings = FALSE)
+  file.copy(list.files(staging, full.names = TRUE, all.files = TRUE, no.. = TRUE),
+            model_dir, recursive = TRUE)
+  unlink(staging, recursive = TRUE)
+  invisible(model_dir)
+}
+
+# A circular lag has no syntax in MathProg, JuMP or Pyomo. Writing it as a
+# plain `y-1` would hand back a different model - the wrap would be gone - so
+# those writers stop here instead.
+.mm_no_circular <- function(lang) {
+  stop("multimod: ", lang, " has no syntax for a circular lag or lead, so ",
+       "`circular = TRUE` cannot be written to it without changing the ",
+       "model. Render to GAMS, which spells it `y--1`, or solve through the ",
+       "matrix backend, which resolves the wrap directly.", call. = FALSE)
+}

@@ -3,7 +3,8 @@
 Creates a short dummy variable name from a set name following
 conventions:
 
-- Uses preferred names for common sets (tech -\> h, slice -\> ts, etc.)
+- Uses preferred names for common sets (tech -\> h, timeslice -\> ts,
+  etc.)
 
 - First letter of the set name (lowercase) for others
 
@@ -50,7 +51,7 @@ Character. A short dummy variable name
 ``` r
 generate_index_alias("tech") # "h"
 #> [1] "h"
-generate_index_alias("slice") # "ts"
+generate_index_alias("timeslice") # "ts"
 #> [1] "ts"
 generate_index_alias("commp", all_set_names = c("comm", "commp")) # "cp"
 #> [1] "cp"

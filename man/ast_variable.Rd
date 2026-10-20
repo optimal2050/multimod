@@ -10,6 +10,13 @@ ast_variable(name, dims = ast_dims(), vtype = NULL, bounds = NULL, ...)
 \item{name}{Name of the variable.}
 
 \item{dims}{Optional vector of dimension \code{dims} objects.}
+
+\item{vtype}{Optional variable type as declared in the source model
+(e.g. \code{"positive"}, \code{"binary"}, \code{"integer"}).}
+
+\item{bounds}{Optional list of bounds with elements \code{lo} and/or \code{up}.}
+
+\item{...}{Additional fields stored on the node (passed to \code{\link[=new_ast]{new_ast()}}).}
 }
 \value{
 An \code{variable} S3 object (subclass of \code{ast}).

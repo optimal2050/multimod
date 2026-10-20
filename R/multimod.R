@@ -26,6 +26,18 @@ build_symbols_list <- function(model_info) {
     language = language
   )
 
+  # Propagate symbol_name_map so parsers can reconcile hyphenated vs
+  # underscore naming conventions during AST construction.
+  metadata <- NULL
+  if (!is.null(model_info$metadata)) {
+    metadata <- model_info$metadata
+  } else {
+    metadata <- attr(model_info, "metadata", exact = TRUE)
+  }
+  if (!is.null(metadata$symbol_name_map)) {
+    symbols$symbol_name_map <- metadata$symbol_name_map
+  }
+
   if (!is.null(language)) {
     attr(symbols, "language") <- language
   }
@@ -38,7 +50,8 @@ detect_symbol_type <- function(
     known_funcs = c("log", "exp", "abs", "sqrt"),
     known_func_indexed = c("sum", "prod", "smin", "smax", "sand", "sor"),
     default = "symbol",
-    rename = FALSE
+    rename = FALSE,
+    indexed = NA
 ) {
   lname <- tolower(name)
 
@@ -63,6 +76,15 @@ detect_symbol_type <- function(
     return("variable")
   } else if (check_case(symbols$parameters, "parameter")) {
     return("parameter")
+  } else if (isFALSE(indexed) && check_case(symbols$sets, "set")) {
+    # A GAMS subset is declared `sub(parent)` and is BOTH a set and, where it
+    # gates an expression, a mapping. Which one a given occurrence is cannot be
+    # read off the declaration -- only off the use: bare it is an index set,
+    # with an argument list it is a mapping. `indexed` carries that context, so
+    # a name registered in both lists resolves the way it is written. With
+    # `indexed = NA` (callers that do not track it) mappings keep priority,
+    # which is the long-standing order.
+    return("set")
   } else if (check_case(symbols$mappings, "mapping")) {
     return("mapping")
   } else if (check_case(symbols$sets, "set")) {

@@ -4,8 +4,10 @@
 #' @param ... Additional arguments (currently unused)
 #'
 #' @return A visNetwork plot
+#' @exportS3Method
 #' @noRd
 plot.ast <- function(x, ...) {
+  .need_pkg("visNetwork", "plot() of an AST")
   nodes <- list()
   edges <- list()
   node_id <- 0
@@ -118,7 +120,6 @@ plot_d.ast <- function(x, ...) {
 
 with_dims <- function(name, dims, brackets = c("[", "]"), collapse = ",",
                       show_dims = TRUE) {
-  # browser()
   if (length(dims) == 0 || !show_dims) {
     return(name)
   }

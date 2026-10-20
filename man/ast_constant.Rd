@@ -8,6 +8,8 @@ ast_constant(value, ...)
 }
 \arguments{
 \item{value}{A numeric or character constant.}
+
+\item{...}{Additional fields stored on the node (passed to \code{\link[=new_ast]{new_ast()}}).}
 }
 \value{
 An \code{constant} S3 object (subclass of \code{ast}).

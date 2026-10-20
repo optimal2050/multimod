@@ -6,6 +6,14 @@
 \usage{
 export_import_log(import_log, log_file)
 }
+\arguments{
+\item{import_log}{The import log list produced by \code{\link[=import_gmpl_data]{import_gmpl_data()}}.}
+
+\item{log_file}{Path of the CSV file to write.}
+}
+\value{
+\code{NULL}; called for its side effect of writing \code{log_file}.
+}
 \description{
 Export import log to CSV file
 }

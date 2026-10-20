@@ -27,6 +27,8 @@
 #'
 #' @param x Object to print
 #' @param ... Additional arguments passed to print methods
+#' @return Called for the side effect of printing; the methods return `x` or
+#'   `NULL` invisibly.
 #' @name print
 #' @export
 #' @method print ast
@@ -36,8 +38,8 @@ print.ast <- function(x, ...) {
 }
 
 #' @export
-#' @method print set
-print.set <- function(x, ...) {
+#' @method print mm_set
+print.mm_set <- function(x, ...) {
   cat("<AST set> ", x$name, "\n", sep = "")
 }
 
@@ -68,22 +70,22 @@ print.unary <- function(x, ...) {
 
 
 #' @export
-#' @method print variable
-print.variable <- function(x, ...) {
+#' @method print mm_variable
+print.mm_variable <- function(x, ...) {
   cat("<AST variable> ", x$name, "\n", sep = "")
   if (length(x$dims) > 0) cat("  dims: ", paste(x$dims, collapse = ", "), "\n")
 }
 
 #' @export
-#' @method print parameter
-print.parameter <- function(x, ...) {
+#' @method print mm_parameter
+print.mm_parameter <- function(x, ...) {
   cat("<AST parameter> ", x$name, "\n", sep = "")
   if (length(x$dims) > 0) cat("  dims: ", as.character(x$dims), "\n")
 }
 
 #' @export
-#' @method print mapping
-print.mapping <- function(x, ...) {
+#' @method print mm_mapping
+print.mm_mapping <- function(x, ...) {
   cat("<AST mapping> ", x$name, "\n", sep = "")
   if (length(x$dims) > 0) cat("  dims: ", paste(x$dims, collapse = ", "), "\n")
 }
@@ -120,9 +122,8 @@ print.where <- function(x, ...) {
 }
 
 #' @export
-#' @method print equation
-print.equation <- function(x, ...) {
-  # browser()
+#' @method print mm_equation
+print.mm_equation <- function(x, ...) {
   cat("<AST equation> ", x$name, "\n", sep = "")
   if (!is.null(x$domain)) {
     cat("  domain: ", as.character(x$domain), "\n")
@@ -194,8 +195,8 @@ print.model_structure <- function(x, ...) {
 }
 
 #' @export
-#' @method print model
-print.model <- function(x, ...) {
+#' @method print mm_model
+print.mm_model <- function(x, ...) {
   cat("Model: ", x$name, "\n", sep = "")
   if (!is.null(x$desc)) {
     cat("Description: ", x$desc, "\n", sep = "")

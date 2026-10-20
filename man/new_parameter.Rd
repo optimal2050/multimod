@@ -15,11 +15,14 @@ new_parameter(
   symbolic = FALSE,
   formula = NULL,
   comment = NULL,
-  auto_fold = FALSE
+  auto_fold = FALSE,
+  symbols = NULL
 )
 }
 \arguments{
 \item{name}{character, name of the parameter}
+
+\item{desc}{character, description of the parameter}
 
 \item{dims}{character vector, names of the declared dimensions}
 
@@ -27,9 +30,22 @@ new_parameter(
 
 \item{data}{data frame, data for the parameter}
 
+\item{defVal}{numeric, default value for elements not present in \code{data}}
+
+\item{defInt}{numeric, default value used for integer-valued elements
+(reserved; \code{NULL} in the packaged models)}
+
+\item{symbolic}{logical, whether the parameter is defined by \code{formula}
+rather than by \code{data}}
+
+\item{formula}{AST expression defining the parameter when \code{symbolic = TRUE}}
+
 \item{comment}{character, comment line from source file (e.g., *@ domain hint)}
 
 \item{auto_fold}{logical, whether to automatically fold dimensions}
+
+\item{symbols}{optional named list of known symbols (sets, aliases) used to
+resolve dimension names in \code{\link[=ast_dims]{ast_dims()}}}
 }
 \value{
 a parameter object

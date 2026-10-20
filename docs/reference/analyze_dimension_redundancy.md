@@ -37,7 +37,8 @@ analyze_dimension_redundancy(
 - validation_mapping:
 
   Optional. Name of mapping to use for coverage validation (e.g.,
-  "mTechSlice"). If NULL, auto-detects based on parameter dimensions.
+  "mTechTimeslice"). If NULL, auto-detects based on parameter
+  dimensions.
 
 ## Value
 

@@ -5,11 +5,11 @@
 \alias{as_latex.default}
 \alias{as_latex.character}
 \alias{as_latex.call}
-\alias{as_latex.set}
+\alias{as_latex.mm_set}
 \alias{as_latex.dims}
-\alias{as_latex.mapping}
-\alias{as_latex.parameter}
-\alias{as_latex.variable}
+\alias{as_latex.mm_mapping}
+\alias{as_latex.mm_parameter}
+\alias{as_latex.mm_variable}
 \alias{as_latex.symbol}
 \alias{as_latex.shift}
 \alias{as_latex.constant}
@@ -29,13 +29,13 @@ as_latex(x, ...)
 
 \method{as_latex}{call}(x, brackets = NULL, ...)
 
-\method{as_latex}{set}(x, math_env = "text", ...)
+\method{as_latex}{mm_set}(x, math_env = "text", ...)
 
 \method{as_latex}{dims}(x, brackets = NULL, subscript_dims = NULL, ...)
 
-\method{as_latex}{expression}(x, brackets = NULL, subscript_dims = is.null(brackets), ...)
+\method{as_latex}{mm_mapping}(x, brackets = NULL, subscript_dims = is.null(brackets), ...)
 
-\method{as_latex}{parameter}(
+\method{as_latex}{mm_parameter}(
   x,
   brackets = NULL,
   subscript_dims = is.null(brackets),
@@ -44,7 +44,7 @@ as_latex(x, ...)
   ...
 )
 
-\method{as_latex}{variable}(
+\method{as_latex}{mm_variable}(
   x,
   brackets = NULL,
   subscript_dims = TRUE,
@@ -71,7 +71,7 @@ as_latex(x, ...)
   ...
 )
 
-\method{as_latex}{sum}(x, brackets = NULL, ...)
+\method{as_latex}{sum}(x, brackets = NULL, use_index_aliases = FALSE, model = NULL, ...)
 
 \method{as_latex}{prod}(x, brackets = NULL, ...)
 
@@ -80,11 +80,34 @@ as_latex(x, ...)
 \arguments{
 \item{x}{A character string (or vector of strings) to be converted to LaTeX.}
 
+\item{...}{Further arguments passed to \code{as_latex()} methods for child nodes.}
+
 \item{math}{Logical; if TRUE, wraps the result in math mode (\verb{$...$}).}
 
 \item{bold}{Logical; if TRUE, wraps the text in \verb{\\\\textbf\{...\}}.}
 
 \item{italic}{Logical; if TRUE, wraps the text in \verb{\\\\textit\{...\}}.}
+
+\item{brackets}{Optional bracket type used to wrap the rendered expression:
+\code{"("}, \code{"["} or the curly brace; \code{NULL} or \code{FALSE} for none.}
+
+\item{math_env}{LaTeX command used to typeset set names (e.g. \code{"text"},
+\code{"mathcal"}); \code{NULL} returns the plain name.}
+
+\item{subscript_dims}{Logical; if \code{TRUE}, dimensions are rendered as a
+subscript, otherwise they are wrapped in \code{brackets}.}
+
+\item{use_index_aliases}{Logical; if \code{TRUE}, dimension names are replaced
+by the index aliases stored in \code{model}.}
+
+\item{model}{Optional \code{mm_model} providing \code{index_aliases} when
+\code{use_index_aliases = TRUE}.}
+
+\item{use_indicator}{Logical; if \code{TRUE}, conditional (\code{when}) nodes are
+rendered with an indicator function instead of a conditional bar.}
+
+\item{indicator_symbol}{LaTeX macro used as the indicator symbol when
+\code{use_indicator = TRUE} (default: option \code{multimod.latex.indicator_symbol}).}
 }
 \value{
 A character vector of LaTeX-safe strings.

@@ -16,3 +16,7 @@ compatible)
   data_mode = c("external", "embedded")
 )
 ```
+
+## Value
+
+Invisibly, the path of the written `data.jl` file.

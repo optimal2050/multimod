@@ -12,6 +12,9 @@ format_set_elements(
   tail_n = 3
 )
 }
+\value{
+A character string such as \code{"(3 elements: a, b, c)"}.
+}
 \description{
 Format set elements for LaTeX display
 }

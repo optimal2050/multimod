@@ -1,6 +1,6 @@
 # Extract Indexing Expression from GMPL Statement
 
-Parse index_vars in sets: condition pattern
+Parse the `{index_vars in sets: condition}` pattern
 
 ## Usage
 

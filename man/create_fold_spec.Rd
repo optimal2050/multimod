@@ -2,50 +2,71 @@
 % Please edit documentation in R/fold.R
 \name{create_fold_spec}
 \alias{create_fold_spec}
-\title{Create fold specification for parameters (generic interface)}
+\title{Create a fold specification for a model's parameters}
 \usage{
 create_fold_spec(model, fold_dims, tolerance = 1e-10, verbose = TRUE)
 }
 \arguments{
-\item{model}{A multimod model object}
+\item{model}{A multimod model object.}
 
-\item{fold_dims}{Dimension configuration. Can be:
+\item{fold_dims}{Dimension configuration. Either:
 \itemize{
-\item Character vector: dimension names (e.g., \code{c("slice")})
-\item Named list (simple): dimension → mapping (e.g., \code{list(slice = "mCommSlice")})
-\item Named list (advanced): dimension → entity-specific mappings
-(e.g., \code{list(slice = list(tech = "mTechSlice", comm = "mCommSlice"))})
+\item a character vector of dimension names (e.g. \code{c("timeslice")});
+\item a named list mapping dimension to validation mapping
+(e.g. \code{list(timeslice = "mCommTimeslice")});
+\item a named list mapping dimension to entity-specific mappings
+(e.g. \code{list(timeslice = list(tech = "mTechTimeslice", stg = c("mStorageComm", "mCommTimeslice")))}), where a character vector
+is a chain.
 }}
 
-\item{tolerance}{Numeric tolerance for detecting constant values (default: 1e-10)}
+\item{tolerance}{Numeric tolerance for detecting constant values.}
 
-\item{verbose}{Logical; print progress messages (default: TRUE)}
+\item{verbose}{Logical; print progress.}
 }
 \value{
-Data frame with fold specification for each parameter
+A data frame with one row per parameter/dimension pair: \code{param_name},
+\code{dim_to_fold}, \code{validation_mapping}, \code{validation_mapping_raw}, \code{can_fold},
+\code{unproven} and \code{reason}. \code{unproven} marks a dimension refused for want of
+a validation mapping rather than because folding was shown to be wrong:
+constancy holds over the data present, but nothing proves the data covers
+every applicable member, so folding could broadcast a value where the
+default applies. Supplying the mapping settles it either way.
 }
 \description{
-Generic interface for creating fold specifications. Supports all the same
-features as \code{create_fold_spec_energyRt} but without energyRt-specific defaults.
+Scans a model's parameters and reports, for each, whether a dimension can be
+folded away - that is, whether the parameter's values are constant along it
+within tolerance - together with the mapping that should be used to validate
+the fold.
+}
+\details{
+Nothing here is energyRt-specific: the function walks \code{model$parameters} and
+the \code{fold_dims} configuration it is given. Only the \emph{default} mapping names
+(\code{mTechTimeslice} and friends) follow energyRt's conventions, and those are
+supplied by the caller.
+
+With an entity-specific configuration, the \strong{first} matching entity
+dimension wins: \code{tech}, then \code{sup}, then \code{comm}, then \code{stg}; a parameter
+matching none gets \code{NA} and is not validated.
+
+A character vector is a \strong{mapping chain}, joined in sequence on the columns
+the mappings share. For \code{stg = c("mStorageComm", "mCommTimeslice")}:
+\code{mStorageComm[stg, comm]} joined with \code{mCommTimeslice[comm, timeslice]}
+yields \verb{[stg, timeslice]}.
 }
 \examples{
-\dontrun{
-# Simple: fold slice dimension
-fold_spec <- create_fold_spec(model, fold_dims = "slice")
+m <- example_models$energyRt$multimod
+fold_spec <- create_fold_spec(m, fold_dims = "timeslice")
+head(fold_spec)
 
-# With single validation mapping
-fold_spec <- create_fold_spec(model, fold_dims = list(slice = "mCommSlice"))
-
-# Entity-specific (advanced)
+# Entity-specific validation mappings (a character vector is a chain)
 fold_spec <- create_fold_spec(
-  model,
+  m,
   fold_dims = list(
-    slice = list(
-      tech = "mTechSlice",
-      comm = "mCommSlice",
-      stg = c("mStorageComm", "mCommSlice")  # Chain
-    )
-  )
+    timeslice = list(comm = "mCommTimeslice")
+  ),
+  verbose = FALSE
 )
 }
+\seealso{
+\code{\link[=fold_model]{fold_model()}}
 }

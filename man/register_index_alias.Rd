@@ -2,46 +2,22 @@
 % Please edit documentation in R/read_gmpl.R
 \name{register_index_alias}
 \alias{register_index_alias}
-\title{Read GMPL/MathProg Model File}
+\title{Register an index alias for a set}
 \usage{
 register_index_alias(collection, set_name, alias_name)
 }
 \arguments{
-\item{model_file}{Path to GMPL model file (.txt or .mod), or a character vector
-containing the model code lines (for in-memory parsing)}
+\item{collection}{Named character vector of aliases (set name -> alias).}
 
-\item{data_file}{Optional path to separate .dat data file, or character vector
-containing data lines (not yet implemented for parsing, but can be provided)}
+\item{set_name}{Name of the set to alias.}
 
-\item{as_multimod}{Logical. If TRUE (default), convert directly to multimod_model object.
-If FALSE, return model_structure object.}
-
-\item{verbose}{Logical. If TRUE, print parsing progress (default FALSE)}
+\item{alias_name}{Alias to register.}
 }
 \value{
-A model_structure object (or multimod_model if as_multimod=TRUE)
+The collection with the alias appended, or unchanged.
 }
 \description{
-Parse a GLPK/MathProg (GMPL) model file and return a model_structure object.
-This is the intermediate representation that can be converted to multimod format
-using as_multimod().
-}
-\examples{
-\dontrun{
-# From file paths
-mod_struct <- read_gmpl("osemosys.txt", as_multimod = FALSE)
-
-# From in-memory character vectors (e.g., package data)
-data(example_models)
-model <- read_gmpl(
-  model_file = example_models$OSeMOSYS$gmpl$model,
-  data_file = example_models$OSeMOSYS$gmpl$data
-)
-
-# Convert to multimod
-model <- as_multimod(mod_struct)
-
-# Or directly
-model <- read_gmpl("osemosys.txt", as_multimod = TRUE)
-}
+Adds \code{alias_name} to a named alias collection under \code{set_name}. Skips empty
+values, an alias already registered for that set, and set names that are
+themselves alias values (which would chain \code{l} to \code{l1}).
 }

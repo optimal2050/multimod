@@ -10,7 +10,7 @@ solve_pyomo(
   solver_dir = "pyomo",
   env_name = "multimod",
   ensure_env = TRUE,
-  packages = c("pyomo"),
+  packages = NULL,
   python_version = NULL,
   ensure_miniconda = TRUE,
   reinstall_env = FALSE,
@@ -24,9 +24,9 @@ solve_pyomo(
 )
 }
 \arguments{
-\item{model}{Optional multimod model; currently only used when
-\code{load_results = TRUE} to indicate where solutions should be loaded (not yet
-implemented).}
+\item{model}{Optional multimod model. Required when \code{load_results = TRUE}:
+the solution of each variable is stored in
+\code{model$variables[[name]]$solution}.}
 
 \item{model_dir}{Path to the saved model directory created by \code{save_model()}.
 Must contain \verb{solvers/<solver_dir>/solve.py} (generated via \code{write_pyomo()}).}
@@ -35,19 +35,20 @@ Must contain \verb{solvers/<solver_dir>/solve.py} (generated via \code{write_pyo
 Defaults to "pyomo" to match \code{write_pyomo()}.}
 
 \item{env_name}{Name of the Conda environment handled by
-\code{setup_python_environment()}. Defaults to "multimod".}
+\code{mm_setup_python()}. Defaults to "multimod".}
 
-\item{ensure_env}{Logical; when \code{TRUE} (default) the helper
-\code{setup_python_environment()} runs to create/activate the environment. Set to
-\code{FALSE} if you want to manage activation yourself.}
+\item{ensure_env}{Logical; when \code{TRUE} (default) the environment is checked
+with \code{\link[=mm_check_python]{mm_check_python()}} and \code{mm_setup_python()} runs only if it is not
+usable. Set to \code{FALSE} if you want to manage activation yourself.}
 
 \item{packages}{Character vector of Python packages to request when the
-helper runs. Defaults to \code{"pyomo"}.}
+helper runs. \code{NULL} (default) uses \code{\link[=mm_setup_python]{mm_setup_python()}}'s own list, so the
+environment contents have a single owner.}
 
 \item{python_version}{Optional Python version passed through to
-\code{setup_python_environment()}.}
+\code{mm_setup_python()}.}
 
-\item{ensure_miniconda}{Forwarded to \code{setup_python_environment()}.}
+\item{ensure_miniconda}{Forwarded to \code{mm_setup_python()}.}
 
 \item{reinstall_env}{When \code{TRUE}, asks the helper to recreate the Conda
 environment before solving.}
@@ -62,8 +63,10 @@ the \code{PYOMO_SOLVER} environment variable.}
 \item{env}{Named character vector of additional environment variables to pass
 to the Python process.}
 
-\item{load_results}{Logical; reserved for future work. When \code{TRUE} a warning
-is issued because loading solutions back into R is not yet implemented.}
+\item{load_results}{Logical; when \code{TRUE}, read \code{solution/variables.json}
+into \code{model} and return the model as \code{result$model}. The file is written
+by the generated script only when the scaffold was produced with
+\code{write_pyomo(export_vars = TRUE)}.}
 
 \item{verbose}{Controls solver logging capture. Logical (\code{TRUE} = buffer
 output, \code{FALSE} = quiet) or one of \code{"buffer"}, \code{"stream"}, \code{"quiet"}.}
@@ -71,20 +74,23 @@ output, \code{FALSE} = quiet) or one of \code{"buffer"}, \code{"stream"}, \code{
 \item{timeout}{Optional timeout (in seconds). Requires the \code{processx}
 package.}
 
-\item{...}{Additional arguments forwarded to \code{\link[=setup_python_environment]{setup_python_environment()}}.}
+\item{...}{Additional arguments forwarded to \code{\link[=mm_setup_python]{mm_setup_python()}}.}
 }
 \value{
 A list describing the solver run (exit code, success flag, elapsed
 time, raw output, parsed status metadata when available, and environment
-details).
+details). With \code{load_results = TRUE}, also \code{model}, the input model with a
+\code{solution} data frame on every variable the solver reported. \code{objective}
+is the objective value the script records in \code{status.json}.
 }
 \description{
 Executes the generated \code{solve.py} script inside \verb{solvers/pyomo/} after
 ensuring a Python environment exists. By default the helper
-\code{\link[=setup_python_environment]{setup_python_environment()}} is invoked so that a Conda environment named
+\code{\link[=mm_setup_python]{mm_setup_python()}} is invoked so that a Conda environment named
 "multimod" (configurable) is created, populated with Pyomo, and activated via
 the \code{reticulate} toolkit. Once the environment is ready the solver script is
 executed with \code{system2()} or \code{processx} and basic status information is
-returned. Result loading is not implemented yet but the metadata emitted by
-\code{solve.py} (e.g. \code{solution/status.json}) is surfaced when available.
+returned, together with the status the script writes to
+\code{solution/status.json}. With \code{load_results = TRUE} the variable values the
+script exports are read back into \code{model}.
 }

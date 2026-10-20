@@ -1,4 +1,15 @@
 url: https://optimal2050.github.io/multimod/
+home:
+  sidebar:
+    structure: [links, license, community, citation, dev]
+
+footer:
+  structure:
+    left: built_with
+    right: blank
+  components:
+    blank: ""
+
 template:
   bootstrap: 5
   light-switch: true
@@ -23,7 +34,7 @@ development:
 navbar:
   # bg: light
   structure:
-    left:  [intro, reference, roadmap, articles, news]
+    left:  [intro, reference, articles, news]
     right: [search, github, lightswitch]
   components:
     news:
@@ -32,117 +43,135 @@ navbar:
     articles:
       text: Tutorials
       menu:
-      - text: "Getting Started"
-      - text: Overview
-        href: articles/multimod.html
+      # - text: "Getting started"
+      # - text: Overview
+        # href: articles/multimod.html
+      # - text: "---"
+      - text: "A model from R"
+      - text: Writing a model in R
+        href: articles/ast.html
+      - text: Solving and reading results
+        href: articles/solving.html
+      - text: Model workspace and data
+        href: articles/model_workspace.html
+      - text: Folding and trimming
+        href: articles/folding.html
       - text: "---"
-      - text: "Code Generation"
-      - text: JuMP Integration
-        # href: articles/jump.html
-      - text: GMPL Integration
-        # href: articles/gmpl.html
-      - text: Pyomo Integration
-        # href: articles/pyomo.html
+      - text: "An existing model"
+      - text: Two models from the field
+        href: articles/field-models.html
       - text: "---"
-      - text: "Model Management"
-      - text: Configuration System
-        # href: articles/configuration.html
-      - text: Model Workspace
-        # href: articles/model_workspace.html
-      - text: LaTeX Generation
-        # href: articles/latex.html
-      - text: "---"
-      - text: "Advanced"
-      - text: Model Optimization (Folding & Trimming)
-        # href: articles/folding.html
-      - text: Abstract Syntax Tree (AST)
-        # href: articles/ast.html
-    roadmap:
-      text: "Development Status"
-      href: articles/roadmap.html
+      - text: "Reference"
+      - text: Configuring solver paths
+        href: articles/configuration.html
+      - text: LaTeX rendering
+        href: articles/latex.html
 
 reference:
-- title: Abstract Syntax Tree (AST) classes
-  desc:  Data structures to represent mathematical expressions.
-  contents:
-  - new_ast
-  - starts_with("ast_")
-
 - title: Multimod classes
-  desc:  Classes to represent a model with sets, parameters, variables, equations, and data.
+  desc: Constructors for the declarations a model is made of, and the text
+    route for writing an equation.
   contents:
+  - mm_equation
   - starts_with("multimod_")
   - starts_with("new_")
   - starts_with("as_multimod")
+  - -new_ast
+  - -starts_with("multimod_config")
+
+- title: Abstract Syntax Tree (AST) classes
+  desc: Nodes for expressions, references and index domains.
+  contents:
+  - new_ast
+  - starts_with("ast_")
+  - -ast_schema
+  - -ast_json_schema
+  - -ast_to_json
+  - -ast_from_json
+
+- title: Index aliases
+  desc: Short index names used in rendered equations.
+  contents:
+  - add_index_aliases
+  - generate_index_alias
+  - generate_index_aliases
+  - has_index_aliases
 
 - title: Generic methods
-  desc:  Generic methods for multimod classes.
+  desc: Printing, plotting and summarising model objects.
   contents:
-  # - starts_with("as_")
   - starts_with("print")
-  - starts_with("plot")
   - starts_with("summary")
   - starts_with("show")
   - matches("as.character")
 
-- title: LaTeX functions
-  desc:  Functions to convert multimod objects to LaTeX.
+- title: Schema and serialisation
+  desc: The node schema, validation, and the JSON round trip.
   contents:
-  - starts_with("as_latex")
-  - starts_with("write_latex")
-  - matches("latex")
+  - ast_schema
+  - schema_type
+  - schema_node_types
+  - validate_ast
+  - ast_json_schema
+  - model_to_json
+  - model_from_json
+  - ast_to_json
+  - ast_from_json
+  - multimod-constructors
+  - is_declaration
 
-- title: GAMS-related functions
-  desc:  Functions to read GAMS models and convert multimod objects to GAMS code.
+- title: GAMS
+  desc: Read GAMS, and render a model or any node back to it.
   contents:
   - starts_with("read_gams")
+  - parse_equation_header
+  - parse_gams_equation
+  - remove_ontext_offtext
+  - is_gams_expression
   - starts_with("as_gams")
   - starts_with("write_gams")
   - matches("gams")
 
-- title: GMPL-related functions
-  desc:  Functions to read GMPL models and convert multimod objects to GMPL code.
+- title: GMPL / MathProg
+  desc: Read MathProg, render it, and solve with the glpsol executable.
   contents:
   - starts_with("read_gmpl")
   - starts_with("as_gmpl")
   - starts_with("write_gmpl")
-  - export_glpk_model
+  - solve_gmpl
+  - solve_glpk
+  - read_csv_results
   - matches("gmpl")
 
-- title: JuMP/Julia-related functions
-  desc:  Functions to read JuMP models and convert multimod objects to JuMP code.
+- title: JuMP / Julia
   contents:
   - starts_with("read_jump")
   - starts_with("as_jump")
   - starts_with("write_jump")
+  - solve_jump
   - matches("jump")
+  - -compare_jump_stats
 
-- title: Pyomo/Python-related functions
-  desc:  Functions to convert multimod objects to Pyomo code.
+- title: Pyomo / Python
   contents:
-  - starts_with("read_pyomo")
   - starts_with("as_pyomo")
   - starts_with("write_pyomo")
+  - solve_pyomo
   - matches("pyomo")
 
-- title: Configuration and Environment
-  desc:  Functions for configuring solver paths and Python/Julia environments.
+- title: LaTeX
+  desc: Publication-ready rendering of equations and whole models.
   contents:
-  - get_multimod_python
-  - get_multimod_julia
-  - get_multimod_glpsol
-  - set_multimod_python
-  - set_multimod_julia
-  - set_multimod_glpsol
-  - starts_with("multimod_config")
-  - setup_python_environment
+  - starts_with("as_latex")
+  - starts_with("write_latex")
+  - format_latex_aligned
+  - matches("latex")
 
-- title: Folding functions
-  desc:  Functions for parameter folding to reduce model size by eliminating redundant dimensions.
+- title: Folding
+  desc: Drop dimensions a parameter does not vary over.
   contents:
   - starts_with("fold_")
   - create_fold_spec
-  - create_fold_spec_energyRt
   - analyze_parameter_redundancy
   - analyze_dimension_redundancy
   - get_fold_summary
@@ -150,16 +179,35 @@ reference:
   - get_active_dims
   - unfold_model
 
-- title: Trimming functions
-  desc:  Functions for model trimming to remove unused elements (empty data, unused variables, dead branches).
+- title: Trimming
+  desc: Drop symbols the model does not use.
   contents:
   - starts_with("trim_")
   - starts_with("untrim_")
   - get_trim_summary
   - is_trimmed
 
+- title: Direct matrix and MPS backend
+  desc: Assemble the LP from the AST, write MPS, solve in process.
+  contents:
+  - model_to_lp
+  - build_col_index
+  - build_row_index
+  - build_triplets
+  - check_matrix_numbers
+  - mm_session
+  - solve_highs
+  - solve_mps
+  - write_mps
+  - read_mps_solution
+  - read_highs_solution
+  - read_cuopt_solution
+  - read_solver_solution
+  - write_solution
+  - write_energyrt_output
+
 - title: Model workspace and data management
-  desc:  Functions for saving/loading models and managing model workspaces with multiple data formats.
+  desc: Save, load and update a model and its data.
   contents:
   - save_model
   - load_model
@@ -167,61 +215,31 @@ reference:
   - update_parameter
   - update_mapping
   - save_parameter
-  - import_energyRt_data
-  - populate_sets_from_scenario
-  - link_scenario_data
-  - import_osemosys_data
-  - export_osemosys_to_csv
   - export_model_source
   - add_set_data
-  - export_import_log_from_model
 
-- title: Solver integration
-  desc:  Functions for solving models and loading solutions.
+- title: Configuration and environment
+  desc: Where the interpreters and solvers are found.
   contents:
-  - solve_jump
-  - solve_pyomo
-  - solve_glpk
-  - starts_with("execute_")
-
-- title: Model comparison and debugging
-  desc:  Functions for comparing models, solutions, and debugging model generation.
-  contents:
-  - starts_with("compare_")
-
-- title: Index aliases and mapping
-  desc: Functions for managing index aliases and domain extraction.
-  contents:
-  - generate_index_alias
-  - generate_index_aliases
-  - add_index_aliases
-  - has_index_aliases
-  - en_extract_domains_from_comments
-
-- title: Parameter evaluation and analysis
-  desc: Functions for evaluating parameters and analyzing folding opportunities.
-  contents:
-  - evaluate_parameters
-  - analyze_fold_opportunities
-  - has_ast_formulas
-
-- title: AST conversion to R
-  desc: Functions for converting AST to R code.
-  contents:
-  - as_r
-  - as_r.ast_formula
-  - as_rfunction
-  - collect_ast_classes
+  - starts_with("multimod_config")
+  - get_multimod_python
+  - get_multimod_julia
+  - get_multimod_glpsol
+  - set_multimod_python
+  - set_multimod_julia
+  - set_multimod_glpsol
+  - mm_setup_python
+  - mm_check_python
 
 - title: Data and examples
-  desc: Example datasets and models.
   contents:
   - example_models
 
 - title: Utility functions
-  desc:  Utility functions for multimod.
+  desc: Helpers used across the package.
   contents:
   - validate
+  - make_valid
   - starts_with("get_")
   - starts_with("set_")
   - starts_with("is_")
@@ -235,34 +253,51 @@ reference:
   - matches("brackets")
   - matches("resolve|node|split|map_")
   - matches("build_symbols_list")
+  - -get_data
+  - -get_active_dims
+  - -get_fold_summary
+  - -get_trim_summary
+  - -get_network_data
+  - -starts_with("get_multimod")
+  - -starts_with("set_multimod")
+  - -starts_with("multimod_config")
+  - -is_folded
+  - -is_trimmed
+  - -is_declaration
+  - -is_gams_expression
+  - -check_matrix_numbers
+  - -parse_equation_header
+  - -parse_gams_equation
+  - -parse_jump_equation
+  - -validate_ast
+  - -format_latex_aligned
+  - -schema_node_types
 
-- title: Internal and helper functions
-  desc: Internal functions and helpers (typically not called directly by users).
+- title: Experimental
+  desc: Exported but untested; interfaces may change or be withdrawn.
   contents:
-  - starts_with("load_")
-  - starts_with("save_")
-  - starts_with("log_")
-  - starts_with("restore_")
-  - starts_with("populate_")
-  - starts_with("register_")
-  - make_valid
+  - as_r
+  - as_r.ast_formula
+  - as_rfunction
+  - collect_ast_classes
+  - starts_with("compare_")
   - quick_compare
-  - mps_matrix_long
-  - osemosys_dat_to_model
-  - read_osemosys_dat
-  - read_csv_results
-  - load_osemosys_from_csv
-
-- title: visualization
-  desc:  Visualization functions for multimod.
-  contents:
   - matches("get_network_data")
   - matches("as_visNetwork")
   - matches("plot")
   - matches("draw")
   - starts_with("plot_")
   - starts_with("ggplot_")
-  - starts_with("draw_")
-  - starts_with("render_")
-  - starts_with("as_viz")
-  - starts_with("as_diagram")
+  - evaluate_parameters
+  - analyze_fold_opportunities
+  - has_ast_formulas
+  - starts_with("load_")
+  - starts_with("save_")
+  - starts_with("log_")
+  - starts_with("restore_")
+  - starts_with("populate_")
+  - starts_with("register_")
+  - starts_with("execute_")
+  - -save_model
+  - -load_model
+  - -save_parameter

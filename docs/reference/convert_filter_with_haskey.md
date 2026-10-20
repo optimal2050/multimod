@@ -8,3 +8,7 @@ filters)
 ``` r
 convert_filter_with_haskey(expr, model, ...)
 ```
+
+## Value
+
+A character string of JuMP code for the filter expression.

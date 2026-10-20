@@ -6,6 +6,10 @@
 \usage{
 topological_sort(needs_eval, verbose = FALSE)
 }
+\value{
+A character vector of parameter names in evaluation order,
+dependencies first. Errors on circular dependencies.
+}
 \description{
 Topological sort of parameters by dependencies
 }

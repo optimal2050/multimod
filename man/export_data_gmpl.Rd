@@ -26,9 +26,7 @@ to CSV files in a data_export/ directory using standard CSV format (comma-separa
 with headers). This code can be injected into a GMPL model file before the solve statement.
 }
 \examples{
-\dontrun{
-model <- read_gmpl("model.mod", "data.dat")
-export_code <- export_data_gmpl(model)
-cat(export_code)
-}
+m <- example_models$energyRt$multimod
+export_code <- export_data_gmpl(m)
+cat(substr(export_code, 1, 400))
 }

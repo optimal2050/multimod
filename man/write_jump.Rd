@@ -56,6 +56,8 @@ Note: Solution is always saved to solution/ directory regardless of this setting
 
 \item{export_mps}{logical or character; if TRUE, exports model to MPS format; if character, specifies filename (default: FALSE)}
 
+\item{data_mode}{character; \code{"external"} (default) generates a data.jl that reads parameter data from files at run time, \code{"embedded"} writes the data into the Julia source}
+
 \item{...}{Additional arguments (not used)}
 }
 \value{
@@ -65,20 +67,18 @@ Character vector of Julia code, or writes file if path is determined
 Write a Julia/JuMP model file from a multimod object
 }
 \examples{
-\dontrun{
-# Write to model directory with default solver subdirectory
-write_jump(model, model_dir = "my_model")
-# -> my_model/solvers/jump/model.jl
+m <- example_models$energyRt$multimod
 
-# Specify custom solver directory
-write_jump(model, model_dir = "my_model", solver_dir = "jump-highs")
-# -> my_model/solvers/jump-highs/model.jl
+# Explicit file path
+write_jump(m, file = tempfile(fileext = ".jl"))
 
-# Override with explicit file path
-write_jump(model, file = "custom/path/model.jl")
+# Into a saved model workspace: <model_dir>/solvers/<solver_dir>/model.jl
+ws <- file.path(tempdir(), "energyRt_ws")
+save_model(m, ws, verbose = FALSE)
+write_jump(m, model_dir = ws)
+write_jump(m, model_dir = ws, solver_dir = "jump-highs")
 
-# Use barrier method for large models
-write_jump(model, model_dir = "my_model", 
+# Barrier method for large models
+write_jump(m, model_dir = ws,
            optimizer_attributes = list(solver = "ipm", parallel = "on"))
-}
 }

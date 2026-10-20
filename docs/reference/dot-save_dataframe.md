@@ -15,3 +15,7 @@ Internal: Save dataframe to disk
   label = NULL
 )
 ```
+
+## Value
+
+Invisibly, the path of the written file, or `NULL` when `data` is empty.

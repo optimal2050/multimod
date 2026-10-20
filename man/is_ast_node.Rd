@@ -6,6 +6,9 @@
 \usage{
 is_ast_node(x)
 }
+\value{
+A logical scalar.
+}
 \description{
 Check if object is an AST node
 }

@@ -36,9 +36,21 @@ split_top_level_dollar <- function(expr_str) {
   return(NULL) # No top-level $
 }
 
-# Remove comments between $ontext and $offtext
+#' Strip GAMS block comments
+#'
+#' Removes everything between `$ontext` and `$offtext`, inclusive.
+#'
+#' Exported because consumers that parse GAMS sources of their own - energyRt's
+#' model code, for one - need the same treatment before scanning for domain
+#' hints, and duplicating it would let the two drift.
+#'
+#' @param lines Character vector of GAMS source lines.
+#' @return The lines with block comments removed.
+#' @seealso [read_gams()], [parse_equation_header()]
+#' @export
+#' @examples
+#' remove_ontext_offtext(c("a;", "$ontext", "note", "$offtext", "b;"))
 remove_ontext_offtext <- function(lines) {
-  # browser()
   result <- character(0)
   inside_comment <- FALSE
 
@@ -61,7 +73,6 @@ remove_ontext_offtext <- function(lines) {
 
 # include files
 gams_expand_includes <- function(lines, base_path = ".") {
-  # browser()
   expanded <- character()
 
   for (line in lines) {
@@ -96,7 +107,6 @@ gams_expand_includes <- function(lines, base_path = ".") {
 
 
 normalize_gams_lines <- function(lines) {
-  # browser()
   decl_patterns <- c(
     "^set(s)?\\b", "^alias(es)?\\b",
     "^parameter(s)?\\b", "^scalar(s)?\\b",
@@ -114,10 +124,6 @@ normalize_gams_lines <- function(lines) {
   buffer <- NULL
 
   for (line in lines) {
-    # if (grepl("alias", line, ignore.case = TRUE)) {
-    #   browser()
-    # }
-
     # Skip lines starting with $
     if (startsWith(line, "$")) {
       next
@@ -130,7 +136,6 @@ normalize_gams_lines <- function(lines) {
       in_decl_block <- TRUE
 
       # capture the declaration keyword
-      # browser()
       decl_keyword <- regmatches(
         trimmed,
         regexpr(decl_regex, trimmed, ignore.case = TRUE)
@@ -236,28 +241,6 @@ strip_gams_data_block <- function(lines) {
   return(out)
 }
 
-# split_indexed_operator <- function(expr_str) {
-#   # Remove leading aggregate name
-#   expr_str <- sub("^(sum|prod)\\(", "", expr_str)
-#   expr_str <- sub("\\)$", "", expr_str)
-#
-#   chars <- strsplit(expr_str, "")[[1]]
-#   level <- 0
-#   for (i in seq_along(chars)) {
-#     ch <- chars[i]
-#     if (ch == "(") {
-#       level <- level + 1
-#     } else if (ch == ")") {
-#       level <- level - 1
-#     } else if (ch == "," && level == 0) {
-#       # browser()
-#       index <- substring(expr_str, 1, i - 1)
-#       value_expr <- substring(expr_str, i + 1)
-#       return(c(trimws(index), trimws(value_expr)))
-#     }
-#   }
-#   return(NULL) # malformed or no split point
-# }
 split_indexed_operator <- function(expr_str, func_name) {
   # Escape function name in case it contains special regex characters
   func_pattern <- paste0("^", func_name, "\\(")
@@ -291,32 +274,42 @@ parse_gams_expr <- function(
     symbols = list(),
     known_funcs = c("log", "exp", "abs", "sqrt", "ord", "card"),
     # known_funcs_indexed = known_funcs_indexed,
-    depth = 0, max_depth = 20,
+    depth = 0, max_depth = 50,
     brackets = FALSE, # whether to wrap in brackets, passed to ast_*
     ...
     ) {
-  # message(expr)
-  # if (brackets) browser()
-  # browser()
-  # if (expr == "mvTechInp(tech,comm,region,year,slice)") browser()
-  if (depth > max_depth) stop("Maximum expression nesting depth exceeded")
+  if (depth > max_depth) {
+    stop("Maximum expression nesting depth exceeded (max_depth = ", max_depth,
+         "). Binary operators are split recursively, so a flat sum of N terms ",
+         "consumes N levels: a long chain trips this without being deeply nested.")
+  }
 
   expr <- trimws(expr)
   if (expr == "") {
     return(NULL)
   }
 
+  # A numeric literal must be read whole, before any operator splitting: in
+  # scientific notation the exponent's sign is not a top-level operator, and
+  # splitting there leaves "1e" and an "Unrecognized expression" failure.
+  # A zero-carbon cap is written exactly "1e-20".
+  if (grepl("^[+-]?([0-9]+([.][0-9]*)?|[.][0-9]+)([eE][+-]?[0-9]+)?$", expr)) {
+    return(ast_constant(as.numeric(expr)))
+  }
+
   # Check for index shift patterns (y-1, y+1, ls-1, etc.) BEFORE expression parsing
   # This must come before arithmetic operators are processed
-  if (grepl("^[a-zA-Z][a-zA-Z0-9_]*[+-][0-9]+$", expr)) {
-    # Extract symbol and offset
-    match <- regmatches(expr, regexec("^([a-zA-Z][a-zA-Z0-9_]*)([+-])([0-9]+)$", expr))[[1]]
+  # GAMS doubles the operator for the circular form: `y-1` stops at the ends of
+  # the set, `y--1` wraps onto the other end.
+  if (grepl("^[a-zA-Z][a-zA-Z0-9_]*(\\+\\+|--|[+-])[0-9]+$", expr)) {
+    match <- regmatches(expr, regexec(
+      "^([a-zA-Z][a-zA-Z0-9_]*)(\\+\\+|--|[+-])([0-9]+)$", expr))[[1]]
     if (length(match) == 4) {
       symbol <- match[2]
-      sign <- match[3]
+      op <- match[3]
       offset_val <- as.integer(match[4])
-      offset <- if (sign == "-") -offset_val else offset_val
-      return(ast_shift(symbol, offset))
+      offset <- if (substr(op, 1, 1) == "-") -offset_val else offset_val
+      return(ast_shift(symbol, offset, circular = nchar(op) == 2L))
     }
   }
 
@@ -341,28 +334,43 @@ parse_gams_expr <- function(
   # `and`, `or` `not`
   # ">=", "<=", ">", "<", "="
   # `+`, `-`
-  # browser()
-  top_ops <- find_top_level_operators(expr, descending = TRUE)$op |> unique()
-  for (op in top_ops) {
-    tokens <- split_top_level(expr, op, keep_op = FALSE, as_list = FALSE)
-    if (!is.null(tokens) && length(tokens) >= 2) {
-      lhs <- parse_gams_expr(tokens[[1]], symbols, known_funcs, depth + 1, max_depth)
-      rhs <- parse_gams_expr(paste(tokens[-1], collapse = paste0(" ", op, " ")), symbols, known_funcs, depth + 1, max_depth)
-      # return(list(type = "expression", op = tolower(op), lhs = lhs, rhs = rhs))
+  # Split at the LAST top-level operator of the loosest precedence group.
+  #
+  # `-` and `/` are left-associative: `a - b + c` is `(a - b) + c`, so the tree
+  # must break at the last operator, not the first. Splitting at the first (and
+  # rejoining the remainder) builds `a - (b + c)`, which silently negates every
+  # term after the first minus. That stayed invisible because every text
+  # renderer flattens the tree back to `a - b + c` without brackets and the
+  # target language re-parses it correctly; only a backend that evaluates the
+  # AST directly (as_matrix) sees the wrong signs.
+  #
+  # `**` is right-associative, so it keeps the first-split behaviour.
+  op_tbl <- find_top_level_operators(expr, descending = TRUE)
+  op_tbl <- op_tbl[!is.na(op_tbl$op), , drop = FALSE]
+
+  for (p in unique(op_tbl$prec)) {
+    grp <- op_tbl[op_tbl$prec == p, , drop = FALSE]
+    k <- if (all(grp$op == "**")) which.min(grp$pos) else which.max(grp$pos)
+    op <- grp$op[k]
+    at <- grp$pos[k]
+
+    lhs_txt <- trimws(substr(expr, 1L, at - 1L))
+    rhs_txt <- trimws(substr(expr, at + nchar(op), nchar(expr)))
+
+    if (nzchar(lhs_txt) && nzchar(rhs_txt)) {
+      lhs <- parse_gams_expr(lhs_txt, symbols, known_funcs, depth + 1, max_depth)
+      rhs <- parse_gams_expr(rhs_txt, symbols, known_funcs, depth + 1, max_depth)
       return(ast_expression(op, lhs = lhs, rhs = rhs, brackets = brackets))
-    } else if (length(tokens) == 1) {
-      # Handle unary operators
+    }
+
+    if (!nzchar(lhs_txt) && nzchar(rhs_txt)) {
       if (op %in% c("not", "-", "!")) {
-        rhs <- parse_gams_expr(tokens[[1]], symbols, known_funcs,
-                               depth + 1, max_depth)
+        rhs <- parse_gams_expr(rhs_txt, symbols, known_funcs, depth + 1, max_depth)
         return(ast_unary(op, rhs))
       } else if (op %in% "+") {
-        # ignore unary plus
-        return(parse_gams_expr(tokens[[1]], symbols, known_funcs,
-                               depth, max_depth))
+        return(parse_gams_expr(rhs_txt, symbols, known_funcs, depth, max_depth))
       } else {
-        stop("Unrecognized unary operator: ", op, "\n",
-             "Cannot parse expression: ", expr)
+        stop("Unrecognized unary operator: ", op, "; cannot parse: ", expr)
       }
     }
   }
@@ -391,7 +399,6 @@ parse_gams_expr <- function(
   }
 
   # known functions ####
-  # browser()
   if (grepl("^[a-zA-Z0-9_]+\\(", expr)) {
     result <- parse_function_expr(expr,
                                   symbols = symbols,
@@ -399,18 +406,16 @@ parse_gams_expr <- function(
                                   known_funcs_indexed = known_funcs_indexed,
                                   depth = depth + 1,
                                   max_depth = max_depth)
-    # browser()
     if (!is.null(result)) return(result)
   }
 
   # sum(...), prod(...)
   if (grepl("^(sum|prod)\\(", expr)) {
-    browser() # should not be here!
+    .dev_break("read_gams.R:428") # should not be here!
     agg_type <- if (grepl("^sum\\(", expr)) "sum" else "prod"
     parts <- split_indexed_operator(expr)
     if (is.null(parts) || length(parts) != 2) stop("Malformed aggregate: cannot split arguments")
     index <- parse_gams_expr(parts[1], symbols, known_funcs)
-    # browser()
     if (!inherits(index, "ast")) {
       # assume index is a dimension
       index <- ast_dims(index) # ensure index is treated as a dimension
@@ -428,10 +433,16 @@ parse_gams_expr <- function(
     return(parsed_expr)
   }
 
-  # Handle dot-access like y.val as val(y)
-  if (grepl("^[a-zA-Z0-9_]+\\.[a-zA-Z0-9_]+$", expr)) {
-    # browser()
-    parts <- strsplit("y.val", "\\.", fixed = FALSE)[[1]]
+  # A decimal literal ("3201.976") must not be read as dot-access: route
+  # numbers to the constant branch before any attribute interpretation.
+  if (grepl("^[+-]?([0-9]+(\\.[0-9]*)?|\\.[0-9]+)([eE][+-]?[0-9]+)?$", expr)) {
+    return(ast_constant(as.numeric(expr)))
+  }
+
+  # Handle dot-access like y.val as val(y); object and method must be
+  # identifier-shaped (letter-leading), never numeric.
+  if (grepl("^[a-zA-Z_][a-zA-Z0-9_]*\\.[a-zA-Z_][a-zA-Z0-9_]*$", expr)) {
+    parts <- strsplit(expr, ".", fixed = TRUE)[[1]]
     object <- parts[1]
     method <- parts[2]
     object <- parse_gams_expr(object, symbols = symbols)
@@ -444,8 +455,8 @@ parse_gams_expr <- function(
     name <- sub("\\(.*", "", expr)
     dims <- gsub("[()]", "", sub("^[^(]+\\(", "", expr))
     dims <- trimws(strsplit(dims, ",")[[1]])
-    symbol_type <- detect_symbol_type(name, symbols, known_funcs)
-    # browser()
+    symbol_type <- detect_symbol_type(name, symbols, known_funcs,
+                                      indexed = TRUE)
     dims <- ast_dims(dims, symbols = symbols)
     return(do.call(paste0("ast_", symbol_type), list(name, dims)))
   }
@@ -455,7 +466,12 @@ parse_gams_expr <- function(
   if (max_lev == 0) {
     sq <- find_top_level_operators(expr, ",", precedence = NULL)
     if (nrow(sq) > 0) {
-      symb <- split_top_level(expr, ",", keep_op = FALSE, as_list = FALSE)
+      # Splitting leaves the separator's surrounding whitespace on the
+      # operands. An index parsed as " timeslice" matches no set, so a
+      # sum over the tuple binds nothing and the constraint row is emitted
+      # with its RHS and no coefficients -- a silently relaxed model.
+      symb <- trimws(split_top_level(expr, ",", keep_op = FALSE,
+                                     as_list = FALSE))
     } else {
       # check if expr is a word-like symbol
       if (grepl("^[a-zA-Z][a-zA-Z0-9_]*$", expr)) {
@@ -468,10 +484,10 @@ parse_gams_expr <- function(
       }
     }
     # assign
-    # browser()
     symb <- symb |>
       lapply(function(x) {
-        sb <- detect_symbol_type(x, symbols = symbols, known_funcs = known_funcs)
+        sb <- detect_symbol_type(x, symbols = symbols,
+                                 known_funcs = known_funcs, indexed = FALSE)
         do.call(paste0("ast_", sb), list(x))
       })
     # return(ast_dims(symb))
@@ -484,7 +500,6 @@ parse_gams_expr <- function(
   }
 
   if (max_lev > 0) {
-    browser()
     stop("Expression has unrecognized operators or structure: ", expr)
   }
 
@@ -513,7 +528,6 @@ read_gams <- function(
     strict = TRUE,
     verbose = FALSE,
     ...) {
-  # browser()
   
   # Determine if input is file path or content
   is_file <- length(file_or_text) == 1 && file.exists(file_or_text)
@@ -548,17 +562,7 @@ read_gams <- function(
   lines <- lines[!grepl("^\\*", lines)]
   lines <- remove_ontext_offtext(lines)
 
-  # remove data
-  # strip_gams_data_block <- function(lines) {
-  #   text <- paste(lines, collapse = "\n")
-  #   # (?s) enables "dotall" so . matches newlines
-  #   cleaned <- gsub("(?s)/.*?/\\s*", " ", text, perl = TRUE)
-  #   strsplit(cleaned, "\n", fixed = TRUE)[[1]]
-  # }
-
-  # lines <- strip_gams_data_block(lines)
   lines <- normalize_gams_lines(lines)
-  # writeLines(lines, "tmp/no_comments.gms")
 
   # Concatenate lines between semicolons
   # lines <- gsub("\\s*;\\s*", ";", lines) # remove spaces around semicolon
@@ -594,7 +598,6 @@ read_gams <- function(
     writeLines(lines, interim_file)
   }
   # writeLines(lines, "tmp/no_comments.gms")
-  # browser()
 
   # Initialize
   sets <- list()
@@ -626,7 +629,6 @@ read_gams <- function(
 
     ## Comment detection (if not removed above)
     if (isTRUE(mode == "comment")) {
-      # browser()
       if (grepl("^\\$offtext", line, ignore.case = TRUE)) {
         mode <- NULL
         # i <- i + 1
@@ -651,7 +653,6 @@ read_gams <- function(
 
     # End of block detection
     if (grepl(";", line)) {
-      # browser()
       stopifnot(nchar(line) == 1)
       mode <- NULL
       if (verbose) message(line)
@@ -693,27 +694,24 @@ read_gams <- function(
       # check if there is a code after set(s)
       the_rest <- sub("^set(s)?\\b\\s*", "", line, ignore.case = TRUE)
       if (nchar(the_rest) > 0) {
-        browser()
         stop(
           "Unrecognized code after set(s) declaration: '",
           the_rest, "'\n",
-          "Expected a new line. Check the parser logic or the GAMS file.",
+          "Expected a new line. Check the parser logic or the GAMS file."
         )
       }
       i <- i + 1
       next
     } else if (grepl("^alias(es)?\\b", line, ignore.case = TRUE)) {
-      # browser()
       mode <- "aliases"
       if (verbose) message(line, " -> ", mode)
       # check if there is a code after alias(es)
       the_rest <- sub("^alias(es)?\\b\\s*", "", line, ignore.case = TRUE)
       if (nchar(the_rest) > 0) {
-        browser()
         stop(
           "Unrecognized code after alias(es) declaration: '",
           the_rest, "'\n",
-          "Expected a new line. Check the parser logic or the GAMS file.",
+          "Expected a new line. Check the parser logic or the GAMS file."
         )
       }
       i <- i + 1
@@ -724,11 +722,10 @@ read_gams <- function(
       # check if there is a code after parameter(s)
       the_rest <- sub("^parameter(s)?\\b\\s*", "", line, ignore.case = TRUE)
       if (nchar(the_rest) > 0) {
-        browser()
         stop(
           "Unrecognized code after parameter(s) declaration: '",
           the_rest, "'\n",
-          "Expected a new line. Check the parser logic or the GAMS file.",
+          "Expected a new line. Check the parser logic or the GAMS file."
         )
       }
       i <- i + 1
@@ -739,7 +736,6 @@ read_gams <- function(
       # extract variable type
       match_type <- regexec("^([a-zA-Z0-9_]+)\\s+variable(s)?\\b",
                        line, ignore.case = TRUE)
-      # browser()
       var_type <- regmatches(line, match_type)[[1]][2]
       if (is.na(var_type)) var_type <- NULL
 
@@ -748,11 +744,10 @@ read_gams <- function(
       # check if there is a code after variable(s)
       the_rest <- sub("^([a-zA-Z0-9_]+\\s+)?variable(s)?\\b\\s*", "", line, ignore.case = TRUE)
       if (nchar(the_rest) > 0) {
-        browser()
         stop(
           "Unrecognized code after variable(s) declaration: '",
           the_rest, "'\n",
-          "Expected a new line. Check the parser logic or the GAMS file.",
+          "Expected a new line. Check the parser logic or the GAMS file."
         )
       }
 
@@ -763,11 +758,10 @@ read_gams <- function(
       # check if there is a code after equation(s)
       the_rest <- sub("^equation(s)?\\b\\s*", "", line, ignore.case = TRUE)
       if (nchar(the_rest) > 0) {
-        browser()
         stop(
           "Unrecognized code after equation(s) declaration: '",
           the_rest, "'\n",
-          "Expected a new line. Check the parser logic or the GAMS file.",
+          "Expected a new line. Check the parser logic or the GAMS file."
         )
       }
       i <- i + 1
@@ -788,12 +782,20 @@ read_gams <- function(
       } else {
         desc <- character(0)
       }
-      # browser()
       if (grepl("\\(", name_part)) {
         name <- sub("\\(.*", "", line)
         inside <- sub("^[^(]+\\(([^)]+)\\).*", "\\1", line)
         dims <- trimws(unlist(strsplit(inside, ",")))
         mappings[[name]] <- list(name = name, desc = desc, dims = dims)
+        # A one-dimensional declaration over an already-declared set is a
+        # subset, and in GAMS a subset is itself a set: it carries members and
+        # is summed over as an index. Register it in BOTH lists -- as a mapping
+        # for the occurrences that gate an expression, and as a set for the
+        # bare ones. `detect_symbol_type(indexed =)` picks between them per
+        # occurrence; registering only one way breaks whichever use it is not.
+        if (length(dims) == 1L && dims %in% names(sets)) {
+          sets[[name]] <- list(name = name, desc = desc, dims = character(0))
+        }
       } else {
         name <- name_part
         sets[[name]] <- list(name = name, desc = desc, dims = character(0))
@@ -803,7 +805,6 @@ read_gams <- function(
     }
 
     if (!is.null(mode) && mode == "aliases") {
-      # browser()
       matches <- gregexpr("\\([^()]+\\)", line)[[1]]
       if (matches[1] != -1) {
         for (start in matches) {
@@ -821,7 +822,6 @@ read_gams <- function(
     }
 
     if (!is.null(mode) && mode %in% c("parameters", "variables")) {
-      # browser()
       line <- sub("^\\*+@", "", line)
       line <- trimws(line)
       if (line == "") {
@@ -848,7 +848,6 @@ read_gams <- function(
       if (mode == "parameters") {
         parameters[[sym_name]] <- symbol_obj
       } else if (mode == "variables") {
-        # browser()
         symbol_obj$vtype <- var_type
         # Set default bounds based on variable type
         if (!is.null(var_type)) {
@@ -879,7 +878,6 @@ read_gams <- function(
 
     # Don't treat lines with $.. as declarations — they're equation bodies
     if (!is.null(mode) && mode == "equations" && !grepl("\\$.*\\.\\.", line)) {
-      # browser()
       # match <- regexec("^([a-zA-Z0-9_]+)\\(([^)]*)\\)\\s*(.*)$", line)
       match <- regexec("^([a-zA-Z0-9_]+)(?:\\(([^)]*)\\))?\\s*(.*)$", line)
       result <- regmatches(line, match)[[1]]
@@ -901,13 +899,8 @@ read_gams <- function(
       next
     }
 
-    # browser()
     ## Outside declarations: detect equation body ####
     eq_header <- parse_equation_header(line)
-    # if (!is.null(eq_header) &&
-        # grepl("S7_StorageLevelYearFinish", eq_header$name, ignore.case = TRUE)) {
-      # browser() # debug
-    # }
     if (!is.null(eq_header)) {
       eq_name <- eq_header$name
       body_accum <- character(0)
@@ -919,7 +912,7 @@ read_gams <- function(
       }
       if (verbose) {
         if (grepl(".;", lines[i])) {
-          browser() # debug - should not be here
+          .dev_break("read_gams.R:936") # debug - should not be here
           message("Found semicolon at end of equation body")
         }
       }
@@ -972,8 +965,25 @@ read_gams <- function(
   )
 }
 
+#' Parse a GAMS equation header
+#'
+#' Splits the part of an equation before `..` into its name, index list and
+#' optional `$` condition.
+#'
+#' Exported because consumers that compile their own GAMS-flavoured IR into
+#' multimod equations need exactly this parse. energyRt's user constraints
+#' (`newConstraint()`) arrive as GAMS strings whose headers look like
+#' `eqCnsX(region, year)$mCnsForEachX(region, year)..`, and re-implementing the
+#' split would let the two parsers disagree.
+#'
+#' @param line A single line of GAMS source ending in `..`.
+#' @return A list with the header's components, or `NULL` if `line` is not an
+#'   equation header.
+#' @seealso [read_gams()], [parse_gams_equation()], [remove_ontext_offtext()]
+#' @export
+#' @examples
+#' parse_equation_header("eqCost(region, year).. ")
 parse_equation_header <- function(line) {
-  # browser()
   pattern_step1 <- "^\\s*(.*?)\\s*\\.\\.\\s*$"
   # if (!grepl(pattern_step1, line)) stop("Invalid GAMS equation header")
   if (!grepl(pattern_step1, line)) return(NULL) # not an equation header
@@ -983,7 +993,6 @@ parse_equation_header <- function(line) {
   header_parts <- split_top_level_dollar(header)
 
   if (!is.null(header_parts) && length(header_parts) == 2) {
-    # browser()
     name_and_dims <- header_parts[[1]]
     condition = header_parts[[2]]
     # condition <- parse_gams_expr(hparts[[2]], symbols = symbols)
@@ -992,7 +1001,6 @@ parse_equation_header <- function(line) {
     name_and_dims <- header
     condition     <- NULL
   } else {
-    browser()
     stop("Unrecognized equation header format: ", line)
   }
 
@@ -1034,7 +1042,6 @@ parse_equation_header <- function(line) {
 #' @returns An `equation` object containing the parsed equation structure, including its name, dimensions, left-hand side (LHS), right-hand side (RHS), relation, domain, and description.
 #' @export
 parse_gams_equation <- function(eqn_info, symbols) {
-  # browser()
   name <- trimws(eqn_info$name)
   lhs_rhs <- trimws(eqn_info$gams)
   # domain_str <- ""
@@ -1082,7 +1089,6 @@ parse_gams_equation <- function(eqn_info, symbols) {
 
   lhs <- parse_gams_expr(lhs_str, symbols)
   rhs <- parse_gams_expr(rhs_str, symbols)
-  # browser()
   domain <- if (!is.null(eqn_info$domain) && nzchar(eqn_info$domain)) {
     # Parse domain condition
     domain <- parse_gams_expr(eqn_info$domain, symbols)

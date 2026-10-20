@@ -19,13 +19,16 @@ ast_equation(
 \item{rhs}{The right-hand side of the equation (an AST node).}
 
 \item{relation}{A character string representing the relation type.
-One of \code{"=="}, \code{"<="}, or \code{">="}.
-@param name Optional character string. The name of the equation.
-@param domain Optional AST node representing the domain condition.
-@param desc Optional character string. A description or label for the equation.
+One of \code{"=="}, \code{"<="}, or \code{">="}.}
 
-@return An \code{equation} S3 object.
-@export}
+\item{name}{Optional character string. The name of the equation.}
+
+\item{domain}{Optional AST node representing the domain condition.}
+
+\item{desc}{Optional character string. A description or label for the equation.}
+}
+\value{
+An \code{ast} node of class \code{equation}.
 }
 \description{
 Constructs an equation node representing a mathematical equation.

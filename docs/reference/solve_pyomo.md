@@ -2,14 +2,14 @@
 
 Executes the generated `solve.py` script inside `solvers/pyomo/` after
 ensuring a Python environment exists. By default the helper
-[`setup_python_environment()`](https://optimal2050.github.io/multimod/reference/setup_python_environment.md)
+[`mm_setup_python()`](https://optimal2050.github.io/multimod/reference/mm_setup_python.md)
 is invoked so that a Conda environment named "multimod" (configurable)
 is created, populated with Pyomo, and activated via the `reticulate`
 toolkit. Once the environment is ready the solver script is executed
 with [`system2()`](https://rdrr.io/r/base/system2.html) or `processx`
-and basic status information is returned. Result loading is not
-implemented yet but the metadata emitted by `solve.py` (e.g.
-`solution/status.json`) is surfaced when available.
+and basic status information is returned, together with the status the
+script writes to `solution/status.json`. With `load_results = TRUE` the
+variable values the script exports are read back into `model`.
 
 ## Usage
 
@@ -20,7 +20,7 @@ solve_pyomo(
   solver_dir = "pyomo",
   env_name = "multimod",
   ensure_env = TRUE,
-  packages = c("pyomo"),
+  packages = NULL,
   python_version = NULL,
   ensure_miniconda = TRUE,
   reinstall_env = FALSE,
@@ -38,9 +38,9 @@ solve_pyomo(
 
 - model:
 
-  Optional multimod model; currently only used when
-  `load_results = TRUE` to indicate where solutions should be loaded
-  (not yet implemented).
+  Optional multimod model. Required when `load_results = TRUE`: the
+  solution of each variable is stored in
+  `model$variables[[name]]$solution`.
 
 - model_dir:
 
@@ -58,30 +58,34 @@ solve_pyomo(
 - env_name:
 
   Name of the Conda environment handled by
-  [`setup_python_environment()`](https://optimal2050.github.io/multimod/reference/setup_python_environment.md).
+  [`mm_setup_python()`](https://optimal2050.github.io/multimod/reference/mm_setup_python.md).
   Defaults to "multimod".
 
 - ensure_env:
 
-  Logical; when `TRUE` (default) the helper
-  [`setup_python_environment()`](https://optimal2050.github.io/multimod/reference/setup_python_environment.md)
-  runs to create/activate the environment. Set to `FALSE` if you want to
-  manage activation yourself.
+  Logical; when `TRUE` (default) the environment is checked with
+  [`mm_check_python()`](https://optimal2050.github.io/multimod/reference/mm_check_python.md)
+  and
+  [`mm_setup_python()`](https://optimal2050.github.io/multimod/reference/mm_setup_python.md)
+  runs only if it is not usable. Set to `FALSE` if you want to manage
+  activation yourself.
 
 - packages:
 
   Character vector of Python packages to request when the helper runs.
-  Defaults to `"pyomo"`.
+  `NULL` (default) uses
+  [`mm_setup_python()`](https://optimal2050.github.io/multimod/reference/mm_setup_python.md)'s
+  own list, so the environment contents have a single owner.
 
 - python_version:
 
   Optional Python version passed through to
-  [`setup_python_environment()`](https://optimal2050.github.io/multimod/reference/setup_python_environment.md).
+  [`mm_setup_python()`](https://optimal2050.github.io/multimod/reference/mm_setup_python.md).
 
 - ensure_miniconda:
 
   Forwarded to
-  [`setup_python_environment()`](https://optimal2050.github.io/multimod/reference/setup_python_environment.md).
+  [`mm_setup_python()`](https://optimal2050.github.io/multimod/reference/mm_setup_python.md).
 
 - reinstall_env:
 
@@ -107,8 +111,10 @@ solve_pyomo(
 
 - load_results:
 
-  Logical; reserved for future work. When `TRUE` a warning is issued
-  because loading solutions back into R is not yet implemented.
+  Logical; when `TRUE`, read `solution/variables.json` into `model` and
+  return the model as `result$model`. The file is written by the
+  generated script only when the scaffold was produced with
+  `write_pyomo(export_vars = TRUE)`.
 
 - verbose:
 
@@ -122,10 +128,12 @@ solve_pyomo(
 - ...:
 
   Additional arguments forwarded to
-  [`setup_python_environment()`](https://optimal2050.github.io/multimod/reference/setup_python_environment.md).
+  [`mm_setup_python()`](https://optimal2050.github.io/multimod/reference/mm_setup_python.md).
 
 ## Value
 
 A list describing the solver run (exit code, success flag, elapsed time,
 raw output, parsed status metadata when available, and environment
-details).
+details). With `load_results = TRUE`, also `model`, the input model with
+a `solution` data frame on every variable the solver reported.
+`objective` is the objective value the script records in `status.json`.

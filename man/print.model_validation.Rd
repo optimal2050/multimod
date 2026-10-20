@@ -11,6 +11,9 @@
 
 \item{...}{Additional arguments (currently unused)}
 }
+\value{
+Invisibly, \code{x}.
+}
 \description{
 Print method for model validation results
 }

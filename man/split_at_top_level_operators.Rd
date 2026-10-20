@@ -15,6 +15,12 @@ split_at_top_level_operators(
 \item{latex_str}{A LaTeX math string}
 
 \item{operators}{Vector of operators to split at}
+
+\item{indent_str}{Character string prepended to each continuation chunk
+(default: none)}
+
+\item{max_len}{Maximum estimated line length; strings at or below it are
+returned unsplit (default 80)}
 }
 \value{
 A character vector of expression chunks

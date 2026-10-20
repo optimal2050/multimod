@@ -10,7 +10,8 @@ config file.
 
 2.  Environment variable: `MULTIMOD_<SOLVER>`
 
-3.  YAML config file: `~/.multimod/config.yml` or `.multimod.yml`
+3.  YAML config file: the per-user directory given by
+    `tools::R_user_dir("multimod", "config")` or `.multimod.yml`
 
 4.  Intelligent defaults (reticulate for Python, system PATH for others)
 
@@ -64,9 +65,9 @@ multimod_config_show()
 
 - global:
 
-  Logical; if `TRUE`, writes to `~/.multimod/config.yml` (user-wide). If
-  `FALSE` (default), writes to `.multimod.yml` in current working
-  directory.
+  Logical; if `TRUE`, writes to the per-user directory given by
+  `tools::R_user_dir("multimod", "config")` (user-wide). If `FALSE`
+  (default), writes to `.multimod.yml` in current working directory.
 
 ## Examples
 
@@ -91,7 +92,7 @@ options(
 # Or use environment variables (system-wide):
 Sys.setenv(MULTIMOD_PYTHON = "C:/Python310/python.exe")
 
-# Or use YAML config file (~/.multimod/config.yml):
+# Or use YAML config file (the config.yml under tools::R_user_dir("multimod", "config")):
 multimod_config_write(list(
   python = list(path = "C:/Python310/python.exe", env_name = "multimod"),
   julia = list(path = "C:/Julia-1.10/bin/julia.exe"),

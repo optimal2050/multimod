@@ -1,6 +1,6 @@
 # Solve GMPL model using glpsol command line tool
 
-Solves an optimization model using GLPK solver (glpkAPI or glpsol)
+Solves an optimization model by running GLPK's `glpsol` executable.
 
 ## Usage
 
@@ -8,10 +8,10 @@ Solves an optimization model using GLPK solver (glpkAPI or glpsol)
 solve_gmpl(
   model = NULL,
   model_dir,
-  method = "glpkAPI",
+  method = "glpsol",
   verbose = TRUE,
   load_results = !is.null(model),
-  glpsol_path = "glpsol",
+  glpsol_path = get_multimod_glpsol(),
   timeout = NULL
 )
 ```
@@ -28,8 +28,8 @@ solve_gmpl(
 
 - method:
 
-  Solver method: "glpkAPI" (default, uses execute_glpkAPI), "glpsol"
-  (uses system2 with glpsol executable)
+  Retained for compatibility; only `"glpsol"` is supported. `"glpkAPI"`
+  was retired when glpkAPI left CRAN - see `drafts/glpkAPI-retired.R`.
 
 - verbose:
 
@@ -42,8 +42,8 @@ solve_gmpl(
 
 - glpsol_path:
 
-  Path to glpsol executable (default: "glpsol", only used if
-  method="glpsol")
+  Path to the glpsol executable; defaults to
+  [`get_multimod_glpsol()`](https://optimal2050.github.io/multimod/reference/multimod-config.md).
 
 - timeout:
 
@@ -53,3 +53,12 @@ solve_gmpl(
 
 List with: model (if load_results=TRUE), success, objective, solve_time,
 status
+
+## Details
+
+`glpsol` must be on the system:
+[`get_multimod_glpsol()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
+resolves it from `options("multimod.glpsol_path")`, `MULTIMOD_GLPSOL`,
+the YAML config, the conda environment
+[`mm_setup_python()`](https://optimal2050.github.io/multimod/reference/mm_setup_python.md)
+installs GLPK into, and finally the bare name `"glpsol"` on `PATH`.

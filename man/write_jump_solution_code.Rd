@@ -2,34 +2,23 @@
 % Please edit documentation in R/solve_jump.R
 \name{write_jump_solution_code}
 \alias{write_jump_solution_code}
-\title{Write JuMP solution values to disk}
+\title{Julia source of the JuMP solution writer}
 \usage{
 write_jump_solution_code()
 }
-\arguments{
-\item{model}{JuMP model object (from Julia)}
-
-\item{output_dir}{Directory to save solutions}
-
-\item{format}{Data format ("arrow" or "csv")}
-
-\item{run_name}{Name for this solution run (default: timestamp)}
+\value{
+A character string with Julia source code.
 }
 \description{
-Helper function to save solution values from Julia model.
-Called from within Julia code after solving.
+Returns the Julia code of the \code{save_solution(model, output_dir, data_format)}
+helper that is embedded in the generated \code{model.jl} and called after solving.
 }
 \details{
-This is typically called from within the generated model.jl file.
+The helper is called from within the generated model.jl file.
 It saves variable values in the same directory structure as input data.
 }
 \examples{
-\dontrun{
-# In Julia (model.jl):
-# After solve...
-using Dates
-run_name = Dates.format(now(), "yyyy-mm-dd_HHMMSS")
-save_jump_solution(model, "../../solutions/" * run_name, DATA_FORMAT)
-}
+# Julia source of the save_solution() helper embedded in generated model.jl
+cat(write_jump_solution_code())
 
 }

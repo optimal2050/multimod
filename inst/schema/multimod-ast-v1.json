@@ -1,0 +1,685 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://multimod.dev/schema/ast-v1.0.json",
+  "title": "multimod model",
+  "description": "Abstract syntax tree of a multimod optimization model. Generated from ast_schema(); do not edit by hand.",
+  "type": "object",
+  "properties": {
+    "multimod_schema": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "node": {
+      "const": "model"
+    },
+    "name": {
+      "type": "string"
+    },
+    "desc": {
+      "type": "string"
+    },
+    "sets": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/set_decl"
+      }
+    },
+    "mappings": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/mapping_decl"
+      }
+    },
+    "parameters": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/parameter_decl"
+      }
+    },
+    "variables": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/variable_decl"
+      }
+    },
+    "equations": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/equation_decl"
+      }
+    }
+  },
+  "required": [
+    "multimod_schema"
+  ],
+  "$defs": {
+    "set_decl": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "const": "set_decl"
+        },
+        "name": {
+          "type": "string"
+        },
+        "desc": {
+          "type": "string"
+        },
+        "subset_of": {
+          "type": "string"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "node",
+        "name"
+      ]
+    },
+    "mapping_decl": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "const": "mapping_decl"
+        },
+        "name": {
+          "type": "string"
+        },
+        "desc": {
+          "type": "string"
+        },
+        "subset_of": {
+          "type": "string"
+        },
+        "dims": {
+          "$ref": "#/$defs/node"
+        },
+        "active_dims": {
+          "$ref": "#/$defs/node"
+        },
+        "data": {
+          "$ref": "#/$defs/table"
+        },
+        "defVal": {
+          "type": "number"
+        },
+        "auto_fold": {
+          "type": "boolean"
+        },
+        "misc": []
+      },
+      "required": [
+        "node",
+        "name"
+      ]
+    },
+    "parameter_decl": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "const": "parameter_decl"
+        },
+        "name": {
+          "type": "string"
+        },
+        "desc": {
+          "type": "string"
+        },
+        "dims": {
+          "$ref": "#/$defs/node"
+        },
+        "active_dims": {
+          "$ref": "#/$defs/node"
+        },
+        "data": {
+          "$ref": "#/$defs/table"
+        },
+        "defVal": {
+          "type": "number"
+        },
+        "defInt": {
+          "type": "number"
+        },
+        "symbolic": {
+          "type": "boolean"
+        },
+        "formula": [],
+        "comment": {
+          "type": "string"
+        },
+        "auto_fold": {
+          "type": "boolean"
+        },
+        "misc": []
+      },
+      "required": [
+        "node",
+        "name",
+        "dims"
+      ]
+    },
+    "variable_decl": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "const": "variable_decl"
+        },
+        "name": {
+          "type": "string"
+        },
+        "desc": {
+          "type": "string"
+        },
+        "dims": {
+          "$ref": "#/$defs/node"
+        },
+        "active_dims": {
+          "$ref": "#/$defs/node"
+        },
+        "domain": {
+          "type": "string"
+        },
+        "vtype": {
+          "type": "string"
+        },
+        "bounds": [],
+        "comment": {
+          "type": "string"
+        },
+        "data": {
+          "$ref": "#/$defs/table"
+        },
+        "auto_fold": {
+          "type": "boolean"
+        },
+        "misc": []
+      },
+      "required": [
+        "node",
+        "name",
+        "dims"
+      ]
+    },
+    "equation_decl": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "const": "equation_decl"
+        },
+        "name": {
+          "type": "string"
+        },
+        "desc": {
+          "type": "string"
+        },
+        "lhs": {
+          "$ref": "#/$defs/node"
+        },
+        "rhs": {
+          "$ref": "#/$defs/node"
+        },
+        "relation": {
+          "type": "string"
+        },
+        "dims": {
+          "$ref": "#/$defs/node"
+        },
+        "domain": {
+          "$ref": "#/$defs/node"
+        },
+        "comment": {
+          "type": "string"
+        },
+        "dims_index_aliases": [],
+        "misc": []
+      },
+      "required": [
+        "node",
+        "name",
+        "lhs",
+        "rhs",
+        "relation"
+      ]
+    },
+    "set_ref": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "const": "set_ref"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "node",
+        "name"
+      ]
+    },
+    "mapping_ref": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "const": "mapping_ref"
+        },
+        "name": {
+          "type": "string"
+        },
+        "dims": {
+          "$ref": "#/$defs/node"
+        }
+      },
+      "required": [
+        "node",
+        "name"
+      ]
+    },
+    "parameter_ref": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "const": "parameter_ref"
+        },
+        "name": {
+          "type": "string"
+        },
+        "dims": {
+          "$ref": "#/$defs/node"
+        }
+      },
+      "required": [
+        "node",
+        "name"
+      ]
+    },
+    "variable_ref": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "const": "variable_ref"
+        },
+        "name": {
+          "type": "string"
+        },
+        "dims": {
+          "$ref": "#/$defs/node"
+        }
+      },
+      "required": [
+        "node",
+        "name"
+      ]
+    },
+    "symbol": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "const": "symbol"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "node",
+        "name"
+      ]
+    },
+    "dims": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "const": "dims"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/node"
+          }
+        }
+      },
+      "required": [
+        "node",
+        "items"
+      ]
+    },
+    "constant": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "const": "constant"
+        },
+        "value": []
+      },
+      "required": [
+        "node",
+        "value"
+      ]
+    },
+    "expression": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "const": "expression"
+        },
+        "op": {
+          "type": "string"
+        },
+        "lhs": {
+          "$ref": "#/$defs/node"
+        },
+        "rhs": {
+          "$ref": "#/$defs/node"
+        },
+        "brackets": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "node",
+        "op",
+        "lhs",
+        "rhs"
+      ]
+    },
+    "unary": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "const": "unary"
+        },
+        "op": {
+          "type": "string"
+        },
+        "rhs": {
+          "$ref": "#/$defs/node"
+        }
+      },
+      "required": [
+        "node",
+        "op",
+        "rhs"
+      ]
+    },
+    "when": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "const": "when"
+        },
+        "condition": {
+          "$ref": "#/$defs/node"
+        },
+        "then": {
+          "$ref": "#/$defs/node"
+        },
+        "otherwise": {
+          "$ref": "#/$defs/node"
+        }
+      },
+      "required": [
+        "node",
+        "condition",
+        "then"
+      ]
+    },
+    "func": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "const": "func"
+        },
+        "name": {
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/node"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/node"
+              }
+            }
+          ]
+        },
+        "index": {
+          "$ref": "#/$defs/node"
+        }
+      },
+      "required": [
+        "node",
+        "name",
+        "value"
+      ]
+    },
+    "sum": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "const": "sum"
+        },
+        "index": {
+          "$ref": "#/$defs/node"
+        },
+        "value": {
+          "$ref": "#/$defs/node"
+        },
+        "domain": {
+          "$ref": "#/$defs/node"
+        }
+      },
+      "required": [
+        "node",
+        "index",
+        "value"
+      ]
+    },
+    "prod": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "const": "prod"
+        },
+        "index": {
+          "$ref": "#/$defs/node"
+        },
+        "value": {
+          "$ref": "#/$defs/node"
+        },
+        "domain": {
+          "$ref": "#/$defs/node"
+        }
+      },
+      "required": [
+        "node",
+        "index",
+        "value"
+      ]
+    },
+    "setmin": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "const": "setmin"
+        },
+        "index": {
+          "$ref": "#/$defs/node"
+        },
+        "value": {
+          "$ref": "#/$defs/node"
+        }
+      },
+      "required": [
+        "node",
+        "index",
+        "value"
+      ]
+    },
+    "setmax": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "const": "setmax"
+        },
+        "index": {
+          "$ref": "#/$defs/node"
+        },
+        "value": {
+          "$ref": "#/$defs/node"
+        }
+      },
+      "required": [
+        "node",
+        "index",
+        "value"
+      ]
+    },
+    "shift": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "const": "shift"
+        },
+        "symbol": {
+          "$ref": "#/$defs/node"
+        },
+        "offset": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "node",
+        "symbol",
+        "offset"
+      ]
+    },
+    "call": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "const": "call"
+        },
+        "name": {
+          "type": "string"
+        },
+        "args": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/node"
+          }
+        }
+      },
+      "required": [
+        "node",
+        "name",
+        "args"
+      ]
+    },
+    "where": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "const": "where"
+        },
+        "name": {
+          "type": "string"
+        },
+        "content": {
+          "$ref": "#/$defs/node"
+        },
+        "hash": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "node",
+        "name",
+        "content"
+      ]
+    },
+    "table": {
+      "type": "object",
+      "description": "A tabular payload: $class, $types and $cols. Bulk data normally lives in the Parquet store instead."
+    },
+    "node": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/set_decl"
+        },
+        {
+          "$ref": "#/$defs/mapping_decl"
+        },
+        {
+          "$ref": "#/$defs/parameter_decl"
+        },
+        {
+          "$ref": "#/$defs/variable_decl"
+        },
+        {
+          "$ref": "#/$defs/equation_decl"
+        },
+        {
+          "$ref": "#/$defs/set_ref"
+        },
+        {
+          "$ref": "#/$defs/mapping_ref"
+        },
+        {
+          "$ref": "#/$defs/parameter_ref"
+        },
+        {
+          "$ref": "#/$defs/variable_ref"
+        },
+        {
+          "$ref": "#/$defs/symbol"
+        },
+        {
+          "$ref": "#/$defs/dims"
+        },
+        {
+          "$ref": "#/$defs/constant"
+        },
+        {
+          "$ref": "#/$defs/expression"
+        },
+        {
+          "$ref": "#/$defs/unary"
+        },
+        {
+          "$ref": "#/$defs/when"
+        },
+        {
+          "$ref": "#/$defs/func"
+        },
+        {
+          "$ref": "#/$defs/sum"
+        },
+        {
+          "$ref": "#/$defs/prod"
+        },
+        {
+          "$ref": "#/$defs/setmin"
+        },
+        {
+          "$ref": "#/$defs/setmax"
+        },
+        {
+          "$ref": "#/$defs/shift"
+        },
+        {
+          "$ref": "#/$defs/call"
+        },
+        {
+          "$ref": "#/$defs/where"
+        }
+      ]
+    }
+  }
+}

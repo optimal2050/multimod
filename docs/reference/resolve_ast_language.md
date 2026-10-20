@@ -23,3 +23,7 @@ resolve_ast_language(language = NULL, symbols = NULL, context = NULL)
 
   Optional object (model structure, builder) that exposes `$language` or
   a `language` attribute.
+
+## Value
+
+A lower-case language identifier, e.g. `"gams"` or `"gmpl"`.

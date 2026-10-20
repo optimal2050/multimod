@@ -38,16 +38,16 @@ Modified model object
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
-# Update parameter data
-model <- update_parameter(model, "pTechCost", new_tech_cost_data)
-
-# Update with folded data
-model <- update_parameter(model, "pTechCost",
-                         data = tech_cost_data,
-                         folded_data = tech_cost_folded)
-
-# Update and immediately save to disk
-model <- update_parameter(model, "pTechCost", new_data, auto_save = TRUE)
-} # }
+m <- example_models$energyRt$multimod
+olife <- get_data(m, "pTechOlife")
+olife$value <- olife$value + 5
+m <- update_parameter(m, "pTechOlife", olife)
+head(get_data(m, "pTechOlife"))
+#>   tech region value
+#> 1 ECOA     C1    35
+#> 2 ECOA     C2    35
+#> 3 ECOA     C3    35
+#> 4 ECOA     C4    35
+#> 5 ECOA     C5    35
+#> 6 ECOA     W1    35
 ```

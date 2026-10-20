@@ -5,14 +5,14 @@
 \alias{validate.default}
 \alias{validate.ast}
 \alias{validate.dims}
-\alias{validate.set}
+\alias{validate.mm_set}
 \alias{validate.symbol}
-\alias{validate.mapping}
+\alias{validate.mm_mapping}
 \alias{validate.ast_formula}
-\alias{validate.parameter}
-\alias{validate.variable}
-\alias{validate.equation}
-\alias{validate.model}
+\alias{validate.mm_parameter}
+\alias{validate.mm_variable}
+\alias{validate.mm_equation}
+\alias{validate.mm_model}
 \title{Validate multimod or AST objects}
 \usage{
 validate(x, context = NULL, stop_on_error = TRUE, recursive = TRUE, ...)
@@ -23,21 +23,28 @@ validate(x, context = NULL, stop_on_error = TRUE, recursive = TRUE, ...)
 
 \method{validate}{dims}(x, context = NULL, stop_on_error = TRUE, recursive = TRUE, ...)
 
-\method{validate}{set}(x, context = NULL, stop_on_error = TRUE, recursive = TRUE, ...)
+\method{validate}{mm_set}(x, context = NULL, stop_on_error = TRUE, recursive = TRUE, ...)
 
 \method{validate}{symbol}(x, context = NULL, stop_on_error = TRUE, recursive = TRUE, ...)
 
-\method{validate}{mapping}(x, context = NULL, stop_on_error = TRUE, recursive = TRUE, ...)
+\method{validate}{mm_mapping}(x, context = NULL, stop_on_error = TRUE, recursive = TRUE, ...)
 
 \method{validate}{ast_formula}(x, context = NULL, stop_on_error = TRUE, recursive = TRUE, ...)
 
-\method{validate}{parameter}(x, context = NULL, stop_on_error = TRUE, recursive = TRUE, ...)
+\method{validate}{mm_parameter}(x, context = NULL, stop_on_error = TRUE, recursive = TRUE, ...)
 
-\method{validate}{variable}(x, context = NULL, stop_on_error = TRUE, recursive = TRUE, ...)
+\method{validate}{mm_variable}(x, context = NULL, stop_on_error = TRUE, recursive = TRUE, ...)
 
-\method{validate}{equation}(x, context = NULL, stop_on_error = TRUE, recursive = TRUE, ...)
+\method{validate}{mm_equation}(x, context = NULL, stop_on_error = TRUE, recursive = TRUE, ...)
 
-\method{validate}{model}(x, verbose = FALSE, stop_on_error = TRUE, ...)
+\method{validate}{mm_model}(
+  x,
+  context = NULL,
+  stop_on_error = TRUE,
+  recursive = TRUE,
+  verbose = FALSE,
+  ...
+)
 }
 \arguments{
 \item{x}{A multimod model object}
@@ -86,20 +93,23 @@ Current checks include:
 }
 \section{Methods (by class)}{
 \itemize{
-\item \code{validate(model)}: Validate a multimod model
+\item \code{validate(mm_model)}: Validate a multimod model
 
 Checks a multimod model for structural issues, naming conflicts, and other
 potential problems that could cause issues during export or solving.
 
 }}
 \examples{
-\dontrun{
-m <- read_gmpl("model.mod", data_file = "data.dat")
-validation <- validate(m)
-if (!validation$valid) {
-  cat("Errors found:\n")
-  cat(paste(validation$errors, collapse = "\n"))
-}
+m <- example_models$energyRt$multimod
+
+# A single equation
+validate(m$equations$eqTechSng2Sng)
+
+\donttest{
+# The whole model takes a few seconds
+validation <- validate(m, stop_on_error = FALSE)
+validation$valid
+validation$errors
 }
 
 }

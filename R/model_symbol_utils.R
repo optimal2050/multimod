@@ -1,4 +1,28 @@
 # Symbol analysis utilities -------------------------------------------------
+#' Names registered as both a set and a mapping
+#'
+#' A subset declaration over a known set (`sup(process)`) is written exactly
+#' like a single-dimension mapping (`mUpComm(comm)`), so [read_gams()]
+#' registers such a name on both sides and resolves each occurrence by usage -
+#' bare as a set, parenthesised as a mapping. Both registrations name ONE
+#' symbol, so a writer declares it once.
+#'
+#' @param model A `multimod` model
+#' @return Character vector of names.
+#' @keywords internal
+dual_registered_symbols <- function(model) {
+  if (is.null(model$sets) || is.null(model$mappings)) return(character(0))
+  dual <- intersect(names(model$sets), names(model$mappings))
+  if (length(dual) == 0) return(character(0))
+  keep <- vapply(dual, function(nm) {
+    dims <- model$mappings[[nm]]$dims
+    if (length(dims) != 1L) return(FALSE)
+    parent <- dims[[1]]$name %||% dims[[1]]
+    is.character(parent) && length(parent) == 1L && parent %in% names(model$sets)
+  }, logical(1))
+  dual[keep]
+}
+
 
 #' Collect declared symbols from a model object
 #'
@@ -10,7 +34,7 @@
 collect_model_symbols <- function(model,
                                   include_aliases = TRUE,
                                   include_index_aliases = TRUE) {
-  stopifnot(inherits(model, "model"))
+  stopifnot(inherits(model, "mm_model"))
 
   component_names <- function(items) {
     if (is.null(items) || length(items) == 0) {
@@ -62,10 +86,11 @@ collect_model_symbols <- function(model,
 
   index_alias_records <- data.frame()
   if (include_index_aliases && !is.null(model$index_aliases) && length(model$index_aliases) > 0) {
+    # Use unlist to convert list to character vector
     index_alias_records <- build_records(
-      unname(model$index_aliases),
+      unlist(unname(model$index_aliases)),
       "index_alias",
-      alias_for = rep(names(model$index_aliases), each = 1),
+      alias_for = names(model$index_aliases),
       source = "index_alias"
     )
   }
@@ -76,6 +101,46 @@ collect_model_symbols <- function(model,
   if (is.null(table)) {
     table <- build_records(character(0), character(0))
   } else {
+    table <- unique(table)
+  }
+  
+  # Add symbol name map aliases (underscore variants for hyphenated names)
+  name_map_records <- data.frame()
+  if (!is.null(model$metadata$symbol_name_map)) {
+    name_map <- model$metadata$symbol_name_map
+    
+    # For each actual name (with hyphens), create an alias record with underscores
+    if (!is.null(name_map$reverse)) {
+      for (actual_name in names(name_map$reverse)) {
+        gmpl_name <- name_map$reverse[[actual_name]]
+        
+        # Only add if different from actual name
+        if (actual_name != gmpl_name) {
+          # Find the type of the actual symbol
+          actual_row <- table[table$name == actual_name & table$source == "model", ]
+          
+          if (nrow(actual_row) > 0) {
+            # Create alias record
+            type_suffix <- switch(actual_row$type[1],
+                                  variable = "variable_alias",
+                                  parameter = "parameter_alias",
+                                  set = "set_alias",
+                                  mapping = "mapping_alias",
+                                  paste0(actual_row$type[1], "_alias"))
+            
+            name_map_records <- rbind(name_map_records,
+                                      build_records(gmpl_name, type_suffix, 
+                                                   alias_for = actual_name, 
+                                                   source = "name_map"))
+          }
+        }
+      }
+    }
+  }
+  
+  # Combine with name map aliases
+  if (nrow(name_map_records) > 0) {
+    table <- rbind(table, name_map_records)
     table <- unique(table)
   }
 
@@ -90,11 +155,29 @@ collect_model_symbols <- function(model,
     list()
   }
 
-  list(
+  # A set/mapping pair for one subset declaration is deliberate, not a clash.
+  if (length(collisions) > 0) {
+    subset_lower <- tolower(dual_registered_symbols(model))
+    exempt <- vapply(names(collisions), function(lower_name) {
+      rows <- collisions[[lower_name]]
+      lower_name %in% subset_lower && nrow(rows) == 2L &&
+        setequal(rows$type, c("set", "mapping"))
+    }, logical(1))
+    collisions <- collisions[!exempt]
+  }
+
+  result <- list(
     table = table,
     lookup = lookup,
     collisions = collisions
   )
+  
+  # Attach symbol_name_map if available in model metadata
+  if (!is.null(model$metadata$symbol_name_map)) {
+    attr(result, "symbol_name_map") <- model$metadata$symbol_name_map
+  }
+  
+  result
 }
 
 new_symbol_issue_log <- function() {
@@ -154,9 +237,12 @@ scope_contains <- function(scope, name) {
 symbol_role_priority <- function(role = "expr") {
   switch(role,
     set_ref = c("mapping", "set", "set_alias"),
-    expr = c("variable", "parameter", "mapping", "set", "set_alias", "index_alias"),
-    domain = c("mapping", "parameter", "variable", "set", "set_alias"),
-    default = c("variable", "parameter", "mapping", "set", "set_alias", "index_alias")
+    expr = c("variable", "variable_alias", "parameter", "parameter_alias", 
+             "mapping", "mapping_alias", "set", "set_alias", "index_alias"),
+    domain = c("mapping", "mapping_alias", "parameter", "parameter_alias", 
+               "variable", "variable_alias", "set", "set_alias"),
+    default = c("variable", "variable_alias", "parameter", "parameter_alias", 
+                "mapping", "mapping_alias", "set", "set_alias", "index_alias")
   )
 }
 
@@ -206,7 +292,9 @@ normalize_symbol_dims <- function(dims_value) {
 
 coerce_symbol_node <- function(node, entry) {
   entry <- as.list(entry)
+  # Symbols only have dims field (not index)
   dims <- normalize_symbol_dims(node$dims)
+  # Extract extras but exclude fields that are handled explicitly
   extras <- node[setdiff(names(node), c("name", "dims"))]
   ctor <- switch(entry$type,
     variable = ast_variable,
@@ -255,7 +343,20 @@ resolve_ast_symbols <- function(node,
     if (scope_contains(scope, name)) {
       return(list(node = node, log = log))
     }
+    
+    # Try direct lookup first
     match <- symbol_info$lookup[[tolower(name)]]
+    
+    # If not found and we have symbol_name_map in table metadata,
+    # try resolving the name (GMPL underscore -> actual hyphen)
+    if (is.null(match) && !is.null(attr(symbol_info, "symbol_name_map"))) {
+      name_map <- attr(symbol_info, "symbol_name_map")
+      if (name %in% names(name_map$forward)) {
+        resolved_name <- name_map$forward[[name]]
+        match <- symbol_info$lookup[[tolower(resolved_name)]]
+      }
+    }
+    
     if (is.null(match)) {
       entry <- data.frame(
         component = context$component,
@@ -456,7 +557,7 @@ inspect_model_symbols <- function(model,
                                   symbol_info = NULL,
                                   fix = FALSE,
                                   verbose = FALSE) {
-  stopifnot(inherits(model, "model"))
+  stopifnot(inherits(model, "mm_model"))
   symbol_info <- symbol_info %||% collect_model_symbols(model)
   log <- new_symbol_issue_log()
 
@@ -522,12 +623,13 @@ summarize_symbol_issues <- function(symbol_info, issues) {
     }
   }
 
+  # Undefined symbols are now warnings (not errors) to allow symbolic parameters
   if (nrow(issues$undefined) > 0) {
     for (i in seq_len(nrow(issues$undefined))) {
       row <- issues$undefined[i, ]
       target <- sprintf("%s '%s'", row$component %||% "component", row$name %||% "<unnamed>")
       field <- row$field %||% "expression"
-      errors <- c(errors, sprintf("%s uses undefined symbol '%s' in %s", target, row$symbol, field))
+      warnings <- c(warnings, sprintf("%s uses undefined symbol '%s' in %s", target, row$symbol, field))
     }
   }
 
@@ -561,8 +663,10 @@ make_valid <- function(x, ...) {
   UseMethod("make_valid")
 }
 
+#' @rdname make_valid
+#' @method make_valid mm_model
 #' @export
-make_valid.model <- function(x,
+make_valid.mm_model <- function(x,
                              verbose = FALSE,
                              stop_on_error = FALSE,
                              revalidate = FALSE,

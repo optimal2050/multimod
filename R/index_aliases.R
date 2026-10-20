@@ -76,10 +76,13 @@ add_index_aliases <- function(model, index_aliases = NULL, overwrite = FALSE) {
     # Generate index_aliases for remaining sets
     remaining_sets <- setdiff(set_names, names(index_aliases))
     if (length(remaining_sets) > 0) {
+      # Seed with the supplied iterators, or a regenerated set can reissue one
+      # that is already in use (imp -> m and mMilestoneFirst -> m).
       auto_aliases <- generate_index_aliases(
         remaining_sets,
         all_set_names = set_names,
-        all_symbols = all_symbols
+        all_symbols = all_symbols,
+        used_names = unname(index_aliases)
       )
       index_aliases <- c(index_aliases, auto_aliases)
     # } else {
@@ -110,6 +113,7 @@ add_index_aliases <- function(model, index_aliases = NULL, overwrite = FALSE) {
 #' @return Character. The index alias for the set
 #'
 #' @examples
+#' model <- example_models$energyRt$multimod
 #' model <- add_index_aliases(model)
 #' get_index_alias(model, "tech")  # "h"
 #'
@@ -146,12 +150,13 @@ has_index_aliases <- function(model) {
 }
 
 #' Preferred short names for common sets to avoid conflicts
+#' @format A named list mapping set names to preferred short iterator names.
 #' @keywords internal
 preferred_dummy_names <- list(
   tech = "h",      # technology (avoid 't' conflict with time, trade)
   trade = "a",     # trade (avoid 't' conflict)
-  sup = "u",       # supply (avoid 's' conflict with slice, stg)
-  slice = "ts",    # time slice (avoid 's' conflict)
+  sup = "u",       # supply (avoid 's' conflict with timeslice, stg)
+  timeslice = "ts",    # time timeslice (avoid 's' conflict)
   stg = "o",       # storage (avoid 's' conflict)
   region = "r",
   comm = "c",
@@ -166,7 +171,7 @@ preferred_dummy_names <- list(
 #' Generate dummy variable name from set name
 #'
 #' Creates a short dummy variable name from a set name following conventions:
-#' - Uses preferred names for common sets (tech -> h, slice -> ts, etc.)
+#' - Uses preferred names for common sets (tech -> h, timeslice -> ts, etc.)
 #' - First letter of the set name (lowercase) for others
 #' - If it's an alias, use two letters (checking against all_set_names)
 #' - Ensures uniqueness by checking against all symbols in model
@@ -178,7 +183,7 @@ preferred_dummy_names <- list(
 #' @return Character. A short dummy variable name
 #' @examples
 #' generate_index_alias("tech") # "h"
-#' generate_index_alias("slice") # "ts"
+#' generate_index_alias("timeslice") # "ts"
 #' generate_index_alias("commp", all_set_names = c("comm", "commp")) # "cp"
 #' @export
 generate_index_alias <- function(set_name, used_names = character(0),
@@ -209,7 +214,9 @@ generate_index_alias <- function(set_name, used_names = character(0),
     # Try different suffix patterns
     for (pattern in c("pp$", "p$", "2$", "3$")) {
       potential_base <- sub(pattern, "", name_lower)
-      if (potential_base != name_lower && nchar(potential_base) > 0) {
+      # Check for NA values before comparison
+      if (!is.na(potential_base) && !is.na(name_lower) && 
+          potential_base != name_lower && nchar(potential_base) > 0) {
         # Check if base exists in all_set_names (case-insensitive)
         if (any(tolower(all_set_names) == potential_base)) {
           is_alias <- TRUE
@@ -295,11 +302,15 @@ generate_index_alias <- function(set_name, used_names = character(0),
 #' @param set_names Character vector. Names of the sets
 #' @param all_set_names Character vector. All set names in model (for alias detection)
 #' @param all_symbols List. All symbols in model (from build_symbols_list)
+#' @param used_names Character vector. Iterator names already taken elsewhere
+#'   in the model, so a partial regeneration does not reissue one.
 #' @return Named character vector. Dummy variable names with set names as names
 #' @examples
-#' generate_index_aliases(c("tech", "region", "comm", "commp", "year", "slice"))
+#' generate_index_aliases(c("tech", "region", "comm", "commp", "year", "timeslice"))
 #' @export
-generate_index_aliases <- function(set_names, all_set_names = set_names, all_symbols = NULL) {
+generate_index_aliases <- function(set_names, all_set_names = set_names,
+                                   all_symbols = NULL,
+                                   used_names = character(0)) {
   stopifnot(is.character(set_names))
 
   if (length(set_names) == 0) {
@@ -308,7 +319,7 @@ generate_index_aliases <- function(set_names, all_set_names = set_names, all_sym
 
   index_aliases <- character(length(set_names))
   names(index_aliases) <- set_names
-  used_names <- character(0)
+  used_names <- unname(as.character(used_names))
 
   for (i in seq_along(set_names)) {
     index_aliases[i] <- generate_index_alias(set_names[i], used_names, all_set_names, all_symbols)

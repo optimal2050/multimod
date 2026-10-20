@@ -25,3 +25,7 @@ save_arrow_data(data, path, format = "parquet", overwrite = FALSE)
 - overwrite:
 
   Logical. Overwrite existing data?
+
+## Value
+
+Invisibly, `path`.

@@ -8,6 +8,8 @@ ast_symbol(name, ...)
 }
 \arguments{
 \item{name}{A character string representing the symbol.}
+
+\item{...}{Additional fields stored on the node (passed to \code{\link[=new_ast]{new_ast()}}).}
 }
 \value{
 An \code{symbol} S3 object (subclass of \code{ast}).

@@ -1,33 +1,56 @@
 # multimod
 
-The `multimod` R package is an effort to bridge alternative mathematical
-modeling frameworks and languages, particularly those used in energy
-system modeling. It defines a domain-specific language (DSL) for
-representing mathematical programming models in a unified, abstract
-format.
+> **A unified framework for mathematical model representation, analysis,
+> transformation, and optimization.**
 
-`multimod` supports partial parsing of models written in GAMS (General
-Algebraic Modeling System), and is being extended to support more GAMS
-language features, as well as JuMP (Julia), Pyomo (Python), and GMPL
-(GNU Math Programming Language). Parsed models can be converted into the
-`multimod` format for analysis, manipulation, visualization, or
-rendering to LaTeX and other modeling languages.
+**multimod** is a unified framework for working with mathematical
+optimization models independently of the languages and solvers used to
+implement them. Its current implementation is an R package. It
+represents a model as a structured abstract syntax tree (AST) of sets,
+mappings, parameters, variables, and equations. That representation can
+be constructed in R, parsed from supported modeling-language syntax,
+inspected and transformed, or translated into other representations.
 
-The package is designed to facilitate the exchange of mathematical
-models across different languages and solver frameworks, with the goal
-of simplifying the development, comparison, and reuse of complex
-optimization models in energy systems and beyond.
+**Define the mathematics once; choose how to express, simplify, and
+solve it.** Rather than maintaining separate implementations of the same
+formulation, multimod provides a common model representation and
+multiple routes from formulation to solution.
 
-## Development Status
+## Why multimod?
 
-**WARNING**: The package is in active development. All implementations
-are experimental and APIs may change. See [Get
-started](https://optimal2050.github.io/multimod/articles/multimod.md)
-for an overview of current functionality and [Development
-Roadmap](https://optimal2050.github.io/multimod/articles/roadmap.md) for
-implementation status and future plans.
+- **Separate mathematical meaning from implementation.** Work with a
+  structured formulation instead of tying model logic to one programming
+  language, modeling system, or solver.
+- **Move between modeling environments.** Generate MathProg, GAMS, JuMP,
+  and Pyomo code, or render equations as LaTeX for inspection and
+  documentation. Import supported subsets of existing GAMS and MathProg
+  models.
+- **Avoid unnecessary model-building overhead.** Assemble the
+  linear-programming matrix directly in R and pass it to HiGHS, or
+  export MPS, without first generating and executing another
+  modeling-language implementation.
+- **Reduce models to the information their data contains.** Fold
+  dimensions with no variation and trim unused symbols, helping make
+  formulations and their generated representations more compact.
+- **Inspect and reuse model structure.** Validate and visualize the AST,
+  examine model statistics, exchange structures as JSON, and maintain
+  data in CSV or Arrow-based workspaces.
+- **Support reproducible modeling workflows.** Keep formulations, data,
+  generated code, and solution routes connected through a common model
+  representation.
 
-## Workflow Diagram
+multimod originated in energy system modeling and includes an energy
+model among its examples, but **its core is domain-independent**. It can
+represent linear optimization models in other fields as well.
+
+## Architecture: from formulation to solution
+
+A model can enter multimod through R constructors, supported equation
+syntax, or a supported source-code reader. Once represented as an AST,
+it can be inspected, reduced, saved, translated into another modeling
+language, or compiled directly into an LP matrix. These are alternative
+routes from the *same mathematical formulation*, not separate models to
+maintain.
 
 ``` text
 ┌─────────────────────────────┐
@@ -35,141 +58,179 @@ implementation status and future plans.
 ├─────────────────────────────┤
 │ GAMS    (basic/linear only) │ → read_gams()
 │ GMPL    (limited features)  │ → read_gmpl()
-│ {JuMP}  (planned)           │ → {read_jump()}
-│ {Pyomo} (planned)           │ → {read_pyomo()}
-│ {{AMPL, MPS, ...}}          │ → {{...}}
+│ JuMP    (constraints only)  │ → mm_equation()
+│ {{Pyomo, AMPL, MPS, ...}}   │ → {{...}}
 └─────────────────────────────┘
               ↓
    ┌────────────────────────┐
    │   multimod Core        │        Analysis & Manipulation:
-   │ (Abstract Syntax Tree) │         • fold_model()        [✓]
-   ├────────────────────────┤         • trim_model()        [✓]
-   │ • Sets & Aliases       │  →      • save_model()        [✓]
-   │ • Parameters           │         • as_visNetwork()     [✓]
-   │ • Variables            │  ←      • model statistics    [✓]
-   │ • Equations            │         {{auto-mapping}}      [ ]
-   │ • Mappings             │         {{symbolic simplify}} [ ]
-   └────────────────────────┘
-              ↓
-┌─────────────────────────────────┐
-│      Output Formats             │
-├─────────────────────────────────┤
-│ LaTeX  (stable)           [✓]   │ → write_latex()
-│ {GMPL} (testing)          [~]   │ → write_gmpl()
-│ {JuMP} (testing)          [~]   │ → write_jump()
-│ {Pyomo} (testing)         [~]   │ → write_pyomo()
-│ {{GAMS}} (planned)        [ ]   │ → {{write_gams()}}
-│ {{AMPL, MPS, LP, ...}}    [ ]   │ → {{...}}
-└─────────────────────────────────┘
+   │ (Abstract Syntax Tree) │         • fold_model()        [x]
+   ├────────────────────────┤         • trim_model()        [x]
+   │ • Sets & Aliases       │  →      • save_model()        [x]
+   │ • Parameters           │         • as_visNetwork()     [x]
+   │ • Variables            │  ←      • model statistics    [x]
+   │ • Equations            │         • model_to_json()     [x]
+   │ • Mappings             │         {{auto-mapping}}      [ ]
+   └────────────────────────┘         {{symbolic simplify}} [ ]
+                 ↓                                     ↓
+┌──────────────────────────────────┐  ┌──────────────────────────────────┐
+│ Output: model code               │  │ Output: LP matrix                │
+├──────────────────────────────────┤  ├──────────────────────────────────┤
+│ LaTeX    write_latex()       [x] │  │ model_to_lp()               [x]  │
+│ GMPL     write_gmpl()        [x] │  │ write_mps()                 [x]  │
+│ JuMP     write_jump()        [x] │  │ solve_highs()               [x]  │
+│ Pyomo    write_pyomo()       [x] │  │ solve_mps()                 [x]  │
+│ GAMS     write_gams() +      [x] │  │ read_mps_solution()         [x]  │
+│          write_gams_data()       │  │                                  │
+│ {{AMPL, ...}}                [ ] │  │ no generated model text, so      │
+│                                  │  │ no model-build step — the        │
+│ then an external solver:         │  │ time and memory wall on          │
+│ glpsol, Julia, Python, NEOS      │  │ large models                     │
+└──────────────────────────────────┘  └──────────────────────────────────┘
 
-Status: [✓] implemented | [~] and { } developing | [ ] and {{ }} considering
+Status: [x] implemented | [~] and { } developing | [ ] and {{ }} considering
 ```
 
-## Installation and Example Workflow
+The diagram summarizes the architecture; the inventory below details the
+implemented functions and limitations.
+
+The current tested scope is **linear programming with continuous
+variables**. Language importers cover documented subsets, and some
+output routes remain experimental; see [Capabilities](#capabilities) and
+the
+[roadmap](https://optimal2050.github.io/multimod/articles/roadmap.html).
+
+## Installation
 
 ``` r
-# install.packages("pak")
+
 pak::pkg_install("optimal2050/multimod")
 ```
 
-### Load a GAMS model and parse
+The direct-matrix route requires the `highs` R package. Other routes
+require their corresponding toolchains: `glpsol` (the ‘glpsol’ R package
+ships it), Julia with JuMP, or Python with Pyomo; see the “Configuring
+solver paths” article.
+
+## Quickstart: one model, several representations
 
 ``` r
+
 library(multimod)
-model_info <- read_gams("my_model.gms")
-class(model_info) # "model_structure"
+
+toy <- example_models$toy          # built in R, see vignette("ast")
+toy
+#> Model: toy
+#> Description: two-region capacity expansion toy model
+#> Language:  multimod 
+#> Sets:  2 
+#> Mappings:  2 
+#> Aliases:  0 
+#> Parameters:  4 
+#> Variables:  3 
+#> Equations:  3
+
+as_latex(toy$equations$eqDemand)
+#> [1] "\\begin{flushleft}\n\\subsection*{\\textbf{eqDemand} -- \\textit{demand is met in every region}} \n\\quad$\\textbf{eqDemand} \n_{\\texttt{region}}$ \n$\\mid\\left\\{\\texttt{region}\\right\\} \\in \\mathit{mR}_{\\texttt{region}}$ \\\\\n\\begin{equation*}\n\\begin{adjustbox}{max width=\\textwidth}\n$\\begin{aligned}\n&\\sum_{\\texttt{tech}} \\bm{\\mathit{vGen}}_{\\texttt{tech},\\texttt{region}} \\ge \\mathsf{pDemand}_{\\texttt{region}} \\\\\n\\end{aligned}$\n\\end{adjustbox}\n\\end{equation*}\n\\vspace{1em}\n\\end{flushleft}"
+as_gams(toy$equations$eqDemand)
+#> [1] "eqDemand[region]$mR[region]..\n  sum(tech, vGen[tech,region]) =g=\n  pDemand[region];"
 ```
 
-``` R
-#> [1] "model"    "multimod"
-```
-
-#### AST elements: an example equation
+An equation is written as text — MathProg by default, GAMS or JuMP by
+choice — and parsed into the same tree the constructors build:
 
 ``` r
-eq <- mod$equations[["eqObjective"]]
-print(eq)
-#> <AST equation> eqObjective
-#>   relation:  == 
-#>   lhs:  vObjective 
-#>   rhs:  sum(if (mvTotalCost[region,year]) {[region,year]}, *, pDiscountFactorMileStone[region,year], vTotalCost[region,year], FALSE)
+
+cap_total <- mm_equation(
+  toy,
+  "eqCapTotal: sum{t in tech, r in region} vCap[t,r] <= 2000",
+  desc = "total installed capacity"
+)
+as_jump(cap_total, model = toy)
+#> [1] "@constraint(\n    model,\n    eqCapTotal,\n    sum(vCap[(t, r)] for t in tech, r in region) <= 2000\n)"
 ```
 
-#### Render an equation to LaTeX
+The same model solved in R:
 
 ``` r
-as_latex(eq) |> cat()
+
+r <- solve_highs(toy, attach = FALSE)
+r$objective
+#> [1] 198000
 ```
 
-``` math
-
-\textit{vObjective} = \sum_{{r,y} \in \textsf{mvTotalCost}_{r,y}} {\textit{vTotalCost}_{r,y}  \cdot  \textsf{pPeriodLen}_{y}  \cdot  \textsf{pDiscountFactor}_{r,y}}
-```
-
-#### Render a specific equation to GAMS or Julia/JuMP
+or written for another toolchain and solved there:
 
 ``` r
-as_gams(eq) |> cat()
-#> eqObjective..
-#>   vObjective =e=
-#>   sum(([region,year])$mvTotalCost[region,year], pDiscountFactorMileStone[region,year] * vTotalCost[region,year]);
-as_jump(eq) |> cat()
-#> @constraint(
-#>     model,
-#>     eqObjective,
-#>     vObjective == sum(get(pDiscountFactorMileStone, (region, year), pDiscountFactorMileStoneDef) * vTotalCost[region, year] for (region, year) in mvTotalCost)
-#> )
+
+ws <- tempfile("toy-"); dir.create(ws)
+write_gmpl(toy, model_dir = ws);  solve_gmpl(toy, ws)$objective    # GLPK
+write_jump(toy, model_dir = ws);  solve_jump(toy, ws)$objective    # Julia
+write_pyomo(toy, model_dir = ws); solve_pyomo(toy, ws, load_results = TRUE)$objective
 ```
 
-#### Visualize equation tree
+With the documented toolchains and example data, these routes return an
+objective value of 198000. The “Solving and reading results” article
+runs them side by side; “Two models from the field” does the same for
+the energyRt reference model and for OSeMOSYS, read from its MathProg
+source and solved both through JuMP and from the matrix.
 
-``` r
-library(visNetwork)
-as_visNetwork(eq)
-```
+## Architecture and capabilities
 
-#### Write the entire model to LaTeX
+The diagram above replaces the ASCII overview; the table retains the
+function-level inventory.
 
-``` r
-write_latex(mod, 
-            file = "my_multimod_model.tex",
-            title = "My multimod model equations",
-            subtitle = "Generated by multimod package")
-tinytex::pdflatex("my_multimod_model.tex")
-```
+|  |  |
+|----|----|
+| Build a model in R | [`new_set()`](https://optimal2050.github.io/multimod/reference/new_set.md), [`new_parameter()`](https://optimal2050.github.io/multimod/reference/new_parameter.md), [`new_variable()`](https://optimal2050.github.io/multimod/reference/new_variable.md), [`new_equation()`](https://optimal2050.github.io/multimod/reference/new_equation.md), the `ast_*()` expression constructors, [`validate()`](https://optimal2050.github.io/multimod/reference/validate.md); [`mm_equation()`](https://optimal2050.github.io/multimod/reference/mm_equation.md) for an equation written as MathProg, GAMS or JuMP text |
+| Read a model | [`read_gams()`](https://optimal2050.github.io/multimod/reference/read_gams.md) for the linear subset of GAMS; [`read_gmpl()`](https://optimal2050.github.io/multimod/reference/read_gmpl.md) for MathProg with data sections; `mm_equation(lang = "jump")` for a JuMP `@constraint()` statement |
+| Render | [`as_gams()`](https://optimal2050.github.io/multimod/reference/as_gams.md), [`as_gmpl()`](https://optimal2050.github.io/multimod/reference/as_gmpl.md), [`as_jump()`](https://optimal2050.github.io/multimod/reference/as_jump.md), [`as_pyomo()`](https://optimal2050.github.io/multimod/reference/as_pyomo.md), [`as_latex()`](https://optimal2050.github.io/multimod/reference/as_latex.md) for any node; [`write_gams()`](https://optimal2050.github.io/multimod/reference/write_gams.md), [`write_gmpl()`](https://optimal2050.github.io/multimod/reference/write_gmpl.md), [`write_jump()`](https://optimal2050.github.io/multimod/reference/write_jump.md), [`write_pyomo()`](https://optimal2050.github.io/multimod/reference/write_pyomo.md), [`write_latex()`](https://optimal2050.github.io/multimod/reference/write_latex.md) for the model |
+| Solve in R | [`model_to_lp()`](https://optimal2050.github.io/multimod/reference/model_to_lp.md), [`solve_highs()`](https://optimal2050.github.io/multimod/reference/solve_highs.md), [`write_mps()`](https://optimal2050.github.io/multimod/reference/write_mps.md), [`solve_mps()`](https://optimal2050.github.io/multimod/reference/solve_mps.md), [`check_matrix_numbers()`](https://optimal2050.github.io/multimod/reference/check_matrix_numbers.md), [`mm_session()`](https://optimal2050.github.io/multimod/reference/mm_session.md) for repeated solves |
+| Solve through generated code | [`solve_gmpl()`](https://optimal2050.github.io/multimod/reference/solve_gmpl.md), [`solve_jump()`](https://optimal2050.github.io/multimod/reference/solve_jump.md), [`solve_pyomo()`](https://optimal2050.github.io/multimod/reference/solve_pyomo.md), each loading the solution back |
+| Reduce | [`fold_model()`](https://optimal2050.github.io/multimod/reference/fold_model.md) drops dimensions a parameter does not vary over; [`trim_model()`](https://optimal2050.github.io/multimod/reference/trim_model.md) drops unused symbols |
+| Store and exchange | [`save_model()`](https://optimal2050.github.io/multimod/reference/save_model.md), [`load_model()`](https://optimal2050.github.io/multimod/reference/load_model.md), [`get_data()`](https://optimal2050.github.io/multimod/reference/get_data.md) (CSV, Arrow IPC, Parquet); [`model_to_json()`](https://optimal2050.github.io/multimod/reference/model_to_json.md), [`ast_schema()`](https://optimal2050.github.io/multimod/reference/ast_schema.md) |
 
-#### Write JuMP/Julia model
+Linear programs with continuous variables are the tested class.
+Structural model reduction
+([`fold_model()`](https://optimal2050.github.io/multimod/reference/fold_model.md),
+[`trim_model()`](https://optimal2050.github.io/multimod/reference/trim_model.md))
+is distinct from numerical solver presolving. GAMS output is readable
+but not yet runnable without edits, and there is no Pyomo reader; the
+[roadmap](https://optimal2050.github.io/multimod/articles/roadmap.html)
+lists what else is not done yet.
 
-``` r
-# Complete workflow: save data and generate JuMP code
-save_model(mod, "my_model_dir", format = "ipc")  # Arrow format
-write_jump(mod, model_dir = "my_model_dir")      # Generate Julia code
+## Documentation and next steps
 
-# Solve with Julia
-solve_jump(model_dir = "my_model_dir")
-```
+- [`vignette("multimod")`](https://optimal2050.github.io/multimod/articles/multimod.md):
+  the representation and what the package does with it.
+- [`vignette("ast")`](https://optimal2050.github.io/multimod/articles/ast.md):
+  writing a model in R.
+- [`vignette("folding")`](https://optimal2050.github.io/multimod/articles/folding.md):
+  folding and trimming.
+- Articles on the [website](https://optimal2050.github.io/multimod/):
+  solving and reading results, the two field models, the model
+  workspace, configuration, LaTeX.
 
-#### Write & solve GMPL model
+## Development direction
 
-``` r
-write_gmpl(mod, model_dir = "my_model_dir")
-solve_gmpl(mod, model_dir = "my_model_dir")
-```
+The long-term architecture envisages a native C++ or Rust computational
+core with R and Python interfaces. Future research directions include
+AI-assisted formulation and support for nonlinear and stochastic
+optimization. These are planned directions, not implemented features.
 
-#### Write & solve Python/Pyomo model
+## Integration with energyRt
 
-``` r
-write_pyomo(mod, model_dir = "my_model_dir")
-solve_pyomo(mod, model_dir = "my_model_dir")
-```
-
-#### {Write GAMS model}
-
-``` r
-# in progress
-write_gams(mod, file = "my_multimod_model.gms")
-```
+[energyRt](https://github.com/optimal2050/energyRt) uses multimod as its
+model compiler:
+[`energyRt::multimod_from_energyRt()`](https://energyRt.org/reference/multimod_from_energyRt.html)
+builds the model from an interpolated scenario, and the LP or MPS
+multimod produces is what energyRt hands to a local solver or,
+experimentally, to cloud hardware through the mmcloud package.
 
 ## License
 
-MIT License
+Apache License 2.0; see `LICENSE.md`. The bundled `example_models`
+dataset is derived from energyRt and remains under energyRt’s Apache
+License 2.0; `LICENSE.note` has the details, and the attribution for
+OSeMOSYS, which the documentation reads from its public repository and
+does not bundle.

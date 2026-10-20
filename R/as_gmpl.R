@@ -65,6 +65,7 @@ dim_binding_name <- function(entry) {
 }
 
 #' @export
+#' @method as_gmpl character
 as_gmpl.character <- function(x, ...) {
   if (is.character(x)) {
     return(x)
@@ -73,9 +74,9 @@ as_gmpl.character <- function(x, ...) {
 }
 
 #' @export
-#' @method as_gmpl set
-as_gmpl.set <- function(x, declaration = FALSE, desc = declaration, model = NULL, ...) {
-  stopifnot(inherits(x, "set"))
+#' @method as_gmpl mm_set
+as_gmpl.mm_set <- function(x, declaration = FALSE, desc = declaration, model = NULL, ...) {
+  stopifnot(inherits(x, "mm_set"))
   if (declaration) {
     comment <- if (desc && !is.null(x$desc) && length(x$desc) > 0 && !is.na(x$desc) && nchar(x$desc) > 0) {
       paste0("  # ", x$desc)
@@ -89,9 +90,9 @@ as_gmpl.set <- function(x, declaration = FALSE, desc = declaration, model = NULL
 }
 
 #' @export
-#' @method as_gmpl mapping
-as_gmpl.mapping <- function(x, declaration = FALSE, desc = declaration, ...) {
-  stopifnot(inherits(x, "mapping"))
+#' @method as_gmpl mm_mapping
+as_gmpl.mm_mapping <- function(x, declaration = FALSE, desc = declaration, ...) {
+  stopifnot(inherits(x, "mm_mapping"))
   dims_obj <- ensure_dims_object(x$dims)
   if (declaration) {
     # Get dimension count from the mapping
@@ -123,7 +124,7 @@ as_gmpl.mapping <- function(x, declaration = FALSE, desc = declaration, ...) {
           set_name
         }
       })
-      paste0("(", paste(dim_list, collapse = ","), ") in ", x$name)
+      .gmpl_tuple_in(dim_list, x$name)
     } else {
       x$name
     }
@@ -150,7 +151,7 @@ as_gmpl.dims <- function(x, use_index_aliases = TRUE, brackets = "[", ...) {
     set_name <- dim_binding_name(d)
     # Priority: iterator vars > dummy vars > original name
     a <- try({(!is.null(iter_vars) && set_name %in% names(iter_vars))})
-    if (inherits(a, "try-error")) browser()
+    if (inherits(a, "try-error")) .dev_break("as_gmpl.R:153")
     if (!is.null(iter_vars) && set_name %in% names(iter_vars)) {
       iter_vars[[set_name]]
     } else if (!is.null(index_aliases) && set_name %in% names(index_aliases)) {
@@ -168,9 +169,9 @@ as_gmpl.dims <- function(x, use_index_aliases = TRUE, brackets = "[", ...) {
 }
 
 #' @export
-#' @method as_gmpl parameter
-as_gmpl.parameter <- function(x, declaration = FALSE, desc = declaration, ...) {
-  stopifnot(inherits(x, "parameter"))
+#' @method as_gmpl mm_parameter
+as_gmpl.mm_parameter <- function(x, declaration = FALSE, desc = declaration, ...) {
+  stopifnot(inherits(x, "mm_parameter"))
   dims_obj <- ensure_dims_object(x$dims)
   active_dims_obj <- ensure_dims_object(x$active_dims)
   if (declaration) {
@@ -357,7 +358,7 @@ as_gmpl.parameter <- function(x, declaration = FALSE, desc = declaration, ...) {
           set_name
         }
       })
-      paste0("(", paste(dim_list, collapse = ","), ") in ", x$name)
+      .gmpl_tuple_in(dim_list, x$name)
     } else {
       # In equation context, use dummy variables
       if (!is.null(dims_obj) && length(dims_obj) > 0) {
@@ -371,9 +372,9 @@ as_gmpl.parameter <- function(x, declaration = FALSE, desc = declaration, ...) {
 }
 
 #' @export
-#' @method as_gmpl variable
-as_gmpl.variable <- function(x, declaration = FALSE, desc = declaration, ...) {
-  stopifnot(inherits(x, "variable"))
+#' @method as_gmpl mm_variable
+as_gmpl.mm_variable <- function(x, declaration = FALSE, desc = declaration, ...) {
+  stopifnot(inherits(x, "mm_variable"))
   dims_obj <- ensure_dims_object(x$dims)
   if (declaration) {
     # Format indexing with curly braces and iterator variables (r in REGION, etc.)
@@ -477,7 +478,7 @@ as_gmpl.variable <- function(x, declaration = FALSE, desc = declaration, ...) {
           set_name
         }
       })
-      paste0("(", paste(dim_list, collapse = ","), ") in ", x$name)
+      .gmpl_tuple_in(dim_list, x$name)
     } else {
       # In equation context, use dummy variables
       if (!is.null(dims_obj) && length(dims_obj) > 0) {
@@ -519,6 +520,7 @@ as_gmpl.symbol <- function(x, ...) {
 #' @export
 #' @method as_gmpl shift
 as_gmpl.shift <- function(x, ...) {
+  if (isTRUE(x$circular)) .mm_no_circular("MathProg")
   # Convert shift to GMPL arithmetic: y-1, y+1, ls-1, etc.
   symbol_name <- x$symbol
   offset <- x$offset
@@ -545,16 +547,12 @@ as_gmpl.sum <- function(x, ...) {
 
     # Get index names and sets from x$index (dims object)
     if (inherits(x$index, "dims") && length(x$index) > 0) {
-      # Build index spec: "var in SET, var2 in SET2"
-      index_specs <- sapply(names(x$index), function(var_name) {
-        set_expr <- x$index[[var_name]]
-        set_name <- dim_binding_name(set_expr)
-        paste(var_name, "in", set_name)
-      })
+      # "var in SET, var2 in SET2"; iterators derived where the index is unnamed
+      idx_core <- .gmpl_sum_index(x$index)
 
       # Add condition
       cond_str <- as_gmpl(condition, ...)
-      idx <- paste0(paste(index_specs, collapse = ", "), ": ", cond_str)
+      idx <- paste0(idx_core, ": ", cond_str)
     } else {
       # Fallback
       idx <- as_gmpl(x$index, brackets = "{}", ...)
@@ -566,13 +564,7 @@ as_gmpl.sum <- function(x, ...) {
   } else {
     # No condition, standard sum - still need "var in SET" format
     if (inherits(x$index, "dims") && length(x$index) > 0) {
-      # Build index spec: "var in SET, var2 in SET2"
-      index_specs <- sapply(names(x$index), function(var_name) {
-        set_expr <- x$index[[var_name]]
-        set_name <- dim_binding_name(set_expr)
-        paste(var_name, "in", set_name)
-      })
-      idx <- paste(index_specs, collapse = ", ")
+      idx <- .gmpl_sum_index(x$index)
     } else {
       # Fallback for unexpected structure
       idx <- as_gmpl(x$index, brackets = "", ...)
@@ -620,12 +612,7 @@ as_gmpl.setmin <- function(x, ...) {
   # GMPL uses curly braces for indexed min: min{i in I} expr
   # Build index spec: "var in SET, var2 in SET2"
   if (inherits(x$index, "dims") && length(x$index) > 0) {
-    index_specs <- sapply(names(x$index), function(var_name) {
-      set_expr <- x$index[[var_name]]
-      set_name <- dim_binding_name(set_expr)
-      paste(var_name, "in", set_name)
-    })
-    idx <- paste(index_specs, collapse = ", ")
+    idx <- .gmpl_sum_index(x$index)
   } else {
     # Fallback for unexpected structure
     idx <- as_gmpl(x$index, brackets = "", ...)
@@ -652,12 +639,7 @@ as_gmpl.setmax <- function(x, ...) {
   # GMPL uses curly braces for indexed max: max{i in I} expr
   # Build index spec: "var in SET, var2 in SET2"
   if (inherits(x$index, "dims") && length(x$index) > 0) {
-    index_specs <- sapply(names(x$index), function(var_name) {
-      set_expr <- x$index[[var_name]]
-      set_name <- dim_binding_name(set_expr)
-      paste(var_name, "in", set_name)
-    })
-    idx <- paste(index_specs, collapse = ", ")
+    idx <- .gmpl_sum_index(x$index)
   } else {
     # Fallback for unexpected structure
     idx <- as_gmpl(x$index, brackets = "", ...)
@@ -707,6 +689,12 @@ as_gmpl.func <- function(x, ...) {
     return(as_gmpl_sum_prod(x, ...))
   }
 
+  # GMPL/MathProg has no ord()/card(); they must go through a model-supplied
+  # position/cardinality parameter
+  if (tolower(x$name) %in% c("ord", "card")) {
+    return(as_gmpl_ord_card(x, ...))
+  }
+
   # Generic function handling
   val <- if (inherits(x$value, c("ast", "multimod"))) {
     as_gmpl(x$value, ...)
@@ -723,6 +711,75 @@ as_gmpl.func <- function(x, ...) {
   } else {
     return(paste0(x$name, "(", val_str, ")"))
   }
+}
+
+#' Render GAMS `ord()` / `card()` for GMPL
+#'
+#' GAMS `ord(s)` is the 1-based position of a member within its set, and
+#' `card(s)` the set's cardinality. **MathProg has neither function.** The only
+#' faithful translation is a parameter carrying those values, which the model
+#' must supply - substituting the member's own value is wrong whenever set
+#' members are not consecutive integers (e.g. years 2030, 2040, 2050), and
+#' `ord(y) < pOlife + ord(yp)` is position arithmetic, not value arithmetic.
+#'
+#' The expected parameter follows the convention `ord<Set>` / `card<Set>` on the
+#' *base* set, so `ord(year)`, `ord(yearp)` and `ord(yeare)` all render as
+#' `ordYear[<iterator>]`. Alias sets are resolved to their base before naming.
+#'
+#' @param x A `func` AST node named `ord` or `card`.
+#' @param model The model, used to resolve set aliases and to check that the
+#'   position parameter actually exists.
+#' @param ... Additional arguments passed to `as_gmpl`.
+#' @return A GMPL parameter reference, e.g. `ordYear[y]`.
+#' @keywords internal
+as_gmpl_ord_card <- function(x, model = NULL, ...) {
+  fname <- tolower(x$name)
+
+  # the argument is a set node, sometimes wrapped in a one-element list
+  arg <- x$value
+  if (is.list(arg) && !inherits(arg, "ast") && length(arg) >= 1) arg <- arg[[1]]
+  set_name <- dim_binding_name(arg)
+  if (!nzchar(set_name)) {
+    stop("Cannot render ", fname, "(): its argument has no resolvable set name.")
+  }
+
+  # resolve alias sets to the base set (yearp / yeare -> year)
+  base <- set_name
+  if (!is.null(model) && !is.null(model$aliases)) {
+    for (grp in model$aliases) {
+      if (set_name %in% grp) {
+        base <- grp[[1]]
+        break
+      }
+    }
+  }
+
+  pname <- paste0(fname, toupper(substring(base, 1, 1)), substring(base, 2))
+
+  if (!is.null(model) && !is.null(model$parameters) &&
+      !pname %in% names(model$parameters)) {
+    stop(
+      "GMPL has no '", fname, "()' function, so ", fname, "(", set_name,
+      ") needs a position parameter '", pname, "' declared over set '", base,
+      "', and the model does not define one.\n",
+      "  Declare it in the source model (energyRt declares ordYear/cardYear ",
+      "for exactly this reason), or avoid ", fname, "() in equations you intend ",
+      "to render to GMPL."
+    )
+  }
+
+  # same iterator resolution as as_gmpl.dims: iterator vars > index aliases > name
+  iter_vars <- getOption("multimod.iterator_vars", NULL)
+  index_aliases <- getOption("multimod.index_aliases", NULL)
+  itr <- if (!is.null(iter_vars) && set_name %in% names(iter_vars)) {
+    iter_vars[[set_name]]
+  } else if (!is.null(index_aliases) && set_name %in% names(index_aliases)) {
+    index_aliases[[set_name]]
+  } else {
+    set_name
+  }
+
+  paste0(pname, "[", itr, "]")
 }
 
 #' Convert GAMS-style sum/prod to GMPL binding syntax
@@ -747,16 +804,16 @@ as_gmpl_sum_prod <- function(x, ...) {
   }
 
   idx_when <- x$index
-  iterator <- idx_when$then  # The set/symbol(s) being iterated (e.g., comm or [year, slice])
+  iterator <- idx_when$then  # The set/symbol(s) being iterated (e.g., comm or [year, timeslice])
   condition <- idx_when$condition  # The filter condition (e.g., mTechGroupComm[...])
 
   # Check if iterator is a tuple (dims object) or single symbol
   is_tuple <- inherits(iterator, "dims")
 
   if (is_tuple) {
-    # Multiple iterators: sum((year, slice)$condition, expr)
+    # Multiple iterators: sum((year, timeslice)$condition, expr)
     # In GMPL, multi-iterator with condition must be NESTED sums:
-    # sum{y in year}(sum{s in slice: condition}(expr))
+    # sum{y in year}(sum{s in timeslice: condition}(expr))
 
     iter_sets <- sapply(iterator, dim_binding_name)
 
@@ -822,9 +879,7 @@ as_gmpl_sum_prod <- function(x, ...) {
 
       if (i == length(iter_sets)) {
         # Innermost: add condition
-        options(multimod.in_binding_condition = TRUE)
-        cond_str <- as_gmpl(condition, ...)
-        options(multimod.in_binding_condition = FALSE)
+        cond_str <- .with_binding_condition(as_gmpl(condition, ...))
 
         result <- paste0(x$name, "{", binding, ": ", cond_str, "}(", result, ")")
       } else {
@@ -839,7 +894,7 @@ as_gmpl_sum_prod <- function(x, ...) {
     # Single iterator - existing logic
     iter_name <- if (inherits(iterator, "symbol")) {
       iterator$name
-    } else if (inherits(iterator, "set")) {
+    } else if (inherits(iterator, "mm_set")) {
       iterator$name
     } else {
       as_gmpl(iterator, ...)
@@ -937,18 +992,12 @@ as_gmpl_sum_prod <- function(x, ...) {
   # Build condition part (common for both single and tuple iterators)
   # Set flag to indicate we're in a binding condition context
   # This tells as_gmpl methods to convert mappings/params/vars to membership tests
-  old_in_binding <- getOption("multimod.in_binding_condition", FALSE)
-  options(multimod.in_binding_condition = TRUE)
-
-  # Convert condition - as_gmpl will handle membership tests automatically now
-  cond_str <- as_gmpl(condition, ...)
-
-  # Reset binding flag immediately after processing condition
-  # The value should NOT have membership test conversion
-  options(multimod.in_binding_condition = old_in_binding)
+  # Convert condition - as_gmpl will handle membership tests automatically now;
+  # the value must NOT have membership test conversion, so the flag is scoped
+  cond_str <- .with_binding_condition(as_gmpl(condition, ...))
 
   # Build the binding: {bindings: condition}
-  # bindings is either "c in comm" or "y in year, s in slice"
+  # bindings is either "c in comm" or "y in year, s in timeslice"
   binding <- paste0(bindings, ": ", cond_str)
 
   # Handle value - may contain nested when for additional filtering
@@ -962,7 +1011,7 @@ as_gmpl_sum_prod <- function(x, ...) {
     # Skip the first element if it's a mapping (that's the iterator set definition)
     val_items <- x$value
     start_idx <- 1
-    if (inherits(val_items[[1]], "mapping") || inherits(val_items[[1]], "set")) {
+    if (inherits(val_items[[1]], "mm_mapping") || inherits(val_items[[1]], "mm_set")) {
       start_idx <- 2
     }
 
@@ -986,7 +1035,7 @@ as_gmpl_sum_prod <- function(x, ...) {
           # Nested condition - create nested sum with FORIF placeholder
           inner_expr <- as_gmpl(when_obj$then, ...)
           inner_cond <- when_obj$condition
-          if (inherits(inner_cond, "variable") || inherits(inner_cond, "parameter") || inherits(inner_cond, "mapping")) {
+          if (inherits(inner_cond, "mm_variable") || inherits(inner_cond, "mm_parameter") || inherits(inner_cond, "mm_mapping")) {
             # Build membership test for inner condition
             inner_dims <- ensure_dims_object(inner_cond$dims)
             if (!is.null(inner_dims) && length(inner_dims) > 0) {
@@ -1004,7 +1053,7 @@ as_gmpl_sum_prod <- function(x, ...) {
                   set_name
                 }
               })
-              inner_cond_str <- paste0("(", paste(dim_list, collapse = ","), ") in ", inner_cond$name)
+              inner_cond_str <- .gmpl_tuple_in(dim_list, inner_cond$name)
               # Wrap in nested sum with FORIF
               paste0("sum{FORIF: ", inner_cond_str, "}(", inner_expr, ")")
             } else {
@@ -1045,7 +1094,7 @@ as_gmpl.when <- function(x, ...) {
   # (i.e., a membership test rather than a boolean expression)
 
   cond_dims <- ensure_dims_object(x$condition$dims)
-  is_membership_filter <- inherits(x$condition, c("mapping", "variable", "parameter")) &&
+  is_membership_filter <- inherits(x$condition, c("mm_mapping", "mm_variable", "mm_parameter")) &&
                          !is.null(cond_dims) &&
                          length(cond_dims) > 0
 
@@ -1075,8 +1124,7 @@ as_gmpl.when <- function(x, ...) {
       }
     })
 
-    tuple <- paste0("(", paste(dim_list, collapse = ","), ")")
-    condition_str <- paste0(tuple, " in ", cond_name)
+    condition_str <- .gmpl_tuple_in(dim_list, cond_name)
 
     # Return FORIF sum pattern
     paste0("sum{_IF_: ", condition_str, "}(", then_expr, ")")
@@ -1105,6 +1153,7 @@ as_gmpl.where <- function(x, ...) {
 }
 
 #' Get operator precedence level (higher = tighter binding)
+#' @return An integer precedence level; 10 for unknown operators.
 #' @keywords internal
 get_op_precedence <- function(op) {
   precedence <- list(
@@ -1203,7 +1252,7 @@ as_gmpl.expression <- function(x, parent_op = NULL, parent_precedence = 0, ...) 
   # For division, if RHS is an indexed access, wrap in parens to preserve semantics
   # Example: a / (b[x]) not a / b[x] which could be (a/b)[x]
   rhs_dims <- ensure_dims_object(x$rhs$dims)
-  if (identical(op_value, "/") && inherits(x$rhs, c("symbol", "parameter", "variable")) &&
+  if (identical(op_value, "/") && inherits(x$rhs, c("symbol", "mm_parameter", "mm_variable")) &&
       !is.null(rhs_dims) && length(rhs_dims) > 0 && !grepl("^\\(", rhs)) {
     rhs <- paste0("(", rhs, ")")
   }
@@ -1238,8 +1287,8 @@ as_gmpl.unary <- function(x, ...) {
 }
 
 #' @export
-#' @method as_gmpl equation
-as_gmpl.equation <- function(x, model = NULL, is_objective = FALSE, obj_info = NULL, ...) {
+#' @method as_gmpl mm_equation
+as_gmpl.mm_equation <- function(x, model = NULL, is_objective = FALSE, obj_info = NULL, ...) {
   eqname <- x$name
   dims_obj <- ensure_dims_object(x$dims)
   domain_dims_obj <- if (!is.null(x$domain) && !is.null(x$domain$dims)) {
@@ -1264,7 +1313,7 @@ as_gmpl.equation <- function(x, model = NULL, is_objective = FALSE, obj_info = N
 
     set_names <- sapply(dims_source, function(d) {
       if (inherits(d, "symbol")) d$name
-      else if (inherits(d, "set")) d$name
+      else if (inherits(d, "mm_set")) d$name
       else as.character(d)
     })
 
@@ -1286,12 +1335,10 @@ as_gmpl.equation <- function(x, model = NULL, is_objective = FALSE, obj_info = N
         })
         names(dims_index_aliases) <- set_names
       } else {
-        # Fall back to generating new ones
-        # This should not normally happen - equations should have dims_index_aliases
-        stop("Equation '", eqname, "' is missing dims_index_aliases. ",
-             "This should have been preserved from original GMPL parsing or set during equation creation. ",
-             "Equation dims: ", paste(set_names, collapse = ", "), ". ",
-             "Cannot auto-generate index aliases - they must match the variable references in equation body.")
+        # A model built with the constructors (no reader, no global aliases):
+        # its references use the set names themselves, so the iterators can be
+        # derived from them.
+        dims_index_aliases <- default_index_aliases(set_names)
       }
     }
 
@@ -1331,10 +1378,10 @@ as_gmpl.equation <- function(x, model = NULL, is_objective = FALSE, obj_info = N
     # Check if there's a domain mapping or condition
     if (!is.null(x$domain) && inherits(x$domain, "symbol")) {
       domain_name <- x$domain$name
-      index_tuple <- paste0("{(", var_list, ") in ", domain_name, "}")
-    } else if (!is.null(x$domain) && inherits(x$domain, "mapping")) {
+      index_tuple <- paste0("{", .gmpl_tuple_in(strsplit(var_list, ",\\s*")[[1]], domain_name), "}")
+    } else if (!is.null(x$domain) && inherits(x$domain, "mm_mapping")) {
       domain_name <- x$domain$name
-      index_tuple <- paste0("{(", var_list, ") in ", domain_name, "}")
+      index_tuple <- paste0("{", .gmpl_tuple_in(strsplit(var_list, ",\\s*")[[1]], domain_name), "}")
     } else if (!is.null(x$domain) && inherits(x$domain, "expression")) {
       # Domain is a condition/filter expression
       # Use Cartesian product with condition
@@ -1428,3 +1475,37 @@ as_gmpl.equation <- function(x, model = NULL, is_objective = FALSE, obj_info = N
 }
 
 
+
+# Iterator specification of a sum/prod index: "t in tech, r in region".
+# Indexes built by the readers name each entry by its iterator (`t` bound to
+# set tech). Indexes built with ast_dims("tech") do not, so the iterators are
+# derived from the set names and registered as iterator variables, so that
+# references inside the sum render with them; the caller's option state is
+# restored when the calling renderer returns.
+.gmpl_sum_index <- function(index, envir = parent.frame()) {
+  sets <- vapply(index, dim_binding_name, character(1), USE.NAMES = FALSE)
+  vars <- names(index)
+  if (is.null(vars)) vars <- rep("", length(sets))
+  miss <- !nzchar(vars)
+  if (any(miss)) {
+    old <- getOption("multimod.iterator_vars", list())
+    taken <- c(unlist(old, use.names = FALSE),
+               unlist(getOption("multimod.index_aliases", list()), use.names = FALSE))
+    gen <- unname(default_index_aliases(sets[miss]))
+    gen <- make.unique(c(taken, gen), sep = "_")[length(taken) + seq_along(gen)]
+    vars[miss] <- gen
+    new <- old
+    for (i in which(miss)) new[[sets[i]]] <- vars[i]
+    options(multimod.iterator_vars = new)
+    do.call(on.exit, list(bquote(options(multimod.iterator_vars = .(old))), add = TRUE),
+            envir = envir)
+  }
+  paste(vars, "in", sets, collapse = ", ")
+}
+
+# "(t,r) in mTR" for a tuple, "r in mR" for a single index: MathProg does not
+# accept parentheses around a one-element tuple.
+.gmpl_tuple_in <- function(dim_list, set_name) {
+  if (length(dim_list) == 1L) paste0(dim_list, " in ", set_name)
+  else paste0("(", paste(dim_list, collapse = ","), ") in ", set_name)
+}

@@ -62,10 +62,10 @@ wrap_brackets <- function(x, brackets = NULL, ...) {
 #' @param brackets Bracket style to use
 #' @param max_char Maximum characters before truncation
 #' @param ... Additional arguments
+#' @return A single character string.
 #' @export
 #' @method as.character expression
 as.character.expression <- function(x, brackets = NULL, max_char = 50, ...) {
-  # browser()
   out <- paste0(as.character(x$lhs, max_char = NULL),
                 " ", x$op, " ",
                 as.character(x$rhs, max_char = NULL)
@@ -90,8 +90,8 @@ as.character.unary <- function(x, ...) {
 }
 
 #' @export
-#' @method as.character variable
-as.character.variable <- function(x, ...) {
+#' @method as.character mm_variable
+as.character.mm_variable <- function(x, ...) {
   if (length(x$dims) > 0) {
     paste0(x$name, as.character(x$dims))
   } else {
@@ -100,8 +100,8 @@ as.character.variable <- function(x, ...) {
 }
 
 #' @export
-#' @method as.character parameter
-as.character.parameter <- function(x, ...) {
+#' @method as.character mm_parameter
+as.character.mm_parameter <- function(x, ...) {
   if (length(x$dims) > 0) {
     paste0(x$name, as.character(x$dims))
   } else {
@@ -110,8 +110,8 @@ as.character.parameter <- function(x, ...) {
 }
 
 #' @export
-#' @method as.character mapping
-as.character.mapping <- function(x, ...) {
+#' @method as.character mm_mapping
+as.character.mm_mapping <- function(x, ...) {
   if (length(x$dims) > 0) {
     paste0(x$name, as.character(x$dims))
   } else {
@@ -136,8 +136,8 @@ as.character.constant <- function(x, ...) {
 }
 
 #' @export
-#' @method as.character set
-as.character.set <- function(x, ...) {
+#' @method as.character mm_set
+as.character.mm_set <- function(x, ...) {
   paste0("set: ", x$name)
 }
 
@@ -145,7 +145,17 @@ as.character.set <- function(x, ...) {
 #' @method as.character dims
 as.character.dims <- function(x, brackets = "[", ...) {
   if (length(x) == 0) return("")
-  out <- paste(sapply(x, function(y) y$name), collapse = ",")
+  out <- paste(vapply(x, function(y) {
+    if (!is.null(y$name)) return(as.character(y$name)[1])
+    # A lag or lead carries `symbol` and `offset` instead of a name, and in
+    # subscript position both are wanted: `y-1`, not `y`.
+    if (!is.null(y$symbol)) {
+      off <- y$offset
+      if (is.null(off) || off == 0) return(as.character(y$symbol)[1])
+      return(paste0(y$symbol, if (off > 0) "+" else "-", abs(off)))
+    }
+    dim_entry_to_name(y)
+  }, character(1)), collapse = ",")
   if (is.null(brackets) || all(brackets == "")) return(out)
   brackets <- brackets_pair(brackets)
   out <- paste0(brackets[1], out, brackets[2])

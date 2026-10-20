@@ -1,6 +1,8 @@
-# Parse GMPL Expression to AST
+# Build an AST node for a GMPL identifier
 
-Convert a GMPL expression string to multimod AST format
+Looks up a GMPL identifier among the known symbols and returns a typed
+AST node (variable, parameter, set) with canonical casing, or a plain
+`symbol` node when the identifier is unknown.
 
 ## Usage
 
@@ -10,21 +12,13 @@ gmpl_symbol_node(name, symbols)
 
 ## Arguments
 
+- name:
+
+  Character string; identifier as it appears in the GMPL source
+
 - symbols:
 
   Named list of known symbols (sets, parameters, variables)
-
-- expr:
-
-  Character string containing GMPL expression
-
-- depth:
-
-  Current recursion depth (internal use)
-
-- max_depth:
-
-  Maximum recursion depth
 
 ## Value
 
