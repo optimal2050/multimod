@@ -33,8 +33,9 @@ Modified model object
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
-# Update mapping data
-model <- update_mapping(model, "mTechRegion", new_mapping_data)
-} # }
+m <- example_models$energyRt$multimod
+map <- get_data(m, "mCommTimeslice", type = "mapping")
+m <- update_mapping(m, "mCommTimeslice", map[1:10, ])
+nrow(get_data(m, "mCommTimeslice", type = "mapping"))
+#> [1] 10
 ```

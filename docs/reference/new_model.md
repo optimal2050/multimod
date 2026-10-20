@@ -23,6 +23,10 @@ new_model(
 
 ## Arguments
 
+- name:
+
+  model name (character, optional)
+
 - desc:
 
   model description (character)
@@ -30,6 +34,10 @@ new_model(
 - sets:
 
   named list of sets
+
+- aliases:
+
+  named list of set aliases
 
 - mappings:
 
@@ -47,10 +55,23 @@ new_model(
 
   named list of equation objects
 
+- inMemory:
+
+  logical; whether the model data is held in memory (default `TRUE`)
+  rather than read from `base_path`
+
+- base_path:
+
+  base directory for relative data paths when data is stored on disk
+
 - metadata:
 
   Named list with auxiliary information (e.g., language, source_file,
   data_source).
+
+- ...:
+
+  Additional named fields stored on the model object.
 
 ## Value
 

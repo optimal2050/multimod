@@ -108,6 +108,7 @@ detect_arrow_format <- function(path) {
 #' @return Arrow dataset or data.table
 #' 
 #' @keywords internal
+#' @export
 load_arrow_data <- function(path, format = NULL, collect = TRUE) {
   if (!requireNamespace("arrow", quietly = TRUE)) {
     stop("Package 'arrow' required for on-disk data. Install with: install.packages('arrow')")
@@ -145,33 +146,6 @@ load_arrow_data <- function(path, format = NULL, collect = TRUE) {
 }
 
 
-#' Collect scenario parameter data into memory
-#'
-#' @param ert_param energyRt parameter object
-#' @return data.frame with parameter values (may be empty)
-#'
-#' @keywords internal
-collect_scenario_parameter_data <- function(ert_param) {
-  if (!is.null(ert_param@data) && nrow(ert_param@data) > 0) {
-    return(as.data.frame(ert_param@data))
-  }
-
-  param_path <- ert_param@misc$path
-  if (!is.null(param_path) && (dir.exists(param_path) || file.exists(param_path))) {
-    data <- tryCatch(
-      load_arrow_data(param_path, collect = TRUE),
-      error = function(e) {
-        warning("Failed to load data for ", ert_param@name, ": ", conditionMessage(e))
-        NULL
-      }
-    )
-    if (!is.null(data) && nrow(data) > 0) {
-      return(as.data.frame(data))
-    }
-  }
-
-  data.frame()
-}
 
 #' Save data to disk using Arrow
 #'
@@ -180,6 +154,7 @@ collect_scenario_parameter_data <- function(ert_param) {
 #' @param format Format: "parquet", "feather", "ipc", "csv"
 #' @param overwrite Logical. Overwrite existing data?
 #' 
+#' @return Invisibly, `path`.
 #' @keywords internal
 save_arrow_data <- function(data, path, format = "parquet", overwrite = FALSE) {
   if (!requireNamespace("arrow", quietly = TRUE)) {
@@ -499,7 +474,7 @@ save_all_mappings <- function(model, format = "parquet", keep_in_memory = FALSE)
 #' 
 #' @export
 add_set_data <- function(model, set_name, members) {
-  stopifnot(inherits(model, "multimod") || inherits(model, "model"))
+  stopifnot(inherits(model, "multimod") || inherits(model, "mm_model"))
   
   if (!set_name %in% names(model$sets)) {
     stop("Set not found: ", set_name)
@@ -509,92 +484,6 @@ add_set_data <- function(model, set_name, members) {
   model
 }
 
-#' Populate sets from energyRt scenario
-#'
-#' @param model Multimod model
-#' @param scenario energyRt scenario object
-#' @return Modified model with set data populated
-#' 
-#' @details
-#' Extracts unique members for each set by scanning through all parameters
-#' and mappings in the energyRt scenario. For each dimension that matches
-#' a set name, collects unique values.
-#' 
-#' @export
-populate_sets_from_scenario <- function(model, scenario) {
-  stopifnot(inherits(model, "multimod") || inherits(model, "model"))
-  
-  if (!inherits(scenario, "scenario")) {
-    stop("scenario must be an energyRt scenario object")
-  }
-  
-  cat("Populating sets from energyRt scenario...\n")
-  
-  # Initialize set data storage
-  set_members <- list()
-  for (set_name in names(model$sets)) {
-    set_members[[set_name]] <- character()
-  }
-  
-  # Scan through scenario parameters
-  param_names <- names(scenario@modInp@parameters)
-  cat("  Scanning", length(param_names), "parameters...\n")
-  
-  for (pname in param_names) {
-    ert_param <- scenario@modInp@parameters[[pname]]
-    
-    # Get dimension names
-    dims <- ert_param@dimSets
-    if (length(dims) == 0) next
-    
-    # Load data if available
-    path <- ert_param@misc$path
-    if (!is.null(path) && (dir.exists(path) || file.exists(path))) {
-      # Path exists - load it
-      data <- tryCatch(
-        load_arrow_data(path, collect = TRUE),
-        error = function(e) {
-          cat("  Warning: could not load", pname, "-", conditionMessage(e), "\n")
-          NULL
-        }
-      )
-      if (!is.null(data) && nrow(data) > 0) {
-        # Extract members for each dimension
-        for (i in seq_along(dims)) {
-          dim_name <- dims[i]
-          if (dim_name %in% names(set_members) && i <= ncol(data)) {
-            members <- as.character(data[[i]])
-            set_members[[dim_name]] <- c(set_members[[dim_name]], members)
-          }
-        }
-      }
-    } else if (!is.null(ert_param@data) && nrow(ert_param@data) > 0) {
-      # Data in memory
-      data <- ert_param@data
-      for (i in seq_along(dims)) {
-        dim_name <- dims[i]
-        if (dim_name %in% names(set_members) && i <= ncol(data)) {
-          members <- as.character(data[[i]])
-          set_members[[dim_name]] <- c(set_members[[dim_name]], members)
-        }
-      }
-    }
-  }
-  
-  # Update model sets with unique members
-  n_populated <- 0
-  for (set_name in names(set_members)) {
-    members <- unique(set_members[[set_name]])
-    if (length(members) > 0) {
-      model$sets[[set_name]]$data <- sort(members)
-      n_populated <- n_populated + 1
-      cat("  ", set_name, ":", length(members), "members\n")
-    }
-  }
-  
-  cat("Populated", n_populated, "of", length(model$sets), "sets\n")
-  model
-}
 
 #' Populate sets from model's own mappings and parameters
 #'
@@ -608,7 +497,7 @@ populate_sets_from_scenario <- function(model, scenario) {
 #' 
 #' @export
 populate_sets_from_data <- function(model, load_data = FALSE) {
-  stopifnot(inherits(model, "multimod") || inherits(model, "model"))
+  stopifnot(inherits(model, "multimod") || inherits(model, "mm_model"))
   
   cat("Populating sets from model data...\n")
   
@@ -687,558 +576,31 @@ populate_sets_from_data <- function(model, load_data = FALSE) {
 }
 
 
-#' Split bounds-style parameter into low/high tables
-#'
-#' @param ert_param energyRt parameter object of type "bounds"
-#' @return List with lo/up data.frames (each containing dims + value)
-#'
-#' @keywords internal
-split_bounds_parameter_data <- function(ert_param) {
-  data <- collect_scenario_parameter_data(ert_param)
-  if (nrow(data) == 0) {
-    return(NULL)
-  }
-
-  if (!"type" %in% names(data)) {
-    warning("Bounds parameter ", ert_param@name, " lacks a 'type' column")
-    return(NULL)
-  }
-
-  dims <- as.character(ert_param@dimSets)
-  available_dims <- intersect(dims, names(data))
-  if (length(available_dims) == 0) {
-    warning("Bounds parameter ", ert_param@name, " has no matching dimension columns")
-    return(NULL)
-  }
-
-  value_col <- if ("value" %in% names(data)) "value" else tail(names(data), 1)
-  dtype <- tolower(as.character(data$type))
-
-  select_subset <- function(indices) {
-    if (!any(indices)) {
-      return(data.frame())
-    }
-    subset <- data[indices, c(available_dims, value_col), drop = FALSE]
-    colnames(subset) <- c(available_dims, "value")
-    subset$value <- suppressWarnings(as.numeric(subset$value))
-    subset
-  }
-
-  list(
-    lo = select_subset(dtype %in% c("lo", "lower", "min")),
-    up = select_subset(dtype %in% c("up", "upper", "max")),
-    dims = available_dims
-  )
-}
 
 
-#' Attach bounds data to model parameters
-#'
-#' @param model Multimod model
-#' @param scenario_param energyRt bounds parameter
-#' @param base_name Base parameter name (without Lo/Up suffix)
-#' @return List with model and diagnostic info
-#'
-#' @keywords internal
-apply_bounds_to_model <- function(model, scenario_param, base_name) {
-  lo_name <- paste0(base_name, "Lo")
-  up_name <- paste0(base_name, "Up")
-  if (is.null(model$parameters)) model$parameters <- list()
-
-  # Validate bounds parameter has two default values
-  defaults <- scenario_param@defVal
-  if (length(defaults) < 2) {
-    stop("Bounds parameter '", base_name, "' must have exactly 2 default values (lo, up), but has ", 
-         length(defaults), ": [", paste(defaults, collapse = ", "), "]")
-  }
-  
-  lo_default <- defaults[1]
-  up_default <- defaults[2]
-
-  attached <- character()
-  missing <- character()
-  issues <- character()
-  
-  # Try to split data if available
-  splits <- split_bounds_parameter_data(scenario_param)
-  has_data <- !is.null(splits)
-  
-  # If no data available, create empty data frames
-  if (!has_data) {
-    splits <- list(
-      lo = data.frame(),
-      up = data.frame(),
-      dims = as.character(scenario_param@dimSets)
-    )
-    issues <- c(issues, paste0(base_name, " (no data to split)"))
-  }
-
-  assign_side <- function(target_name, data_block, default_value, side_label) {
-    if (!target_name %in% names(model$parameters)) {
-      missing <<- c(missing, target_name)
-      return()
-    }
-    param_obj <- model$parameters[[target_name]]
-    
-    # Set data
-    param_obj$data <- data_block
-    
-    # Get dimension names from both model and scenario
-    scenario_dims <- as.character(scenario_param@dimSets)
-    
-    if (is.null(param_obj$dims) || length(param_obj$dims) == 0) {
-      # No existing dims - use scenario dims
-      param_obj$dims <- ast_dims(scenario_dims)
-    } else {
-      # Ensure dims are a dims object
-      if (!inherits(param_obj$dims, "dims")) {
-        param_obj$dims <- ast_dims(param_obj$dims)
-      }
-      
-      # Check for dimension name differences (but allow aliases)
-      model_dims <- sapply(param_obj$dims, function(d) {
-        if (inherits(d, "symbol")) d$name else as.character(d)
-      })
-      
-      if (!identical(model_dims, scenario_dims)) {
-        # Check if this is just an alias situation (e.g., src/dst for region)
-        # If model has duplicate dimension names, it's likely an alias case in scenario
-        has_duplicates_in_model <- length(model_dims) != length(unique(model_dims))
-        
-        if (has_duplicates_in_model && length(model_dims) == length(scenario_dims)) {
-          # Model has duplicates (e.g., region, region), scenario likely has aliases (e.g., src, dst)
-          # This is the expected alias pattern - no warning needed
-        } else if (length(model_dims) != length(scenario_dims)) {
-          warning("Dimension count mismatch for ", target_name,
-                  ": model has ", length(model_dims), " dims, scenario has ", length(scenario_dims))
-        } else {
-          # Genuine mismatch - warn
-          warning("Dimension mismatch for ", target_name, 
-                  ": model has [", paste(model_dims, collapse=","), 
-                  "], scenario has [", paste(scenario_dims, collapse=","), "]")
-        }
-      }
-    }
-    
-    # Set default value
-    param_obj$defVal <- default_value
-    
-    # Set metadata
-    if (is.null(param_obj$misc)) param_obj$misc <- list()
-    param_obj$misc$inMemory <- TRUE
-    param_obj$misc$source <- scenario_param@name
-    param_obj$misc$boundType <- side_label
-    
-    # Store path reference for lazy loading if data is on disk
-    if (!is.null(scenario_param@misc$path)) {
-      param_obj$misc$source_path <- scenario_param@misc$path
-    }
-    
-    # Ensure value column is named correctly
-    if (!"value" %in% names(param_obj$data) && nrow(param_obj$data) > 0) {
-      colnames(param_obj$data)[ncol(param_obj$data)] <- "value"
-    }
-    
-    # Use super-assignment to modify parent scope
-    model$parameters[[target_name]] <<- param_obj
-    attached <<- c(attached, target_name)
-  }
-
-  assign_side(lo_name, splits$lo, lo_default, "lo")
-  assign_side(up_name, splits$up, up_default, "up")
-
-  if (nrow(splits$lo) == 0 && is.na(lo_default)) {
-    issues <- c(issues, paste0(base_name, " (missing lo data)"))
-  }
-  if (nrow(splits$up) == 0 && is.na(up_default)) {
-    issues <- c(issues, paste0(base_name, " (missing up data)"))
-  }
-
-  list(model = model, attached = attached, missing = missing, issues = issues)
-}
 
 
-#' Import energyRt scenario data into a multimod model
-#'
-#' Combines set population, parameter linking, and special handling for
-#' bounds-style parameters (stored as single objects in energyRt but split
-#' into *Lo/*Up entries inside multimod models). Creates a detailed import
-#' log stored in model$misc$data_import_log.
-#'
-#' @param model Multimod model
-#' @param scenario energyRt scenario object
-#' @param inMemory Logical. Load parameter data into memory?
-#' @param log_file Optional path to export import log as CSV
-#' @return Modified model with scenario data linked and import log
-#' @export
-import_energyRt_data <- function(model, scenario, inMemory = scenario@inMemory, log_file = NULL) {
-  stopifnot(inherits(model, "multimod") || inherits(model, "model"))
-  if (!inherits(scenario, "scenario")) {
-    stop("scenario must be an energyRt scenario object")
-  }
-
-  if (is.null(inMemory)) inMemory <- FALSE
-
-  cat("Importing energyRt scenario data...\n")
-  
-  # Initialize import log
-  import_log <- list()
-  
-  # Step 1: Populate sets and track sources
-  set_log <- populate_sets_with_log(model, scenario)
-  import_log$sets <- set_log$log
-  model <- set_log$model
-  
-  # Step 2: Link regular parameters and mappings
-  link_result <- link_scenario_data_with_log(model, scenario, inMemory = inMemory)
-  import_log$parameters <- link_result$param_log
-  import_log$mappings <- link_result$mapping_log
-  model <- link_result$model
-
-  # Step 3: Handle bounds parameters
-  scenario_params <- scenario@modInp@parameters
-  bounds_names <- names(Filter(function(p) {
-    identical(as.character(p@type), "bounds")
-  }, scenario_params))
-
-  if (length(bounds_names) > 0) {
-    cat("  Processing", length(bounds_names), "bounds parameters...\n")
-    bounds_result <- process_bounds_with_log(model, scenario_params, bounds_names)
-    import_log$bounds <- bounds_result$log
-    model <- bounds_result$model
-    
-    # Report bounds processing
-    cat("    Bound datasets attached:", bounds_result$attached_count, "\n")
-    if (length(bounds_result$missing_targets) > 0) {
-      cat("    Missing target parameters for bounds:\n")
-      for (nm in names(bounds_result$missing_targets)) {
-        cat("      -", nm, "->", paste(bounds_result$missing_targets[[nm]], collapse = ", "), "\n")
-      }
-    }
-  }
-  
-  # Step 4: Identify unmatched elements
-  import_log$unmatched <- find_unmatched_elements(model, scenario, import_log)
-  
-  # Store log in model
-  if (is.null(model$misc)) model$misc <- list()
-  model$misc$data_import_log <- import_log
-  model$misc$data_import_timestamp <- Sys.time()
-  
-  # Export to CSV if requested
-  if (!is.null(log_file)) {
-    export_import_log(import_log, log_file)
-    cat("  Import log exported to:", log_file, "\n")
-  }
-  
-  # Print summary
-  print_import_summary(import_log)
-
-  model
-}
 
 
-#' Populate sets and track data sources
-#'
-#' @param model Multimod model
-#' @param scenario energyRt scenario object
-#' @return List with model and log
-#'
-#' @keywords internal
-populate_sets_with_log <- function(model, scenario) {
-  cat("Populating sets from energyRt scenario...\n")
-  
-  # Initialize set data storage and log
-  set_members <- list()
-  set_sources <- list()  # Track which parameters contributed to each set
-  
-  for (set_name in names(model$sets)) {
-    set_members[[set_name]] <- character()
-    set_sources[[set_name]] <- character()
-  }
-  
-  # Scan through scenario parameters
-  param_names <- names(scenario@modInp@parameters)
-  cat("  Scanning", length(param_names), "parameters...\n")
-  
-  for (pname in param_names) {
-    ert_param <- scenario@modInp@parameters[[pname]]
-    
-    # Get dimension names
-    dims <- ert_param@dimSets
-    if (length(dims) == 0) next
-    
-    # Load data if available
-    path <- ert_param@misc$path
-    data <- NULL
-    
-    if (!is.null(path) && (dir.exists(path) || file.exists(path))) {
-      data <- tryCatch(
-        load_arrow_data(path, collect = TRUE),
-        error = function(e) {
-          cat("  Warning: could not load", pname, "-", conditionMessage(e), "\n")
-          NULL
-        }
-      )
-    } else if (!is.null(ert_param@data) && nrow(ert_param@data) > 0) {
-      data <- ert_param@data
-    }
-    
-    # Extract members for each dimension
-    if (!is.null(data) && nrow(data) > 0) {
-      for (i in seq_along(dims)) {
-        dim_name <- dims[i]
-        if (dim_name %in% names(set_members) && i <= ncol(data)) {
-          members <- as.character(data[[i]])
-          set_members[[dim_name]] <- c(set_members[[dim_name]], members)
-          set_sources[[dim_name]] <- c(set_sources[[dim_name]], pname)
-        }
-      }
-    }
-  }
-  
-  # Update model sets with unique members and create log
-  n_populated <- 0
-  log_entries <- list()
-  
-  for (set_name in names(set_members)) {
-    members <- unique(set_members[[set_name]])
-    sources <- unique(set_sources[[set_name]])
-    
-    if (length(members) > 0) {
-      model$sets[[set_name]]$data <- sort(members)
-      n_populated <- n_populated + 1
-      cat("  ", set_name, ":", length(members), "members\n")
-    }
-    
-    log_entries[[set_name]] <- list(
-      multimod_name = set_name,
-      type = "set",
-      status = if (length(members) > 0) "populated" else "empty",
-      n_members = length(members),
-      source_parameters = if (length(sources) > 0) sources else NA,
-      n_sources = length(sources)
-    )
-  }
-  
-  cat("Populated", n_populated, "of", length(model$sets), "sets\n")
-  
-  list(
-    model = model,
-    log = log_entries
-  )
-}
 
 
-#' Link scenario data with logging
-#'
-#' @param model Multimod model
-#' @param scenario energyRt scenario object
-#' @param inMemory Logical
-#' @return List with model and logs
-#'
-#' @keywords internal
-link_scenario_data_with_log <- function(model, scenario, inMemory = FALSE) {
-  param_names <- names(scenario@modInp@parameters)
-  
-  param_log <- list()
-  mapping_log <- list()
-  
-  for (pname in param_names) {
-    ert_param <- scenario@modInp@parameters[[pname]]
-    param_type <- as.character(ert_param@type)
-    
-    # Skip bounds - they'll be handled separately
-    if (param_type == "bounds") {
-      next
-    }
-    
-    if (param_type == "map") {
-      # Mapping
-      if (pname %in% names(model$mappings)) {
-        model$mappings[[pname]] <- convert_energyrt_parameter(
-          ert_param,
-          model$mappings[[pname]],
-          inMemory = inMemory
-        )
-        
-        mapping_log[[pname]] <- create_link_log_entry(
-          multimod_name = pname,
-          scenario_name = pname,
-          type = "mapping",
-          status = "linked",
-          ert_param = ert_param,
-          inMemory = inMemory
-        )
-      } else {
-        mapping_log[[pname]] <- create_link_log_entry(
-          multimod_name = NA,
-          scenario_name = pname,
-          type = "mapping",
-          status = "unmatched_in_multimod",
-          ert_param = ert_param,
-          inMemory = inMemory
-        )
-      }
-    } else if (param_type == "numpar") {
-      # Numeric parameter
-      if (pname %in% names(model$parameters)) {
-        model$parameters[[pname]] <- convert_energyrt_parameter(
-          ert_param,
-          model$parameters[[pname]],
-          inMemory = inMemory
-        )
-        
-        param_log[[pname]] <- create_link_log_entry(
-          multimod_name = pname,
-          scenario_name = pname,
-          type = "parameter",
-          status = "linked",
-          ert_param = ert_param,
-          inMemory = inMemory
-        )
-      } else {
-        param_log[[pname]] <- create_link_log_entry(
-          multimod_name = NA,
-          scenario_name = pname,
-          type = "parameter",
-          status = "unmatched_in_multimod",
-          ert_param = ert_param,
-          inMemory = inMemory
-        )
-      }
-    }
-  }
-  
-  cat("  Mappings linked: ", sum(sapply(mapping_log, function(x) x$status == "linked")), "\n")
-  cat("  Parameters linked:", sum(sapply(param_log, function(x) x$status == "linked")), "\n")
-  
-  list(
-    model = model,
-    param_log = param_log,
-    mapping_log = mapping_log
-  )
-}
 
 
-#' Create log entry for parameter/mapping link
-#'
-#' @keywords internal
-create_link_log_entry <- function(multimod_name, scenario_name, type, status, 
-                                   ert_param, inMemory) {
-  list(
-    multimod_name = multimod_name,
-    scenario_name = scenario_name,
-    type = type,
-    status = status,
-    dims = paste(ert_param@dimSets, collapse = ", "),
-    n_dims = length(ert_param@dimSets),
-    defVal = if (!is.null(ert_param@defVal)) paste(ert_param@defVal, collapse = ", ") else NA,
-    has_data = !is.null(ert_param@data) && nrow(ert_param@data) > 0,
-    n_rows = if (!is.null(ert_param@data)) nrow(ert_param@data) else 0,
-    path = if (!is.null(ert_param@misc$path)) ert_param@misc$path else NA,
-    inMemory = inMemory
-  )
-}
 
 
-#' Process bounds parameters with logging
-#'
-#' @keywords internal
-process_bounds_with_log <- function(model, scenario_params, bounds_names) {
-  log_entries <- list()
-  attached_total <- 0
-  missing_targets <- list()
-  
-  for (pname in bounds_names) {
-    ert_param <- scenario_params[[pname]]
-    result <- apply_bounds_to_model(model, ert_param, pname)
-    model <- result$model
-    
-    # Create log entry for this bounds parameter
-    lo_name <- paste0(pname, "Lo")
-    up_name <- paste0(pname, "Up")
-    
-    log_entries[[pname]] <- list(
-      scenario_name = pname,
-      type = "bounds",
-      multimod_lo = lo_name,
-      multimod_up = up_name,
-      status_lo = if (lo_name %in% result$attached) "split_linked" else "unmatched_in_multimod",
-      status_up = if (up_name %in% result$attached) "split_linked" else "unmatched_in_multimod",
-      dims = paste(ert_param@dimSets, collapse = ", "),
-      n_dims = length(ert_param@dimSets),
-      defVal_lo = if (length(ert_param@defVal) >= 1) ert_param@defVal[1] else NA,
-      defVal_up = if (length(ert_param@defVal) >= 2) ert_param@defVal[2] else ert_param@defVal[1],
-      path = if (!is.null(ert_param@misc$path)) ert_param@misc$path else NA,
-      issues = if (length(result$issues) > 0) paste(result$issues, collapse = "; ") else NA
-    )
-    
-    attached_total <- attached_total + length(result$attached)
-    if (length(result$missing) > 0) {
-      missing_targets[[pname]] <- result$missing
-    }
-  }
-  
-  list(
-    model = model,
-    log = log_entries,
-    attached_count = attached_total,
-    missing_targets = missing_targets
-  )
-}
 
 
-#' Find unmatched elements between model and scenario
-#'
-#' @keywords internal
-find_unmatched_elements <- function(model, scenario, import_log) {
-  unmatched <- list()
-  
-  # Find multimod parameters not in scenario
-  multimod_params <- names(model$parameters)
-  linked_params <- names(import_log$parameters)
-  
-  # Also check bounds splits
-  bounds_targets <- unlist(lapply(import_log$bounds, function(b) {
-    c(b$multimod_lo, b$multimod_up)
-  }))
-  
-  unmatched$multimod_params_without_data <- setdiff(
-    multimod_params,
-    c(linked_params, bounds_targets)
-  )
-  
-  # Find multimod mappings not in scenario
-  multimod_mappings <- names(model$mappings)
-  linked_mappings <- names(import_log$mappings)
-  
-  unmatched$multimod_mappings_without_data <- setdiff(
-    multimod_mappings,
-    linked_mappings
-  )
-  
-  # Find scenario parameters not matched
-  unmatched$scenario_params_unmatched <- names(Filter(function(x) {
-    !is.na(x$status) && x$status == "unmatched_in_multimod"
-  }, import_log$parameters))
-  
-  unmatched$scenario_mappings_unmatched <- names(Filter(function(x) {
-    !is.na(x$status) && x$status == "unmatched_in_multimod"
-  }, import_log$mappings))
-  
-  unmatched$scenario_bounds_unmatched <- names(Filter(function(x) {
-    (!is.na(x$status_lo) && x$status_lo == "unmatched_in_multimod") ||
-    (!is.na(x$status_up) && x$status_up == "unmatched_in_multimod")
-  }, import_log$bounds))
-  
-  unmatched
-}
+
+
 
 
 #' Export import log to CSV file
 #'
+#' @param import_log The import log list produced by [import_gmpl_data()].
+#' @param log_file Path of the CSV file to write.
+#' @return `NULL`; called for its side effect of writing `log_file`.
 #' @keywords internal
+#' @export
 export_import_log <- function(import_log, log_file) {
   # Flatten the log structure into a data frame
   rows <- list()
@@ -1346,156 +708,12 @@ export_import_log <- function(import_log, log_file) {
 }
 
 
-#' Print import summary
-#'
-#' @keywords internal
-print_import_summary <- function(import_log) {
-  cat("\n=== Data Import Summary ===\n")
-  
-  # Sets
-  if (!is.null(import_log$sets)) {
-    n_populated <- sum(sapply(import_log$sets, function(x) x$status == "populated"))
-    cat("Sets:      ", n_populated, "/", length(import_log$sets), "populated\n")
-  }
-  
-  # Parameters
-  if (!is.null(import_log$parameters)) {
-    n_linked <- sum(sapply(import_log$parameters, function(x) x$status == "linked"))
-    cat("Parameters:", n_linked, "/", length(import_log$parameters), "linked\n")
-  }
-  
-  # Mappings
-  if (!is.null(import_log$mappings)) {
-    n_linked <- sum(sapply(import_log$mappings, function(x) x$status == "linked"))
-    cat("Mappings:  ", n_linked, "/", length(import_log$mappings), "linked\n")
-  }
-  
-  # Bounds
-  if (!is.null(import_log$bounds)) {
-    n_lo_linked <- sum(sapply(import_log$bounds, function(x) x$status_lo == "split_linked"))
-    n_up_linked <- sum(sapply(import_log$bounds, function(x) x$status_up == "split_linked"))
-    cat("Bounds:    ", length(import_log$bounds), "parameters split into",
-        n_lo_linked, "Lo +", n_up_linked, "Up\n")
-  }
-  
-  # Unmatched
-  if (!is.null(import_log$unmatched)) {
-    um <- import_log$unmatched
-    if (length(um$multimod_params_without_data) > 0) {
-      cat("\nWarning:", length(um$multimod_params_without_data), 
-          "multimod parameters have no data\n")
-    }
-    if (length(um$scenario_params_unmatched) > 0) {
-      cat("Warning:", length(um$scenario_params_unmatched), 
-          "scenario parameters not matched in multimod\n")
-    }
-  }
-  
-  cat("===========================\n\n")
-}
 
 
-#' Get data import log from model
-#'
-#' @param model Multimod model with import log
-#' @return Import log list or NULL if not available
-#' @export
-get_import_log <- function(model) {
-  if (is.null(model$misc$data_import_log)) {
-    message("No import log found. Run import_energyRt_data() to create one.")
-    return(NULL)
-  }
-  model$misc$data_import_log
-}
 
 
-#' Export import log to CSV
-#'
-#' @param model Multimod model with import log
-#' @param file Path to CSV file
-#' @export
-export_import_log_from_model <- function(model, file) {
-  log <- get_import_log(model)
-  if (is.null(log)) {
-    stop("No import log available")
-  }
-  export_import_log(log, file)
-  cat("Import log exported to:", file, "\n")
-  invisible(file)
-}
 
 
-#' Show bounds parameter mapping
-#'
-#' @param model Multimod model with import log
-#' @return Data frame showing bounds parameter splits
-#' @export
-show_bounds_mapping <- function(model) {
-  log <- get_import_log(model)
-  if (is.null(log) || is.null(log$bounds)) {
-    message("No bounds mapping found")
-    return(NULL)
-  }
-  
-  rows <- lapply(names(log$bounds), function(name) {
-    entry <- log$bounds[[name]]
-    data.frame(
-      scenario_param = entry$scenario_name,
-      multimod_lo = entry$multimod_lo,
-      multimod_up = entry$multimod_up,
-      status_lo = entry$status_lo,
-      status_up = entry$status_up,
-      dims = entry$dims,
-      defVal_lo = entry$defVal_lo,
-      defVal_up = entry$defVal_up,
-      stringsAsFactors = FALSE
-    )
-  })
-  
-  do.call(rbind, rows)
-}
 
 
-#' Show unmatched elements
-#'
-#' @param model Multimod model with import log
-#' @export
-show_unmatched <- function(model) {
-  log <- get_import_log(model)
-  if (is.null(log) || is.null(log$unmatched)) {
-    message("No unmatched elements information found")
-    return(NULL)
-  }
-  
-  um <- log$unmatched
-  
-  cat("\n=== Unmatched Elements ===\n\n")
-  
-  if (length(um$multimod_params_without_data) > 0) {
-    cat("Multimod parameters without scenario data:\n")
-    cat("  ", paste(um$multimod_params_without_data, collapse = ", "), "\n\n")
-  }
-  
-  if (length(um$multimod_mappings_without_data) > 0) {
-    cat("Multimod mappings without scenario data:\n")
-    cat("  ", paste(um$multimod_mappings_without_data, collapse = ", "), "\n\n")
-  }
-  
-  if (length(um$scenario_params_unmatched) > 0) {
-    cat("Scenario parameters not in multimod:\n")
-    cat("  ", paste(um$scenario_params_unmatched, collapse = ", "), "\n\n")
-  }
-  
-  if (length(um$scenario_mappings_unmatched) > 0) {
-    cat("Scenario mappings not in multimod:\n")
-    cat("  ", paste(um$scenario_mappings_unmatched, collapse = ", "), "\n\n")
-  }
-  
-  if (length(um$scenario_bounds_unmatched) > 0) {
-    cat("Scenario bounds with missing targets in multimod:\n")
-    cat("  ", paste(um$scenario_bounds_unmatched, collapse = ", "), "\n\n")
-  }
-  
-  cat("==========================\n")
-}
 

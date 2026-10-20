@@ -2,7 +2,7 @@
 % Please edit documentation in R/write_jump.R
 \name{write_jump_internal}
 \alias{write_jump_internal}
-\title{Generate metadata CSV files for sets, mappings, and parameters}
+\title{Internal function to write JuMP model}
 \usage{
 write_jump_internal(
   model,
@@ -24,13 +24,11 @@ write_jump_internal(
   ...
 )
 }
-\description{
-Generate metadata CSV files for sets, mappings, and parameters
+\value{
+A character vector of Julia source lines, invisibly when \code{file} is
+given (the lines are also written to it).
 }
-\keyword{Internal}
-\keyword{JuMP}
-\keyword{function}
+\description{
+Internal function to write JuMP model
+}
 \keyword{internal}
-\keyword{model}
-\keyword{to}
-\keyword{write}

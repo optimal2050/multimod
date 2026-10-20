@@ -6,7 +6,7 @@
 \usage{
 analyze_fold_opportunities(
   model,
-  fold_slice = TRUE,
+  fold_timeslice = TRUE,
   fold_region = FALSE,
   fold_year = FALSE,
   tolerance = 1e-10
@@ -15,7 +15,7 @@ analyze_fold_opportunities(
 \arguments{
 \item{model}{A multimod model object}
 
-\item{fold_slice}{Logical; consider slice dimension}
+\item{fold_timeslice}{Logical; consider the timeslice dimension}
 
 \item{fold_region}{Logical; consider region dimension}
 

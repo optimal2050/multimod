@@ -28,6 +28,11 @@ ast_when(condition, then, otherwise = NULL, ...)
   is not available in GAMS `$` statements, but is useful for other
   languages.
 
+- ...:
+
+  Additional fields stored on the node (passed to
+  [`new_ast()`](https://optimal2050.github.io/multimod/reference/new_ast.md)).
+
 ## Value
 
 An object of class `ast` and subclass `when`.

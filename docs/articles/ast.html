@@ -5,17 +5,17 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Abstract Syntax Tree • multimod</title>
+<title>Writing a model in R • multimod</title>
 <!-- favicons --><link rel="icon" type="image/png" sizes="96x96" href="../favicon-96x96.png">
 <link rel="icon" type="”image/svg+xml”" href="../favicon.svg">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" sizes="any" href="../favicon.ico">
 <link rel="manifest" href="../site.webmanifest">
 <script src="../lightswitch.js"></script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
+<script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Abstract Syntax Tree">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Writing a model in R">
 <!-- Google tag (gtag.js) --><script async src="https://www.googletagmanager.com/gtag/js?id=G-LNY00P1MW7"></script><script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.0.1.9005</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -43,11 +43,21 @@
       <ul class="navbar-nav me-auto">
 <li class="nav-item"><a class="nav-link" href="../articles/multimod.html">Get started</a></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">{dev-status}</a></li>
-<li class="nav-item dropdown">
+<li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-tutorials" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Tutorials</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials">
-<li><h6 class="dropdown-header" data-toc-skip>AST</h6></li>
+<li><h6 class="dropdown-header" data-toc-skip>A model from R</h6></li>
+    <li><a class="dropdown-item" href="../articles/ast.html">Writing a model in R</a></li>
+    <li><a class="dropdown-item" href="../articles/solving.html">Solving and reading results</a></li>
+    <li><a class="dropdown-item" href="../articles/model_workspace.html">Model workspace and data</a></li>
+    <li><a class="dropdown-item" href="../articles/folding.html">Folding and trimming</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>An existing model</h6></li>
+    <li><a class="dropdown-item" href="../articles/field-models.html">Two models from the field</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Reference</h6></li>
+    <li><a class="dropdown-item" href="../articles/configuration.html">Configuring solver paths</a></li>
+    <li><a class="dropdown-item" href="../articles/latex.html">LaTeX rendering</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
@@ -77,7 +87,7 @@
 
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
-      <img src="../logo.png" class="logo" alt=""><h1>Abstract Syntax Tree</h1>
+      <img src="../logo.png" class="logo" alt=""><h1>Writing a model in R</h1>
             
       
       <small class="dont-index">Source: <a href="https://github.com/optimal2050/multimod/blob/HEAD/vignettes/ast.Rmd" class="external-link"><code>vignettes/ast.Rmd</code></a></small>
@@ -87,120 +97,339 @@
     
     
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://optimal2050.github.io/multimod">multimod</a></span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://lobstr.r-lib.org/" class="external-link">lobstr</a></span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://datastorm-open.github.io/visNetwork/" class="external-link">visNetwork</a></span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://optimal2050.github.io/multimod/">multimod</a></span><span class="op">)</span></span></code></pre></div>
+<p>multimod models are usually read from a source file:
+<code><a href="../reference/read_gams.html">read_gams()</a></code> and <code><a href="../reference/read_gmpl.html">read_gmpl()</a></code> turn a GAMS or
+MathProg model into the structure described here. This vignette builds
+the same kind of object directly in R, which is the way to write a new
+model, to generate one programmatically, or to understand what the
+readers produce. The model is a small capacity-expansion problem: three
+technologies supply electricity to two regions at least cost. It ships
+with the package as <code>example_models$toy</code>; the code below is
+the file that built it.</p>
 <div class="section level2">
-<h2 id="example-equation-1">Example equation #1<a class="anchor" aria-label="anchor" href="#example-equation-1"></a>
+<h2 id="the-parts-of-a-model">The parts of a model<a class="anchor" aria-label="anchor" href="#the-parts-of-a-model"></a>
 </h2>
+<p>A model is a list of named components, each a small S3 object:</p>
+<table class="table">
+<colgroup>
+<col width="15%">
+<col width="22%">
+<col width="61%">
+</colgroup>
+<thead><tr class="header">
+<th>Component</th>
+<th>Constructor</th>
+<th>Holds</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>sets</td>
+<td><code><a href="../reference/new_set.html">new_set()</a></code></td>
+<td>the index values of a dimension</td>
+</tr>
+<tr class="even">
+<td>mappings</td>
+<td><code><a href="../reference/new_mapping.html">new_mapping()</a></code></td>
+<td>tuples over several sets, used as domains</td>
+</tr>
+<tr class="odd">
+<td>parameters</td>
+<td><code><a href="../reference/new_parameter.html">new_parameter()</a></code></td>
+<td>data indexed by dimensions</td>
+</tr>
+<tr class="even">
+<td>variables</td>
+<td><code><a href="../reference/new_variable.html">new_variable()</a></code></td>
+<td>decision variables, with a domain and bounds</td>
+</tr>
+<tr class="odd">
+<td>equations</td>
+<td><code><a href="../reference/new_equation.html">new_equation()</a></code></td>
+<td>left side, relation, right side, over a domain</td>
+</tr>
+</tbody>
+</table>
+<p>The sides of an equation are <em>expressions</em>: trees of AST nodes
+built with <code><a href="../reference/ast_variable.html">ast_variable()</a></code>, <code><a href="../reference/ast_parameter.html">ast_parameter()</a></code>,
+<code><a href="../reference/ast_expression.html">ast_expression()</a></code>, <code><a href="../reference/ast_sum.html">ast_sum()</a></code> and their
+relatives. Every renderer (<code><a href="../reference/as_gams.html">as_gams()</a></code>,
+<code><a href="../reference/as_latex.html">as_latex()</a></code>, the LP matrix) is a walk over that tree.</p>
+</div>
+<div class="section level2">
+<h2 id="sets">Sets<a class="anchor" aria-label="anchor" href="#sets"></a>
+</h2>
+<p>A set names a dimension and lists its values.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">model_info</span> <span class="op">&lt;-</span> <span class="va">example_model</span><span class="op">$</span><span class="va">model_info</span> <span class="co">#|&gt; as_multimod()</span></span>
-<span><span class="va">mm</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/as_multimod.html">as_multimod</a></span><span class="op">(</span></span>
-<span>  x <span class="op">=</span> <span class="va">model_info</span>, </span>
-<span>  name <span class="op">=</span> <span class="st">"Base energyRt model"</span>,</span>
-<span>  desc <span class="op">=</span> <span class="st">"Converted to multimod format and exported to PDF/LaTeX using the multimod R package"</span>,</span>
-<span>  authors <span class="op">=</span> <span class="st">"source: www.energyRt.org\nhttps://github.com/optimal2050/multimod"</span></span>
-<span>  <span class="op">)</span></span>
-<span><span class="co"># eq &lt;- example_model$multimod$equations$eqTechCapUp</span></span>
-<span><span class="va">eq</span> <span class="op">&lt;-</span> <span class="va">mm</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqTechCapUp</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">eq</span><span class="op">$</span><span class="va">name</span><span class="op">)</span>; <span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">eq</span><span class="op">$</span><span class="va">desc</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">eq</span><span class="op">)</span></span></code></pre></div>
-<div class="section level3">
-<h3 id="full-tree-structure">Full tree structure<a class="anchor" aria-label="anchor" href="#full-tree-structure"></a>
-</h3>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/depth.html">depth</a></span><span class="op">(</span><span class="va">eq</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://lobstr.r-lib.org/reference/tree.html" class="external-link">tree</a></span><span class="op">(</span><span class="va">eq</span>, max_depth <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="network-representation">Network representation<a class="anchor" aria-label="anchor" href="#network-representation"></a>
-</h3>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">eq_net</span> <span class="op">&lt;-</span> <span class="fu">multimod</span><span class="fu">::</span><span class="fu"><a href="../reference/get_network_data.html">get_network_data</a></span><span class="op">(</span><span class="va">eq</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/pkg/visNetwork/man/visNetwork.html" class="external-link">visNetwork</a></span><span class="op">(</span><span class="va">eq_net</span><span class="op">$</span><span class="va">nodes</span>, <span class="va">eq_net</span><span class="op">$</span><span class="va">edges</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/pkg/visNetwork/man/visOptions.html" class="external-link">visOptions</a></span><span class="op">(</span>highlightNearest <span class="op">=</span> <span class="cn">TRUE</span>, nodesIdSelection <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/pkg/visNetwork/man/visHierarchicalLayout.html" class="external-link">visHierarchicalLayout</a></span><span class="op">(</span>direction <span class="op">=</span> <span class="st">"LR"</span><span class="op">)</span>  </span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="latex-output">LaTeX output<a class="anchor" aria-label="anchor" href="#latex-output"></a>
-</h3>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">eq_latex</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/as_latex.html">as_latex</a></span><span class="op">(</span><span class="va">eq</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="va">eq_latex</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/write_latex.html">write_latex</a></span><span class="op">(</span><span class="va">eq</span>, file <span class="op">=</span> <span class="st">"tmp/test.tex"</span><span class="op">)</span></span></code></pre></div>
-</div>
+<code class="sourceCode R"><span><span class="va">techs</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"coal"</span>, <span class="st">"gas"</span>, <span class="st">"wind"</span><span class="op">)</span></span>
+<span><span class="va">regions</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"north"</span>, <span class="st">"south"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">sets</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>  tech   <span class="op">=</span> <span class="fu"><a href="../reference/new_set.html">new_set</a></span><span class="op">(</span><span class="st">"tech"</span>,   desc <span class="op">=</span> <span class="st">"generation technologies"</span>, data <span class="op">=</span> <span class="va">techs</span><span class="op">)</span>,</span>
+<span>  region <span class="op">=</span> <span class="fu"><a href="../reference/new_set.html">new_set</a></span><span class="op">(</span><span class="st">"region"</span>, desc <span class="op">=</span> <span class="st">"model regions"</span>,           data <span class="op">=</span> <span class="va">regions</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">sets</span><span class="op">$</span><span class="va">tech</span></span>
+<span><span class="co">#&gt; &lt;AST set&gt; tech</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="example-equation-2">Example equation #2<a class="anchor" aria-label="anchor" href="#example-equation-2"></a>
+<h2 id="mappings">Mappings<a class="anchor" aria-label="anchor" href="#mappings"></a>
 </h2>
+<p>A mapping is a table of tuples over one or more sets. Mappings serve
+as <em>domains</em>: an indexed variable or equation exists for exactly
+the tuples of its domain mapping, which is how sparse models stay
+sparse. Here every technology may be built in every region, so the
+domain is the full grid.</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">tuples</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/expand.grid.html" class="external-link">expand.grid</a></span><span class="op">(</span>tech <span class="op">=</span> <span class="va">techs</span>, region <span class="op">=</span> <span class="va">regions</span>, stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">mappings</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>  mTR <span class="op">=</span> <span class="fu"><a href="../reference/new_mapping.html">new_mapping</a></span><span class="op">(</span><span class="st">"mTR"</span>, desc <span class="op">=</span> <span class="st">"technology x region pairs"</span>,</span>
+<span>                    dims <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"tech"</span>, <span class="st">"region"</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">tuples</span><span class="op">)</span>,</span>
+<span>  mR  <span class="op">=</span> <span class="fu"><a href="../reference/new_mapping.html">new_mapping</a></span><span class="op">(</span><span class="st">"mR"</span>,  desc <span class="op">=</span> <span class="st">"regions"</span>,</span>
+<span>                    dims <span class="op">=</span> <span class="st">"region"</span>, data <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>region <span class="op">=</span> <span class="va">regions</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">mappings</span><span class="op">$</span><span class="va">mTR</span><span class="op">$</span><span class="va">data</span></span>
+<span><span class="co">#&gt;   tech region</span></span>
+<span><span class="co">#&gt; 1 coal  north</span></span>
+<span><span class="co">#&gt; 2  gas  north</span></span>
+<span><span class="co">#&gt; 3 wind  north</span></span>
+<span><span class="co">#&gt; 4 coal  south</span></span>
+<span><span class="co">#&gt; 5  gas  south</span></span>
+<span><span class="co">#&gt; 6 wind  south</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="parameters">Parameters<a class="anchor" aria-label="anchor" href="#parameters"></a>
+</h2>
+<p>A parameter declares its dimensions and carries a data frame with one
+column per dimension plus <code>value</code>.</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">parameters</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>  pCapCost <span class="op">=</span> <span class="fu"><a href="../reference/new_parameter.html">new_parameter</a></span><span class="op">(</span><span class="st">"pCapCost"</span>, desc <span class="op">=</span> <span class="st">"annualised capacity cost, EUR/kW"</span>,</span>
+<span>    dims <span class="op">=</span> <span class="st">"tech"</span>,</span>
+<span>    data <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>tech <span class="op">=</span> <span class="va">techs</span>, value <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">120</span>, <span class="fl">70</span>, <span class="fl">90</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  pVarCost <span class="op">=</span> <span class="fu"><a href="../reference/new_parameter.html">new_parameter</a></span><span class="op">(</span><span class="st">"pVarCost"</span>, desc <span class="op">=</span> <span class="st">"variable cost, EUR/MWh"</span>,</span>
+<span>    dims <span class="op">=</span> <span class="st">"tech"</span>,</span>
+<span>    data <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>tech <span class="op">=</span> <span class="va">techs</span>, value <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">30</span>, <span class="fl">55</span>, <span class="fl">0</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  pAvail <span class="op">=</span> <span class="fu"><a href="../reference/new_parameter.html">new_parameter</a></span><span class="op">(</span><span class="st">"pAvail"</span>, desc <span class="op">=</span> <span class="st">"availability factor"</span>,</span>
+<span>    dims <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"tech"</span>, <span class="st">"region"</span><span class="op">)</span>,</span>
+<span>    data <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/transform.html" class="external-link">transform</a></span><span class="op">(</span><span class="va">tuples</span>, value <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.85</span>, <span class="fl">0.85</span>, <span class="fl">0.90</span>, <span class="fl">0.90</span>, <span class="fl">0.35</span>, <span class="fl">0.25</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  pDemand <span class="op">=</span> <span class="fu"><a href="../reference/new_parameter.html">new_parameter</a></span><span class="op">(</span><span class="st">"pDemand"</span>, desc <span class="op">=</span> <span class="st">"annual demand, MWh"</span>,</span>
+<span>    dims <span class="op">=</span> <span class="st">"region"</span>,</span>
+<span>    data <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>region <span class="op">=</span> <span class="va">regions</span>, value <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1000</span>, <span class="fl">600</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">parameters</span><span class="op">$</span><span class="va">pAvail</span></span>
+<span><span class="co">#&gt; &lt;AST parameter&gt; pAvail</span></span>
+<span><span class="co">#&gt;   dims:  [tech,region]</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="variables">Variables<a class="anchor" aria-label="anchor" href="#variables"></a>
+</h2>
+<p>Variables declare dimensions, a domain mapping, a type and bounds. A
+scalar variable has <code>dims = character(0)</code>.</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">variables</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>  vCap <span class="op">=</span> <span class="fu"><a href="../reference/new_variable.html">new_variable</a></span><span class="op">(</span><span class="st">"vCap"</span>, desc <span class="op">=</span> <span class="st">"installed capacity, kW"</span>,</span>
+<span>                      dims <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"tech"</span>, <span class="st">"region"</span><span class="op">)</span>, domain <span class="op">=</span> <span class="st">"mTR"</span>,</span>
+<span>                      vtype <span class="op">=</span> <span class="st">"positive"</span>, bounds <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>lo <span class="op">=</span> <span class="fl">0</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  vGen <span class="op">=</span> <span class="fu"><a href="../reference/new_variable.html">new_variable</a></span><span class="op">(</span><span class="st">"vGen"</span>, desc <span class="op">=</span> <span class="st">"generation, MWh"</span>,</span>
+<span>                      dims <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"tech"</span>, <span class="st">"region"</span><span class="op">)</span>, domain <span class="op">=</span> <span class="st">"mTR"</span>,</span>
+<span>                      vtype <span class="op">=</span> <span class="st">"positive"</span>, bounds <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>lo <span class="op">=</span> <span class="fl">0</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  vCost <span class="op">=</span> <span class="fu"><a href="../reference/new_variable.html">new_variable</a></span><span class="op">(</span><span class="st">"vCost"</span>, desc <span class="op">=</span> <span class="st">"total system cost, EUR"</span>,</span>
+<span>                       dims <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="expressions">Expressions<a class="anchor" aria-label="anchor" href="#expressions"></a>
+</h2>
+<p>Inside an equation, symbols are <em>referenced</em> rather than
+declared: <code><a href="../reference/ast_variable.html">ast_variable()</a></code> and <code><a href="../reference/ast_parameter.html">ast_parameter()</a></code>
+take the name and the index symbols, given as <code><a href="../reference/ast_dims.html">ast_dims()</a></code>.
+<code><a href="../reference/ast_expression.html">ast_expression()</a></code> combines two nodes with an operator, and
+<code><a href="../reference/ast_sum.html">ast_sum()</a></code> sums an expression over index symbols.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># eq &lt;- example_model$multimod$equations$eqTechAInp</span></span>
-<span><span class="va">eq</span> <span class="op">&lt;-</span> <span class="va">mm</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqTechAInp</span></span>
-<span><span class="va">eq</span> <span class="op">&lt;-</span> <span class="va">mm</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqTechCap</span></span>
-<span><span class="va">eq</span> <span class="op">&lt;-</span> <span class="va">mm</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqCost</span></span>
-<span><span class="va">eq</span> <span class="op">&lt;-</span> <span class="va">mm</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqTaxCost</span></span>
-<span><span class="va">eq</span> <span class="op">&lt;-</span> <span class="va">mm</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqStorageEac</span></span>
-<span><span class="va">eq</span> <span class="op">&lt;-</span> <span class="va">mm</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqTechSng2Sng</span></span>
-<span><span class="va">eq</span> <span class="op">&lt;-</span> <span class="va">mm</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqStorageStore</span></span>
-<span><span class="va">eq</span> <span class="op">&lt;-</span> <span class="va">mm</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqImportIrCost</span></span>
-<span><span class="va">eq</span> <span class="op">&lt;-</span> <span class="va">mm</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqStorageVarom</span></span>
-<span><span class="va">eq</span> <span class="op">&lt;-</span> <span class="va">mm</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqTechGrp2Sng</span></span>
-<span><span class="va">eq</span> <span class="op">&lt;-</span> <span class="va">mm</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqTechAfcOutLo</span></span>
-<span><span class="va">eq</span> <span class="op">&lt;-</span> <span class="va">mm</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqImportTot</span></span>
-<span><span class="va">eq</span> <span class="op">&lt;-</span> <span class="va">mm</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqTechEac</span></span>
-<span><span class="va">eq</span> <span class="op">&lt;-</span> <span class="va">mm</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqAggOutTot</span></span>
-<span><span class="va">eq</span> <span class="op">&lt;-</span> <span class="va">mm</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqTechSng2Grp</span></span>
-<span><span class="va">eq</span> <span class="op">&lt;-</span> <span class="va">mm</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqTechShareInpUp</span></span>
-<span><span class="va">eq</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/alias_ast_names.html">alias_ast_names</a></span><span class="op">(</span><span class="va">eq</span>, aliases <span class="op">=</span> <span class="va">example_model</span><span class="op">$</span><span class="va">short_aliases</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">eq</span><span class="op">$</span><span class="va">name</span><span class="op">)</span>; <span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">eq</span><span class="op">$</span><span class="va">desc</span><span class="op">)</span></span></code></pre></div>
-<div class="section level3">
-<h3 id="partial-tree-structure">Partial tree structure<a class="anchor" aria-label="anchor" href="#partial-tree-structure"></a>
-</h3>
+<code class="sourceCode R"><span><span class="va">gen</span>   <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ast_variable.html">ast_variable</a></span><span class="op">(</span><span class="st">"vGen"</span>, dims <span class="op">=</span> <span class="fu"><a href="../reference/ast_dims.html">ast_dims</a></span><span class="op">(</span><span class="st">"tech"</span>, <span class="st">"region"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">avail</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ast_parameter.html">ast_parameter</a></span><span class="op">(</span><span class="st">"pAvail"</span>, dims <span class="op">=</span> <span class="fu"><a href="../reference/ast_dims.html">ast_dims</a></span><span class="op">(</span><span class="st">"tech"</span>, <span class="st">"region"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">cap</span>   <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ast_variable.html">ast_variable</a></span><span class="op">(</span><span class="st">"vCap"</span>, dims <span class="op">=</span> <span class="fu"><a href="../reference/ast_dims.html">ast_dims</a></span><span class="op">(</span><span class="st">"tech"</span>, <span class="st">"region"</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">limit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ast_expression.html">ast_expression</a></span><span class="op">(</span><span class="st">"*"</span>, <span class="va">avail</span>, <span class="va">cap</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/node_type.html">node_type</a></span><span class="op">(</span><span class="va">limit</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "expression"</span></span>
+<span><span class="va">limit</span></span>
+<span><span class="co">#&gt; &lt;AST expression&gt; *</span></span>
+<span><span class="co">#&gt;   lhs :</span></span>
+<span><span class="co">#&gt; &lt;AST parameter&gt; pAvail</span></span>
+<span><span class="co">#&gt;   dims:  [tech,region] </span></span>
+<span><span class="co">#&gt;   rhs:</span></span>
+<span><span class="co">#&gt; &lt;AST variable&gt; vCap</span></span>
+<span><span class="co">#&gt;   dims:  [tech,region]</span></span></code></pre></div>
+<p>Rendering is a method on the node, so an expression can be checked
+before it is used:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://lobstr.r-lib.org/reference/tree.html" class="external-link">tree</a></span><span class="op">(</span><span class="va">eq</span>, max_depth <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/as_gams.html">as_gams</a></span><span class="op">(</span><span class="va">limit</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "pAvail[tech,region] * vCap[tech,region]"</span></span>
+<span><span class="fu"><a href="../reference/as_latex.html">as_latex</a></span><span class="op">(</span><span class="va">limit</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "\\mathsf{pAvail}_{\\texttt{tech},\\texttt{region}}  \\cdot  \\bm{\\mathit{vCap}}_{\\texttt{tech},\\texttt{region}}"</span></span></code></pre></div>
 </div>
-<div class="section level3">
-<h3 id="network-representation-1">Network representation<a class="anchor" aria-label="anchor" href="#network-representation-1"></a>
-</h3>
+<div class="section level2">
+<h2 id="equations">Equations<a class="anchor" aria-label="anchor" href="#equations"></a>
+</h2>
+<p>An equation has a left side, a relation (<code>"=="</code>,
+<code>"&lt;="</code>, <code>"&gt;="</code>), a right side and a domain.
+The domain mapping decides for which tuples the equation is
+generated.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">eq_net</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_network_data.html">get_network_data</a></span><span class="op">(</span><span class="va">eq</span>, show_dims <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/pkg/visNetwork/man/visNetwork.html" class="external-link">visNetwork</a></span><span class="op">(</span><span class="va">eq_net</span><span class="op">$</span><span class="va">nodes</span>, <span class="va">eq_net</span><span class="op">$</span><span class="va">edges</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/pkg/visNetwork/man/visOptions.html" class="external-link">visOptions</a></span><span class="op">(</span>highlightNearest <span class="op">=</span> <span class="cn">TRUE</span>, nodesIdSelection <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/pkg/visNetwork/man/visInteraction.html" class="external-link">visInteraction</a></span><span class="op">(</span>navigationButtons <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/pkg/visNetwork/man/visHierarchicalLayout.html" class="external-link">visHierarchicalLayout</a></span><span class="op">(</span>direction <span class="op">=</span> <span class="st">"LR"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">eqCapLim</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/new_equation.html">new_equation</a></span><span class="op">(</span><span class="st">"eqCapLim"</span>, desc <span class="op">=</span> <span class="st">"generation is limited by capacity"</span>,</span>
+<span>  dims <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"tech"</span>, <span class="st">"region"</span><span class="op">)</span>,</span>
+<span>  lhs <span class="op">=</span> <span class="va">gen</span>, rhs <span class="op">=</span> <span class="va">limit</span>, relation <span class="op">=</span> <span class="st">"&lt;="</span>,</span>
+<span>  domain <span class="op">=</span> <span class="fu"><a href="../reference/ast_mapping.html">ast_mapping</a></span><span class="op">(</span><span class="st">"mTR"</span>, dims <span class="op">=</span> <span class="fu"><a href="../reference/ast_dims.html">ast_dims</a></span><span class="op">(</span><span class="st">"tech"</span>, <span class="st">"region"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">eqDemand</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/new_equation.html">new_equation</a></span><span class="op">(</span><span class="st">"eqDemand"</span>, desc <span class="op">=</span> <span class="st">"demand is met in every region"</span>,</span>
+<span>  dims <span class="op">=</span> <span class="st">"region"</span>,</span>
+<span>  lhs <span class="op">=</span> <span class="fu"><a href="../reference/ast_sum.html">ast_sum</a></span><span class="op">(</span><span class="fu"><a href="../reference/ast_dims.html">ast_dims</a></span><span class="op">(</span><span class="st">"tech"</span><span class="op">)</span>, <span class="fu"><a href="../reference/ast_variable.html">ast_variable</a></span><span class="op">(</span><span class="st">"vGen"</span>, dims <span class="op">=</span> <span class="fu"><a href="../reference/ast_dims.html">ast_dims</a></span><span class="op">(</span><span class="st">"tech"</span>, <span class="st">"region"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  rhs <span class="op">=</span> <span class="fu"><a href="../reference/ast_parameter.html">ast_parameter</a></span><span class="op">(</span><span class="st">"pDemand"</span>, dims <span class="op">=</span> <span class="fu"><a href="../reference/ast_dims.html">ast_dims</a></span><span class="op">(</span><span class="st">"region"</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  relation <span class="op">=</span> <span class="st">"&gt;="</span>,</span>
+<span>  domain <span class="op">=</span> <span class="fu"><a href="../reference/ast_mapping.html">ast_mapping</a></span><span class="op">(</span><span class="st">"mR"</span>, dims <span class="op">=</span> <span class="fu"><a href="../reference/ast_dims.html">ast_dims</a></span><span class="op">(</span><span class="st">"region"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">eqCost</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/new_equation.html">new_equation</a></span><span class="op">(</span><span class="st">"eqCost"</span>, desc <span class="op">=</span> <span class="st">"total cost"</span>,</span>
+<span>  dims <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span>,</span>
+<span>  lhs <span class="op">=</span> <span class="fu"><a href="../reference/ast_variable.html">ast_variable</a></span><span class="op">(</span><span class="st">"vCost"</span>, dims <span class="op">=</span> <span class="fu"><a href="../reference/ast_dims.html">ast_dims</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  rhs <span class="op">=</span> <span class="fu"><a href="../reference/ast_sum.html">ast_sum</a></span><span class="op">(</span><span class="fu"><a href="../reference/ast_dims.html">ast_dims</a></span><span class="op">(</span><span class="st">"tech"</span>, <span class="st">"region"</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="../reference/ast_expression.html">ast_expression</a></span><span class="op">(</span><span class="st">"+"</span>,</span>
+<span>      <span class="fu"><a href="../reference/ast_expression.html">ast_expression</a></span><span class="op">(</span><span class="st">"*"</span>, <span class="fu"><a href="../reference/ast_parameter.html">ast_parameter</a></span><span class="op">(</span><span class="st">"pCapCost"</span>, dims <span class="op">=</span> <span class="fu"><a href="../reference/ast_dims.html">ast_dims</a></span><span class="op">(</span><span class="st">"tech"</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>                          <span class="fu"><a href="../reference/ast_variable.html">ast_variable</a></span><span class="op">(</span><span class="st">"vCap"</span>, dims <span class="op">=</span> <span class="fu"><a href="../reference/ast_dims.html">ast_dims</a></span><span class="op">(</span><span class="st">"tech"</span>, <span class="st">"region"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>      <span class="fu"><a href="../reference/ast_expression.html">ast_expression</a></span><span class="op">(</span><span class="st">"*"</span>, <span class="fu"><a href="../reference/ast_parameter.html">ast_parameter</a></span><span class="op">(</span><span class="st">"pVarCost"</span>, dims <span class="op">=</span> <span class="fu"><a href="../reference/ast_dims.html">ast_dims</a></span><span class="op">(</span><span class="st">"tech"</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>                          <span class="fu"><a href="../reference/ast_variable.html">ast_variable</a></span><span class="op">(</span><span class="st">"vGen"</span>, dims <span class="op">=</span> <span class="fu"><a href="../reference/ast_dims.html">ast_dims</a></span><span class="op">(</span><span class="st">"tech"</span>, <span class="st">"region"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  relation <span class="op">=</span> <span class="st">"=="</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">eqDemand</span></span>
+<span><span class="co">#&gt; &lt;AST equation&gt; eqDemand</span></span>
+<span><span class="co">#&gt;   domain:  mR[region] </span></span>
+<span><span class="co">#&gt;   relation:  &gt;= </span></span>
+<span><span class="co">#&gt;   lhs:  sum([tech]vGen[tech,region]) </span></span>
+<span><span class="co">#&gt;   rhs:  pDemand[region]</span></span>
+<span><span class="fu"><a href="../reference/as_latex.html">as_latex</a></span><span class="op">(</span><span class="va">eqCost</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "\\begin{flushleft}\n\\subsection*{\\textbf{eqCost} -- \\textit{total cost}} \n\\quad$\\textbf{eqCost}$\n\\begin{equation*}\n\\begin{adjustbox}{max width=\\textwidth}\n$\\begin{aligned}\n&amp;\\bm{\\mathit{vCost}}_{} = \\sum_{\\texttt{tech}, \\texttt{region}} \\mathsf{pCapCost}_{\\texttt{tech}}  \\cdot  \\bm{\\mathit{vCap}}_{\\texttt{tech},\\texttt{region}}  +  \\mathsf{pVarCost}_{\\texttt{tech}}  \\cdot  \\bm{\\mathit{vGen}}_{\\texttt{tech},\\texttt{region}} \\\\\n\\end{aligned}$\n\\end{adjustbox}\n\\end{equation*}\n\\vspace{1em}\n\\end{flushleft}"</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="the-model">The model<a class="anchor" aria-label="anchor" href="#the-model"></a>
+</h2>
+<p><code><a href="../reference/new_model.html">new_model()</a></code> assembles the components. The objective is
+declared as the equation that defines it, the variable it defines and
+the sense.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/as_visNetwork.html">as_visNetwork</a></span><span class="op">(</span><span class="va">eq</span><span class="op">$</span><span class="va">lhs</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/pkg/visNetwork/man/visOptions.html" class="external-link">visOptions</a></span><span class="op">(</span>highlightNearest <span class="op">=</span> <span class="cn">TRUE</span>, nodesIdSelection <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/pkg/visNetwork/man/visInteraction.html" class="external-link">visInteraction</a></span><span class="op">(</span>navigationButtons <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/pkg/visNetwork/man/visHierarchicalLayout.html" class="external-link">visHierarchicalLayout</a></span><span class="op">(</span>direction <span class="op">=</span> <span class="st">"LR"</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="latex-output-1">LaTeX output<a class="anchor" aria-label="anchor" href="#latex-output-1"></a>
-</h3>
+<code class="sourceCode R"><span><span class="va">toy</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/new_model.html">new_model</a></span><span class="op">(</span></span>
+<span>  name <span class="op">=</span> <span class="st">"toy"</span>, desc <span class="op">=</span> <span class="st">"two-region capacity expansion"</span>,</span>
+<span>  sets <span class="op">=</span> <span class="va">sets</span>, mappings <span class="op">=</span> <span class="va">mappings</span>, parameters <span class="op">=</span> <span class="va">parameters</span>,</span>
+<span>  variables <span class="op">=</span> <span class="va">variables</span>,</span>
+<span>  equations <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>eqCapLim <span class="op">=</span> <span class="va">eqCapLim</span>, eqDemand <span class="op">=</span> <span class="va">eqDemand</span>, eqCost <span class="op">=</span> <span class="va">eqCost</span><span class="op">)</span>,</span>
+<span>  objectives <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>equation <span class="op">=</span> <span class="st">"eqCost"</span>, variable <span class="op">=</span> <span class="st">"vCost"</span>,</span>
+<span>                         sense <span class="op">=</span> <span class="st">"minimize"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">toy</span></span>
+<span><span class="co">#&gt; Model: toy</span></span>
+<span><span class="co">#&gt; Description: two-region capacity expansion</span></span>
+<span><span class="co">#&gt; Sets:  2 </span></span>
+<span><span class="co">#&gt; Mappings:  2 </span></span>
+<span><span class="co">#&gt; Aliases:  0 </span></span>
+<span><span class="co">#&gt; Parameters:  4 </span></span>
+<span><span class="co">#&gt; Variables:  3 </span></span>
+<span><span class="co">#&gt; Equations:  3</span></span></code></pre></div>
+<p>Every constructor validates its node against the AST schema as it is
+built (<code><a href="../reference/ast_schema.html">ast_schema()</a></code> lists the node types and their fields),
+so a malformed node is refused where it is written.
+<code><a href="../reference/validate.html">validate()</a></code> checks the assembled model: every symbol
+referenced in an equation must be declared, with matching
+dimensions.</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">eq_w</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/remap_ast_elements.html">remap_ast_elements</a></span><span class="op">(</span><span class="va">eq</span><span class="op">)</span> </span>
-<span><span class="co"># eq_latex &lt;- as_latex(eq_w)</span></span>
-<span><span class="co"># eq_latex &lt;- </span></span>
-<span><span class="co"># eq_latex |&gt; cat()</span></span>
-<span></span>
-<span><span class="fu"><a href="../reference/write_latex.html">write_latex</a></span><span class="op">(</span><span class="va">eq_w</span>, file <span class="op">=</span> <span class="st">"tmp/test.tex"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/write_latex.html">write_latex</a></span><span class="op">(</span><span class="va">eq</span>, file <span class="op">=</span> <span class="st">"tmp/test.tex"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/write_latex.html">write_latex</a></span><span class="op">(</span><span class="va">ast_node</span>, file <span class="op">=</span> <span class="st">"tmp/test.tex"</span><span class="op">)</span></span>
-<span></span>
-<span></span>
-<span><span class="va">m</span> <span class="op">&lt;-</span> <span class="va">mm</span></span>
-<span><span class="va">m</span><span class="op">$</span><span class="va">equations</span> <span class="op">&lt;-</span> <span class="va">mm</span><span class="op">$</span><span class="va">equations</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">remap_ast_elements</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">alias_ast_names</span>, aliases <span class="op">=</span> <span class="va">example_model</span><span class="op">$</span><span class="va">short_aliases</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/write_latex.html">write_latex</a></span><span class="op">(</span><span class="va">m</span>, file <span class="op">=</span> <span class="st">"tmp/multimod-test.tex"</span>, include_aliases <span class="op">=</span> <span class="cn">F</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="../reference/write_latex.html">write_latex</a></span><span class="op">(</span><span class="va">m</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqObjective</span>, file <span class="op">=</span> <span class="st">"tmp/eqObjective.tex"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">v</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/validate.html">validate</a></span><span class="op">(</span><span class="va">toy</span><span class="op">)</span></span>
+<span><span class="va">v</span><span class="op">$</span><span class="va">valid</span></span>
+<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+<p>The text backends write indexed expressions with short iterator names
+(<code>sum{t in tech}</code> in MathProg, <code>for t in tech</code> in
+Julia). A model built in R has none until
+<code><a href="../reference/add_index_aliases.html">add_index_aliases()</a></code> derives them from the set names:</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">toy</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/add_index_aliases.html">add_index_aliases</a></span><span class="op">(</span><span class="va">toy</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="va">toy</span><span class="op">$</span><span class="va">index_aliases</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   tech region </span></span>
+<span><span class="co">#&gt;    "h"    "r"</span></span></code></pre></div>
 </div>
-<div class="section level3">
-<h3 id="gams-output">GAMS output<a class="anchor" aria-label="anchor" href="#gams-output"></a>
-</h3>
-<pre reval="FALSE"><code><span><span class="fu"><a href="../reference/write_gams.html">write_gams</a></span><span class="op">(</span><span class="va">mm</span>, file <span class="op">=</span> <span class="st">"tmp/multimod-test.gms"</span>, format_expr <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre>
+<div class="section level2">
+<h2 id="solving">Solving<a class="anchor" aria-label="anchor" href="#solving"></a>
+</h2>
+<p>The matrix route needs no external software:
+<code><a href="../reference/model_to_lp.html">model_to_lp()</a></code> builds the constraint matrix from the
+equations and the data, and <code><a href="../reference/solve_highs.html">solve_highs()</a></code> passes it to the
+HiGHS solver (the ‘highs’ package).</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">lp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/model_to_lp.html">model_to_lp</a></span><span class="op">(</span><span class="va">toy</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">lp</span><span class="op">$</span><span class="va">A</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1]  9 13</span></span></code></pre></div>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">r</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_highs.html">solve_highs</a></span><span class="op">(</span><span class="va">toy</span>, attach <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="va">r</span><span class="op">$</span><span class="va">objective</span></span>
+<span><span class="co">#&gt; [1] 198000</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">r</span><span class="op">$</span><span class="va">primal</span><span class="op">[</span><span class="va">r</span><span class="op">$</span><span class="va">primal</span><span class="op">$</span><span class="va">value</span> <span class="op">&gt;</span> <span class="fl">0</span>, <span class="op">]</span>, <span class="fl">10</span><span class="op">)</span></span>
+<span><span class="co">#&gt;        j symbol     i1     i2    lo    up      vtype       value reduced_cost</span></span>
+<span><span class="co">#&gt;    &lt;int&gt; &lt;char&gt; &lt;char&gt; &lt;char&gt; &lt;num&gt; &lt;num&gt;     &lt;char&gt;       &lt;num&gt;        &lt;num&gt;</span></span>
+<span><span class="co">#&gt; 1:     3   vCap   wind  north     0   Inf   positive   1111.1111            0</span></span>
+<span><span class="co">#&gt; 2:     4   vCap   coal  south     0   Inf   positive    666.6667            0</span></span>
+<span><span class="co">#&gt; 3:     9   vGen   wind  north     0   Inf   positive   1000.0000            0</span></span>
+<span><span class="co">#&gt; 4:    10   vGen   coal  south     0   Inf   positive    600.0000            0</span></span>
+<span><span class="co">#&gt; 5:    13  vCost   &lt;NA&gt;   &lt;NA&gt;  -Inf   Inf continuous 198000.0000            0</span></span></code></pre></div>
+<p>The file routes render the same model for an external solver:
+<code><a href="../reference/write_gmpl.html">write_gmpl()</a></code> for GLPK, <code><a href="../reference/write_jump.html">write_jump()</a></code> for Julia
+and <code><a href="../reference/write_pyomo.html">write_pyomo()</a></code> for Python;
+<code><a href="../articles/multimod.html">vignette("multimod")</a></code> lists them with their
+<code>solve_*()</code> counterparts.</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">mod_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".mod"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/write_gmpl.html">write_gmpl</a></span><span class="op">(</span><span class="va">toy</span>, file <span class="op">=</span> <span class="va">mod_file</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/readLines.html" class="external-link">readLines</a></span><span class="op">(</span><span class="va">mod_file</span><span class="op">)</span>, <span class="fl">12</span><span class="op">)</span>, sep <span class="op">=</span> <span class="st">"\n"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; # Model: toy</span></span>
+<span><span class="co">#&gt; # two-region capacity expansion</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; set tech;  # generation technologies</span></span>
+<span><span class="co">#&gt; set region;  # model regions</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; set _IF_;  # Singleton set for GAMS $ operator emulation</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; set mTR dimen 2;  # technology x region pairs</span></span>
+<span><span class="co">#&gt; set mR dimen 1;  # regions</span></span></code></pre></div>
 </div>
+<div class="section level2">
+<h2 id="saving-and-exchanging-the-model">Saving and exchanging the model<a class="anchor" aria-label="anchor" href="#saving-and-exchanging-the-model"></a>
+</h2>
+<p><code><a href="../reference/model_to_json.html">model_to_json()</a></code> serialises the whole model, including
+the AST, in the language-neutral JSON format defined by
+<code><a href="../reference/ast_json_schema.html">ast_json_schema()</a></code>; <code><a href="../reference/model_from_json.html">model_from_json()</a></code> reads it
+back. This is the interchange format for other implementations of the
+model structure.</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">json</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/model_to_json.html">model_to_json</a></span><span class="op">(</span><span class="va">toy</span><span class="op">)</span></span>
+<span><span class="va">back</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/model_from_json.html">model_from_json</a></span><span class="op">(</span><span class="va">json</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">back</span><span class="op">$</span><span class="va">equations</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">toy</span><span class="op">$</span><span class="va">equations</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] TRUE</span></span>
+<span><span class="fu"><a href="../reference/as_gams.html">as_gams</a></span><span class="op">(</span><span class="va">back</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqDemand</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "eqDemand[region]$mR[region]..\n  sum(tech, vGen[tech,region]) =g=\n  pDemand[region];"</span></span></code></pre></div>
+<p><code><a href="../reference/save_model.html">save_model()</a></code> and <code><a href="../reference/load_model.html">load_model()</a></code> write a model
+as a workspace directory with its data tables in CSV or Arrow files; see
+the “Model workspace” article on the package website.</p>
+</div>
+<div class="section level2">
+<h2 id="where-next">Where next<a class="anchor" aria-label="anchor" href="#where-next"></a>
+</h2>
+<ul>
+<li>
+<code><a href="../articles/multimod.html">vignette("multimod")</a></code>: reading an existing GAMS model
+and what the package does with it.</li>
+<li>
+<code><a href="../articles/folding.html">vignette("folding")</a></code>: folding and trimming a model to
+the size its data actually needs.</li>
+<li>The website articles cover the solver backends (GLPK, JuMP, Pyomo)
+and their configuration.</li>
+</ul>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
@@ -209,11 +438,11 @@
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Oleg Lugovoy.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.3.</p>
+
 </div>
 
     </footer>

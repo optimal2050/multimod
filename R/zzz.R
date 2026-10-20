@@ -13,3 +13,10 @@
   if (any(toset)) options(op.multimod[toset])
   invisible()
 }
+
+# Column names used in data.table / dplyr expressions, and R6 bindings.
+utils::globalVariables(c(".", "value", "n", "self", "private", "min_val", "max_val"))
+
+# Package-level state (e.g. whether Julia was initialised in this session);
+# never the global environment.
+.mm_state <- new.env(parent = emptyenv())

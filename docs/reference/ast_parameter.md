@@ -18,6 +18,11 @@ ast_parameter(name, dims = ast_dims(), ...)
 
   Optional vector of dimension `dims` objects.
 
+- ...:
+
+  Additional fields stored on the node (passed to
+  [`new_ast()`](https://optimal2050.github.io/multimod/reference/new_ast.md)).
+
 ## Value
 
 An `parameter` S3 object (subclass of `ast`).

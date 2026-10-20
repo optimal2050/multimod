@@ -11,7 +11,8 @@ new_mapping(
   dims = NULL,
   active_dims = NULL,
   data = NULL,
-  auto_fold = FALSE
+  auto_fold = FALSE,
+  symbols = NULL
 )
 }
 \arguments{
@@ -23,7 +24,15 @@ new_mapping(
 
 \item{dims}{character vector, names of the declared dimensions}
 
+\item{active_dims}{character vector, names of the active dimensions
+(defaults to \code{dims})}
+
 \item{data}{data frame, data for the mapping}
+
+\item{auto_fold}{logical, whether to automatically fold dimensions}
+
+\item{symbols}{optional named list of known symbols (sets, aliases) used to
+resolve dimension names in \code{\link[=ast_dims]{ast_dims()}}}
 }
 \value{
 An object of class \code{mapping}

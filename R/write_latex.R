@@ -16,6 +16,129 @@ default_preamble <- c(
 )
 default_ending <- "\\end{document}"
 
+#' Sort Model Components for LaTeX Display
+#'
+#' Sorts sets, parameters, variables, or mappings hierarchically and alphabetically.
+#' For sets: base sets before subsets, grouped by component type.
+#' For parameters/variables: grouped by component prefix (Generator, Line, etc.), alphabetically within groups.
+#' For mappings: alphabetical sort.
+#'
+#' @param components List of model components
+#' @param type Component type: "sets", "parameters", "variables", or "mappings"
+#' @return Sorted list of components
+#' @keywords internal
+#' @noRd
+sort_model_components <- function(components, type = "sets") {
+  if (is.null(components) || length(components) == 0) {
+    return(components)
+  }
+  
+  component_names <- sapply(components, function(x) x$name)
+  
+  if (type == "sets") {
+    # Build hierarchy using subset_of field
+    base_sets <- character()
+    subset_map <- list()  # Maps base set name to its subsets
+    standalone_sets <- character()
+    
+    for (comp in components) {
+      name <- comp$name
+      if (!is.null(comp$subset_of) && !is.na(comp$subset_of) && comp$subset_of != "") {
+        # This is a subset
+        base_name <- comp$subset_of
+        if (is.null(subset_map[[base_name]])) {
+          subset_map[[base_name]] <- character()
+        }
+        subset_map[[base_name]] <- c(subset_map[[base_name]], name)
+      } else {
+        # This is potentially a base set or standalone
+        if (name %in% names(subset_map)) {
+          base_sets <- c(base_sets, name)
+        } else {
+          standalone_sets <- c(standalone_sets, name)
+        }
+      }
+    }
+    
+    # Second pass: move sets from standalone to base if they have subsets
+    for (name in standalone_sets) {
+      if (name %in% names(subset_map)) {
+        base_sets <- c(base_sets, name)
+        standalone_sets <- setdiff(standalone_sets, name)
+      }
+    }
+    
+    # Build sorted order: standalone sets alphabetically, then base sets with their subsets
+    sorted_names <- character()
+    
+    # Add standalone sets alphabetically
+    sorted_names <- c(sorted_names, sort(standalone_sets))
+    
+    # Add base sets with their subsets, grouped and sorted
+    if (length(base_sets) > 0) {
+      base_sets_sorted <- sort(base_sets)
+      for (base_name in base_sets_sorted) {
+        sorted_names <- c(sorted_names, base_name)
+        if (!is.null(subset_map[[base_name]])) {
+          sorted_names <- c(sorted_names, sort(subset_map[[base_name]]))
+        }
+      }
+    }
+    
+    # Return components in sorted order
+    components[match(sorted_names, component_names)]
+    
+  } else if (type %in% c("parameters", "variables")) {
+    # Group by component prefix (Generator_, Line_, Link_, etc.)
+    # Extract prefix before first underscore
+    component_groups <- list()
+    no_prefix <- character()
+    
+    for (name in component_names) {
+      if (grepl("^[A-Z][a-z]*[A-Z][a-z]*_", name)) {
+        # Has component prefix like "Generator_" or "StorageUnit_"
+        prefix <- sub("_.*$", "", name)
+        if (is.null(component_groups[[prefix]])) {
+          component_groups[[prefix]] <- character()
+        }
+        component_groups[[prefix]] <- c(component_groups[[prefix]], name)
+      } else if (grepl("^[A-Z][a-z]*_", name)) {
+        # Has simple prefix like "Line_" or "Bus_"
+        prefix <- sub("_.*$", "", name)
+        if (is.null(component_groups[[prefix]])) {
+          component_groups[[prefix]] <- character()
+        }
+        component_groups[[prefix]] <- c(component_groups[[prefix]], name)
+      } else {
+        # No recognizable prefix (e.g., "efficiency", "snapshot")
+        no_prefix <- c(no_prefix, name)
+      }
+    }
+    
+    # Sort groups alphabetically, then items within groups
+    sorted_names <- character()
+    group_names <- sort(names(component_groups))
+    for (group in group_names) {
+      sorted_names <- c(sorted_names, sort(component_groups[[group]]))
+    }
+    
+    # Add items without prefix at the end
+    if (length(no_prefix) > 0) {
+      sorted_names <- c(sorted_names, sort(no_prefix))
+    }
+    
+    # Return components in sorted order
+    components[match(sorted_names, component_names)]
+    
+  } else if (type == "mappings") {
+    # Simple alphabetical sort
+    components[order(component_names)]
+  } else {
+    # Default: return as-is
+    components
+  }
+}
+
 #' Write LaTeX representation of an equation or model
 #'
 #' @param x An object of class `equation` or `model`.
@@ -23,6 +146,9 @@ default_ending <- "\\end{document}"
 #' @param file Path to the output LaTeX file. If `NULL`, returns the LaTeX code as a character string.
 #' @param ... Additional arguments passed to the specific method.
 #'
+#' @return For an `mm_equation`, invisibly `file`. For an `mm_model`, invisibly
+#'   `file` when a path is given, otherwise the LaTeX source as a single
+#'   character string.
 #' @export
 write_latex <- function(x, file, ...) {
   UseMethod("write_latex")
@@ -30,6 +156,10 @@ write_latex <- function(x, file, ...) {
 
 #' Write LaTeX representation of an equation
 #'
+#' @param x An `mm_equation` (or, for the model method, an `mm_model`) object.
+#' @param file Path to the output LaTeX file.
+#' @param alias_map Named list mapping dimension names to index aliases used
+#'   in the rendered equations; `NULL` for none.
 #' @param append Logical; if `TRUE`, appends to the file instead of overwriting.
 #' @param standalone Logical; if `TRUE`, writes a complete LaTeX document with preamble and ending.
 #' @param preamble Character vector; LaTeX preamble to use. If `NULL`, uses the default preamble.
@@ -40,9 +170,10 @@ write_latex <- function(x, file, ...) {
 #' @param verbose Logical; if `TRUE`, prints additional information during processing.
 #' @param ... Additional arguments passed to the `as_latex` function for rendering the equation.
 #'
+#' @return Invisibly, `file`.
 #' @export
-#' @method write_latex equation
-write_latex.equation <- function(x,
+#' @method write_latex mm_equation
+write_latex.mm_equation <- function(x,
                                  file,
                                  append = FALSE,
                                  standalone = !append,
@@ -57,7 +188,6 @@ write_latex.equation <- function(x,
                                  verbose = FALSE,
                                  ...) {
 
-  browser()
   if (!is_empty(eq_substitute)) {
     # Substitute elements in the AST
     x <- remap_ast_elements(x,
@@ -105,7 +235,17 @@ write_latex.equation <- function(x,
 
 #' Write LaTeX representation of a model
 #'
-#' @inherit write_latex.equation
+#' @inherit write_latex.mm_equation params
+#' @param file Path to the output LaTeX file. If `NULL`, the LaTeX source is
+#'   returned as a character string.
+#' @param title Character; document title (default: `"Model: <name>"`).
+#' @param subtitle Character; document subtitle (default: the model description).
+#' @param author Character; document author (default: `x$authors`).
+#' @param show_date Logical; if `TRUE`, print the date on the title page.
+#' @param alias_map Named list mapping dimension names to index aliases; if
+#'   `NULL` and `use_model_aliases = TRUE`, taken from `x$index_aliases`.
+#' @param use_latex_names Logical; if TRUE, use LaTeX symbol names stored in
+#'   `x$metadata$latex_names` when available. Default TRUE.
 #' @param model_view Character; display mode: "reduced" (folded dims, skip trimmed),
 #'   "full" (original model), or "both" (comparison). Default auto-detects.
 #' @param include_data Logical; if TRUE, include data context (set sizes, etc.).
@@ -130,9 +270,11 @@ write_latex.equation <- function(x,
 #' @param folded_color Character; LaTeX color name for folded annotations. Default "blue".
 #' @param trimmed_color Character; LaTeX color name for trimmed annotations. Default "red".
 #'
+#' @return Invisibly, `file` when a path is given; otherwise the LaTeX source
+#'   as a single character string.
 #' @export
-#' @method write_latex model
-write_latex.model <- function(x,
+#' @method write_latex mm_model
+write_latex.mm_model <- function(x,
                               file = NULL,
                               append = FALSE,
                               preamble = NULL,
@@ -167,12 +309,12 @@ write_latex.model <- function(x,
                               eq_substitute = list("when" = "condition"),
                               alias_map = NULL,
                               use_model_aliases = TRUE,
+                              use_latex_names = TRUE,
                               use_aliases_in_declarations = FALSE,
                               folded_color = "blue",
                               trimmed_color = "red",
                               verbose = FALSE,
                               ...) {
-  # browser()
   # Auto-detect model_view default
   if (missing(model_view)) {
     is_optimized <- is_folded(x) || is_trimmed(x)
@@ -210,7 +352,6 @@ write_latex.model <- function(x,
     # Convert named vector to list if needed
     alias_map <- if (is.list(x$index_aliases)) x$index_aliases else as.list(x$index_aliases)
   }
-  # browser()
   if (!is_empty(eq_substitute)) {
     # Substitute elements in the AST
     x$equations <- lapply(x$equations, remap_ast_elements,
@@ -219,6 +360,13 @@ write_latex.model <- function(x,
   }
 
   model <- x
+  
+  # Build LaTeX names map from model metadata
+  latex_names <- NULL
+  if (use_latex_names && !is.null(model$metadata$latex_names)) {
+    latex_names <- model$metadata$latex_names
+  }
+  
   if (is.null(preamble)) {
     # Default LaTeX preamble
     preamble <- default_preamble
@@ -318,13 +466,33 @@ write_latex.model <- function(x,
   ## Sets ####
   if (include_sets && !is.null(model$sets)) {
     lines <- c(lines, "", "\\section{Sets}")
-    for (s in model$sets) {
+    # Sort sets: base sets first, then subsets, within groups alphabetically
+    sorted_sets <- sort_model_components(model$sets, type = "sets")
+    for (s in sorted_sets) {
       # Skip trimmed sets if model_view is "reduced"
       if (model_view == "reduced" && isTRUE(s$trimmed)) next
 
-      # Escape underscores for LaTeX
-      safe_name <- gsub("_", "\\\\_", s$name)
-      set_lx <- paste0("\\texttt{", safe_name, "}")
+      # Use LaTeX name if available (from metadata), otherwise escape underscores
+      latex_name <- if (!is.null(latex_names$sets)) latex_names$sets[[s$name]] else NULL
+      if (!is.null(latex_name) && nchar(latex_name) > 0) {
+        set_lx <- paste0("$", latex_name, "$")
+      } else {
+        safe_name <- gsub("_", "\\\\_", s$name)
+        set_lx <- paste0("\\texttt{", safe_name, "}")
+      }
+      
+      # Add subset relationship if present
+      if (!is_empty(s$subset_of)) {
+        # Get parent latex name from metadata
+        parent_latex <- if (!is.null(latex_names$sets)) latex_names$sets[[s$subset_of]] else NULL
+        if (!is.null(parent_latex) && nchar(parent_latex) > 0) {
+          set_lx <- paste0(set_lx, " $\\subseteq ", parent_latex, "$")
+        } else {
+          safe_parent <- gsub("_", "\\\\_", s$subset_of)
+          set_lx <- paste0(set_lx, " $\\subseteq$ \\texttt{", safe_parent, "}")
+        }
+      }
+      
       if (!is_empty(s$desc)) {
         set_lx <- paste0(set_lx, " -- ", as_latex(s$desc))
       }
@@ -352,7 +520,6 @@ write_latex.model <- function(x,
 
   if (include_aliases && !is.null(model$aliases)) {
     lines <- c(lines, "", "\\section{Aliases}\\", "\\begin{flushleft}")
-    # browser()
     for (a in model$aliases) {
       if (is.character(a)) {
         b <- paste0("\\texttt{", a, "}", collapse = ", ")
@@ -383,7 +550,9 @@ write_latex.model <- function(x,
 
   if (include_parameters && !is.null(model$parameters)) {
     lines <- c(lines, "", "\\section{Parameters}")
-    for (p in model$parameters) {
+    # Sort parameters by component groups, alphabetically within groups
+    sorted_params <- sort_model_components(model$parameters, type = "parameters")
+    for (p in sorted_params) {
       # Skip trimmed parameters if model_view is "reduced"
       if (model_view == "reduced" && isTRUE(p$trimmed)) next
 
@@ -395,9 +564,13 @@ write_latex.model <- function(x,
       }
 
       # Add row count if include_data and data_detail is "brief"
-      if (include_data && data_detail == "brief" && !is.null(p$data) && nrow(p$data) > 0) {
+      # Handle both data.frame and vector data formats
+      data_len <- if (!is.null(p$data)) {
+        if (is.data.frame(p$data)) nrow(p$data) else length(p$data)
+      } else 0
+      if (include_data && data_detail == "brief" && data_len > 0) {
         p_tex <- paste0(p_tex, " \\quad \\textit{(",
-                       format(nrow(p$data), big.mark = ","), " rows)}")
+                       format(data_len, big.mark = ","), " values)}")
       }
 
       # Annotate trimmed if showing full model
@@ -426,7 +599,9 @@ write_latex.model <- function(x,
 
   if (include_variables && !is.null(model$variables)) {
     lines <- c(lines, "", "\\section{Variables}")
-    for (v in model$variables) {
+    # Sort variables by component groups, alphabetically within groups
+    sorted_vars <- sort_model_components(model$variables, type = "variables")
+    for (v in sorted_vars) {
       # Skip trimmed variables if model_view is "reduced"
       if (model_view == "reduced" && isTRUE(v$trimmed)) next
 
@@ -463,7 +638,9 @@ write_latex.model <- function(x,
 
   if (include_mappings && !is.null(model$mappings)) {
     lines <- c(lines, "", "\\section{Mappings}")
-    for (m in model$mappings) {
+    # Sort mappings alphabetically
+    sorted_mappings <- sort_model_components(model$mappings, type = "mappings")
+    for (m in sorted_mappings) {
       # Skip trimmed mappings if model_view is "reduced"
       if (model_view == "reduced" && isTRUE(m$trimmed)) next
 

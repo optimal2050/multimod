@@ -1,0 +1,148 @@
+---
+title: "Model workspace and data"
+output: rmarkdown::html_vignette
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+has_arrow <- requireNamespace("arrow", quietly = TRUE)
+```
+
+```{r setup}
+library(multimod)
+```
+
+A model's data can be large. multimod keeps the model structure and the
+data apart on disk: `save_model()` writes a *workspace*, a directory with
+the R object for the structure and one data file per set, mapping and
+parameter, in CSV, Arrow IPC or Parquet. `load_model()` reads it back, with
+or without the data, and `get_data()` fetches a table from disk on demand.
+The generated JuMP and Pyomo code reads the same files at run time, which
+is why `write_jump()` and `write_pyomo()` create a workspace when they are
+given an empty `model_dir`.
+
+## Layout
+
+```
+<model_dir>/
+  model.rds              the model structure, as saved
+  metadata.json          counts and format, for readers outside R
+  format.txt             "csv", "ipc" or "parquet"
+  sets/<name>/data.*     one file per set, column `member`
+  mappings/<name>/data.* one file per mapping, one column per dimension
+  parameters/<name>/data.*          dimension columns plus `value`
+  parameters/<name>/folded_data/data.*   if the parameter is folded
+  variables/<name>/data.*           solution values, after a solve
+  solution_log.txt       one line per solution load
+  solvers/<backend>/     generated code and the backend's output
+```
+
+## Save and load
+
+```{r save}
+toy <- example_models$toy
+ws <- tempfile("toy-")
+toy <- save_model(toy, ws, format = "csv", verbose = FALSE)
+list.files(ws, recursive = TRUE)[1:8]
+toy$base_path == ws
+```
+
+`save_model()` returns the model with `base_path` set to the workspace.
+With `format = "ipc"` or `"parquet"` the data files are Arrow files, smaller
+and faster to read; both need the 'arrow' package, and the generated Julia
+and Python read them as readily as CSV.
+
+```{r save-ipc, eval = has_arrow}
+ws_ipc <- tempfile("toy-ipc-")
+save_model(toy, ws_ipc, format = "ipc", verbose = FALSE)
+list.files(file.path(ws_ipc, "parameters"), recursive = TRUE)
+```
+
+`load_model()` reads the structure and, by default, every data table:
+
+```{r load}
+m <- load_model(ws, verbose = FALSE)
+head(m$parameters$pAvail$data)
+```
+
+## Data on demand
+
+A large model is loaded without its data and asked for one table at a time.
+`get_data()` reads the table from the workspace and caches it in the model
+object it returns from.
+
+```{r lazy}
+m <- load_model(ws, load_data = FALSE, verbose = FALSE)
+is.null(m$parameters$pAvail$data)
+get_data(m, "pAvail", type = "parameter")
+get_data(m, "mTR", type = "mapping")
+get_data(m, "tech", type = "set")
+```
+
+## Changing data
+
+`update_parameter()` replaces a parameter's table; with `auto_save = TRUE`
+the file in the workspace is rewritten at the same time.
+
+```{r update}
+d <- get_data(m, "pDemand", type = "parameter")
+d$value <- d$value * 1.1
+m <- update_parameter(m, "pDemand", d, auto_save = TRUE)
+read.csv(file.path(ws, "parameters", "pDemand", "data.csv"))
+```
+
+The structure is unchanged, so the model can be re-solved on the new data
+through any route, for example in R:
+
+```{r resolve, eval = requireNamespace("highs", quietly = TRUE)}
+m <- load_model(ws, verbose = FALSE)
+solve_highs(m, attach = FALSE)$objective
+```
+
+## Solutions
+
+The file routes write their results under `solvers/<backend>/solution/`.
+With `load_results = TRUE` (the default when a model is passed),
+`solve_gmpl()`, `solve_jump()` and `solve_pyomo()` read the variable values
+into `model$variables[[name]]$solution`, copy them to `variables/`, and
+append a line to `solution_log.txt`, so the workspace always holds the
+latest solution and a record of when it was loaded.
+
+```{r solutions, eval = FALSE}
+r <- solve_jump(m, ws)
+r$model$variables$vGen$solution
+r$model$solution_metadata$variables_loaded
+readLines(file.path(ws, "solution_log.txt"))
+```
+
+## Folded data
+
+A folded parameter (see `vignette("folding")`) keeps both tables: the
+original under `data.*` and the reduced one under `folded_data/data.*`.
+`save_model()` writes both, `load_model()` reads both, and the writers take
+the folded table when the model is folded.
+
+## Reading the files elsewhere
+
+The data files are plain CSV or Arrow and need nothing from multimod:
+
+```python
+import pyarrow.feather as feather
+demand = feather.read_feather("ws/parameters/pDemand/data.arrow")
+```
+
+```julia
+using Arrow, DataFrames
+demand = DataFrame(Arrow.Table("ws/parameters/pDemand/data.arrow"))
+```
+
+`metadata.json` lists the counts and the format so a reader can orient
+itself without R.
+
+```{r metadata}
+cat(readLines(file.path(ws, "metadata.json")), sep = "\n")
+```
+
+```{r cleanup, include = FALSE}
+unlink(c(ws, if (exists("ws_ipc")) ws_ipc), recursive = TRUE)
+```

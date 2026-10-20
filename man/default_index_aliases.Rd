@@ -6,6 +6,10 @@
 \usage{
 default_index_aliases(dim_names)
 }
+\value{
+A character vector named by \code{dim_names}: the first letter of each
+name, made unique.
+}
 \description{
 Generate default iterator aliases from dimension names
 }

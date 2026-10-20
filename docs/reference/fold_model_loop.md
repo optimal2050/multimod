@@ -7,3 +7,7 @@ Internal fold loop with optional progress reporting
 ``` r
 fold_model_loop(model, fold_spec, tolerance, verbose, p = NULL)
 ```
+
+## Value
+
+The folded `mm_model`.

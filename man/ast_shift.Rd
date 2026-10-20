@@ -4,12 +4,14 @@
 \alias{ast_shift}
 \title{Create an index shift AST node for ordered set references}
 \usage{
-ast_shift(symbol, offset, ...)
+ast_shift(symbol, offset, circular = FALSE, ...)
 }
 \arguments{
 \item{symbol}{A character string representing the index symbol (e.g., "y", "ls", "ld").}
 
 \item{offset}{An integer offset. Negative for backward shift (e.g., -1 for y-1), positive for forward shift (e.g., +1 for y+1).}
+
+\item{...}{Additional fields stored on the node (passed to \code{\link[=new_ast]{new_ast()}}).}
 }
 \value{
 A \code{shift} S3 object (subclass of \code{ast}).

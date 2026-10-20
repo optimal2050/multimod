@@ -34,14 +34,25 @@ Data.frame, character vector (for sets), or NULL
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
-# Get parameter data
-data <- get_data(model, "pTechCost")
+m <- example_models$energyRt$multimod
 
-# Get mapping data
-data <- get_data(model, "mTechRegion", type = "mapping")
+# Parameter data
+head(get_data(m, "pTechOlife"))
+#>   tech region value
+#> 1 ECOA     C1    30
+#> 2 ECOA     C2    30
+#> 3 ECOA     C3    30
+#> 4 ECOA     C4    30
+#> 5 ECOA     C5    30
+#> 6 ECOA     W1    30
 
-# Get set members
-members <- get_data(model, "tech", type = "set")
-} # }
+# Mapping data
+head(get_data(m, "mCommTimeslice", type = "mapping"))
+#>   comm timeslice
+#> 1  COA    ANNUAL
+#> 2  GAS    ANNUAL
+#> 3  BIO    ANNUAL
+#> 4  NUC    ANNUAL
+#> 5  SOL   FAL_DAY
+#> 6  SOL   FAL_NGT
 ```

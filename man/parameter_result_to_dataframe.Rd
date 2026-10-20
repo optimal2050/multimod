@@ -6,6 +6,10 @@
 \usage{
 parameter_result_to_dataframe(result, dims)
 }
+\value{
+A data frame with one column per dimension and a \code{value} column, or
+\code{NULL} when \code{result} is \code{NULL}.
+}
 \description{
 Convert evaluated parameter arrays into long-form data frames
 }

@@ -1,16 +1,20 @@
-#' Trim unused elements from a model
+#' Decide whether to show a progress bar while trimming
 #'
-#' Removes "dead branches" from a model by marking unused sets, parameters,
-#' mappings, variables, and equations with `$trimmed = TRUE`. Code generators
-#' (e.g., write_jump, write_gmpl) will skip elements marked as trimmed.
+#' Heuristic used by [trim_model()] with `.progress = "auto"`: returns `TRUE`
+#' for models large enough that trimming takes noticeable time. Trimming
+#' removes "dead branches" by marking unused sets, parameters, mappings,
+#' variables, and equations with `$trimmed = TRUE`; code generators
+#' (e.g., write_jump, write_gmpl) skip elements marked as trimmed.
 #'
 #' @param model A multimod model object
-#' @param strategy Character. Trimming strategy:
-#'   - "unused": Remove empty data and dependent variables/equations (default)
-#'   - "aggressive": Also perform graph-based analysis (future)
-#' @param verbose Logical. Print progress messages (default: TRUE)
+#' @param element_threshold Integer. Progress is enabled when the number of
+#'   sets, parameters, mappings, variables and equations exceeds this value
+#'   (default: 100)
+#' @param row_threshold Integer. Progress is enabled when the total number of
+#'   parameter data rows exceeds this value (default: 50000)
 #'
-#' @return Model with `$trimmed = TRUE` flag on unused elements
+#' @return Logical; `TRUE` when a `progressr` progress bar should be shown
+#'   while trimming
 #'
 #' @details
 #' Trimming process:
@@ -24,20 +28,8 @@
 #' elements. Original data is preserved on disk but marked for exclusion from
 #' solver code generation.
 #'
-#' @examples
-#' \dontrun{
-#' # Typical workflow
-#' model <- fold_model(model)  # Reduce dimensions first
-#' model <- trim_model(model)  # Then remove dead branches
-#' write_jump(model, "model.jl")  # Trimmed elements excluded
-#' 
-#' # Check what was trimmed
-#' summary <- get_trim_summary(model)
-#' print(summary, format = "text")
-#' }
-#'
 #' @keywords internal
-should_enable_progress_trim <- function(model, 
+should_enable_progress_trim <- function(model,
                                         element_threshold = 100,
                                         row_threshold = 50000) {
   if (!requireNamespace("progressr", quietly = TRUE)) {
@@ -59,9 +51,31 @@ should_enable_progress_trim <- function(model,
   return(total_rows > row_threshold)
 }
 
+#' Trim a model to the elements its data actually uses
+#'
+#' Marks sets, parameters and mappings with no data, then the variables and
+#' equations whose domains are empty as a consequence, so that renderers skip
+#' them. The model keeps every element; [`untrim_model()`] restores the marks
+#' and [`get_trim_summary()`] reports what was trimmed.
+#'
+#' @param model A `mm_model` with data attached.
+#' @param strategy `"unused"` (the default) trims only elements that cannot
+#'   take part in any equation; `"aggressive"` also trims elements referenced
+#'   only by trimmed equations.
+#' @param verbose Print progress messages.
+#' @param .progress `"auto"` shows a progress bar (via the progressr package)
+#'   for large models only; `TRUE`/`FALSE` force it on or off.
+#'
+#' @return The model with trim marks set; `is_trimmed()` is `TRUE` for it.
+#' @seealso [`untrim_model()`], [`get_trim_summary()`], [`fold_model()`]
+#' @examples
+#' \donttest{
+#' trimmed <- trim_model(example_models$energyRt$multimod, verbose = FALSE)
+#' is_trimmed(trimmed)
+#' }
 #' @export
 trim_model <- function(model, strategy = "unused", verbose = TRUE, .progress = "auto") {
-  stopifnot(inherits(model, c("model", "multimod", "model_structure")))
+  stopifnot(inherits(model, c("mm_model", "multimod", "model_structure")))
   stopifnot(strategy %in% c("unused", "aggressive"))
   
   # Determine if progress should be enabled
@@ -187,12 +201,25 @@ trim_model <- function(model, strategy = "unused", verbose = TRUE, .progress = "
 #' @keywords internal
 mark_empty_data <- function(model, verbose = FALSE) {
   n_trimmed <- 0
-  
+
+  # A subset declaration registers ONE symbol on both sides, and only one
+  # side carries the members, so judging each side alone always trims the
+  # other. A folded equation names such a symbol parenthesised, as a mapping
+  # gate, where the unfolded one names it bare - which is why trimming a live
+  # process subset only shows up through use_folded = TRUE.
+  dual <- dual_registered_symbols(model)
+  dual_has_data <- function(nm) {
+    s <- model$sets[[nm]]$data
+    m <- model$mappings[[nm]]$data
+    (!is.null(s) && length(s) > 0) || (!is.null(m) && nrow(m) > 0)
+  }
+
   # Check sets
   if (!is.null(model$sets) && length(model$sets) > 0) {
     for (set_name in names(model$sets)) {
       set_obj <- model$sets[[set_name]]
       if (is.null(set_obj$data) || length(set_obj$data) == 0) {
+        if (set_name %in% dual && dual_has_data(set_name)) next
         model$sets[[set_name]]$trimmed <- TRUE
         n_trimmed <- n_trimmed + 1
         if (verbose) message("    Trimmed set: ", set_name)
@@ -219,6 +246,7 @@ mark_empty_data <- function(model, verbose = FALSE) {
     for (mapping_name in names(model$mappings)) {
       mapping_obj <- model$mappings[[mapping_name]]
       if (is.null(mapping_obj$data) || nrow(mapping_obj$data) == 0) {
+        if (mapping_name %in% dual && dual_has_data(mapping_name)) next
         model$mappings[[mapping_name]]$trimmed <- TRUE
         n_trimmed <- n_trimmed + 1
         if (verbose) message("    Trimmed mapping: ", mapping_name)
@@ -717,14 +745,16 @@ collect_trim_stats <- function(model) {
 #' @return Logical indicating if trimmed
 #'
 #' @examples
-#' \dontrun{
-#' is_trimmed(model)
-#' is_trimmed(model$parameters$pDemand)
-#' }
+#' m <- example_models$energyRt$multimod
+#' is_trimmed(m)
+#'
+#' m_trimmed <- trim_model(m, verbose = FALSE)
+#' is_trimmed(m_trimmed)
+#' is_trimmed(m_trimmed$parameters$pTechOlife)
 #'
 #' @export
 is_trimmed <- function(x) {
-  if (inherits(x, "model_structure") || inherits(x, "model")) {
+  if (inherits(x, "model_structure") || inherits(x, "mm_model")) {
     return(isTRUE(x$misc$trimmed))
   } else {
     return(isTRUE(x$trimmed))
@@ -743,20 +773,17 @@ is_trimmed <- function(x) {
 #' @return Logical indicating if any elements are trimmed
 #'
 #' @examples
-#' \dontrun{
-#' # Check if model has any trimmed elements
-#' if (is_trimmed_any(model)) {
-#'   cat("Model has trimmed elements\n")
-#' }
-#' # Check only data elements (excluding equations)
-#' if (is_trimmed_any(model, include_equations = FALSE)) {
-#'   cat("Model has trimmed data elements\n")
-#' }
-#' }
+#' m <- example_models$energyRt$multimod
+#' is_trimmed_any(m)
+#'
+#' m_trimmed <- trim_model(m, verbose = FALSE)
+#' is_trimmed_any(m_trimmed)
+#' # Only data elements (excluding equations)
+#' is_trimmed_any(m_trimmed, include_equations = FALSE)
 #'
 #' @export
 is_trimmed_any <- function(model, include_equations = TRUE) {
-  stopifnot(inherits(model, "model_structure") || inherits(model, "model"))
+  stopifnot(inherits(model, "model_structure") || inherits(model, "mm_model"))
   
   # Check sets
   if (!is.null(model$sets) && length(model$sets) > 0) {
@@ -812,15 +839,11 @@ is_trimmed_any <- function(model, include_equations = TRUE) {
 #' @return Trim statistics in requested format
 #'
 #' @examples
-#' \dontrun{
-#' # After trimming
-#' model <- trim_model(model)
-#' 
-#' # Get summary
-#' summary <- get_trim_summary(model)
-#' summary_df <- get_trim_summary(model, format = "data.frame")
-#' cat(get_trim_summary(model, format = "text"))
-#' }
+#' m <- trim_model(example_models$energyRt$multimod, verbose = FALSE)
+#'
+#' summary <- get_trim_summary(m)
+#' summary_df <- get_trim_summary(m, format = "data.frame")
+#' cat(get_trim_summary(m, format = "text"))
 #'
 #' @export
 get_trim_summary <- function(model, format = c("list", "data.frame", "text")) {
@@ -931,7 +954,7 @@ get_trim_summary <- function(model, format = c("list", "data.frame", "text")) {
 #'
 #' @export
 untrim_model <- function(model, elements = "all") {
-  stopifnot(inherits(model, "model_structure"))
+  stopifnot(inherits(model, c("mm_model", "model_structure")))
   
   if ("all" %in% elements) {
     elements <- c("sets", "parameters", "mappings", "variables", "equations")

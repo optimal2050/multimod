@@ -1,6 +1,6 @@
-# Generate metadata CSV files for sets, mappings, and parameters
+# Internal function to write JuMP model
 
-Generate metadata CSV files for sets, mappings, and parameters
+Internal function to write JuMP model
 
 ## Usage
 
@@ -25,3 +25,8 @@ write_jump_internal(
   ...
 )
 ```
+
+## Value
+
+A character vector of Julia source lines, invisibly when `file` is given
+(the lines are also written to it).

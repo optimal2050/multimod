@@ -6,6 +6,10 @@
 \usage{
 ensure_parameter_defval(param)
 }
+\value{
+\code{param} with a scalar \code{defVal} (the mean of its data, else 0) and a
+\code{misc$defVal_fallback} record when a fallback was applied.
+}
 \description{
 Ensure parameters retain a scalar default after evaluation
 }

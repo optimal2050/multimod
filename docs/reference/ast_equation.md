@@ -31,9 +31,20 @@ ast_equation(
 - relation:
 
   A character string representing the relation type. One of `"=="`,
-  `"<="`, or `">="`. @param name Optional character string. The name of
-  the equation. @param domain Optional AST node representing the domain
-  condition. @param desc Optional character string. A description or
-  label for the equation.
+  `"<="`, or `">="`.
 
-  @return An `equation` S3 object. @export
+- name:
+
+  Optional character string. The name of the equation.
+
+- domain:
+
+  Optional AST node representing the domain condition.
+
+- desc:
+
+  Optional character string. A description or label for the equation.
+
+## Value
+
+An `ast` node of class `equation`.

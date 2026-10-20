@@ -1,251 +1,109 @@
-# Development Status and Roadmap
+# Development status and roadmap
 
-The `multimod` package is under active but experimental development.
-This document outlines current capabilities, design scope, limitations,
-and roadmap for future enhancements.
+multimod 0.5.0 is the first CRAN release. The API is young: function
+signatures and class structures may still change between minor versions,
+and the NEWS file records every such change. This page lists what the
+release does not do yet, and the order in which the gaps are to be
+closed. What it does is in the README’s capability table and in the
+articles.
 
-## Current Status (December 2025)
+## Limitations in 0.5.0
 
-**Version 0.4+ (Development)** - Core features implemented, API
-stabilization in progress
+- **Model class.** Linear programs with continuous variables are the
+  tested path. Integer and binary variables are carried in the AST and
+  written by the JuMP and Pyomo writers; nonlinear expressions have AST
+  nodes but no tested route to a solver.
+- **Readers.**
+  [`read_gams()`](https://optimal2050.github.io/multimod/reference/read_gams.md)
+  covers the linear subset of GAMS that energy system templates use:
+  sets and subsets, aliases, parameters, `$` conditions, `sum`/`prod`,
+  `ord`/`card`, `smax`/`smin`. It does not read `TABLE` data, `loop` or
+  `if` blocks, or macros.
+  [`read_gmpl()`](https://optimal2050.github.io/multimod/reference/read_gmpl.md)
+  reads MathProg model files with data sections, computed parameters and
+  parametric defaults; set expressions in declarations are not parsed.
+  JuMP is read one constraint at a time — `mm_equation(lang = "jump")`
+  takes a `@constraint()` statement — not as a whole model. There is no
+  Pyomo reader.
+- **Writers.**
+  [`write_gams_data()`](https://optimal2050.github.io/multimod/reference/write_gams_data.md)
+  writes a GDX through the ‘gdxtools’ package, which at the time of
+  writing does not install on R 4.6 and later.
+  `write_pyomo(data_mode = "embedded")` is not implemented and falls
+  back to the external loader.
+- **Matrix route.** A symbol declared over plain sets, with no domain
+  mapping, is expanded over their cross product; an equation restricted
+  by a condition contributes the rows that satisfy it; lags and leads
+  resolve by position in the set, linear unless declared `circular`;
+  parameters defined by a formula are computed. A circular lag has no
+  syntax in MathProg, JuMP or Pyomo, so those writers refuse it rather
+  than flatten it.
+- **Experimental exports.** Functions grouped under “Experimental” in
+  the reference index
+  ([`as_r()`](https://optimal2050.github.io/multimod/reference/as_r.md),
+  the `compare_*()` helpers, visualisation, the granular storage
+  functions, configuration file writers) are exported but have no tests
+  yet.
 
-**WARNING**: All implementations are in active development stage - APIs
-may change, edge cases remain
+## Next
 
-The package has progressed significantly beyond initial roadmap
-milestones: - \[✓\] Configuration system for solver paths  
-- \[✓\] Model storage (CSV, IPC, Parquet formats)  
-- \[✓\] Parameter folding and model trimming  
-- \[✓\] Comprehensive vignettes and documentation  
-- \[~\] Readers/writers implementation and testing  
-- \[~\] API stabilization and architecture decisions
+### 0.5.x
 
-------------------------------------------------------------------------
+- Done in 0.5.0: dense domains, conditions, lags and formula parameters
+  in the matrix route, so a MathProg model solves with
+  [`solve_highs()`](https://optimal2050.github.io/multimod/reference/solve_highs.md)
+  (see the matrix-route limitation above for what that covers).
+- The four `SC2_*`/`SC4_*` storage-bracket equations of OSeMOSYS
+  assemble with no coefficients; find out why.
+- [`write_gams()`](https://optimal2050.github.io/multimod/reference/write_gams.md)
+  output that GAMS can run: parenthesised references and `ord()` for a
+  set element used in arithmetic.
+- Replace the remaining [`cat()`](https://rdrr.io/r/base/cat.html)
+  diagnostics with [`message()`](https://rdrr.io/r/base/message.html) so
+  they can be silenced.
+- Tests for the experimental exports, or their retirement.
 
-## What’s Implemented
+### 0.6 to 0.8
 
-### Core Functionality
+- API consolidation: one argument vocabulary across the `write_*()` and
+  `solve_*()` families, consistent return values, fewer exported
+  helpers.
+- The matrix route as the default for linear problems; the symbolic
+  writers remain for interoperability, inspection and documentation.
+- Row and column names in the written MPS as an option.
+- [`read_gmpl()`](https://optimal2050.github.io/multimod/reference/read_gmpl.md):
+  set expressions in declarations.
+- Larger GAMS coverage: `TABLE` data, `loop` blocks.
 
-- **Readers**:
-  - GAMS: Basic support for linear models (limited to core features)
-  - GMPL: Implemented but cannot parse expressions in set definitions,
-    missing some language features
-  - JuMP: Not yet implemented
-  - Pyomo: Not yet implemented
-- **Writers** (in testing):
-  - GAMS: Not yet implemented
-  - GMPL: Implemented, active testing
-  - JuMP: Implemented, active testing
-  - Pyomo: Implemented, active testing
-  - LaTeX: Implemented, functional
-- **AST**: Complete abstract syntax tree representation for linear
-  models
-- **Solvers**: Integration with GLPK, CBC, HiGHS, CPLEX, Gurobi (via
-  external calls)
+### 1.0
 
-### Advanced Features
+- Stable API.
+- Readers and writers for GAMS, MathProg, JuMP and Pyomo at the level
+  the energy system models need, each verified against a reference
+  objective.
 
-- **Parameter Folding**: Automated dimensionality reduction for uniform
-  parameters
-- **Model Trimming**: Remove unused sets, parameters, variables, and
-  equations
-- **Model Storage**: Save/load models in CSV, Apache Arrow IPC, or
-  Parquet formats
-- **Configuration System**: Multi-tier configuration (R options → env
-  vars → YAML → auto-detect)
-- **In-Memory Parsing**: Readers accept file paths or character vectors
+### Later
 
-### Data Integration & Connectivity
+- A C++ core with Python and Julia bindings to the same AST and JSON
+  schema.
+- AMPL reader and writer; LP and MPS readers.
+- Symbolic simplification of equations; redundancy detection with
+  safeguards; data-driven generation of domain mappings.
+- Direct solver APIs without files in between.
+- An interactive model explorer and equation dependency graphs.
 
-- **Storage Formats**:
-  - Apache Arrow IPC (fast, type-safe, binary)
-  - Apache Parquet (compressed, columnar)
-  - CSV (human-readable, portable)
-- **Data Sources**:
-  - Import from `energyRt` package structures
-  - Import OSeMOSYS model data
-  - Link to external Arrow/Parquet datasets for lazy loading
-- **Model Export Modes**:
-  - **Embedded data**: For small models (data included in generated
-    code)
-  - **External data**: For large models (code connects to Arrow
-    repository)
-  - Python/Pyomo and Julia/JuMP support both modes
-- **Functions**:
-  [`save_model()`](https://optimal2050.github.io/multimod/reference/save_model.md),
-  [`load_model()`](https://optimal2050.github.io/multimod/reference/load_model.md),
-  [`import_energyRt_data()`](https://optimal2050.github.io/multimod/reference/import_energyRt_data.md),
-  [`link_scenario_data()`](https://optimal2050.github.io/multimod/reference/link_scenario_data.md)
+## Scope
 
-### Documentation & Visualization
+multimod does not aim to translate every model automatically. It keeps a
+transparent intermediate representation that a modeller can read, adapt
+and re-render: the symbolic structure is there to be edited by hand
+during development, testing and teaching, and to be documented exactly
+as solved.
 
-- **LaTeX Generation**: Publication-ready mathematical documentation
-  with annotations
-- **Expression Visualization**: Interactive AST visualization with
-  visNetwork
-- **Comprehensive Vignettes**: 10+ vignettes covering major features
-- **Example Models**: Unified dataset with energyRt and OSeMOSYS
-  examples
+## Contributing
 
-------------------------------------------------------------------------
-
-## Current Limitations
-
-**WARNING**: All features are experimental and subject to change
-
-- **Optimization Types**: Primarily designed for linear programming (LP)
-  models
-  - Nonlinear expressions have basic AST support but limited
-    implementation
-  - Integer/binary variables supported in AST but not all writers
-- **Model Scope**: Designed around energy system models (`energyRt`,
-  OSeMOSYS structures)
-  - Can handle general LP models but may require adaptation
-- **Parser Completeness**:
-  - **GAMS**: Basic reader for linear models, many advanced features not
-    supported
-  - **GMPL**: Cannot parse expressions in set definitions, missing
-    language features
-  - **JuMP**: Reader not yet implemented
-  - **Pyomo**: Reader not yet implemented
-- **Writer Maturity**:
-  - **GAMS**: Not yet implemented
-  - **GMPL/JuMP/Pyomo**: In active testing, edge cases remain
-  - **LaTeX**: Stable
-- **API Stability**: Function signatures and class structures may change
-  as we stabilize the architecture
-
-------------------------------------------------------------------------
-
-## Project Philosophy
-
-The goal of `multimod` is **not** to automate full model translation or
-parsing. Instead, it aims to:
-
-- Facilitate development and symbolic restructuring of optimization
-  models
-- Act as a **transparent intermediate representation** for
-  multi-language export
-- Assist with documentation and visualization of models
-
-The symbolic structure enables users to adapt and refine models by hand,
-especially during development, testing, or educational use.
-
-------------------------------------------------------------------------
-
-## Potential Use Cases
-
-- **Model Development**: Prototype and refine optimization models across
-  languages
-- **Cross-Platform Translation**: Convert models between GAMS, JuMP,
-  Pyomo, GMPL
-- **Documentation**: Generate publication-ready LaTeX documentation with
-  equations
-- **Model Optimization**: Apply folding and trimming to reduce model
-  size
-- **Debugging**: Visualize model structure and equation dependencies
-- **Teaching**: Educational tool for understanding optimization model
-  structure
-- **Collaboration**: Share models in language-agnostic format
-- **Model Storage**: Efficiently save/load large models with structured
-  data formats
-
-------------------------------------------------------------------------
-
-## Roadmap to v1.0
-
-### Immediate Priorities (v0.6-0.8)
-
-**Architecture & API Stabilization**: - \[~\] Migration from S3 to R6/S7
-class system  
-- \[~\] Front-end API design and stabilization  
-- \[~\] Finalize function naming conventions
-
-**API Revision, Unification & Simplification**: - \[ \] Consolidate
-overlapping functions with inconsistent interfaces  
-- \[ \] Establish unified parameter naming conventions across all
-functions  
-- \[ \] Simplify data format handling (reduce format-specific function
-variants)  
-- \[ \] Create consistent return value structures (standardize output
-formats)  
-- \[ \] Design clear separation between user-facing and internal
-functions  
-- \[ \] Implement `@keywords internal` for internal helpers to clean up
-documentation  
-- \[ \] Unify error/warning messaging patterns across the package  
-- \[ \] Standardize default argument values and behavior  
-- \[ \] Create function families with predictable naming patterns:  
-- `read_*()` / `write_*()` for I/O operations  
-- `as_*()` for format conversion  
-- `load_*()` / `save_*()` for data persistence  
-- `parse_*()` for parsing operations  
-- `validate_*()` for validation checks  
-- \[ \] Reduce exported function count (move internal utilities to
-package namespace)  
-- \[ \] Design fluent API patterns for common workflows (e.g., model
-%\>% fold_model() %\>% trim_model())
-
-**Reader/Writer Completion**:  
-- \[ \] Basic GAMS reader - \[ \] Implement GAMS writer  
-- \[ \] Implement JuMP reader  
-- \[ \] Implement Pyomo reader  
-- \[ \] Finalize GMPL reader (handle set expressions, missing
-features)  
-- \[~\] Complete testing of GMPL/JuMP/Pyomo writers
-
-**Core Improvements**: - \[ \] Enhanced parser error messages and
-diagnostics - \[ \] Performance optimization for large models - \[ \]
-Extended test coverage (\>80% goal)
-
-### v1.0 Release Goals
-
-- Stable API with R6/S7 classes
-- Basic reader/writer suite for GAMS, GMPL, JuMP, Pyomo
-- Comprehensive documentation and vignettes
-- Full test suite with edge case coverage
-- CRAN submission readiness
-
-### Long-Term Vision (v2.0+)
-
-**Performance & Scalability**: - C++ core implementation for speed -
-Python API - Julia API
-
-**Advanced Features**: - {AMPL reader/writer} - MPS/LP file format
-support - Equation simplification using symbolic algebra - Automated
-redundancy detection with safety checks - Automated data-driven mapping
-generation - Direct solver API integration (bypass file I/O)
-
-**Tooling**: - Interactive model explorer (Shiny app) - Equation
-dependency graphs - Sensitivity analysis tools - Model comparison
-utilities
-
-------------------------------------------------------------------------
-
-## Contributing & Support
-
-The package is under active development and contributions are welcome!
-
-### Ways to Contribute
-
-- **Bug Reports**: Open issues on GitHub for any bugs or unexpected
-  behavior
-- **Feature Requests**: Suggest new features or improvements
-- **Code Contributions**: Submit pull requests with bug fixes or
-  enhancements
-- **Documentation**: Improve vignettes, examples, or function
-  documentation
-- **Testing**: Help test with different models and edge cases
-- **Use Cases**: Share your experiences and workflows
-
-### Development Priorities
-
-Current focus areas (contributions especially welcome): 1. Parser
-robustness for edge cases 2. Performance optimization for large models
-3. Additional example models and workflows 4. Extended test coverage
-
-### Get Involved
-
-- **GitHub**: <https://github.com/energyRt/multimod>
-- **Issues**: <https://github.com/energyRt/multimod/issues>
-- **Contact**: Open an issue or discussion on GitHub
+Issues and pull requests are welcome at
+[github.com/optimal2050/multimod](https://github.com/optimal2050/multimod).
+The most useful contributions today are models that break a reader, test
+cases for the experimental functions, and reports from platforms the
+authors do not use.

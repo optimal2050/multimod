@@ -118,7 +118,7 @@ solve_jump <- function(model = NULL,
   
   # Load solution values back into model if requested
   if (load_results && !is.null(model) && result$success) {
-    result$model <- load_jump_solution(model, model_dir, data_ext)
+    result$model <- load_jump_solution(model, model_dir, data_ext, verbose = verbose)
   }
   
   result
@@ -191,9 +191,9 @@ solve_jump_juliacall <- function(julia_file, verbose) {
   }
   
   # Setup Julia (only first time)
-  if (!exists(".julia_initialized", envir = .GlobalEnv)) {
+  if (!exists(".julia_initialized", envir = .mm_state)) {
     JuliaCall::julia_setup()
-    assign(".julia_initialized", TRUE, envir = .GlobalEnv)
+    assign(".julia_initialized", TRUE, envir = .mm_state)
   }
   
   # Change to model directory
@@ -325,7 +325,7 @@ parse_julia_output <- function(result, output) {
 
 #' Load JuMP solution values into model
 #' @noRd
-load_jump_solution <- function(model, model_dir, data_ext) {
+load_jump_solution <- function(model, model_dir, data_ext, verbose = TRUE) {
   
   # Solution directory is in solvers/jump/solution
   solution_dir <- file.path(model_dir, "solvers", "jump", "solution")
@@ -348,15 +348,28 @@ load_jump_solution <- function(model, model_dir, data_ext) {
   
   # Load solution for each variable
   for (var_name in names(model$variables)) {
-    var_file <- file.path(solution_dir, var_name, paste0("data", data_ext))
+    # model.jl writes solution/<var>.<ext>; the older save_solution() helper
+    # wrote solution/<var>/data.<ext>. Accept both.
+    candidates <- c(file.path(solution_dir, paste0(var_name, data_ext)),
+                    file.path(solution_dir, var_name, paste0("data", data_ext)))
+    var_file <- candidates[file.exists(candidates)][1]
+    if (is.na(var_file)) var_file <- candidates[1]
     
     if (file.exists(var_file)) {
       solution_data <- if (data_ext == ".csv") {
         read.csv(var_file, stringsAsFactors = FALSE)
       } else {
+        .need_pkg("arrow", "reading a JuMP solution in Arrow format")
         arrow::read_feather(var_file)
       }
       
+      # model.jl names the key columns dim1, dim2, ...; use the declared dims
+      dn <- get_dim_names(model$variables[[var_name]]$dims)
+      generic <- grepl("^dim[0-9]+$", names(solution_data))
+      if (sum(generic) > 0 && sum(generic) == length(dn)) {
+        names(solution_data)[generic] <- dn
+      }
+
       # Store in model
       model$variables[[var_name]]$solution <- solution_data
       variables_loaded <- c(variables_loaded, var_name)
@@ -387,28 +400,20 @@ load_jump_solution <- function(model, model_dir, data_ext) {
 }
 
 
-#' Write JuMP solution values to disk
+#' Julia source of the JuMP solution writer
 #'
-#' Helper function to save solution values from Julia model.
-#' Called from within Julia code after solving.
+#' Returns the Julia code of the `save_solution(model, output_dir, data_format)`
+#' helper that is embedded in the generated `model.jl` and called after solving.
 #'
-#' @param model JuMP model object (from Julia)
-#' @param output_dir Directory to save solutions
-#' @param format Data format ("arrow" or "csv")
-#' @param run_name Name for this solution run (default: timestamp)
+#' @return A character string with Julia source code.
 #'
 #' @details
-#' This is typically called from within the generated model.jl file.
+#' The helper is called from within the generated model.jl file.
 #' It saves variable values in the same directory structure as input data.
 #'
 #' @examples
-#' \dontrun{
-#' # In Julia (model.jl):
-#' # After solve...
-#' using Dates
-#' run_name = Dates.format(now(), "yyyy-mm-dd_HHMMSS")
-#' save_jump_solution(model, "../../solutions/" * run_name, DATA_FORMAT)
-#' }
+#' # Julia source of the save_solution() helper embedded in generated model.jl
+#' cat(write_jump_solution_code())
 #'
 #' @export
 write_jump_solution_code <- function() {

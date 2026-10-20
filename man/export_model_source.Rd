@@ -2,10 +2,10 @@
 % Please edit documentation in R/export_model_source.R
 \name{export_model_source}
 \alias{export_model_source}
-\title{Export Model Source Files}
+\title{Export the bundled energyRt model as a solver workspace}
 \usage{
 export_model_source(
-  dataset = c("osemosys", "energyrt"),
+  dataset = c("energyrt"),
   dir,
   format = "all",
   overwrite = FALSE,
@@ -13,88 +13,50 @@ export_model_source(
 )
 }
 \arguments{
-\item{dataset}{Name of the dataset to export. Either "osemosys" or "energyrt".}
+\item{dataset}{Name of the dataset to export. Currently only \code{"energyrt"}.}
 
-\item{dir}{Directory path where files will be written. Will be created if it
-doesn't exist.}
+\item{dir}{Directory path for the workspace. Created if it does not exist.}
 
-\item{format}{For energyrt dataset, which format to export: "gams", "gmpl",
-"jump", "pyomo", or "all" (default). Ignored for osemosys dataset.}
+\item{format}{Which backend to export: \code{"gams"}, \code{"gmpl"}, \code{"jump"},
+\code{"pyomo"}, or \code{"all"} (default).}
 
-\item{overwrite}{Logical. If TRUE, overwrite existing files. Default is FALSE.}
+\item{overwrite}{Logical. If \code{TRUE}, existing solver directories are
+rewritten. Default is \code{FALSE}: a backend whose directory exists is skipped.}
 
-\item{verbose}{Logical. If TRUE, print progress messages. Default is TRUE.}
+\item{verbose}{Logical. If \code{TRUE}, print progress messages. Default is \code{TRUE}.}
 }
 \value{
-Invisible list of file paths that were created.
+Invisibly, a character vector of the files written.
 }
 \description{
-Export model source code from package datasets (osemosys_source or
-energyRt_source) to files in a specified directory. This is useful for
-testing parsers, running models, or inspecting model code.
+Writes the energyRt model shipped in \code{example_models} to a directory, as a
+model workspace (see \code{\link[=save_model]{save_model()}}) with one sub-directory per requested
+backend under \verb{solvers/}. The GAMS source is the file the model was parsed
+from; the MathProg, JuMP and Pyomo code is rendered from the parsed model
+with \code{\link[=write_gmpl]{write_gmpl()}}, \code{\link[=write_jump]{write_jump()}} and \code{\link[=write_pyomo]{write_pyomo()}}.
 }
 \details{
-\subsection{OSeMOSYS Export}{
-
-For the OSeMOSYS dataset, exports:
+The workspace layout is the one every \verb{solve_*()} function expects:
 \itemize{
-\item \code{osemosys.txt}: Model code
-\item \code{utopia.txt}: Data file
-}
-}
-
-\subsection{energyRt Export}{
-
-For the energyRt dataset, exports files based on the \code{format} argument:
-\itemize{
-\item \strong{GAMS} (\code{format = "gams"}):
-\itemize{
-\item \code{model.gms}: Model code with all includes resolved
-\item \code{data.gms}: Data assignments with all includes resolved
-\item \code{README.txt}: Model metadata and information
-}
-\item \strong{GMPL} (\code{format = "gmpl"}):
-\itemize{
-\item \code{model.mod}: Model declarations
-\item \code{data.dat}: Data statements
-\item \code{README.txt}: Model metadata and information
-}
-\item \strong{JuMP} (\code{format = "jump"}):
-\itemize{
-\item \code{model.jl}: JuMP model code with includes resolved
-\item \code{data.jl}: Pure Julia data code (no RData dependency)
-\item \code{README.txt}: Model metadata and information
-}
-\item \strong{Pyomo} (\code{format = "pyomo"}):
-\itemize{
-\item \code{model.py}: Pyomo model code
-\item \code{data.py}: Python data code with exec() resolved
-\item \code{README.txt}: Model metadata and information
-}
-\item \strong{All} (\code{format = "all"}):
-\itemize{
-\item Exports all formats to subdirectories: gams/, gmpl/, jump/, pyomo/
-}
-}
+\item \code{model.rds}, \verb{sets/}, \verb{mappings/}, \verb{parameters/}: the saved model and its
+data (CSV), written once by \code{\link[=save_model]{save_model()}}.
+\item \code{solvers/gams/model.gms}: the GAMS source of the energyRt model.
+\item \code{solvers/gmpl/model.mod} and \code{data.dat}: MathProg, run with
+\verb{glpsol -m model.mod -d data.dat} from that directory.
+\item \code{solvers/jump/model.jl} and \code{data.jl}: JuMP, run with \verb{julia model.jl}.
+\item \code{solvers/pyomo/model.py} and \code{data.py}: Pyomo, run with \verb{python model.py}.
+\item \code{README.txt}: provenance and licence of the model.
 }
 }
 \examples{
-\dontrun{
-# Export OSeMOSYS to temporary directory
-tmp_dir <- tempdir()
-export_model_source("osemosys", file.path(tmp_dir, "osemosys"))
+\donttest{
+ws <- file.path(tempdir(), "energyrt_ws")
+files <- export_model_source("energyrt", ws, format = "gmpl")
+basename(files)
 
-# Export energyRt GMPL format
-export_model_source("energyrt", file.path(tmp_dir, "energyrt"),
-                    format = "gmpl")
-
-# Export all energyRt formats
-export_model_source("energyrt", file.path(tmp_dir, "energyrt_all"),
-                    format = "all")
-
-# Use exported files
-osemosys_dir <- file.path(tmp_dir, "osemosys")
-model <- read_gmpl(file.path(osemosys_dir, "osemosys.txt"))
+model <- read_gmpl(file.path(ws, "solvers", "gmpl", "model.mod"),
+                   file.path(ws, "solvers", "gmpl", "data.dat"))
+unlink(ws, recursive = TRUE)
 }
 
 }

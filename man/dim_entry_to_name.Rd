@@ -6,6 +6,9 @@
 \usage{
 dim_entry_to_name(entry)
 }
+\value{
+A character string, or \code{NA_character_} for \code{NULL}.
+}
 \description{
 Convert a single dimension entry to its name
 }

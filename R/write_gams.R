@@ -18,14 +18,22 @@ write_gams <- function(model, file = NULL, format_expr = TRUE, ...) {
 #' @param model A `multimod` model object
 #' @param file Output file path (optional)
 #' @param format_expr logical; whether to format expressions with line breaks
+#' @param gdx Name of a GDX to `$load` the data from, as written by
+#'   [write_gams_data()]. `NULL` (default) emits declarations and equations
+#'   only. NEOS decodes its input GDX to `in.gdx`, so that is the useful
+#'   name for a NEOS job.
+#' @param include_solve Logical; append the `model` / `solve` statements.
+#'   Needed for a runnable job, and harmless otherwise.
+#' @param objective Name of the variable to minimise.
 #' @param ... Additional arguments passed to formatting functions
 #'
 #' @return Character vector or writes file if `file` is given
-#' @method write_gams model
+#' @method write_gams mm_model
 #' @export
-write_gams.model <- function(model, file = NULL, format_expr = TRUE, ...) {
-  # browser()
-  stopifnot(inherits(model, "model"))
+write_gams.mm_model <- function(model, file = NULL, format_expr = TRUE,
+                             gdx = NULL, include_solve = FALSE,
+                             objective = "vObjective", ...) {
+  stopifnot(inherits(model, "mm_model"))
 
   lines <- character()
 
@@ -39,8 +47,16 @@ write_gams.model <- function(model, file = NULL, format_expr = TRUE, ...) {
   lines <- c(lines, "")
 
   # Sets
+  subset_symbols <- dual_registered_symbols(model)
   lines <- c(lines, "sets")
   for (s in model$sets) {
+    # The subset form is declared here, ahead of the alias statements that
+    # name these sets. The declaration comes from the mapping, which carries
+    # the parent, so `sup` is emitted as `sup(process)` once.
+    if (!is.null(s$name) && s$name %in% subset_symbols) {
+      lines <- c(lines, as_gams(model$mappings[[s$name]], desc = TRUE))
+      next
+    }
     lines <- c(lines, as_gams(s, desc = TRUE))
   }
   lines <- c(lines, ";")
@@ -58,6 +74,8 @@ write_gams.model <- function(model, file = NULL, format_expr = TRUE, ...) {
   lines <- c(lines, "sets")
   # Mappings
   for (m in model$mappings) {
+    # Already declared with the sets above, ahead of the aliases.
+    if (!is.null(m$name) && m$name %in% subset_symbols) next
     lines <- c(lines, as_gams(m, desc = TRUE))
   }
   lines <- c(lines, ";")
@@ -70,13 +88,41 @@ write_gams.model <- function(model, file = NULL, format_expr = TRUE, ...) {
   }
   lines <- c(lines, ";")
 
-  lines <- c(lines, "")
-  lines <- c(lines, "variables")
-  # Variables
-  for (v in model$variables) {
-    lines <- c(lines, as_gams(v, desc = TRUE))
+  # A parameter defined by a formula is declared above like any other, then
+  # assigned: GAMS has no inline `:=`. Written after the declarations so every
+  # name a formula refers to already exists.
+  computed <- Filter(function(p) !is.null(p$formula), model$parameters %||% list())
+  if (length(computed)) {
+    lines <- c(lines, "", "* computed parameters")
+    for (p in computed) {
+      f <- p$formula
+      if (!inherits(f, "ast_formula")) {
+        # a bare expression: assign it over the parameter's own dimensions
+        f <- new_ast_formula(target = p$name, field = "value", expr = f,
+                             index_vars = get_dim_names(p$dims))
+      }
+      lines <- c(lines, as_gams(f))
+    }
   }
-  lines <- c(lines, ";")
+
+  lines <- c(lines, "")
+  # A bare `variable` is free in GAMS; a non-negative one is `positive`.
+  vars <- model$variables %||% list()
+  is_pos <- vapply(vars, function(v) {
+    t <- v$vtype
+    !is.null(t) && length(t) == 1L && !is.na(t) && identical(tolower(t), "positive")
+  }, logical(1))
+
+  if (any(!is_pos)) {
+    lines <- c(lines, "variables")
+    for (v in vars[!is_pos]) lines <- c(lines, as_gams(v, desc = TRUE))
+    lines <- c(lines, ";")
+  }
+  if (any(is_pos)) {
+    lines <- c(lines, "positive variables")
+    for (v in vars[is_pos]) lines <- c(lines, as_gams(v, desc = TRUE))
+    lines <- c(lines, ";")
+  }
   lines <- c(lines, "")
 
   # Equations (declarations)
@@ -93,6 +139,68 @@ write_gams.model <- function(model, file = NULL, format_expr = TRUE, ...) {
       gams_eq <- format_gams_expression(gams_eq, ...)
     }
     lines <- c(lines, gams_eq, "")
+  }
+
+  # Data. Values travel in a GDX, loaded at compile time. Base sets precede
+  # their subsets for domain checking, and every declared symbol is loaded,
+  # empty ones included.
+  if (!is.null(gdx)) {
+    set_syms <- names(model$sets %||% list())
+    map_syms <- setdiff(names(model$mappings %||% list()), set_syms)
+    par_syms <- names(model$parameters %||% list())
+
+    lines <- c(lines, "* Data", "$onEmpty", paste0("$gdxin ", gdx))
+    for (nm in c(set_syms, map_syms, par_syms)) {
+      lines <- c(lines, paste0("$load ", nm))
+    }
+    lines <- c(lines, "$gdxin", "$offEmpty", "")
+
+    # GAMS has no per-parameter default, so one is assigned after loading.
+    # A stored zero is written as EPS, which survives the fill; the second
+    # pass restores it to zero.
+    defaulted <- character(0)
+    for (nm in par_syms) {
+      p <- model$parameters[[nm]]
+      dv <- p$defVal
+      if (is.null(dv) || !is.numeric(dv) || length(dv) != 1 || dv == 0) next
+      dims <- get_dim_names(p$dims)
+      if (length(dims) == 0) next
+      idx <- paste0("(", paste(dims, collapse = ","), ")")
+      lines <- c(lines, paste0(nm, idx, "$(not ", nm, idx, ") = ",
+                               format(dv, scientific = FALSE), ";"))
+      defaulted <- c(defaulted, nm)
+    }
+    # Every parameter that stores a zero is restored, not only the defaulted
+    # ones: an EPS left in a coefficient is a non-zero where zero was meant.
+    # Parameters with no stored zero carry no EPS and are skipped, which
+    # keeps this from adding a dense pass per parameter.
+    stores_zero <- function(p) {
+      for (d in list(p$data, p$folded_data)) {
+        if (!is.null(d) && nrow(d) > 0 && "value" %in% names(d) &&
+            any(d$value == 0, na.rm = TRUE)) return(TRUE)
+      }
+      FALSE
+    }
+    restored <- 0L
+    for (nm in par_syms) {
+      p <- model$parameters[[nm]]
+      dims <- get_dim_names(p$dims)
+      if (length(dims) == 0 || !stores_zero(p)) next
+      idx <- paste0("(", paste(dims, collapse = ","), ")")
+      lines <- c(lines, paste0(nm, idx, "$(", nm, idx, " = EPS) = 0;"))
+      restored <- restored + 1L
+    }
+    if (length(defaulted) > 0 || restored > 0) lines <- c(lines, "")
+  }
+
+  if (isTRUE(include_solve)) {
+    mdl <- model$name %||% "mm_model"
+    mdl <- gsub("[^A-Za-z0-9_]", "_", mdl)
+    lines <- c(lines,
+               paste0("model ", mdl, " / all / ;"),
+               paste0("solve ", mdl, " minimizing ", objective, " using LP;"),
+               paste0("display ", objective, ".l;"),
+               "")
   }
 
   # Output
@@ -125,7 +233,6 @@ write_gams.model <- function(model, file = NULL, format_expr = TRUE, ...) {
 
 format_gams_expression <- function(gams_lines, indent = 4) {
   `%+%` <- function(a, b) paste0(a, b)
-  # browser()
 
   extract_sum_parts <- function(part) {
     inside <- sub("^sum\\((.*)\\)$", "\\1", part)
@@ -155,7 +262,6 @@ format_gams_expression <- function(gams_lines, indent = 4) {
   }
 
   split_recursive <- function(expr, current_indent) {
-    # browser()
     chars <- strsplit(expr, "")[[1]]
     depth <- 0; buffer <- ""; parts <- character(); i <- 1
     while (i <= length(chars)) {

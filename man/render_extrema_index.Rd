@@ -6,6 +6,10 @@
 \usage{
 render_extrema_index(index_node, brackets = NULL, ...)
 }
+\value{
+A character string of LaTeX code for the index of a min/max
+construct.
+}
 \description{
 Render LaTeX indices for extrema constructs
 }

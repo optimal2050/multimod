@@ -8,7 +8,8 @@ Creates unique dummy variable names for a collection of sets
 generate_index_aliases(
   set_names,
   all_set_names = set_names,
-  all_symbols = NULL
+  all_symbols = NULL,
+  used_names = character(0)
 )
 ```
 
@@ -26,6 +27,11 @@ generate_index_aliases(
 
   List. All symbols in model (from build_symbols_list)
 
+- used_names:
+
+  Character vector. Iterator names already taken elsewhere in the model,
+  so a partial regeneration does not reissue one.
+
 ## Value
 
 Named character vector. Dummy variable names with set names as names
@@ -33,7 +39,7 @@ Named character vector. Dummy variable names with set names as names
 ## Examples
 
 ``` r
-generate_index_aliases(c("tech", "region", "comm", "commp", "year", "slice"))
-#>   tech region   comm  commp   year  slice 
-#>    "h"    "r"    "c"   "cp"    "y"   "ts" 
+generate_index_aliases(c("tech", "region", "comm", "commp", "year", "timeslice"))
+#>      tech    region      comm     commp      year timeslice 
+#>       "h"       "r"       "c"      "cp"       "y"      "ts" 
 ```

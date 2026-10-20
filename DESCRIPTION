@@ -1,34 +1,63 @@
 Package: multimod
-Title: Define and Render Mathematical Models Across Multiple Optimization Languages.
-Version: 0.4.0.9007
-Date: 2025-12-08
-Authors@R: 
+Title: Define and Render Mathematical Models Across Optimization Languages
+Version: 0.5.0
+Authors@R:
   c(person(given = "Oleg", 
           family = "Lugovoy", 
           email = "olugovoy@optimalsolution.dev", 
           role = c("aut", "cre"), 
           comment = c(ORCID = "0000-0001-5546-9875")))
-Description: Multimod provides a domain-specific language (DSL) for defining algebraic equations and constraints in R, and rendering them to multiple mathematical programming languages, including GAMS, AMPL, Pyomo, and JuMP. It supports structured storage of equations, parameters, sets, and mappings, and aims to simplify the development of complex optimization models across platforms.
-URL: https://optimal2050.github.io/multimod, https://github.com/optimal2050/multimod 
-License: MIT + file LICENSE
+Description: A domain-specific language for defining sets, parameters,
+    variables, mappings and equations of an algebraic optimization model in R,
+    and rendering the model to several mathematical programming languages,
+    including 'GAMS', 'GNU MathProg', 'Pyomo' and 'JuMP', or to an LP matrix
+    solved in R. Models can be folded, trimmed, validated, compared and
+    stored, and solutions read back into R. Linear programs with continuous
+    variables are the tested class; integer and binary variables are carried in
+    the model and written by some backends, and nonlinear expressions have no
+    tested route to a solver.
+URL: https://optimal2050.github.io/multimod/, https://github.com/optimal2050/multimod
+BugReports: https://github.com/optimal2050/multimod/issues
+License: Apache License (>= 2)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.3
 Depends: R (>= 4.0)
 Imports:
     stringr,
     dplyr,
     data.table,
-    visNetwork,
+    Matrix,
     rlang,
     purrr,
     digest,
-    magrittr
-Suggests: 
+    magrittr,
+    jsonlite
+Suggests:
+    arrow,
+    visNetwork,
+    R6,
+    highs,
+    glpsol,
+    withr,
+    reticulate (>= 1.28),
+    tidync,
     knitr,
     lobstr,
     rmarkdown,
-    progressr
+    progressr,
+    dtplyr,
+    compare,
+    yaml,
+    htmltools,
+    processx,
+    callr,
+    JuliaCall,
+    DiagrammeR,
+    testthat (>= 3.0.0)
+Enhances:
+    gdxtools
+Config/testthat/edition: 3
 VignetteBuilder: knitr
 LazyData: true
 Config/Needs/website: rmarkdown
+Config/roxygen2/version: 8.1.1

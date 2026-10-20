@@ -26,7 +26,7 @@ Character. A short dummy variable name
 \description{
 Creates a short dummy variable name from a set name following conventions:
 \itemize{
-\item Uses preferred names for common sets (tech -> h, slice -> ts, etc.)
+\item Uses preferred names for common sets (tech -> h, timeslice -> ts, etc.)
 \item First letter of the set name (lowercase) for others
 \item If it's an alias, use two letters (checking against all_set_names)
 \item Ensures uniqueness by checking against all symbols in model
@@ -34,6 +34,6 @@ Creates a short dummy variable name from a set name following conventions:
 }
 \examples{
 generate_index_alias("tech") # "h"
-generate_index_alias("slice") # "ts"
+generate_index_alias("timeslice") # "ts"
 generate_index_alias("commp", all_set_names = c("comm", "commp")) # "cp"
 }

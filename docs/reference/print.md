@@ -21,3 +21,8 @@ print(x, ...)
 - ...:
 
   Additional arguments passed to print methods
+
+## Value
+
+Called for the side effect of printing; the methods return `x` or `NULL`
+invisibly.

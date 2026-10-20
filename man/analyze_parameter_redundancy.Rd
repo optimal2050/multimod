@@ -50,16 +50,13 @@ High original redundancy with no folding indicates missed optimization opportuni
 High folded redundancy suggests additional dimensions could be folded.
 }
 \examples{
-\dontrun{
-# Analyze all parameters
-analyze_parameter_redundancy(model)
+m <- example_models$energyRt$multimod
 
 # Analyze specific parameters
-analyze_parameter_redundancy(model, params = c("pTechCinp2use", "pSupCost"))
+analyze_parameter_redundancy(m, params = c("pTechCinp2use", "pSupCost"))
 
-# Get detailed results
-results <- analyze_parameter_redundancy(model, return_details = TRUE)
-View(results)
-}
+# Analyze all parameters and keep the per-parameter details
+results <- analyze_parameter_redundancy(m, return_details = TRUE)
+head(results)
 
 }

@@ -6,6 +6,9 @@
 \usage{
 get_dependencies(ast, model)
 }
+\value{
+A character vector of unique parameter names referenced in \code{ast}.
+}
 \description{
 Get dependencies from AST
 }

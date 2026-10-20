@@ -13,7 +13,8 @@ new_equation(
   relation = "==",
   domain = NULL,
   comment = NULL,
-  dims_index_aliases = NULL
+  dims_index_aliases = NULL,
+  symbols = NULL
 )
 }
 \arguments{
@@ -32,6 +33,13 @@ new_equation(
 \item{domain}{Optional AST or symbol representing the domain/mapping condition for the equation.}
 
 \item{comment}{character, comment line from source file (e.g., *@ domain hint)}
+
+\item{dims_index_aliases}{Optional character vector of equation-specific
+iterator names, one per declared dimension (preserved from the source
+model, e.g. by \code{read_gmpl()}).}
+
+\item{symbols}{Optional named list of known symbols (sets, aliases) used to
+resolve dimension names in \code{\link[=ast_dims]{ast_dims()}}.}
 }
 \value{
 An object of class \code{equation}, containing the parsed equation structure.
@@ -43,7 +51,10 @@ right-hand side (RHS), relation operator (e.g., equality or inequality), and an 
 }
 \examples{
 lhs <- ast_variable("vTechOut", dims = c("tech", "region"))
-rhs <- ast_expression("*", param("pTechEff", dims = c("tech")), ast_variable("vTechInp", dims = c("tech", "region")))
+rhs <- ast_expression("*",
+  ast_parameter("pTechEff", dims = c("tech")),
+  ast_variable("vTechInp", dims = c("tech", "region"))
+)
 eq <- new_equation(
   name = "eqTechEff",
   desc = "Technology output efficiency",

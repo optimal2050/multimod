@@ -21,6 +21,14 @@ remap_ast_elements(
 
 \item{name_prefix}{A character string prefix for the new names of the
 replaced elements. Defaults to "m".}
+
+\item{n}{Integer; starting value of the counter used to number the
+replaced elements (default 0).}
+
+\item{latex_max}{Numeric; elements whose rendered LaTeX is shorter than
+this estimated length are left in place (default 10).}
+
+\item{...}{Further arguments, currently ignored.}
 }
 \value{
 Modified AST object with remapped elements

@@ -9,6 +9,9 @@ sets.
 
 ``` r
 make_valid(x, ...)
+
+# S3 method for class 'mm_model'
+make_valid(x, verbose = FALSE, stop_on_error = FALSE, revalidate = FALSE, ...)
 ```
 
 ## Arguments

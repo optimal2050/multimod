@@ -10,6 +10,8 @@ ast_mapping(name, dims = ast_dims(), ...)
 \item{name}{A character string representing the mapping name.}
 
 \item{dims}{An \code{dims} object representing the dimensions of the mapping.}
+
+\item{...}{Additional fields stored on the node (passed to \code{\link[=new_ast]{new_ast()}}).}
 }
 \value{
 An \code{mapping} S3 object (subclass of \code{ast}).

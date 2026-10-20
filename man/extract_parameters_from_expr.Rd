@@ -6,6 +6,9 @@
 \usage{
 extract_parameters_from_expr(node)
 }
+\value{
+A list of \code{mm_parameter} AST nodes found in \code{node}; possibly empty.
+}
 \description{
 Extract all parameter nodes from expression tree
 }

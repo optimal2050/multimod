@@ -6,6 +6,9 @@
 \usage{
 collect_product_factors(node)
 }
+\value{
+A list of AST nodes, the factors of \code{node} in order; empty for \code{NULL}.
+}
 \description{
 Flatten a chain of multiplicative expressions into individual factors
 }

@@ -5,3 +5,15 @@
 tmp/
 inst/doc
 .DS_Store
+drafts/
+dev/
+projects/
+
+# GMPL diagnostics written by glpsol to its working directory
+/constraint_stats.csv
+/variable_stats.csv
+
+
+# Julia environment created by a --project=. run in the package root
+/Project.toml
+/Manifest.toml

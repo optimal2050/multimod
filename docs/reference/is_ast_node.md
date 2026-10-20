@@ -7,3 +7,7 @@ Check if object is an AST node
 ``` r
 is_ast_node(x)
 ```
+
+## Value
+
+A logical scalar.

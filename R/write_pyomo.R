@@ -6,6 +6,11 @@
 #' embedded literals), and a lightweight `solve.py` runner.
 #'
 #' @inheritParams write_jump
+#' @param model_dir Model workspace directory. The scaffold is written to
+#'   `<model_dir>/solvers/<solver_dir>/` and reads its data from the workspace,
+#'   so the directory must hold one written by [save_model()]; if it does not,
+#'   the model is saved there first (CSV format). Defaults to the directory the
+#'   model was loaded from or saved to (`model$base_path`).
 #' @param solver Python solver name passed to `pyomo.opt.SolverFactory`
 #'   (default `"highs"`).
 #' @param data_mode Whether data should be stored externally in files
@@ -17,7 +22,7 @@
 #'   by the other writers (`model` + `data`). Set `split = TRUE` to preserve the
 #'   previous three-file scaffold.
 #' @export
-write_pyomo <- function(model, file = NULL, model_dir = NULL, solver_dir = "pyomo",
+write_pyomo <- function(model, model_dir = NULL, solver_dir = "pyomo",
                         model_name = "model", solver = "highs",
                         use_folded = TRUE, cleanup = TRUE,
                         data_mode = c("external", "embedded"),
@@ -27,13 +32,13 @@ write_pyomo <- function(model, file = NULL, model_dir = NULL, solver_dir = "pyom
 }
 
 #' @export
-write_pyomo.model <- function(model, file = NULL, model_dir = NULL, solver_dir = "pyomo",
+write_pyomo.mm_model <- function(model, model_dir = NULL, solver_dir = "pyomo",
                               model_name = "model", solver = "highs",
                               use_folded = TRUE, cleanup = TRUE,
                               data_mode = c("external", "embedded"),
                               split = FALSE, export_vars = FALSE, export_data = FALSE,
                               export_mps = FALSE, ...) {
-  write_pyomo_internal(model, file = file, model_dir = model_dir, solver_dir = solver_dir,
+  write_pyomo_internal(model, model_dir = model_dir, solver_dir = solver_dir,
                        model_name = model_name, solver = solver, use_folded = use_folded,
                        cleanup = cleanup, data_mode = data_mode, split = split,
                        export_vars = export_vars, export_data = export_data,
@@ -42,7 +47,7 @@ write_pyomo.model <- function(model, file = NULL, model_dir = NULL, solver_dir =
 
 #' @export
 write_pyomo.multimod <- function(model, ...) {
-  write_pyomo.model(model, ...)
+  write_pyomo.mm_model(model, ...)
 }
 
 #' @export
@@ -51,7 +56,7 @@ write_pyomo.model_structure <- function(model, ...) {
   write_pyomo_internal(model, ...)
 }
 
-write_pyomo_internal <- function(model, file = NULL, model_dir = NULL, solver_dir = "pyomo",
+write_pyomo_internal <- function(model, model_dir = NULL, solver_dir = "pyomo",
                                  model_name = "model", solver = "highs",
                                  use_folded = TRUE, cleanup = TRUE,
                                  data_mode = c("external", "embedded"),
@@ -59,16 +64,21 @@ write_pyomo_internal <- function(model, file = NULL, model_dir = NULL, solver_di
                                  export_mps = FALSE, ...) {
   data_mode <- match.arg(data_mode)
 
-  if (!is.null(file)) {
-    warning("'file' argument is ignored for write_pyomo(); the Pyomo scaffold is a directory, not a single file.")
+  if (!is.null(list(...)$file)) {
+    stop("write_pyomo() writes a directory scaffold, not a single file; ",
+         "pass `model_dir` instead of `file`.")
   }
 
   if (is.null(model_dir)) {
     model_dir <- model$base_path
   }
-  if (is.null(model_dir) || !dir.exists(model_dir)) {
-    stop("model_dir must reference a directory produced by save_model().")
+  if (is.null(model_dir)) {
+    stop("`model_dir` is required: the Pyomo scaffold reads its data from a ",
+         "model workspace (see save_model()).")
   }
+  # The generated code resolves the workspace from its own location
+  # (`<model_dir>/solvers/<solver_dir>/model.py`), so the data must be there.
+  .ensure_workspace(model, model_dir)
 
   solver_path <- file.path(model_dir, "solvers", solver_dir)
   if (cleanup && dir.exists(solver_path)) {
@@ -119,7 +129,7 @@ build_pyomo_model_lines <- function(model, model_name = "model", use_folded = TR
       "import csv",
       "from pathlib import Path",
       "from pyomo.opt import SolverFactory",
-      "from data import DATA_MODE, build_dataportal"
+      "from data import DATA_MODE, build_data"
     )
   }
   lines <- c(header, "", sprintf("%s = AbstractModel()", model_name), "")
@@ -153,9 +163,14 @@ pyomo_render_sets <- function(model) {
 pyomo_render_mappings <- function(model) {
   if (is.null(model$mappings) || length(model$mappings) == 0) return(character(0))
   lines <- c("# Mappings (sets of tuples)")
+  subset_symbols <- dual_registered_symbols(model)
   for (mapping_name in names(model$mappings)) {
     mapping <- model$mappings[[mapping_name]]
     if (isTRUE(mapping$trimmed)) next
+
+    # Declared once among the sets. Assigning model.<name> twice makes Pyomo
+    # replace the component, keeping the empty second declaration.
+    if (mapping_name %in% subset_symbols) next
     dims <- pyomo_collect_dim_names(mapping$dims)
     desc <- sanitize_description(mapping$desc, mapping_name)
     dimen <- max(length(dims), 1)
@@ -325,7 +340,6 @@ build_pyomo_loader_external <- function(model, use_folded = TRUE) {
     "from __future__ import annotations",
     "from pathlib import Path",
     "from typing import Iterable, Sequence",
-    "from pyomo.dataportal import DataPortal",
     "from pyomo.environ import *",
     "",
     "DATA_MODE = 'external'",
@@ -345,22 +359,70 @@ build_pyomo_loader_external <- function(model, use_folded = TRUE) {
     "        return '.parquet'",
     "    return '.csv'",
     "",
-    "def build_dataportal(model, base_dir: Path) -> DataPortal:",
-    "    data = DataPortal()",
-    "    data_format = _read_format(base_dir)",
-    "    ext = _extension(data_format)",
+    "def _read_rows(path: Path, ext: str):",
+    "    # DataPortal has no reader for .arrow or .parquet, so each file is read",
+    "    # here and handed to create_instance() as a plain data dictionary.",
+    "    if ext == '.csv':",
+    "        import csv as _csv",
+    "        with open(path, newline='') as fh:",
+    "            rdr = _csv.reader(fh)",
+    "            next(rdr, None)",
+    "            return [tuple(r) for r in rdr if r]",
+    "    if ext == '.parquet':",
+    "        import pyarrow.parquet as _pq",
+    "        tbl = _pq.read_table(str(path))",
+    "    else:",
+    "        from pyarrow import feather as _feather",
+    "        tbl = _feather.read_table(str(path))",
+    "    cols = [c.to_pylist() for c in tbl.columns]",
+    "    return list(zip(*cols))",
+    "",
+    "def _coerce(v):",
+    "    # DataPortal turns a numeric-looking CSV field into a number, and the",
+    "    # set members it builds are matched against parameter index entries, so",
+    "    # both paths have to agree on type.",
+    "    if isinstance(v, str):",
+    "        try:",
+    "            return int(v)",
+    "        except ValueError:",
+    "            try:",
+    "                return float(v)",
+    "            except ValueError:",
+    "                return v",
+    "    return v",
+    "",
+    "def _param_dict(rows):",
+    "    # The file declares its own shape; a one-dimensional parameter takes a",
+    "    # scalar key, not a one-tuple.",
+    "    if not rows:",
+    "        return {}",
+    "    n_key = len(rows[0]) - 1",
+    "    if n_key <= 0:",
+    "        return {None: float(rows[0][-1])}",
+    "    if n_key == 1:",
+    "        return {_coerce(r[0]): float(r[-1]) for r in rows}",
+    "    return {tuple(_coerce(v) for v in r[:n_key]): float(r[-1]) for r in rows}",
+    "",
+    "def build_data(model, base_dir: Path) -> dict:",
+    "    ext = _extension(_read_format(base_dir))",
+    "    out = {}",
     "    # Sets",
     paste0("    set_names = ", pyomo_python_list(set_names)),
     "    for name in set_names:",
     "        path = base_dir / 'sets' / name / f'data{ext}'",
     "        if path.exists():",
-    "            data.load(filename=str(path), set=getattr(model, name))",
+    "            rows = _read_rows(path, ext)",
+    "            out[name] = {None: [_coerce(r[0]) for r in rows]}",
     "    # Mappings",
     paste0("    mappings = ", pyomo_python_list(map_names)),
     "    for name in mappings:",
     "        path = base_dir / 'mappings' / name / f'data{ext}'",
     "        if path.exists():",
-    "            data.load(filename=str(path), set=getattr(model, name))",
+    "            rows = _read_rows(path, ext)",
+    "            if rows and len(rows[0]) == 1:",
+    "                out[name] = {None: [_coerce(r[0]) for r in rows]}",
+    "            else:",
+    "                out[name] = {None: [tuple(_coerce(v) for v in r) for r in rows]}",
     "    # Parameters"
   )
 
@@ -382,11 +444,12 @@ build_pyomo_loader_external <- function(model, use_folded = TRUE) {
     }
     lines <- c(lines,
       "    if file_path.exists():",
-      sprintf("        data.load(filename=str(file_path), param=getattr(model, '%s')%s)", spec$name, index_clause)
+      sprintf("        out[%s] = _param_dict(_read_rows(file_path, ext))",
+              pyomo_quote(spec$name))
     )
   }
 
-  lines <- c(lines, "    return data", "")
+  lines <- c(lines, "    return {None: out}", "")
   lines
 }
 
@@ -419,7 +482,7 @@ build_pyomo_solve_lines <- function(solver = "highs", data_mode = c("external", 
     "from pyomo.environ import *",
     "from pyomo.opt import SolverFactory",
     "from model import model",
-    "from data_loader import DATA_MODE, build_dataportal" ,
+    "from data_loader import DATA_MODE, build_data" ,
     "",
     pyomo_runner_body(solver = solver, solver_dir = solver_dir)
   )
@@ -433,7 +496,7 @@ pyomo_runner_body <- function(solver = "highs", solver_dir = "pyomo", export_var
     "    base_dir = Path(__file__).resolve().parents[2]",
     "    if DATA_MODE != 'external':",
     "        raise RuntimeError('Only external data mode is supported right now.')",
-    "    data = build_dataportal(model, base_dir)"
+    "    data = build_data(model, base_dir)"
   )
   
   # Export data as CSV files after loading data but BEFORE creating instance (like write_gmpl and write_jump)
@@ -447,8 +510,9 @@ pyomo_runner_body <- function(solver = "highs", solver_dir = "pyomo", export_var
       "    print(f'Exporting model data to {data_export_dir}...')",
       "",
       "    # Export sets from data portal",
-      "    for set_name in ['REGION', 'TECHNOLOGY', 'FUEL', 'EMISSION', 'MODE_OF_OPERATION', 'YEAR', 'TIMESLICE', 'SEASON', 'DAYTYPE', 'DAILYTIMEBRACKET', 'STORAGE']:",
-      "        if hasattr(model, set_name):",
+      "    for set_name in dir(model):",
+      "        component = getattr(model, set_name, None)",
+      "        if isinstance(component, Set) and not set_name.startswith('_'):",
       "            set_file = data_export_dir / f'{set_name}.csv'",
       "            with open(set_file, 'w', newline='') as csvfile:",
       "                writer = csv.writer(csvfile)",
@@ -547,8 +611,12 @@ pyomo_runner_body <- function(solver = "highs", solver_dir = "pyomo", export_var
     "    # Save solution status",
     sprintf("    sol_dir = base_dir / 'solvers' / '%s' / 'solution'", solver_dir),
     "    sol_dir.mkdir(parents=True, exist_ok=True)",
+    "    try:",
+    "        objective_value = value(instance.objective)",
+    "    except Exception:",
+    "        objective_value = None",
     "    with open(sol_dir / 'status.json', 'w') as fh:",
-    "        json.dump({'solver': solver_name, 'status': str(results.solver.status), 'termination': str(results.solver.termination_condition)}, fh, indent=2)"
+    "        json.dump({'solver': solver_name, 'status': str(results.solver.status), 'termination': str(results.solver.termination_condition), 'objective': objective_value}, fh, indent=2)"
   )
   
   if (isTRUE(export_vars)) {

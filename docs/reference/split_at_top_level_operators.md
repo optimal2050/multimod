@@ -25,6 +25,15 @@ split_at_top_level_operators(
 
   Vector of operators to split at
 
+- indent_str:
+
+  Character string prepended to each continuation chunk (default: none)
+
+- max_len:
+
+  Maximum estimated line length; strings at or below it are returned
+  unsplit (default 80)
+
 ## Value
 
 A character vector of expression chunks

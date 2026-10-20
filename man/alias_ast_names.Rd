@@ -12,6 +12,8 @@ alias_ast_names(ast, alias_map, classes = NULL, ...)
 \item{alias_map}{A named list or character vector. Keys are aliases, values are original names.}
 
 \item{classes}{Character vector of AST classes to filter (optional).}
+
+\item{...}{Further arguments, currently ignored.}
 }
 \value{
 Modified AST with aliases applied.

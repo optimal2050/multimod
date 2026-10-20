@@ -12,8 +12,8 @@
 <link rel="icon" sizes="any" href="../favicon.ico">
 <link rel="manifest" href="../site.webmanifest">
 <script src="../lightswitch.js"></script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
+<script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="multimod">
 <!-- Google tag (gtag.js) --><script async src="https://www.googletagmanager.com/gtag/js?id=G-LNY00P1MW7"></script><script>
@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.4.0.9007</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -43,26 +43,21 @@
       <ul class="navbar-nav me-auto">
 <li class="active nav-item"><a class="nav-link" href="../articles/multimod.html">Get started</a></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Development Status</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-tutorials" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Tutorials</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials">
-<li><h6 class="dropdown-header" data-toc-skip>Getting Started</h6></li>
-    <li><a class="dropdown-item" href="../articles/multimod.html">Overview</a></li>
+<li><h6 class="dropdown-header" data-toc-skip>A model from R</h6></li>
+    <li><a class="dropdown-item" href="../articles/ast.html">Writing a model in R</a></li>
+    <li><a class="dropdown-item" href="../articles/solving.html">Solving and reading results</a></li>
+    <li><a class="dropdown-item" href="../articles/model_workspace.html">Model workspace and data</a></li>
+    <li><a class="dropdown-item" href="../articles/folding.html">Folding and trimming</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Code Generation</h6></li>
-    <li><h6 class="dropdown-header" data-toc-skip>JuMP Integration</h6></li>
-    <li><h6 class="dropdown-header" data-toc-skip>GMPL Integration</h6></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Pyomo Integration</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>An existing model</h6></li>
+    <li><a class="dropdown-item" href="../articles/field-models.html">Two models from the field</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Model Management</h6></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Configuration System</h6></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Model Workspace</h6></li>
-    <li><h6 class="dropdown-header" data-toc-skip>LaTeX Generation</h6></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Advanced</h6></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Model Optimization (Folding &amp; Trimming)</h6></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Abstract Syntax Tree (AST)</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Reference</h6></li>
+    <li><a class="dropdown-item" href="../articles/configuration.html">Configuring solver paths</a></li>
+    <li><a class="dropdown-item" href="../articles/latex.html">LaTeX rendering</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
@@ -102,46 +97,55 @@
 
     
     
-<p>[The Vignette is under revision]</p>
-<p>This vignette provides an overview of the current functionality of
-the <code>multimod</code> package, which is designed to parse GAMS
-models and convert them into a structured format for further analysis,
-visualization, rendering to LaTeX, and other mathematical programming
-languages.</p>
+<p>multimod stores an optimization model as an abstract syntax tree —
+sets, mappings, parameters, variables and equations — independent of any
+modeling language. A model becomes coupled to the language it was first
+written in; multimod separates three concerns: the model’s
+<em>meaning</em> (the AST), its <em>representation</em> (LaTeX,
+executable code in another language, JSON, or a sparse LP matrix) and
+its <em>execution</em> (a local solver, an institutional modeling
+environment, or remote hardware). That separation lets one formulation
+be compared across backends, documented as the exact model being solved,
+manipulated before execution, and reused across solver ecosystems.</p>
+<p>A model enters in three ways: written in R with the constructors,
+written as MathProg, GAMS or JuMP text with <code><a href="../reference/mm_equation.html">mm_equation()</a></code>,
+or read from an existing GAMS or MathProg source. It leaves as rendered
+code for GAMS, MathProg, JuMP or Pyomo, as a LaTeX formulation, or as
+the LP matrix multimod assembles and solves in R with HiGHS. This
+vignette walks through that representation and what the package does
+with it.</p>
+<p>Linear programs with continuous variables are the tested class.
+Integer and binary variables are carried in the AST and written by the
+JuMP and Pyomo writers; nonlinear expressions have AST nodes but no
+tested route to a solver. The <a href="https://optimal2050.github.io/multimod/articles/roadmap.html">roadmap</a>
+lists the limitations in full.</p>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
-<p>The development version of the package is available for installation
-from GitHub using the <code>pak</code> package. The package is not yet
-available on CRAN.</p>
+<p>Install the development version from GitHub with the <code>pak</code>
+package:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># install.packages("pak")</span></span>
 <span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pkg_install.html" class="external-link">pkg_install</a></span><span class="op">(</span><span class="st">"optimal2050/multimod"</span>, dependencies <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<p>The matrix route needs only the ‘highs’ package. The GLPK route’s
+<code>glpsol</code> binary ships with the ‘glpsol’ package; Julia with
+JuMP and Python with Pyomo are configured as described in the
+“Configuring solver paths” article.</p>
 </div>
 <div class="section level2">
 <h2 id="setup">Setup<a class="anchor" aria-label="anchor" href="#setup"></a>
 </h2>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://lobstr.r-lib.org/" class="external-link">lobstr</a></span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://datastorm-open.github.io/visNetwork/" class="external-link">visNetwork</a></span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://optimal2050.github.io/multimod">multimod</a></span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://optimal2050.github.io/multimod/">multimod</a></span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="example-model">Example model<a class="anchor" aria-label="anchor" href="#example-model"></a>
 </h2>
-<p>Download example model</p>
+<p>The package ships the GAMS source of the energyRt model in
+<code>example_models</code>, both as text and as an already converted
+<code>multimod</code> object.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">gams_source</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"energyRt.gms"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Download "energyRt.gms" GAMS model source file from GitHub</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/download.file.html" class="external-link">download.file</a></span><span class="op">(</span></span>
-<span>  url <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="st">"https://raw.githubusercontent.com/optimal2050/energyRt"</span>,</span>
-<span>                  <span class="st">"refs/heads/master/gams/energyRt.gms"</span><span class="op">)</span>,</span>
-<span>  destfile <span class="op">=</span> <span class="va">gams_source</span>,</span>
-<span>  method <span class="op">=</span> <span class="st">"curl"</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.exists</a></span><span class="op">(</span><span class="va">gams_source</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">gams_source</span> <span class="op">&lt;-</span> <span class="va">example_models</span><span class="op">$</span><span class="va">energyRt</span><span class="op">$</span><span class="va">gams</span><span class="op">$</span><span class="va">model</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="parse-model-structure">Parse model structure<a class="anchor" aria-label="anchor" href="#parse-model-structure"></a>
@@ -153,7 +157,7 @@ equations/constraints. Data and operations on data are not imported–the
 parser focuses on the model structure, which is stored in an object of
 class <code>model_structure</code>.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">mod_str</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_gams.html">read_gams</a></span><span class="op">(</span><span class="va">gams_source</span>, include <span class="op">=</span> <span class="cn">FALSE</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">mod_str</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_gams.html">read_gams</a></span><span class="op">(</span>file_or_text <span class="op">=</span> <span class="va">gams_source</span>, include <span class="op">=</span> <span class="cn">FALSE</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/print.html">print</a></span><span class="op">(</span><span class="va">mod_str</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
@@ -188,7 +192,7 @@ model.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/as_visNetwork.html">as_visNetwork</a></span><span class="op">(</span><span class="va">ast_node</span><span class="op">)</span></span></code></pre></div>
 <div class="visNetwork html-widget html-fill-item" id="htmlwidget-ac96cb3ee4656e2e9ec3" style="width:700px;height:432.632880098888px;"></div>
-<script type="application/json" data-for="htmlwidget-ac96cb3ee4656e2e9ec3">{"x":{"nodes":{"id":[1,2,3,4,5,6,7,8,9],"label":["vObjective","==","func: sum","*","pDiscountFactorMileStone[region,year]","vTotalCost[region,year]","index: when","cond: mvTotalCost[region,year]","then: [region,year]"],"shape":["box","circle","box","box","box","box","box","box","box"],"color":["dodgerblue","coral","lightblue","lightblue","orange","dodgerblue","lightcoral","palegreen","plum"]},"edges":{"from":[1,3,4,4,3,7,7,2],"to":[2,4,5,6,7,8,9,3]},"nodesToDataframe":true,"edgesToDataframe":true,"options":{"width":"100%","height":"100%","nodes":{"shape":"dot"},"manipulation":{"enabled":false},"layout":{"hierarchical":{"enabled":true,"direction":"LR"}}},"groups":null,"width":null,"height":null,"idselection":{"enabled":true,"style":"width: 150px; height: 26px","useLabels":true,"main":"Select by id"},"byselection":{"enabled":false,"style":"width: 150px; height: 26px","multiple":false,"hideColor":"rgba(200,200,200,0.5)","highlight":false},"main":{"text":"eqObjective","style":"font-family:Georgia, Times New Roman, Times, serif;font-weight:bold;font-size:20px;text-align:center;"},"submain":{"text":"Objective equation NPV of total costs","style":"font-family:Georgia, Times New Roman, Times, serif;font-size:12px;text-align:center;"},"footer":null,"background":"rgba(0, 0, 0, 0)","highlight":{"enabled":true,"hoverNearest":false,"degree":1,"algorithm":"all","hideColor":"rgba(200,200,200,0.5)","labelOnly":true},"collapse":{"enabled":false,"fit":false,"resetHighlight":true,"clusterOptions":null,"keepCoord":true,"labelSuffix":"(cluster)"}},"evals":[],"jsHooks":[]}</script>
+<script type="application/json" data-for="htmlwidget-ac96cb3ee4656e2e9ec3">{"x":{"nodes":{"id":[1,2,3,4,5,6,7,8,9,10,11],"label":["vObjective","==","func: sum","*","*","vTotalCost[region,year]","pPeriodLen[year]","pDiscountFactor[region,year]","index: when","cond: mvTotalCost[region,year]","then: [region,year]"],"shape":["box","circle","box","box","box","box","box","box","box","box","box"],"color":["dodgerblue","coral","lightblue","lightblue","lightblue","dodgerblue","orange","orange","lightcoral","palegreen","plum"]},"edges":{"from":[1,3,4,5,5,4,3,9,9,2],"to":[2,4,5,6,7,8,9,10,11,3]},"nodesToDataframe":true,"edgesToDataframe":true,"options":{"width":"100%","height":"100%","nodes":{"shape":"dot"},"manipulation":{"enabled":false},"layout":{"hierarchical":{"enabled":true,"direction":"LR"}}},"groups":null,"width":null,"height":null,"idselection":{"enabled":true,"style":"width: 150px; height: 26px","useLabels":true,"main":"Select by id"},"byselection":{"enabled":false,"style":"width: 150px; height: 26px","multiple":false,"hideColor":"rgba(200,200,200,0.5)","highlight":false},"main":{"text":"eqObjective","style":"font-family:Georgia, Times New Roman, Times, serif;font-weight:bold;font-size:20px;text-align:center;"},"submain":{"text":"Objective equation NPV of total costs","style":"font-family:Georgia, Times New Roman, Times, serif;font-size:12px;text-align:center;"},"footer":null,"background":"rgba(0, 0, 0, 0)","highlight":{"enabled":true,"hoverNearest":false,"degree":1,"algorithm":"all","hideColor":"rgba(200,200,200,0.5)","labelOnly":true},"collapse":{"enabled":false,"fit":false,"resetHighlight":true,"clusterOptions":null,"keepCoord":true,"labelSuffix":"(cluster)"}},"evals":[],"jsHooks":[]}</script>
 </div>
 </div>
 <div class="section level2">
@@ -201,13 +205,14 @@ variables, equations, represented via AST nodes.</p>
 <code class="sourceCode R"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/as_multimod.html">as_multimod</a></span><span class="op">(</span><span class="va">mod_str</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/print.html">print</a></span><span class="op">(</span><span class="va">mod</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">#&gt; Model: </span></span>
+<span><span class="co">#&gt; Source:  C:/Users/admin/Documents/R/energyRt/gams/energyRt.gms </span></span>
 <span><span class="co">#&gt; Language:  GAMS </span></span>
-<span><span class="co">#&gt; Sets:  13 </span></span>
-<span><span class="co">#&gt; Mappings:  240 </span></span>
+<span><span class="co">#&gt; Sets:  27 </span></span>
+<span><span class="co">#&gt; Mappings:  324 </span></span>
 <span><span class="co">#&gt; Aliases:  7 </span></span>
-<span><span class="co">#&gt; Parameters:  151 </span></span>
-<span><span class="co">#&gt; Variables:  64 </span></span>
-<span><span class="co">#&gt; Equations:  108</span></span></code></pre>
+<span><span class="co">#&gt; Parameters:  218 </span></span>
+<span><span class="co">#&gt; Variables:  93 </span></span>
+<span><span class="co">#&gt; Equations:  153</span></span></code></pre>
 <p>Equations are stored in <code>$equations</code> list, and can be
 accessed by their names. Each equation is an object of class
 <code>equation</code>, which contains the left-hand side (LHS) and
@@ -219,10 +224,11 @@ right-hand side (RHS) expressions and relation operator.</p>
 <span><span class="co">#&gt;   domain:  mTechSpan[tech,region,year] </span></span>
 <span><span class="co">#&gt;   relation:  == </span></span>
 <span><span class="co">#&gt;   lhs:  vTechCap[tech,region,year] </span></span>
-<span><span class="co">#&gt;   rhs:  pTechStock[tech,region,year] - if (mvTechRetiredSt...</span></span>
-<span><span class="fu"><a href="../reference/as_visNetwork.html">as_visNetwork</a></span><span class="op">(</span><span class="va">eq</span><span class="op">)</span></span></code></pre></div>
+<span><span class="co">#&gt;   rhs:  vTechStockCap[tech,region,year] + sum(if (mTechNew...</span></span></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/as_visNetwork.html">as_visNetwork</a></span><span class="op">(</span><span class="va">eq</span><span class="op">)</span></span></code></pre></div>
 <div class="visNetwork html-widget html-fill-item" id="htmlwidget-e5c8c404fe174e4c81bd" style="width:700px;height:432.632880098888px;"></div>
-<script type="application/json" data-for="htmlwidget-e5c8c404fe174e4c81bd">{"x":{"nodes":{"id":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37],"label":["vTechCap[tech,region,year]","==","-","pTechStock[tech,region,year]","+","when","cond: mvTechRetiredStock[tech,region,year]","then: vTechRetiredStockCum[tech,region,year]","func: sum","*","pPeriodLen[yearp]","-","vTechNewCap[tech,region,yearp]","func: sum","vTechRetiredNewCap[tech,region,yearp,yeare]","index: when","cond: and","mvTechRetiredNewCap[tech,region,yearp,yeare]",">=","ordYear[year]","ordYear[yeare]","then: yeare","index: when","cond: and","mTechNew[tech,region,yearp]","and",">=","ordYear[year]","ordYear[yearp]","or","<","ordYear[year]","+","pTechOlife[tech,region]","ordYear[yearp]","mTechOlifeInf[tech,region]","then: yearp"],"shape":["box","circle","box","box","box","box","box","box","box","box","box","box","box","box","box","box","box","box","box","box","box","box","box","box","box","box","box","box","box","box","box","box","box","box","box","box","box"],"color":["dodgerblue","coral","lightblue","orange","lightblue","lightcoral","palegreen","dodgerblue","lightblue","lightblue","orange","lightblue","dodgerblue","lightblue","dodgerblue","lightcoral","lightblue","palegreen","lightblue","orange","orange","lightgray","lightcoral","lightblue","palegreen","lightblue","lightblue","orange","orange","lightblue","lightblue","orange","lightblue","orange","orange","palegreen","lightgray"]},"edges":{"from":[1,3,3,5,6,6,5,9,10,10,12,12,14,14,16,17,17,19,19,16,9,23,24,24,26,27,27,26,30,31,31,33,33,30,23,2],"to":[2,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,3]},"nodesToDataframe":true,"edgesToDataframe":true,"options":{"width":"100%","height":"100%","nodes":{"shape":"dot"},"manipulation":{"enabled":false},"layout":{"hierarchical":{"enabled":true,"direction":"LR"}}},"groups":null,"width":null,"height":null,"idselection":{"enabled":true,"style":"width: 150px; height: 26px","useLabels":true,"main":"Select by id"},"byselection":{"enabled":false,"style":"width: 150px; height: 26px","multiple":false,"hideColor":"rgba(200,200,200,0.5)","highlight":false},"main":{"text":"eqTechCap","style":"font-family:Georgia, Times New Roman, Times, serif;font-weight:bold;font-size:20px;text-align:center;"},"submain":{"text":"Technology capacity","style":"font-family:Georgia, Times New Roman, Times, serif;font-size:12px;text-align:center;"},"footer":null,"background":"rgba(0, 0, 0, 0)","highlight":{"enabled":true,"hoverNearest":false,"degree":1,"algorithm":"all","hideColor":"rgba(200,200,200,0.5)","labelOnly":true},"collapse":{"enabled":false,"fit":false,"resetHighlight":true,"clusterOptions":null,"keepCoord":true,"labelSuffix":"(cluster)"}},"evals":[],"jsHooks":[]}</script>
+<script type="application/json" data-for="htmlwidget-e5c8c404fe174e4c81bd">{"x":{"nodes":{"id":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35],"label":["vTechCap[tech,region,year]","==","+","vTechStockCap[tech,region,year]","func: sum","-","*","pPeriodLen[yearp]","vTechNewCap[tech,region,yearp]","func: sum","*","vTechRetiredNewCap[tech,region,yearp,yeare]","pPeriodLen[yeare]","index: when","cond: and","mvTechRetiredNewCap[tech,region,yearp,yeare]",">=","ordYear[year]","ordYear[yeare]","then: yeare","index: when","cond: and","and","mTechNew[tech,region,yearp]",">=","ordYear[year]","ordYear[yearp]","or","<","ordYear[year]","+","pTechOlife[tech,region]","ordYear[yearp]","mTechOlifeInf[tech,region]","then: yearp"],"shape":["box","circle","box","box","box","box","box","box","box","box","box","box","box","box","box","box","box","box","box","box","box","box","box","box","box","box","box","box","box","box","box","box","box","box","box"],"color":["dodgerblue","coral","lightblue","dodgerblue","lightblue","lightblue","lightblue","orange","dodgerblue","lightblue","lightblue","dodgerblue","orange","lightcoral","lightblue","palegreen","lightblue","orange","orange","lightgray","lightcoral","lightblue","lightblue","palegreen","lightblue","orange","orange","lightblue","lightblue","orange","lightblue","orange","orange","palegreen","lightgray"]},"edges":{"from":[1,3,3,5,6,7,7,6,10,11,11,10,14,15,15,17,17,14,5,21,22,23,23,25,25,22,28,29,29,31,31,28,21,2],"to":[2,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,3]},"nodesToDataframe":true,"edgesToDataframe":true,"options":{"width":"100%","height":"100%","nodes":{"shape":"dot"},"manipulation":{"enabled":false},"layout":{"hierarchical":{"enabled":true,"direction":"LR"}}},"groups":null,"width":null,"height":null,"idselection":{"enabled":true,"style":"width: 150px; height: 26px","useLabels":true,"main":"Select by id"},"byselection":{"enabled":false,"style":"width: 150px; height: 26px","multiple":false,"hideColor":"rgba(200,200,200,0.5)","highlight":false},"main":{"text":"eqTechCap","style":"font-family:Georgia, Times New Roman, Times, serif;font-weight:bold;font-size:20px;text-align:center;"},"submain":{"text":"Technology capacity","style":"font-family:Georgia, Times New Roman, Times, serif;font-size:12px;text-align:center;"},"footer":null,"background":"rgba(0, 0, 0, 0)","highlight":{"enabled":true,"hoverNearest":false,"degree":1,"algorithm":"all","hideColor":"rgba(200,200,200,0.5)","labelOnly":true},"collapse":{"enabled":false,"fit":false,"resetHighlight":true,"clusterOptions":null,"keepCoord":true,"labelSuffix":"(cluster)"}},"evals":[],"jsHooks":[]}</script>
 </div>
 <div class="section level2">
 <h2 id="latex-rendering">LaTeX rendering<a class="anchor" aria-label="anchor" href="#latex-rendering"></a>
@@ -230,20 +236,20 @@ right-hand side (RHS) expressions and relation operator.</p>
 <p>The <code>as_latex</code> function converts the multimod equation or
 AST node into LaTeX format. The LaTeX output is a string that can be
 printed or saved to a file.</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">eq</span><span class="op">$</span><span class="va">lhs</span> <span class="co"># LHS of the equation - a variable</span></span>
 <span><span class="co">#&gt; &lt;AST variable&gt; vTechCap</span></span>
 <span><span class="co">#&gt;   dims:  [tech,region,year]</span></span></code></pre></div>
 <p>Convert to character</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">eq</span><span class="op">$</span><span class="va">lhs</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "vTechCap[tech,region,year]"</span></span></code></pre></div>
 <p>Convert to LaTeX string</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/as_latex.html">as_latex</a></span><span class="op">(</span><span class="va">eq</span><span class="op">$</span><span class="va">lhs</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; \bm{\mathit{vTechCap}}_{\texttt{tech},\texttt{region},\texttt{year}}</span></span></code></pre></div>
 <p>Render the entire equation</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/as_latex.html">as_latex</a></span><span class="op">(</span><span class="va">eq</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; \begin{flushleft}</span></span>
 <span><span class="co">#&gt; \subsection*{\textbf{eqTechCap} -- \textit{Technology capacity}} </span></span>
@@ -254,8 +260,8 @@ printed or saved to a file.</p>
 <span><span class="co">#&gt; \begin{adjustbox}{max width=\textwidth}</span></span>
 <span><span class="co">#&gt; $\begin{aligned}</span></span>
 <span><span class="co">#&gt; &amp;\bm{\mathit{vTechCap}}_{\texttt{tech},\texttt{region},\texttt{year}} = \\</span></span>
-<span><span class="co">#&gt; &amp;\qquad\qquad  \mathsf{pTechStock}_{\texttt{tech},\texttt{region},\texttt{year}}  -  \left[\bm{\mathit{vTechRetiredStockCum}}_{\texttt{tech},\texttt{region},\texttt{year}}\mid \left\{\left\{\textnormal{tech,region,year}\right\}\right\} \in \mathsf{mvTechRetiredStock}_{\texttt{tech},\texttt{region},\texttt{year}}\right] \\</span></span>
-<span><span class="co">#&gt; &amp;\qquad\qquad  +   \sum_{yearp \mid \Biggl[ \mathit{mTechNew}_{\texttt{tech},\texttt{region},\texttt{yearp}}  \land  \mathsf{ordYear}_{\texttt{year}}  \geq  \mathsf{ordYear}_{\texttt{yearp}}  \land  \Bigl[ \mathsf{ordYear}_{\texttt{year}}  &lt;  \mathsf{pTechOlife}_{\texttt{tech},\texttt{region}}  +  \mathsf{ordYear}_{\texttt{yearp}}  \lor  \mathit{mTechOlifeInf}_{\texttt{tech},\texttt{region}} \Bigr] \Biggr]} \mathsf{pPeriodLen}_{\texttt{yearp}}  \cdot  \Biggl[ \bm{\mathit{vTechNewCap}}_{\texttt{tech},\texttt{region},\texttt{yearp}}  -  \sum_{yeare \mid \Bigl[ \mathit{mvTechRetiredNewCap}_{\texttt{tech},\texttt{region},\texttt{yearp},\texttt{yeare}}  \land  \mathsf{ordYear}_{\texttt{year}}  \geq  \mathsf{ordYear}_{\texttt{yeare}} \Bigr]} \bm{\mathit{vTechRetiredNewCap}}_{\texttt{tech},\texttt{region},\texttt{yearp},\texttt{yeare}} \Biggr] \\</span></span>
+<span><span class="co">#&gt; &amp;\qquad\qquad  \bm{\mathit{vTechStockCap}}_{\texttt{tech},\texttt{region},\texttt{year}} \\</span></span>
+<span><span class="co">#&gt; &amp;\qquad\qquad  +   \sum_{yearp \mid \Biggl[ \mathit{mTechNew}_{\texttt{tech},\texttt{region},\texttt{yearp}}  \land  \mathsf{ordYear}_{\texttt{year}}  \geq  \mathsf{ordYear}_{\texttt{yearp}}  \land  \Bigl[ \mathsf{ordYear}_{\texttt{year}}  &lt;  \mathsf{pTechOlife}_{\texttt{tech},\texttt{region}}  +  \mathsf{ordYear}_{\texttt{yearp}}  \lor  \mathit{mTechOlifeInf}_{\texttt{tech},\texttt{region}} \Bigr] \Biggr]} \mathsf{pPeriodLen}_{\texttt{yearp}}  \cdot  \bm{\mathit{vTechNewCap}}_{\texttt{tech},\texttt{region},\texttt{yearp}}  -  \sum_{yeare \mid \Bigl[ \mathit{mvTechRetiredNewCap}_{\texttt{tech},\texttt{region},\texttt{yearp},\texttt{yeare}}  \land  \mathsf{ordYear}_{\texttt{year}}  \geq  \mathsf{ordYear}_{\texttt{yeare}} \Bigr]} \bm{\mathit{vTechRetiredNewCap}}_{\texttt{tech},\texttt{region},\texttt{yearp},\texttt{yeare}}  \cdot  \mathsf{pPeriodLen}_{\texttt{yeare}} \\</span></span>
 <span><span class="co">#&gt; \end{aligned}$</span></span>
 <span><span class="co">#&gt; \end{adjustbox}</span></span>
 <span><span class="co">#&gt; \end{equation*}</span></span>
@@ -264,7 +270,7 @@ printed or saved to a file.</p>
 <p>Saving an equation to a tex file can be done using the
 <code>write_latex</code> method. This method can be applied to the
 entire multimod object, or to a specific equation.</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">eq</span> <span class="op">&lt;-</span> <span class="va">mod</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqTechCapUp</span></span>
 <span><span class="va">eq_tex_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"tmp/"</span>, <span class="va">eq</span><span class="op">$</span><span class="va">name</span>, <span class="st">".tex"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/write_latex.html">write_latex</a></span><span class="op">(</span><span class="va">eq</span>, file <span class="op">=</span> <span class="va">eq_tex_file</span><span class="op">)</span></span>
@@ -275,12 +281,12 @@ to the page width and improve readability. Long equations are broken
 into multiple lines, and long conditional expressions are remapped with
 AST <code>where</code> class and display the replacement under the
 equation under <code>where</code> header.</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">eq</span> <span class="op">&lt;-</span> <span class="va">mod</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqTechVarom</span></span>
 <span><span class="va">eq_tex_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"tmp/"</span>, <span class="va">eq</span><span class="op">$</span><span class="va">name</span>, <span class="st">".tex"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/write_latex.html">write_latex</a></span><span class="op">(</span><span class="va">eq</span>, file <span class="op">=</span> <span class="va">eq_tex_file</span><span class="op">)</span></span>
 <span><span class="fu">tinytex</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/tinytex/man/latexmk.html" class="external-link">pdflatex</a></span><span class="op">(</span><span class="va">eq_tex_file</span><span class="op">)</span></span></code></pre></div>
-<p><img src="images/eqTechVarom-full-names.png" class="r-plt" width="1034"></p>
+<p><img src="images/eqTechVarom-full-names.png" class="r-plt" alt="" width="1034"></p>
 <div class="section level3">
 <h3 id="replacing-long-names-with-aliases">Replacing long names with aliases<a class="anchor" aria-label="anchor" href="#replacing-long-names-with-aliases"></a>
 </h3>
@@ -289,21 +295,21 @@ shorter aliases by using <code>alias_map</code> argument in
 <code>as_latex</code> or <code>write_latex</code> methods. The aliases
 are defined as a named list, where the names are the original symbols
 and the values are the shorter aliases.</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Example of using aliases in LaTeX rendering</span></span>
 <span><span class="va">alias_map</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>  region <span class="op">=</span> <span class="st">"r"</span>, </span>
 <span>  comm <span class="op">=</span> <span class="st">"c"</span>, </span>
 <span>  commp <span class="op">=</span> <span class="st">"cp"</span>, </span>
 <span>  tech <span class="op">=</span> <span class="st">"t"</span>, </span>
-<span>  year <span class="op">=</span> <span class="st">"y"</span>, </span>
-<span>  slice <span class="op">=</span> <span class="st">"s"</span></span>
+<span>  year <span class="op">=</span> <span class="st">"y"</span>,</span>
+<span>  timeslice <span class="op">=</span> <span class="st">"s"</span></span>
 <span><span class="op">)</span></span>
 <span><span class="co"># eq &lt;- mod$equations$eqTechVarom # the same equation as above</span></span>
 <span><span class="va">eq_tex_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"tmp/"</span>, <span class="va">eq</span><span class="op">$</span><span class="va">name</span>, <span class="st">"_short.tex"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/write_latex.html">write_latex</a></span><span class="op">(</span><span class="va">eq</span>, file <span class="op">=</span> <span class="va">eq_tex_file</span>, alias_map <span class="op">=</span> <span class="va">alias_map</span><span class="op">)</span></span>
 <span><span class="fu">tinytex</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/tinytex/man/latexmk.html" class="external-link">pdflatex</a></span><span class="op">(</span><span class="va">eq_tex_file</span><span class="op">)</span></span></code></pre></div>
-<p><img src="images/eqTechVarom-short-names.png" class="r-plt" width="940"></p>
+<p><img src="images/eqTechVarom-short-names.png" class="r-plt" alt="" width="940"></p>
 </div>
 <div class="section level3">
 <h3 id="render-full-model-to-latex">Render full model to LaTeX<a class="anchor" aria-label="anchor" href="#render-full-model-to-latex"></a>
@@ -312,14 +318,14 @@ and the values are the shorter aliases.</p>
 <code>model</code> object to export the entire model to LaTeX format.
 This will create a LaTeX file with all equations, sets, aliases,
 parameters, and variables.</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/write_latex.html">write_latex</a></span><span class="op">(</span><span class="va">mod</span>, file <span class="op">=</span> <span class="st">"tmp/example_model.tex"</span>, </span>
 <span>            title <span class="op">=</span> <span class="st">"Base energyRt model"</span>,</span>
 <span>            subtitle <span class="op">=</span> <span class="st">"Imported from GAMS and rendered to LaTeX by multimod"</span>,</span>
 <span>            author <span class="op">=</span> <span class="st">"energyRt authors"</span>,</span>
-<span>            alias_map <span class="op">=</span> <span class="fu">multimod</span><span class="fu">::</span><span class="va">example_model</span><span class="op">$</span><span class="va">short_aliases</span><span class="op">)</span></span>
+<span>            alias_map <span class="op">=</span> <span class="va">mod</span><span class="op">$</span><span class="va">index_aliases</span><span class="op">)</span></span>
 <span><span class="fu">tinytex</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/tinytex/man/latexmk.html" class="external-link">pdflatex</a></span><span class="op">(</span><span class="st">"tmp/example_model.tex"</span><span class="op">)</span></span></code></pre></div>
-<p><img src="images/example_model.png" class="r-plt" width="1275"></p>
+<p><img src="images/example_model.png" class="r-plt" alt="" width="1275"></p>
 </div>
 </div>
 <div class="section level2">
@@ -327,19 +333,38 @@ parameters, and variables.</p>
 </h2>
 <p>The idea of the <code>multimod</code> package is to provide a way to
 convert the model structure back to GAMS, Julia/JuMP, Python/Pyomo, or
-other mathematical programming languages. The current version has a
-drafted implementation of the <code>as_gams</code> method, which
-converts the multimod object back to GAMS code. This feature does not
-create a fully functional GAMS model yet, it exports declarations only.
-Connections with data is planned for future releases.</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+other mathematical programming languages. The <code>as_gams</code>
+method converts a multimod object or equation back to GAMS code;
+<code><a href="../reference/write_gams.html">write_gams()</a></code> renders the whole model to a <code>.gms</code>
+file and <code><a href="../reference/write_gams_data.html">write_gams_data()</a></code> exports the data as a GDX.</p>
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/as_gams.html">as_gams</a></span><span class="op">(</span><span class="va">mod</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqTechCapUp</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; eqTechCapUp[tech,region,year]$mTechCapUp[tech,region,year]..</span></span>
 <span><span class="co">#&gt;   vTechCap[tech,region,year] =l=</span></span>
 <span><span class="co">#&gt;   pTechCapUp[tech,region,year];</span></span></code></pre></div>
-<p>Render full model.</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/write_gams.html">write_gams</a></span><span class="op">(</span><span class="va">mod</span>, file <span class="op">=</span> <span class="st">"tmp/example_model.gms"</span><span class="op">)</span></span></code></pre></div>
+<p>Render the full model and its data.</p>
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/write_gams.html">write_gams</a></span><span class="op">(</span><span class="va">mod</span>, file <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"example_model.gms"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/write_gams_data.html">write_gams_data</a></span><span class="op">(</span><span class="va">mod</span>, file <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"example_model.gdx"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="routes-to-a-solver">Routes to a solver<a class="anchor" aria-label="anchor" href="#routes-to-a-solver"></a>
+</h2>
+<p>A model with data attached can be solved two ways. The matrix route
+assembles the LP in R: <code><a href="../reference/model_to_lp.html">model_to_lp()</a></code> builds the coefficient
+matrix from the equations, <code><a href="../reference/solve_highs.html">solve_highs()</a></code> solves it in
+process with HiGHS, and <code><a href="../reference/mm_session.html">mm_session()</a></code> keeps the matrix
+between repeated solves. The file routes write the model in another
+language and run its toolchain: <code><a href="../reference/write_gmpl.html">write_gmpl()</a></code> with
+<code><a href="../reference/solve_gmpl.html">solve_gmpl()</a></code> (GLPK), <code><a href="../reference/write_jump.html">write_jump()</a></code> with
+<code><a href="../reference/solve_jump.html">solve_jump()</a></code> (Julia), <code><a href="../reference/write_pyomo.html">write_pyomo()</a></code> with
+<code><a href="../reference/solve_pyomo.html">solve_pyomo()</a></code> (Python). <code>example_models$toy</code> is
+a small LP to try them on; the website article “Solving and reading
+results” takes it through every route, and “Two models from the field”
+does the same for the energyRt reference model and OSeMOSYS.</p>
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">r</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_highs.html">solve_highs</a></span><span class="op">(</span><span class="va">example_models</span><span class="op">$</span><span class="va">toy</span>, attach <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="va">r</span><span class="op">$</span><span class="va">objective</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="summary">Summary<a class="anchor" aria-label="anchor" href="#summary"></a>
@@ -349,7 +374,7 @@ the <code>multimod</code> package, which allows for parsing certain GAMS
 models, converting them into a structured format, rendering to LaTeX,
 and converting back to GAMS code. The package is still under
 development, not all styles of GAMS models and syntax are supported,
-more features will be added in the future. See the <a href="roadmap.html">{dev-status}</a> article for details.</p>
+more features will be added in the future. See the <a href="roadmap.html">Development status</a> article for details.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
@@ -358,11 +383,11 @@ more features will be added in the future. See the <a href="roadmap.html">{dev-s
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Oleg Lugovoy.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+
 </div>
 
     </footer>

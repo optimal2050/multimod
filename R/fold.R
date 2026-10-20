@@ -1,72 +1,3 @@
-#' Create fold specification for energyRt models (convenience wrapper)
-#'
-#' Convenience wrapper around the generic \code{create_fold_spec()} function.
-#' Uses the same underlying implementation but provides energyRt-specific defaults
-#' for entity-to-mapping associations.
-#'
-#' @param model A multimod model object (from energyRt)
-#' @param fold_dims Dimension configuration. Same format as \code{create_fold_spec()}.
-#'   Can be:
-#'   - Character vector: dimension names (e.g., \code{c("slice")})  
-#'   - Named list (simple): dimension → mapping (e.g., \code{list(slice = "mCommSlice")})
-#'   - Named list (advanced): dimension → entity-specific mappings
-#'     (e.g., \code{list(slice = list(tech = "mTechSlice", comm = "mCommSlice"))})
-#' @param tolerance Numeric tolerance for considering values equal (default: 1e-10)
-#' @param verbose Logical; print progress messages (default: TRUE)
-#'
-#' @return Data frame with columns: param_name, dim_to_fold, validation_mapping,
-#'   can_fold, reason
-#'   
-#' @details
-#' **Note**: This function has the SAME functionality as \code{create_fold_spec()}.
-#' The only difference is naming - this version emphasizes it's designed for energyRt
-#' models, but both functions support all features (entity-specific mappings, chains, etc.).
-#' 
-#' Mapping priority (for entity-specific configuration):
-#' - Uses FIRST matching entity dimension
-#' - If parameter has "tech" → use tech mapping
-#' - Else if has "sup" → use sup mapping  
-#' - Else if has "comm" → use comm mapping
-#' - Else if has "stg" → use stg mapping
-#' - Else → NA (no validation)
-#' 
-#' Mapping chains join mappings by common columns:
-#' Example: \code{stg = c("mStorageComm", "mCommSlice")}
-#' - \code{mStorageComm[stg, comm]} ⨝ \code{mCommSlice[comm, slice]} → \code{[stg, slice]}
-#' 
-#' For derived mappings (chains), mappings are joined in sequence by common columns.
-#' Example: \code{stg = c("mStorageComm", "mCommSlice")}
-#' - \code{mStorageComm[stg, comm]} inner_join \code{mCommSlice[comm, slice]} → \code{[stg, slice]}
-#'
-#' @examples
-#' \dontrun{
-#' # Explicit configuration for energyRt models
-#' fold_spec <- create_fold_spec_energyRt(model, 
-#'   fold_dims = list(
-#'     slice = list(
-#'       tech = "mTechSlice",
-#'       sup = "mSupSlice", 
-#'       comm = "mCommSlice",
-#'       stg = c("mStorageComm", "mCommSlice"),
-#'       trade = c("mTradeComm", "mCommSlice"),
-#'       imp = c("mImportComm", "mCommSlice")
-#'     )
-#'   ))
-#' 
-#' # Review and edit
-#' View(fold_spec)
-#' 
-#' # Use edited specification
-#' model <- fold_model(model, fold_spec = fold_spec)
-#' }
-#' @export
-create_fold_spec_energyRt <- function(model,
-                                       fold_dims,
-                                       tolerance = 1e-10,
-                                       verbose = TRUE) {
-  create_fold_spec(model, fold_dims, tolerance, verbose)
-}
-
 #' Get active dimensions from a parameter
 #'
 #' Returns the dimensions that are actually present in a parameter's data.
@@ -87,33 +18,29 @@ create_fold_spec_energyRt <- function(model,
 #' dimensions for code generation and validation.
 #'
 #' @examples
-#' \dontrun{
-#' # Get active dimensions (works for folded or unfolded)
-#' dims <- get_active_dims(param)
-#' 
-#' # Check if parameter is folded
-#' folded_dims <- get_active_dims(param, folded = TRUE)
-#' is_folded <- !is.null(folded_dims)
-#' }
+#' m <- example_models$energyRt$multimod
+#' param <- m$parameters$pTechCinp2use
+#'
+#' # Active dimensions: the folded ones if folded, else the declared ones
+#' get_active_dims(param)
+#'
+#' # Folded dimensions only
+#' get_active_dims(param, folded = TRUE)
 #'
 #' @export
 get_active_dims <- function(param, folded = FALSE) {
-  stopifnot(inherits(param, "parameter"))
-  
+  stopifnot(inherits(param, "mm_parameter"))
+
+  # A parameter built without data (the readers) carries an empty active_dims;
+  # only a folded parameter may legitimately have fewer active dims than dims.
+  is_fold <- is_folded(param)
+  has_active <- !is.null(param$active_dims) &&
+    (is_fold || length(param$active_dims) > 0)
+
   if (folded) {
-    # Return folded dimensions only if parameter is folded
-    if (!is.null(param$active_dims)) {
-      return(param$active_dims)
-    } else {
-      return(NULL)
-    }
+    if (is_fold && has_active) param$active_dims else NULL
   } else {
-    # Return active dimensions (folded if available, otherwise original)
-    if (!is.null(param$active_dims)) {
-      return(param$active_dims)
-    } else {
-      return(param$dims)
-    }
+    if (has_active) param$active_dims else param$dims
   }
 }
 
@@ -126,6 +53,8 @@ get_active_dims <- function(param, folded = FALSE) {
 #' @param format Character string specifying output format: "list" (default) 
 #'   returns structured list, "data.frame" returns tabular format, "text" prints
 #'   formatted summary
+#' @param verbose Logical; if `TRUE` and `format = "text"`, print a note when
+#'   the model has no folding applied (default: FALSE)
 #'
 #' @return Depending on format:
 #' \itemize{
@@ -145,16 +74,18 @@ get_active_dims <- function(param, folded = FALSE) {
 #' }
 #'
 #' @examples
-#' \dontrun{
-#' # Get structured list
-#' stats <- get_fold_summary(model_folded)
-#' 
-#' # Get as data frame
-#' df <- get_fold_summary(model_folded, format = "data.frame")
-#' 
-#' # Print formatted summary
-#' get_fold_summary(model_folded, format = "text")
-#' }
+#' m <- example_models$energyRt$multimod
+#' spec <- create_fold_spec(m, fold_dims = "timeslice", verbose = FALSE)
+#' m_folded <- fold_model(m, fold_spec = spec, verbose = FALSE)
+#'
+#' # Structured list
+#' stats <- get_fold_summary(m_folded)
+#'
+#' # As a data frame
+#' df <- get_fold_summary(m_folded, format = "data.frame")
+#'
+#' # Formatted text
+#' get_fold_summary(m_folded, format = "text")
 #'
 #' @export
 get_fold_summary <- function(model, format = c("list", "data.frame", "text"), verbose = FALSE) {
@@ -225,7 +156,7 @@ get_fold_summary <- function(model, format = c("list", "data.frame", "text"), ve
     cat(strrep("-", 95), "\n")
     
     for (info in param_info) {
-      cat(sprintf("%-25s %20s %20s %6d→%-6d %10s\n",
+      cat(sprintf("%-25s %20s %20s %6d\u2192%-6d %10s\n",
                   info$parameter,
                   info$original_dims,
                   info$folded_dims,
@@ -260,13 +191,13 @@ get_fold_summary <- function(model, format = c("list", "data.frame", "text"), ve
 #' Also returns TRUE if the model has folded_equations.
 #'
 #' @examples
-#' \dontrun{
-#' # Check if a parameter is folded
-#' is_folded(model$parameters$pTechCinp2use)
-#' 
-#' # Check if a model has any folded parameters
-#' is_folded(model)
-#' }
+#' m <- example_models$energyRt$multimod
+#' is_folded(m)
+#' is_folded(m$parameters$pTechCinp2use)
+#'
+#' spec <- create_fold_spec(m, fold_dims = "timeslice", verbose = FALSE)
+#' m_folded <- fold_model(m, fold_spec = spec, verbose = FALSE)
+#' is_folded(m_folded)
 #'
 #' @export
 is_folded <- function(x) {
@@ -274,13 +205,13 @@ is_folded <- function(x) {
 }
 
 #' @export
-is_folded.parameter <- function(x) {
+is_folded.mm_parameter <- function(x) {
   # A parameter is considered folded if it has fold_info indicating folding occurred
   !is.null(x$misc$fold_info) && isTRUE(x$misc$fold_info$folded)
 }
 
 #' @export
-is_folded.model <- function(x) {
+is_folded.mm_model <- function(x) {
   # Check if any parameters are folded
   if (!is.null(x$parameters) && length(x$parameters) > 0) {
     for (param in x$parameters) {
@@ -300,7 +231,7 @@ is_folded.model <- function(x) {
 
 #' @export
 is_folded.multimod <- function(x) {
-  is_folded.model(x)
+  is_folded.mm_model(x)
 }
 
 #' @export
@@ -332,20 +263,77 @@ is_folded.default <- function(x) {
   return(FALSE)
 }
 
-create_fold_spec_energyRt <- function(model,
-                                       fold_dims,
-                                       tolerance = 1e-10,
-                                       verbose = TRUE) {
-  
+#' Create a fold specification for a model's parameters
+#'
+#' Scans a model's parameters and reports, for each, whether a dimension can be
+#' folded away - that is, whether the parameter's values are constant along it
+#' within tolerance - together with the mapping that should be used to validate
+#' the fold.
+#'
+#' Nothing here is energyRt-specific: the function walks `model$parameters` and
+#' the `fold_dims` configuration it is given. Only the *default* mapping names
+#' (`mTechTimeslice` and friends) follow energyRt's conventions, and those are
+#' supplied by the caller.
+#'
+#' @param model A multimod model object.
+#' @param fold_dims Dimension configuration. Either:
+#'   - a character vector of dimension names (e.g. `c("timeslice")`);
+#'   - a named list mapping dimension to validation mapping
+#'     (e.g. `list(timeslice = "mCommTimeslice")`);
+#'   - a named list mapping dimension to entity-specific mappings
+#'     (e.g. `list(timeslice = list(tech = "mTechTimeslice",
+#'     stg = c("mStorageComm", "mCommTimeslice")))`), where a character vector
+#'     is a chain.
+#' @param tolerance Numeric tolerance for detecting constant values.
+#' @param verbose Logical; print progress.
+#'
+#' @return A data frame with one row per parameter/dimension pair: `param_name`,
+#'   `dim_to_fold`, `validation_mapping`, `validation_mapping_raw`, `can_fold`,
+#'   `unproven` and `reason`. `unproven` marks a dimension refused for want of
+#'   a validation mapping rather than because folding was shown to be wrong:
+#'   constancy holds over the data present, but nothing proves the data covers
+#'   every applicable member, so folding could broadcast a value where the
+#'   default applies. Supplying the mapping settles it either way.
+#'
+#' @details
+#' With an entity-specific configuration, the **first** matching entity
+#' dimension wins: `tech`, then `sup`, then `comm`, then `stg`; a parameter
+#' matching none gets `NA` and is not validated.
+#'
+#' A character vector is a **mapping chain**, joined in sequence on the columns
+#' the mappings share. For `stg = c("mStorageComm", "mCommTimeslice")`:
+#' `mStorageComm[stg, comm]` joined with `mCommTimeslice[comm, timeslice]`
+#' yields `[stg, timeslice]`.
+#'
+#' @seealso [fold_model()]
+#' @export
+#' @examples
+#' m <- example_models$energyRt$multimod
+#' fold_spec <- create_fold_spec(m, fold_dims = "timeslice")
+#' head(fold_spec)
+#'
+#' # Entity-specific validation mappings (a character vector is a chain)
+#' fold_spec <- create_fold_spec(
+#'   m,
+#'   fold_dims = list(
+#'     timeslice = list(comm = "mCommTimeslice")
+#'   ),
+#'   verbose = FALSE
+#' )
+create_fold_spec <- function(model,
+                             fold_dims,
+                             tolerance = 1e-10,
+                             verbose = TRUE) {
+
   `%>%` <- magrittr::`%>%`
   
   # Parse fold_dims configuration
   if (is.list(fold_dims)) {
-    # Explicit configuration: list(slice = list(tech = "mTechSlice", stg = c("mStorageComm", "mCommSlice")))
+    # Explicit configuration: list(timeslice = list(tech = "mTechTimeslice", stg = c("mStorageComm", "mCommTimeslice")))
     dim_entity_mapping_config <- fold_dims
     fold_dims_vec <- names(fold_dims)
   } else {
-    # Simple vector: c("slice", "region") - but no default mappings, will return NA
+    # Simple vector: c("timeslice", "region") - but no default mappings, will return NA
     fold_dims_vec <- fold_dims
     dim_entity_mapping_config <- list()
   }
@@ -413,7 +401,7 @@ create_fold_spec_energyRt <- function(model,
         } else {
           # Chain of mappings
           validation_mapping_raw <- mapping_spec  # Store as vector
-          validation_mapping_display <- paste(mapping_spec, collapse = " → ")
+          validation_mapping_display <- paste(mapping_spec, collapse = " \u2192 ")
         }
       } else {
         validation_mapping_raw <- NA_character_
@@ -435,6 +423,7 @@ create_fold_spec_energyRt <- function(model,
         validation_mapping = validation_mapping_display,
         validation_mapping_raw = I(list(validation_mapping_raw)),  # Wrap in list() here
         can_fold = result$can_fold,
+        unproven = isTRUE(result$unproven),
         reason = result$reason,
         stringsAsFactors = FALSE
       )
@@ -460,6 +449,11 @@ create_fold_spec_energyRt <- function(model,
     cat("Total entries:", nrow(spec_df), "\n")
     cat("Can fold:", sum(spec_df$can_fold), "\n")
     cat("Cannot fold:", sum(!spec_df$can_fold), "\n")
+    nu <- sum(spec_df$unproven %in% TRUE)
+    if (nu > 0) {
+      cat("  of which unproven -- a validation mapping would allow them:", nu, "
+")
+    }
     cat("\nREVIEW CAREFULLY: validation_mapping may be incorrect for non-standard models\n\n")
   }
   
@@ -467,157 +461,13 @@ create_fold_spec_energyRt <- function(model,
 }
 
 
-#' Guess validation mapping for fold specification (energyRt-specific)
+#' Decide whether to show a progress bar while folding
 #'
-#' Uses parameter dimensions and entity-to-mapping configuration to select
-#' the appropriate validation mapping. Uses PRIORITY-BASED selection: returns
-#' the mapping for the FIRST matching entity dimension found.
-#'
-#' Supports mapping chains for derived mappings (e.g., stg → comm → slice).
-#'
-#' @param param_name Parameter name (for debugging)
-#' @param dim_to_fold Dimension to fold
-#' @param dims All dimensions in parameter
-#' @param entity_mapping Named list mapping entity dimensions to validation mappings.
-#'   Values can be single string or character vector for chains.
-#'   Example: list(tech = "mTechSlice", 
-#'                 stg = c("mStorageComm", "mCommSlice"))
-#'
-#' @return Mapping specification: single string or character vector for chains
-#' @keywords internal
-guess_validation_mapping_energyRt <- function(param_name, dim_to_fold, dims, entity_mapping) {
-  
-  if (dim_to_fold != "slice") {
-    # Not implemented for region/year yet
-    return(NA_character_)
-  }
-  
-  # Priority-based selection: use FIRST matching entity dimension
-  # For pTechCinp2use[tech, comm, ...]: has both tech and comm, returns mTechSlice (tech wins)
-  # For pStorage...[stg, comm, ...]: has stg, returns c("mStorageComm", "mCommSlice")
-  for (entity_dim in names(entity_mapping)) {
-    if (entity_dim %in% dims) {
-      mapping_spec <- entity_mapping[[entity_dim]]
-      # Return as-is: can be single string or vector (chain)
-      if (length(mapping_spec) == 1) {
-        return(mapping_spec)
-      } else {
-        # Return chain as concatenated string with separator for storage
-        return(paste(mapping_spec, collapse = " → "))
-      }
-    }
-  }
-  
-  return(NA_character_)
-}
-
-
-#' Create fold specification for parameters (generic interface)
-#'
-#' Generic interface for creating fold specifications. Supports all the same 
-#' features as \code{create_fold_spec_energyRt} but without energyRt-specific defaults.
-#'
-#' @param model A multimod model object
-#' @param fold_dims Dimension configuration. Can be:
-#'   - Character vector: dimension names (e.g., \code{c("slice")})
-#'   - Named list (simple): dimension → mapping (e.g., \code{list(slice = "mCommSlice")})
-#'   - Named list (advanced): dimension → entity-specific mappings 
-#'     (e.g., \code{list(slice = list(tech = "mTechSlice", comm = "mCommSlice"))})
-#' @param tolerance Numeric tolerance for detecting constant values (default: 1e-10)
-#' @param verbose Logical; print progress messages (default: TRUE)
-#'
-#' @return Data frame with fold specification for each parameter
-#' 
-#' @examples
-#' \dontrun{
-#' # Simple: fold slice dimension
-#' fold_spec <- create_fold_spec(model, fold_dims = "slice")
-#' 
-#' # With single validation mapping
-#' fold_spec <- create_fold_spec(model, fold_dims = list(slice = "mCommSlice"))
-#' 
-#' # Entity-specific (advanced)
-#' fold_spec <- create_fold_spec(
-#'   model,
-#'   fold_dims = list(
-#'     slice = list(
-#'       tech = "mTechSlice",
-#'       comm = "mCommSlice",
-#'       stg = c("mStorageComm", "mCommSlice")  # Chain
-#'     )
-#'   )
-#' )
-#' }
-#' @export
-create_fold_spec <- function(model,
-                              fold_dims,
-                              tolerance = 1e-10,
-                              verbose = TRUE) {
-  
-  # Delegate to energyRt implementation which has full functionality
-  # (entity-specific mappings, chains, etc.)
-  create_fold_spec_energyRt(model, fold_dims, tolerance, verbose)
-}
-
-
-#' Fold model dimensions to reduce data size
-#'
-#' Reduces redundant dimensions in parameters where data is constant across
-#' those dimensions. Only folds high-cardinality indexing dimensions (slice,
-#' optionally region/year) while preserving structural dimensions (tech, comm, etc.).
-#'
-#' The algorithm uses per-group validation: for each combination of OTHER dimensions,
-#' it checks if values are identical. This is an "all or nothing" approach - if ANY
-#' group shows variation, the dimension is not folded.
-#'
-#' @param model A multimod model object
-#' @param fold_spec Data frame specifying fold configuration. Must have columns:
-#'   param_name, dim_to_fold, validation_mapping. Use `create_fold_spec()` to
-#'   generate proper fold specification with entity-specific mappings.
-#' @param tolerance Numeric tolerance for considering values equal (default: 1e-10)
-#' @param verbose Logical; print progress messages (default: TRUE)
-#'
-#' @return Modified model with folded parameters
-#' 
-#' @details
-#' Folding analyzes each parameter to identify dimensions that don't provide
-#' variation in the data. For each parameter, it groups by all OTHER dimensions
-#' and checks if values are constant within each group (within tolerance).
-#' 
-#' Example: For \code{pStorageInpEff[stg, comm, region, year, slice]} testing slice:
-#' - Groups by \code{(stg, comm, region, year)}
-#' - For each group, checks if ALL slice values are identical
-#' - Only folds if EVERY group has constant values
-#' 
-#' This handles sparse data correctly - if a parameter only has values for
-#' peak hours (1 slice out of 17), that's fine. It only checks if the values
-#' that DO exist are constant within each group.
-#' 
-#' The fold creates three slots per parameter:
-#' - `data`: Original complete data (preserved)
-#' - `folded_data`: Collapsed data with reduced dimensions  
-#' - `active_dims`: Dimensions remaining after fold
-#' 
-#' Safety measures:
-#' - Only folds dimensions explicitly requested by user
-#' - Never folds structural dimensions (tech, comm, sup, dem, stg, trade, etc.)
-#' - Skips parameters where all dimensions would be folded (would become scalar)
-#' - Validates consistency before folding
-#' - Updates equation ASTs to match reduced dimensions
-#' 
-#' @examples
-#' \dontrun{
-#' # Specify fold dimensions with entity-specific mappings
-#' fold_dims <- list(
-#'   slice = c("mSupSlice", "mDemSlice", "mStorageSlice", "mTradeSlice"),
-#'   region = c("mTechRegion", "mSupRegion", "mDemRegion", "mStorageRegion"),
-#'   year = c("mTechYear", "mSupYear", "mDemYear", "mStorageYear")
-#' )
-#' fold_spec <- create_fold_spec(model, fold_dims = fold_dims)
-#' # Review and edit fold_spec to ensure correct validation mappings
-#' model <- fold_model(model, fold_spec = fold_spec)
-#' }
-#' 
+#' @param model A multimod model object.
+#' @param fold_spec The fold specification.
+#' @param param_threshold Parameter count above which to enable progress.
+#' @param row_threshold Total data rows above which to enable progress.
+#' @return Logical.
 #' @keywords internal
 should_enable_progress_fold <- function(model, fold_spec, 
                                         param_threshold = 30,
@@ -643,6 +493,61 @@ should_enable_progress_fold <- function(model, fold_spec,
   return(total_rows > row_threshold)
 }
 
+#' Fold model dimensions to reduce data size
+#'
+#' Reduces redundant dimensions in parameters where data is constant across
+#' those dimensions. Only folds high-cardinality indexing dimensions (timeslice,
+#' optionally region/year) while preserving structural dimensions (tech, comm, etc.).
+#'
+#' The algorithm uses per-group validation: for each combination of OTHER dimensions,
+#' it checks if values are identical. This is an "all or nothing" approach - if ANY
+#' group shows variation, the dimension is not folded.
+#'
+#' @param model A multimod model object
+#' @param fold_spec Data frame specifying fold configuration. Must have columns:
+#'   param_name, dim_to_fold, validation_mapping. Use `create_fold_spec()` to
+#'   generate proper fold specification with entity-specific mappings.
+#' @param tolerance Numeric tolerance for considering values equal (default: 1e-10)
+#' @param verbose Logical; print progress messages (default: TRUE)
+#' @param .progress Progress bar control: `"auto"` (default) shows a
+#'   `progressr` bar for large models, `TRUE` forces it on (requires
+#'   `progressr`), `FALSE` disables it.
+#'
+#' @return Modified model with folded parameters
+#' 
+#' @details
+#' Folding analyzes each parameter to identify dimensions that don't provide
+#' variation in the data. For each parameter, it groups by all OTHER dimensions
+#' and checks if values are constant within each group (within tolerance).
+#' 
+#' Example: For \code{pStorageInpEff[stg, comm, region, year, timeslice]} testing timeslice:
+#' - Groups by \code{(stg, comm, region, year)}
+#' - For each group, checks if ALL timeslice values are identical
+#' - Only folds if EVERY group has constant values
+#' 
+#' This handles sparse data correctly - if a parameter only has values for
+#' peak hours (1 timeslice out of 17), that's fine. It only checks if the values
+#' that DO exist are constant within each group.
+#' 
+#' The fold creates three slots per parameter:
+#' - `data`: Original complete data (preserved)
+#' - `folded_data`: Collapsed data with reduced dimensions  
+#' - `active_dims`: Dimensions remaining after fold
+#' 
+#' Safety measures:
+#' - Only folds dimensions explicitly requested by user
+#' - Never folds structural dimensions (tech, comm, sup, dem, stg, trade, etc.)
+#' - Skips parameters where all dimensions would be folded (would become scalar)
+#' - Validates consistency before folding
+#' - Updates equation ASTs to match reduced dimensions
+#' 
+#' @examples
+#' m <- example_models$energyRt$multimod
+#' fold_spec <- create_fold_spec(m, fold_dims = "timeslice", verbose = FALSE)
+#' # Review and edit fold_spec to ensure correct validation mappings
+#' m_folded <- fold_model(m, fold_spec = fold_spec, verbose = FALSE)
+#' get_fold_summary(m_folded, format = "text")
+#' 
 #' @export
 fold_model <- function(model, 
                        fold_spec,
@@ -651,7 +556,7 @@ fold_model <- function(model,
                        .progress = "auto") {
   `%>%` <- magrittr::`%>%`
   
-  stopifnot(inherits(model, "multimod") || inherits(model, "model"))
+  stopifnot(inherits(model, "multimod") || inherits(model, "mm_model"))
   stopifnot("fold_spec parameter is required. Use create_fold_spec() to generate it." = !missing(fold_spec))
   
   # Determine if progress should be enabled
@@ -738,6 +643,7 @@ fold_model <- function(model,
 }
 
 #' Internal fold loop with optional progress reporting
+#' @return The folded `mm_model`.
 #' @keywords internal
 fold_model_loop <- function(model, fold_spec, tolerance, verbose, p = NULL) {
   `%>%` <- magrittr::`%>%`
@@ -766,14 +672,14 @@ fold_model_loop <- function(model, fold_spec, tolerance, verbose, p = NULL) {
       validation_mapping_display <- fold_spec$validation_mapping[i]
     } else {
       if (length(validation_mapping) > 1) {
-        validation_mapping_display <- paste(validation_mapping, collapse = " → ")
+        validation_mapping_display <- paste(validation_mapping, collapse = " \u2192 ")
       } else {
         validation_mapping_display <- validation_mapping
       }
     }
     
     if (!param_name %in% names(model$parameters)) {
-      if (verbose) cat("⊠ Skipping", param_name, "- not found in model\n")
+      if (verbose) cat("\u22a0 Skipping", param_name, "- not found in model\n")
       n_skipped <- n_skipped + 1
       next
     }
@@ -800,7 +706,7 @@ fold_model_loop <- function(model, fold_spec, tolerance, verbose, p = NULL) {
     
     # Check if dimension exists in parameter
     if (!dim_to_fold %in% dims) {
-      if (verbose) cat("⊠ Skipping", param_name, "- doesn't have dimension", dim_to_fold, "\n")
+      if (verbose) cat("\u22a0 Skipping", param_name, "- doesn't have dimension", dim_to_fold, "\n")
       n_skipped <- n_skipped + 1
       next
     }
@@ -870,6 +776,16 @@ fold_model_loop <- function(model, fold_spec, tolerance, verbose, p = NULL) {
     # Store metadata
     param$misc$fold_info <- list(
       folded = TRUE,
+      # Which ENCODING of the fold this is. energyRt records the same field and
+      # can write either "wildcard" (the dimension column is kept and the
+      # folded rows carry NA, exported later as ANY* tokens) or "drop". Both
+      # packages compute the same whole-column fold; they serialise it
+      # differently, and a wildcard has to be expanded before it reaches a
+      # matrix while a dropped column does not. multimod only ever drops, but
+      # it has to SAY so: without the field, absence is ambiguous between
+      # "multimod wrote this" and "an energyRt predating the field wrote it",
+      # and a reader cannot tell whether expansion is required.
+      mode = "drop",
       original_dims = original_dims,
       removed_dims = all_removed_dims,  # Accumulated across sequential folds
       validation_mapping = validation_mapping,
@@ -885,8 +801,8 @@ fold_model_loop <- function(model, fold_spec, tolerance, verbose, p = NULL) {
     
     # Track for summary
     fold_summary[[param_name]] <- list(
-      original = paste(original_dims, collapse=" × "),
-      folded = paste(active_dims, collapse=" × "),
+      original = paste(original_dims, collapse=" \u00d7 "),
+      folded = paste(active_dims, collapse=" \u00d7 "),
       removed = dim_to_fold,
       original_rows = nrow(param$data),
       folded_rows = nrow(folded_data),
@@ -896,7 +812,7 @@ fold_model_loop <- function(model, fold_spec, tolerance, verbose, p = NULL) {
     n_folded <- n_folded + 1
     
     if (verbose) {
-      cat(sprintf("✓ %s: %dD → %dD (%d → %d rows, %.1fx)\n",
+      cat(sprintf("\u2713 %s: %dD \u2192 %dD (%d \u2192 %d rows, %.1fx)\n",
                  param_name, 
                  length(original_dims),
                  length(active_dims),
@@ -944,7 +860,7 @@ fold_model_loop <- function(model, fold_spec, tolerance, verbose, p = NULL) {
 #' @param model Model object (for set membership and alias resolution)
 #' @param tolerance Numeric tolerance for value equality (default 1e-10)
 #' @param validation_mapping Optional. Name of mapping to use for coverage validation
-#'   (e.g., "mTechSlice"). If NULL, auto-detects based on parameter dimensions.
+#'   (e.g., "mTechTimeslice"). If NULL, auto-detects based on parameter dimensions.
 #'
 #' @return List with can_fold (logical) and reason (character)
 #' @keywords internal
@@ -968,18 +884,37 @@ analyze_dimension_redundancy <- function(param, dim_to_test, model,
     return(list(can_fold = FALSE, reason = "Dimension not in data"))
   }
   
-  # Step 3: For slice dimension, get timeframe mapping for coverage validation
+  # Step 2b: refuse a dimension the parameter carries more than once.
+  # `fold_ast_node()` and the declaration rewrite both drop EVERY dim whose
+  # resolved name matches, so folding `region` on pTradeIrEff(trade, region,
+  # region, year, timeslice) would collapse source and destination into one
+  # subscript - a model that still assembles, with the wrong contents. 18 of
+  # the energyRt parameters carry such a repeat (comm,comm / region,region /
+  # timeslice,timeslice). Folding one position only is possible but needs the
+  # analysis to prove constancy per position, which it does not do.
+  resolved_dims <- vapply(dims, resolve_alias_to_set, character(1), model = model)
+  n_occur <- sum(resolved_dims == resolve_alias_to_set(dim_to_test, model))
+  if (n_occur > 1L) {
+    return(list(
+      can_fold = FALSE,
+      reason = sprintf(
+        "Dimension appears %d times in the parameter (%s); folding would remove all of them",
+        n_occur, paste(dims, collapse = ", "))
+    ))
+  }
+  
+  # Step 3: For timeslice dimension, get timeframe mapping for coverage validation
   # This is CRITICAL: we need to verify that data covers ALL applicable slices
   # for each entity. Otherwise folding would broadcast values to slices that
   # should use the default value.
   #
   # The validation_mapping parameter can be:
-  # - Single string: direct mapping name (e.g., "mTechSlice")
-  # - Character vector: chain of mappings to join (e.g., c("mStorageComm", "mCommSlice"))
+  # - Single string: direct mapping name (e.g., "mTechTimeslice")
+  # - Character vector: chain of mappings to join (e.g., c("mStorageComm", "mCommTimeslice"))
   timeframe_mapping <- NULL
   entity_dim <- NULL
   
-  if (dim_to_test == "slice") {
+  if (dim_to_test == "timeslice") {
     if (!is.null(validation_mapping) && length(validation_mapping) > 0 && !is.na(validation_mapping[1])) {
       
       if (length(validation_mapping) == 1) {
@@ -989,13 +924,12 @@ analyze_dimension_redundancy <- function(param, dim_to_test, model,
         if (mapping_name %in% names(model$mappings)) {
           timeframe_mapping <- model$mappings[[mapping_name]]$data
           
-          # Extract entity dimension from mapping name
-          entity_mapping <- c(
-            "mTechSlice" = "tech",
-            "mCommSlice" = "comm",
-            "mSupSlice" = "sup"
-          )
-          entity_dim <- entity_mapping[mapping_name]
+          # The entity is whichever column of the mapping is not the folded
+          # dimension. Derived rather than looked up in a table, so mImpTimeslice,
+          # mExpTimeslice, mTradeTimeslice and the region/year mappings work too;
+          # a name absent from the table used to yield NA and crash the coverage
+          # check below.
+          entity_dim <- setdiff(names(timeframe_mapping), dim_to_test)[1]
           
           # Verify this entity dimension is actually in the parameter
           if (!is.na(entity_dim) && !(entity_dim %in% dims)) {
@@ -1014,8 +948,8 @@ analyze_dimension_redundancy <- function(param, dim_to_test, model,
         
       } else {
         # Chain of mappings - join them in sequence
-        # Example: c("mStorageComm", "mCommSlice") 
-        # mStorageComm[stg, comm] join mCommSlice[comm, slice] → [stg, slice]
+        # Example: c("mStorageComm", "mCommTimeslice") 
+        # mStorageComm[stg, comm] join mCommTimeslice[comm, timeslice] → [stg, timeslice]
         
         tryCatch({
           result_mapping <- model$mappings[[validation_mapping[1]]]$data
@@ -1153,7 +1087,7 @@ analyze_dimension_redundancy <- function(param, dim_to_test, model,
     ))
   }
   
-  # Step 5: CRITICAL CHECK for slice dimension with timeframe mappings
+  # Step 5: CRITICAL CHECK for timeslice dimension with timeframe mappings
   # Even if values are constant, we can only fold if data covers ALL applicable
   # slices for each entity. Otherwise, folding would incorrectly broadcast the
   # value to slices that should use the default.
@@ -1163,7 +1097,8 @@ analyze_dimension_redundancy <- function(param, dim_to_test, model,
   # - If we fold: pPeakCost[COAL,R1,2025]=100 broadcasts to ALL 3 slices
   # - But MID and BASE should use default (0), not 100!
   # - Therefore: CANNOT FOLD
-  if (dim_to_test == "slice" && !is.null(timeframe_mapping) && !is.null(entity_dim)) {
+  if (!is.null(timeframe_mapping) && !is.null(entity_dim) &&
+      !is.na(entity_dim) && entity_dim %in% other_dims) {
     
     # Build map of dimension names to actual column names in data (handling aliases)
     dim_to_col <- setNames(other_dims, other_dims)
@@ -1211,7 +1146,7 @@ analyze_dimension_redundancy <- function(param, dim_to_test, model,
         if (length(missing_slices) > 0) {
           return(list(
             can_fold = FALSE,
-            reason = sprintf("Incomplete slice coverage for %s=%s: has %d/%d slices (missing: %s). Folding would incorrectly broadcast to missing slices.",
+            reason = sprintf("Incomplete timeslice coverage for %s=%s: has %d/%d slices (missing: %s). Folding would incorrectly broadcast to missing slices.",
                             entity_dim, entity_value, 
                             length(actual_slices), length(expected_slices),
                             paste(head(missing_slices, 3), collapse=", "))
@@ -1221,8 +1156,45 @@ analyze_dimension_redundancy <- function(param, dim_to_test, model,
     }
   }
   
-  # Dimension is redundant - values are constant within EVERY group
-  # AND (for slice) data covers ALL applicable slices for each entity
+  # Step 5b: the broadcast hazard above is not specific to timeslice, but
+  # without a mapping there is nothing to say which members a group SHOULD
+  # carry, so per-group gaps cannot be judged - a supply process legitimately
+  # priced in three of seven regions is not a defect. What is always wrong is
+  # a parameter that never indexes some member of the folded dimension at
+  # all: those lookups resolve to the default today, and folding would
+  # replace it with the stored value.
+  #
+  # pTechStockNew (exogenous capacity commissioned at a milestone) holds one
+  # row per tech-region, in 2020 only, with defVal 0. Its values are
+  # trivially constant along year, so Step 4 passes - but folding made the
+  # capacity arrive in all four years and scaled the whole solution by 2.8.
+  if (is.null(timeframe_mapping)) {
+    dim_col <- intersect(c(dim_to_test, alias_map[[dim_to_test]]), names(data))
+    members <- model$sets[[dim_to_test]]$data
+    if (length(dim_col) > 0 && !is.null(members) && length(members) > 1) {
+      present <- unique(as.character(data[[dim_col[1]]]))
+      absent <- setdiff(as.character(members), present)
+      if (length(absent) > 0) {
+        # The values do not vary, so this is a fold CANDIDATE; what is missing
+        # is evidence that the uncovered members are never queried. Reported
+        # apart from a genuine conflict so an analysis can list what a mapping
+        # would unlock, while fold_model() still declines to apply it.
+        return(list(
+          can_fold = FALSE,
+          unproven = TRUE,
+          reason = sprintf(paste0("Values are constant, but the parameter never ",
+                                  "indexes %d of %d %s members (%s), which resolve ",
+                                  "to the default. Supply a validation mapping for ",
+                                  "this dimension to confirm they are unreachable."),
+                           length(absent), length(members), dim_to_test,
+                           paste(utils::head(absent, 3), collapse = ", "))
+        ))
+      }
+    }
+  }
+
+  # Dimension is redundant - values are constant within EVERY group, and the
+  # data covers every member of it, so no default is being overwritten.
   # This means the parameter value doesn't actually depend on this dimension,
   # even though it's indexed by it. Safe to fold.
   return(list(
@@ -1249,7 +1221,7 @@ get_dim_names <- function(dims) {
       d <- dims[[i]]
       if (inherits(d, "symbol")) {
         d$name
-      } else if (inherits(d, "set")) {
+      } else if (inherits(d, "mm_set")) {
         d$name
       } else {
         as.character(d)
@@ -1272,7 +1244,7 @@ get_dim_names <- function(dims) {
 #' @return Modified model with fold removed
 #' @export
 unfold_model <- function(model, verbose = TRUE) {
-  stopifnot(inherits(model, "multimod") || inherits(model, "model"))
+  stopifnot(inherits(model, "multimod") || inherits(model, "mm_model"))
   
   n_unfolded <- 0
   
@@ -1289,11 +1261,15 @@ unfold_model <- function(model, verbose = TRUE) {
       n_unfolded <- n_unfolded + 1
       
       if (verbose) {
-        cat("✓ Unfolded", param_name, "\n")
+        cat("\u2713 Unfolded", param_name, "\n")
       }
     }
   }
   
+  # fold_equations() keeps the originals in $equations and the rewritten set
+  # in $folded_equations; is_folded() reads the latter.
+  model$folded_equations <- NULL
+
   # Clear model metadata
   if (!is.null(model$misc)) {
     model$misc$fold_summary <- NULL
@@ -1323,7 +1299,7 @@ validate_fold <- function(model, verbose = TRUE) {
   # Ensure pipe operator is available
   `%>%` <- magrittr::`%>%`
   
-  stopifnot(inherits(model, "multimod") || inherits(model, "model"))
+  stopifnot(inherits(model, "multimod") || inherits(model, "mm_model"))
   
   issues <- list()
   n_validated <- 0
@@ -1360,7 +1336,7 @@ validate_fold <- function(model, verbose = TRUE) {
       )
       
       if (verbose) {
-        cat("✗", param_name, "- inconsistent values in", nrow(inconsistent), "groups\n")
+        cat("\u2717", param_name, "- inconsistent values in", nrow(inconsistent), "groups\n")
       }
       next
     }
@@ -1382,7 +1358,7 @@ validate_fold <- function(model, verbose = TRUE) {
       )
       
       if (verbose) {
-        cat("✗", param_name, "- folded_data mismatch\n")
+        cat("\u2717", param_name, "- folded_data mismatch\n")
       }
       next
     }
@@ -1392,7 +1368,7 @@ validate_fold <- function(model, verbose = TRUE) {
     
     n_valid <- n_valid + 1
     if (verbose) {
-      cat("✓", param_name, "- valid\n")
+      cat("\u2713", param_name, "- valid\n")
     }
   }
   
@@ -1412,8 +1388,7 @@ validate_fold <- function(model, verbose = TRUE) {
 #' Reports which parameters could be folded and the potential compression.
 #'
 #' @param model A multimod model object
-#' @param fold_slice Logical; consider slice dimension
-#' @param fold_slice Logical; consider slice dimension
+#' @param fold_timeslice Logical; consider the timeslice dimension
 #' @param fold_region Logical; consider region dimension
 #' @param fold_year Logical; consider year dimension
 #' @param tolerance Numeric tolerance for value equality (default: 1e-10)
@@ -1421,7 +1396,7 @@ validate_fold <- function(model, verbose = TRUE) {
 #' @return Data frame with fold analysis
 #' @export
 analyze_fold_opportunities <- function(model,
-                                      fold_slice = TRUE,
+                                      fold_timeslice = TRUE,
                                       fold_region = FALSE,
                                       fold_year = FALSE,
                                       tolerance = 1e-10) {
@@ -1429,10 +1404,10 @@ analyze_fold_opportunities <- function(model,
   # Ensure pipe operator is available
   `%>%` <- magrittr::`%>%`
   
-  stopifnot(inherits(model, "multimod") || inherits(model, "model"))
+  stopifnot(inherits(model, "multimod") || inherits(model, "mm_model"))
   
   fold_candidates <- c()
-  if (fold_slice) fold_candidates <- c(fold_candidates, "slice")
+  if (fold_timeslice) fold_candidates <- c(fold_candidates, "timeslice")
   if (fold_region) fold_candidates <- c(fold_candidates, "region")
   if (fold_year) fold_candidates <- c(fold_candidates, "year")
   
@@ -1478,8 +1453,8 @@ analyze_fold_opportunities <- function(model,
       
       results[[param_name]] <- data.frame(
         parameter = param_name,
-        original_dims = paste(dims, collapse=" × "),
-        folded_dims = paste(active_dims, collapse=" × "),
+        original_dims = paste(dims, collapse=" \u00d7 "),
+        folded_dims = paste(active_dims, collapse=" \u00d7 "),
         removed_dims = paste(dims_to_remove, collapse=", "),
         original_rows = nrow(param$data),
         folded_rows = folded_size,
@@ -1598,7 +1573,7 @@ fold_ast_node <- function(node, folded_params, model = NULL, debug = FALSE) {
   if (is.null(node) || !is.list(node)) return(node)
   
   # Handle parameter references - have $name and $dims
-  if (inherits(node, "parameter") && !is.null(node$name)) {
+  if (inherits(node, "mm_parameter") && !is.null(node$name)) {
     param_name <- node$name
     
     # Check if this parameter was folded
@@ -1619,7 +1594,7 @@ fold_ast_node <- function(node, folded_params, model = NULL, debug = FALSE) {
         for (i in seq_along(node$dims)) {
           dim <- node$dims[[i]]
           # Get dim name
-          dim_name <- if (inherits(dim, "set") && !is.null(dim$name)) {
+          dim_name <- if (inherits(dim, "mm_set") && !is.null(dim$name)) {
             dim$name
           } else if (inherits(dim, "symbol") && !is.null(dim$name)) {
             dim$name
@@ -1689,6 +1664,16 @@ fold_ast_node <- function(node, folded_params, model = NULL, debug = FALSE) {
     }
   }
   
+  # A unary node (-x, not x) holds its operand in `rhs` and its class is
+  # c("unary", "ast") - it does NOT inherit "expression", so the branch above
+  # does not reach it. Measured on the energyRt model: the subtrees under the
+  # 2 unary nodes held 4 parameter references the rewriter never visited, so a
+  # folded parameter kept its original arity there - a GMPL error, and a silent
+  # default substitution on JuMP and Pyomo.
+  if (inherits(node, "unary") && !is.null(node$rhs)) {
+    node$rhs <- fold_ast_node(node$rhs, folded_params, model, debug)
+  }
+
   # Handle function nodes (like prod, sum)
   if (inherits(node, "func")) {
     if (!is.null(node$value)) {

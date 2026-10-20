@@ -12,11 +12,25 @@ as_visNetwork(x, ...)
   main = x$name,
   submain = x$desc,
   alias_map = NULL,
-  show_dims = TRUE
+  show_dims = TRUE,
+  ...
 )
 }
 \arguments{
 \item{x}{A multimod object}
+
+\item{...}{Passed on to methods.}
+
+\item{main}{Title of the network plot (default: the object's name).}
+
+\item{submain}{Subtitle of the network plot (default: the object's description).}
+
+\item{alias_map}{A named list for alias mapping (optional).}
+
+\item{show_dims}{Logical, whether to show dimensions in node labels.}
+}
+\value{
+A \code{visNetwork} htmlwidget.
 }
 \description{
 Convert a multimod ast or equation to a visNetwork object

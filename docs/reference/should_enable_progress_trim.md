@@ -1,9 +1,12 @@
-# Trim unused elements from a model
+# Decide whether to show a progress bar while trimming
 
-Removes "dead branches" from a model by marking unused sets, parameters,
-mappings, variables, and equations with `$trimmed = TRUE`. Code
-generators (e.g., write_jump, write_gmpl) will skip elements marked as
-trimmed.
+Heuristic used by
+[`trim_model()`](https://optimal2050.github.io/multimod/reference/trim_model.md)
+with `.progress = "auto"`: returns `TRUE` for models large enough that
+trimming takes noticeable time. Trimming removes "dead branches" by
+marking unused sets, parameters, mappings, variables, and equations with
+`$trimmed = TRUE`; code generators (e.g., write_jump, write_gmpl) skip
+elements marked as trimmed.
 
 ## Usage
 
@@ -21,22 +24,20 @@ should_enable_progress_trim(
 
   A multimod model object
 
-- strategy:
+- element_threshold:
 
-  Character. Trimming strategy:
+  Integer. Progress is enabled when the number of sets, parameters,
+  mappings, variables and equations exceeds this value (default: 100)
 
-  - "unused": Remove empty data and dependent variables/equations
-    (default)
+- row_threshold:
 
-  - "aggressive": Also perform graph-based analysis (future)
-
-- verbose:
-
-  Logical. Print progress messages (default: TRUE)
+  Integer. Progress is enabled when the total number of parameter data
+  rows exceeds this value (default: 50000)
 
 ## Value
 
-Model with `$trimmed = TRUE` flag on unused elements
+Logical; `TRUE` when a `progressr` progress bar should be shown while
+trimming
 
 ## Details
 
@@ -55,18 +56,3 @@ Trimming process:
 Unlike folding (which reduces dimensions), trimming removes entire
 unused elements. Original data is preserved on disk but marked for
 exclusion from solver code generation.
-
-## Examples
-
-``` r
-if (FALSE) { # \dontrun{
-# Typical workflow
-model <- fold_model(model)  # Reduce dimensions first
-model <- trim_model(model)  # Then remove dead branches
-write_jump(model, "model.jl")  # Trimmed elements excluded
-
-# Check what was trimmed
-summary <- get_trim_summary(model)
-print(summary, format = "text")
-} # }
-```

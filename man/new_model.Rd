@@ -20,9 +20,13 @@ new_model(
 )
 }
 \arguments{
+\item{name}{model name (character, optional)}
+
 \item{desc}{model description (character)}
 
 \item{sets}{named list of sets}
+
+\item{aliases}{named list of set aliases}
 
 \item{mappings}{named list of mappings}
 
@@ -32,7 +36,15 @@ new_model(
 
 \item{equations}{named list of equation objects}
 
+\item{inMemory}{logical; whether the model data is held in memory
+(default \code{TRUE}) rather than read from \code{base_path}}
+
+\item{base_path}{base directory for relative data paths when data is
+stored on disk}
+
 \item{metadata}{Named list with auxiliary information (e.g., language, source_file, data_source).}
+
+\item{...}{Additional named fields stored on the model object.}
 }
 \value{
 A model object

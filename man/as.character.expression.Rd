@@ -15,6 +15,9 @@
 
 \item{...}{Additional arguments}
 }
+\value{
+A single character string.
+}
 \description{
 Convert AST expression to character
 }

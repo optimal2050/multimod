@@ -8,7 +8,7 @@ positive represents forward shift (lead).
 ## Usage
 
 ``` r
-ast_shift(symbol, offset, ...)
+ast_shift(symbol, offset, circular = FALSE, ...)
 ```
 
 ## Arguments
@@ -22,6 +22,11 @@ ast_shift(symbol, offset, ...)
 
   An integer offset. Negative for backward shift (e.g., -1 for y-1),
   positive for forward shift (e.g., +1 for y+1).
+
+- ...:
+
+  Additional fields stored on the node (passed to
+  [`new_ast()`](https://optimal2050.github.io/multimod/reference/new_ast.md)).
 
 ## Value
 

@@ -46,7 +46,19 @@ escape_latex <- function(txt) {
   return(txt)
 }
 
-#' @export
+#' Escape underscores in math mode names
+#'
+#' In math mode, underscores create subscripts. This function escapes them
+#' with backslash to display literal underscores in variable/parameter names.
+#'
+#' @param name A string containing a variable or parameter name
+#' @return The name with underscores escaped for LaTeX math mode
+#' @keywords internal
+escape_latex_mathname <- function(name) {
+  gsub("_", "\\_", name, fixed = TRUE)
+}
+
+#' @noRd
 latex_wrap_brackets <- function(x,
                                 brackets = NULL,
                                 autosize = TRUE,
@@ -94,6 +106,8 @@ latex_wrap_brackets <- function(x,
 }
 
 #' Get effective dimensions for LaTeX rendering
+#' @return A `dims` object: the active (folded) dimensions when requested,
+#'   else the declared dimensions, else those inferred from the data columns.
 #' @keywords internal
 get_latex_dims <- function(x, use_folded = TRUE) {
   if (use_folded && !is.null(x$active_dims) && length(x$active_dims) > 0) {
@@ -116,6 +130,7 @@ get_latex_dims <- function(x, use_folded = TRUE) {
 }
 
 #' Format set elements for LaTeX display
+#' @return A character string such as `"(3 elements: a, b, c)"`.
 #' @keywords internal
 format_set_elements <- function(set_data,
                                max_inline = 10,
@@ -150,6 +165,8 @@ format_set_elements <- function(set_data,
 }
 
 #' Render LaTeX indices for extrema constructs
+#' @return A character string of LaTeX code for the index of a min/max
+#'   construct.
 #' @keywords internal
 render_extrema_index <- function(index_node, brackets = NULL, ...) {
   if (inherits(index_node, "dims")) {
@@ -167,7 +184,7 @@ render_extrema_index <- function(index_node, brackets = NULL, ...) {
       return(paste0(idx_latex, " \\in ", set_name))
     }
 
-    if (inherits(cond, "mapping")) {
+    if (inherits(cond, "mm_mapping")) {
       dims <- cond$dims
       dims_latex <- as_latex(dims, ...)
       mapping_latex <- paste0("\\mathsf{", cond$name, "}_{", dims_latex, "}")
@@ -182,7 +199,7 @@ render_extrema_index <- function(index_node, brackets = NULL, ...) {
 }
 
 #' @returns A LaTeX bracket size prefix (e.g., "", "\\big", "\\Big", etc.)
-#' @export
+#' @noRd
 latex_bracket_size <- function(content, context = NULL) {
   # Strip LaTeX commands and brackets for rough length estimation
   content_clean <- gsub("\\\\[a-zA-Z]+|\\{|\\}|\\s+", "", content)
@@ -250,6 +267,37 @@ latex_top_level_operators <- function(latex_str,
   cmd_mode <- FALSE
   env_stack <- character()
 
+  prev_nonspace <- function(idx) {
+    j <- idx - 1
+    while (j >= 1 && chars[j] %in% c(" ", "\t", "\n")) j <- j - 1
+    j
+  }
+
+  next_nonspace <- function(idx) {
+    j <- idx + 1
+    while (j <= n && chars[j] %in% c(" ", "\t", "\n")) j <- j + 1
+    j
+  }
+
+  is_binary_minus <- function(idx) {
+    # Treat '-' as binary subtraction only, not unary negation or scientific notation.
+    p <- prev_nonspace(idx)
+    if (p < 1) return(FALSE)
+    prev_ch <- chars[p]
+
+    # Unary contexts: start, after operator/delimiter, or exponent/subscript markers.
+    if (prev_ch %in% c("+", "-", "=", "(", "[", "{", "<", ",", "^", "_")) return(FALSE)
+
+    # Scientific notation: 1e-3, 1E-3, 1.2e-3 (avoid splitting on the minus).
+    q <- next_nonspace(idx)
+    if (prev_ch %in% c("e", "E") && q <= n && grepl("[0-9]", chars[q])) {
+      p2 <- prev_nonspace(p)
+      if (p2 >= 1 && grepl("[0-9.]", chars[p2])) return(FALSE)
+    }
+
+    TRUE
+  }
+
   while (i <= n) {
     ch <- chars[i]
 
@@ -287,7 +335,9 @@ latex_top_level_operators <- function(latex_str,
 
     # -- Plain operators (+, -, =), allowed only at depth = 0
     if (depth == 0 && length(env_stack) == 0 && ch %in% c("+", "-", "=") && ch %in% operators) {
-      positions[[length(positions) + 1]] <- list(op = ch, pos = i)
+      if (ch != "-" || is_binary_minus(i)) {
+        positions[[length(positions) + 1]] <- list(op = ch, pos = i)
+      }
     }
 
     # -- Move next --
@@ -308,6 +358,22 @@ latex_top_level_operators <- function(latex_str,
 
 
 #' Convert objects to LaTeX format
+#'
+#' @param ... Further arguments passed to `as_latex()` methods for child nodes.
+#' @param brackets Optional bracket type used to wrap the rendered expression:
+#'   `"("`, `"["` or the curly brace; `NULL` or `FALSE` for none.
+#' @param math_env LaTeX command used to typeset set names (e.g. `"text"`,
+#'   `"mathcal"`); `NULL` returns the plain name.
+#' @param subscript_dims Logical; if `TRUE`, dimensions are rendered as a
+#'   subscript, otherwise they are wrapped in `brackets`.
+#' @param use_index_aliases Logical; if `TRUE`, dimension names are replaced
+#'   by the index aliases stored in `model`.
+#' @param model Optional `mm_model` providing `index_aliases` when
+#'   `use_index_aliases = TRUE`.
+#' @param use_indicator Logical; if `TRUE`, conditional (`when`) nodes are
+#'   rendered with an indicator function instead of a conditional bar.
+#' @param indicator_symbol LaTeX macro used as the indicator symbol when
+#'   `use_indicator = TRUE` (default: option `multimod.latex.indicator_symbol`).
 #'
 #' @export
 #' @rdname as_latex
@@ -342,6 +408,10 @@ as_latex.default <- function(x, ...) {
 #' as_latex("Note:", bold = TRUE, italic = TRUE)
 as_latex.character <- function(x, math = FALSE, bold = FALSE, italic = FALSE, ...) {
   if (!is.character(x)) stop("Input must be a character string.")
+  if (is.na(x)) {
+    warning("NA values detected")
+    return(NA)
+  }
 
   escape_latex <- function(txt) {
     txt <- gsub("\\\\", "\\\\textbackslash{}", txt)
@@ -484,10 +554,9 @@ as_latex.call <- function(x, brackets = NULL, ...) {
 # }
 
 #' @export
-#' @method as_latex set
+#' @method as_latex mm_set
 #' @rdname as_latex
-as_latex.set <- function(x, math_env = "text", ...) {
-  # browser()
+as_latex.mm_set <- function(x, math_env = "text", ...) {
   if (is.null(x$name)) {
     return("\\emptyset")
   } else {
@@ -502,7 +571,6 @@ as_latex.set <- function(x, math_env = "text", ...) {
 #' @method as_latex dims
 #' @rdname as_latex
 as_latex.dims <- function(x, brackets = NULL, subscript_dims = NULL, ...) {
-  # browser()
   if (is.null(x)) {
     return(x)
     # return("\\emptyset")
@@ -522,9 +590,9 @@ as_latex.dims <- function(x, brackets = NULL, subscript_dims = NULL, ...) {
 }
 
 #' @export
-#' @method as_latex expression
+#' @method as_latex mm_mapping
 #' @rdname as_latex
-as_latex.mapping <- function(x, brackets = NULL,
+as_latex.mm_mapping <- function(x, brackets = NULL,
                              subscript_dims = is.null(brackets), ...) {
   # return(NULL)
   if (is.null(x$name)) {
@@ -543,15 +611,15 @@ as_latex.mapping <- function(x, brackets = NULL,
       # dims <- paste0("(", dims, ")")
       dims <- latex_wrap_brackets(dims, brackets = brackets, ...)
     }
-    return(paste0("\\mathit{", name, "}", dims, ""))
+    return(paste0("\\mathit{", escape_latex_mathname(name), "}", dims, ""))
   }
 }
 
 #' @export
-#' @method as_latex parameter
+#' @method as_latex mm_parameter
 #' @rdname as_latex
-as_latex.parameter <- function(x, brackets = NULL,
-                              subscript_dims = is.null(brackets), 
+as_latex.mm_parameter <- function(x, brackets = NULL,
+                              subscript_dims = is.null(brackets),
                               use_index_aliases = FALSE,
                               model = NULL,
                               ...) {
@@ -560,7 +628,7 @@ as_latex.parameter <- function(x, brackets = NULL,
   } else {
     name <- x$name
     dims_obj <- get_latex_dims(x)
-    
+
     # Apply index alias mapping based on context
     if (!is.null(model) && !is.null(model$index_aliases)) {
       if (use_index_aliases) {
@@ -577,7 +645,7 @@ as_latex.parameter <- function(x, brackets = NULL,
         }
       }
     }
-    
+
     if (is.null(dims_obj) || length(dims_obj) == 0) {
       dims <- ""
     } else {
@@ -591,14 +659,14 @@ as_latex.parameter <- function(x, brackets = NULL,
       # dims <- paste0("(", dims, ")")
       dims <- latex_wrap_brackets(dims, brackets = brackets)
     }
-    return(paste0("\\mathsf{", name, "}", dims, ""))
+    return(paste0("\\mathsf{", escape_latex_mathname(name), "}", dims, ""))
   }
 }
 
 #' @export
-#' @method as_latex variable
+#' @method as_latex mm_variable
 #' @rdname as_latex
-as_latex.variable <- function(x, brackets = NULL, subscript_dims = TRUE, 
+as_latex.mm_variable <- function(x, brackets = NULL, subscript_dims = TRUE,
                              use_index_aliases = FALSE,
                              model = NULL,
                              ...) {
@@ -607,7 +675,7 @@ as_latex.variable <- function(x, brackets = NULL, subscript_dims = TRUE,
   } else {
     name <- x$name
     dims_obj <- get_latex_dims(x)
-    
+
     # Apply index alias mapping based on context
     if (!is.null(model) && !is.null(model$index_aliases)) {
       if (use_index_aliases) {
@@ -624,7 +692,7 @@ as_latex.variable <- function(x, brackets = NULL, subscript_dims = TRUE,
         }
       }
     }
-    
+
     if (is.null(dims_obj) || length(dims_obj) == 0) {
       dims <- ""
     } else {
@@ -636,7 +704,7 @@ as_latex.variable <- function(x, brackets = NULL, subscript_dims = TRUE,
       # dims <- paste0("(", dims, ")")
       dims <- latex_wrap_brackets(dims, brackets = brackets)
     }
-    return(paste0("\\bm{\\mathit{", name, "}}", dims, ""))
+    return(paste0("\\bm{\\mathit{", escape_latex_mathname(name), "}}", dims, ""))
   }
 }
 
@@ -644,7 +712,25 @@ as_latex.variable <- function(x, brackets = NULL, subscript_dims = TRUE,
 #' @method as_latex symbol
 #' @rdname as_latex
 as_latex.symbol <- function(x, ...) {
-  paste0("\\texttt{", x$name, "}")
+  base_name <- paste0("\\texttt{", x$name, "}")
+
+  # Handle indexed symbols (e.g. p[t,c])
+  if (!is.null(x$index) && inherits(x$index, "dims") && length(x$index) > 0) {
+    # Render the index as subscripts
+    index_parts <- sapply(x$index, function(idx) {
+      if (inherits(idx, "symbol")) {
+        idx$name
+      } else if (inherits(idx, "ast")) {
+        as_latex(idx, ...)
+      } else {
+        as.character(idx)
+      }
+    })
+    subscript <- paste(index_parts, collapse = ",")
+    return(paste0(base_name, "_{", subscript, "}"))
+  }
+
+  base_name
 }
 
 #' @export
@@ -658,6 +744,10 @@ as_latex.shift <- function(x, brackets = NULL, ...) {
   }
   if (is.null(offset) || offset == 0) {
     shifted <- base
+  } else if (isTRUE(x$circular)) {
+    # a wrap, written with the modular operators rather than + and -
+    sign <- if (offset > 0) "\\oplus" else "\\ominus"
+    shifted <- paste0(base, " ", sign, " ", abs(offset))
   } else {
     sign <- if (offset > 0) "+" else "-"
     shifted <- paste0(base, sign, abs(offset))
@@ -694,13 +784,12 @@ as_latex.unary <- function(x, brackets = NULL, ...) {
 #' @method as_latex expression
 #' @rdname as_latex
 as_latex.expression <- function(x, brackets = NULL, ...) {
-  # browser()
   lhs <- x$lhs
   rhs <- x$rhs
 
   if (!inherits(lhs, "ast")) {
     warning("lhs in expression is not an AST: fallback to str()")
-    browser()
+    .dev_break("as_latex.R:770")
     lhs <- paste(capture.output(str(lhs)), collapse = "")
   } else {
     lhs <- as_latex(lhs, brackets, ...)
@@ -708,7 +797,7 @@ as_latex.expression <- function(x, brackets = NULL, ...) {
 
   if (!inherits(rhs, "ast")) {
     warning("rhs in expression is not an AST: fallback to str()")
-    browser()
+    .dev_break("as_latex.R:778")
     rhs <- paste(capture.output(str(rhs)), collapse = "")
   } else {
     rhs <- as_latex(rhs, brackets, ...)
@@ -729,7 +818,6 @@ as_latex.expression <- function(x, brackets = NULL, ...) {
     out <- paste0(lhs, " ", op, " ", rhs)
   }
 
-  # browser()
   if (isTRUE(x$brackets)) {
     out <- latex_wrap_brackets(out, math = TRUE, autosize = TRUE,
                                content = out, context = x$op)
@@ -774,7 +862,7 @@ as_latex.when <- function(x,
   dims_tex <- NULL
   mapping_latex <- NULL
 
-  if (inherits(cond, "mapping") && !is.null(cond$dims)) {
+  if (inherits(cond, "mm_mapping") && !is.null(cond$dims)) {
     dim_names <- character(length(cond$dims))
     for (i in seq_along(cond$dims)) {
       dim_names[i] <- cond$dims[[i]]$name
@@ -788,7 +876,7 @@ as_latex.when <- function(x,
     mapping_latex <- paste0("\\mathsf{", cond$name, "}_{", subscript, "}")
   }
 
-  if (inherits(cond, "where") && inherits(cond$content, "mapping")) {
+  if (inherits(cond, "where") && inherits(cond$content, "mm_mapping")) {
     dim_names <- character(length(cond$content$dims))
     for (i in seq_along(cond$content$dims)) {
       dim_names[i] <- cond$content$dims[[i]]$name
@@ -803,7 +891,6 @@ as_latex.when <- function(x,
 
   # Final format using: [ expr, {tuple} ∈ mapping ]
   if (!is.null(dims_tex) && !is.null(mapping_latex)) {
-    # browser()
     if (length(cond$content$dims) > 1 || length(cond$dims) > 1) {
       dims_tex <- latex_wrap_brackets(dims_tex, brackets = "{}")
     }
@@ -822,9 +909,9 @@ as_latex.when <- function(x,
 #' @export
 #' @method as_latex sum
 #' @rdname as_latex
-as_latex.sum <- function(x, brackets = NULL, ...) {
+as_latex.sum <- function(x, brackets = NULL, use_index_aliases = FALSE, model = NULL, ...) {
   index_node <- x$index
-  body <- as_latex(x$value, brackets = brackets, ...)
+  body <- as_latex(x$value, brackets = brackets, use_index_aliases = use_index_aliases, model = model, ...)
 
   index_latex <- ""
 
@@ -837,10 +924,22 @@ as_latex.sum <- function(x, brackets = NULL, ...) {
       idx_strs <- paste0("\\texttt{", idx_names, "}")
       index_latex <- paste0(idx_strs, collapse = ", ")
     } else {
-      # Fall back to rendering dims elements
+      # Fall back to rendering dims elements, applying index aliases if requested
       idx_strs <- character(length(index_node))
       for (i in seq_along(index_node)) {
-        idx_strs[i] <- as_latex(index_node[[i]])
+        elem <- index_node[[i]]
+        # Apply index alias mapping if use_index_aliases is TRUE
+        if (use_index_aliases && !is.null(model) && !is.null(model$index_aliases) && inherits(elem, "mm_set")) {
+          set_name <- elem$name
+          if (set_name %in% names(model$index_aliases)) {
+            # Use short form
+            idx_strs[i] <- paste0("\\texttt{", model$index_aliases[[set_name]], "}")
+          } else {
+            idx_strs[i] <- as_latex(elem, use_index_aliases = use_index_aliases, model = model, ...)
+          }
+        } else {
+          idx_strs[i] <- as_latex(elem, use_index_aliases = use_index_aliases, model = model, ...)
+        }
       }
       index_latex <- paste0(idx_strs, collapse = ", ")
     }
@@ -858,7 +957,7 @@ as_latex.sum <- function(x, brackets = NULL, ...) {
       set_name <- paste0("\\mathsf{", cond$name, "}")
       index_latex <- paste0(idx_latex, " \\in ", set_name)
 
-    } else if (inherits(cond, "mapping")) {
+    } else if (inherits(cond, "mm_mapping")) {
       dims <- cond$dims
       dims_latex <- as_latex(dims, ...)
       mapping_latex <- paste0("\\mathsf{", cond$name, "}_{", dims_latex, "}")
@@ -930,7 +1029,6 @@ as_latex.func <- function(x, brackets = NULL, subscript_dims = TRUE, ...) {
     return(paste0("\\max\\left\\{", value_latex, "\\right\\}"))
   }
 
-  # browser()
   value_latex <- if (inherits(x$value, c("ast"))) {
       as_latex(x$value, brackets = brackets, subscript_dims = subscript_dims, ...)
     } else if (is.list(x$value)) {
@@ -997,8 +1095,8 @@ as_latex.where <- function(x, inline_where = NULL, ...) {
 }
 
 #' @export
-#' @method as_latex equation
-as_latex.equation <- function(x,
+#' @method as_latex mm_equation
+as_latex.mm_equation <- function(x,
                               # math_env = "equation",
                               brackets_dims = NULL,
                               subscript_dims = is.null(brackets_dims),
@@ -1006,7 +1104,6 @@ as_latex.equation <- function(x,
                               subsection_number = FALSE,
                               max_len = 100,
                               ...) {
-  # browser()
   if (is.null(inline_where)) {
     inline_where <- getOption("multimod.render_where_inline", FALSE)
   }
@@ -1017,7 +1114,7 @@ as_latex.equation <- function(x,
   # Render LHS and RHS with index aliases for equation context
   lhs <- as_latex(x$lhs, brackets = brackets_dims,
                   subscript_dims = subscript_dims,
-                  inline_where = inline_where, 
+                  inline_where = inline_where,
                   use_index_aliases = TRUE,  # Use index aliases in equation bodies
                   ...)
   rhs <- as_latex(x$rhs, brackets = brackets_dims,
@@ -1036,11 +1133,9 @@ as_latex.equation <- function(x,
   # Equation name and descriptor
   preamble <- character()
 
-  # browser()
-  # Construct preamble for equation output
-  # Use dims_index_aliases if available (iterator vars like r,l,f,y)
-  # Otherwise fall back to model$index_aliases if provided in ...
-  # Finally fall back to dims (set names like REGION, TIMESLICE)
+  # Construct preamble for equation output. Index naming falls back in order:
+  # dims_index_aliases (iterator variables), then model$index_aliases passed
+  # through `...`, then the dims themselves (set names).
   extra_args <- list(...)
   if (!is.null(x$dims_index_aliases) && length(x$dims_index_aliases) > 0) {
     # Create dims from iterator variable names from equation
@@ -1049,11 +1144,22 @@ as_latex.equation <- function(x,
     # Fall back to model-level index_aliases
     model_aliases <- extra_args$model$index_aliases
     # Get equation dims, could be from domain (mapping) or direct dims
-    eq_dim_names <- if (!is.null(x$domain) && inherits(x$domain, "mapping")) {
-      # If domain is a mapping, use its dims
-      if (!is.null(x$domain$dims)) names(x$domain$dims) else character()
+    eq_dim_names <- if (!is.null(x$domain) && inherits(x$domain, "mm_mapping")) {
+      # A `dims` node holds its members positionally, not by name, so the set
+      # names come from each child's `$name`. Reading `names()` here returned
+      # NULL and the header rendered an empty index set, `\{\} \in mTR`.
+      if (!is.null(x$domain$dims)) {
+        vapply(x$domain$dims, function(d) {
+          if (!is.null(d$name)) d$name else NA_character_
+        }, character(1))
+      } else {
+        character()
+      }
     } else if (!is.null(x$dims)) {
-      names(x$dims)
+      # Extract set names from dims elements (symbol/set nodes)
+      sapply(x$dims, function(d) {
+        if (!is.null(d$name)) d$name else NA_character_
+      })
     } else {
       character()
     }
@@ -1074,14 +1180,14 @@ as_latex.equation <- function(x,
   } else {
     eq_dims <- get_latex_dims(x)
   }
-  
+
   if (is.null(eq_dims) || length(eq_dims) == 0) {
     dims_latex <- ""
   } else {
     dims_latex <- as_latex(eq_dims, brackets = NULL, subscript_dims = TRUE, ...)
   }
   # Render domain/mapping with index aliases for equation context
-  mapping_latex <- as_latex(x$domain, brackets = NULL, subscript_dims = TRUE, 
+  mapping_latex <- as_latex(x$domain, brackets = NULL, subscript_dims = TRUE,
                             use_index_aliases = TRUE, ...)
 
   preamble <- character()
@@ -1100,7 +1206,7 @@ as_latex.equation <- function(x,
     # paste0("$\\mid\\left\\{", dims_latex,"\\right\\} \\in ", mapping_latex, "$ \\\\")
   # )
   preamble <- c(preamble, paste0("\\quad$\\textbf{", as_latex(x$name), "}"))
-  if (nchar(dims_latex) > 0) {
+  if (!is.null(eq_dims) && length(eq_dims) > 0 && nchar(dims_latex) > 0) {
     preamble <- c(preamble, paste0("_{", dims_latex, "}$"))
   } else {
     preamble[length(preamble)] <- paste0(preamble[length(preamble)], "$")
@@ -1116,7 +1222,6 @@ as_latex.equation <- function(x,
   where_lines <- character()
   wh_len <- integer(0)
   where_cols <- 1
-  # browser()
   if (!inline_where) {
     where_map <- extract_where_nodes(x)
     # max lenth of where_map
@@ -1125,7 +1230,6 @@ as_latex.equation <- function(x,
       where_lines <- character()
       for (nm in names(where_map)) {
         def <- as_latex(where_map[[nm]]$content, inline_where = TRUE, ...)
-        # browser()
         # def <- replace_mapping_placeholders(def)
         # nm_greek <- replace_mapping_placeholders(nm)
         where_lines <- c(
@@ -1157,7 +1261,6 @@ as_latex.equation <- function(x,
       #                  # "\\end{flushleft}",
       #                  "\\end{multicols}")
     }
-    # browser()
   }
 
   # Final output
@@ -1196,10 +1299,12 @@ end_math_env <- function(envs) {
 # format functions ####
 
 #' Estimate the length of a LaTeX string
+#' @param latex_str A character string of LaTeX code.
+#' @return A single number, the approximate rendered length in characters;
+#'   0 for `NULL` or empty input.
 #' @export
 estimate_latex_length <- function(latex_str) {
   if (is.null(latex_str) || !nzchar(latex_str)) return(0)
-  # browser()
 
   # Strip formatting wrappers
   s <- gsub("\\\\text(normal|bf|it)?\\{([^}]*)\\}", "\\2", latex_str)
@@ -1237,7 +1342,6 @@ format_index <- function(lhs) {
 #' @return Character string of the formatted LaTeX code
 # @export
 format_latex_aligned <- function(lhs, rhs, rel = "=", max_len = 90) {
-  # browser()
   lhs_len <- estimate_latex_length(lhs)
   rhs_len <- estimate_latex_length(rhs)
   full_len <- lhs_len + nchar(rel) + rhs_len
@@ -1302,6 +1406,10 @@ format_latex_aligned <- function(lhs, rhs, rel = "=", max_len = 90) {
 #'
 #' @param latex_str A LaTeX math string
 #' @param operators Vector of operators to split at
+#' @param indent_str Character string prepended to each continuation chunk
+#'   (default: none)
+#' @param max_len Maximum estimated line length; strings at or below it are
+#'   returned unsplit (default 80)
 #'
 #' @return A character vector of expression chunks
 #' @export
@@ -1312,45 +1420,59 @@ split_at_top_level_operators <- function(
     # indent_str = "&\\quad",
     max_len = 80
     ) {
-  # browser()
   if (is.null(latex_str) || !nzchar(latex_str)) return(NULL)
   if (is.null(operators) || length(operators) == 0) return(latex_str)
   if (estimate_latex_length(latex_str) <= max_len) return(latex_str)
 
+  # Preserve operator precedence, but treat '+' and '-' equally as split points.
+  op_groups <- list()
+  seen_pm <- FALSE
   for (op in operators) {
-    # Split at top-level operator
-    op_locs <- latex_top_level_operators(latex_str, op)
-    if (nrow(op_locs) > 0) {
-      # Split at the first operator location where <= max_len
-      op_locs$len <- sapply(
-        1:nrow(op_locs),
-        function(i) estimate_latex_length(substr(latex_str, 1, op_locs$pos[i]))
-        )
-      ii <- op_locs$len <= max_len
-      if (any(ii)) {
-        op_locs <- op_locs[1:nrow(op_locs) == which.max(op_locs$pos[ii]), ]
-      } else {
-        op_locs <- op_locs[1, ]
+    if (op %in% c("+", "-")) {
+      if (!seen_pm) {
+        pm_ops <- operators[operators %in% c("+", "-")]
+        pm_ops <- pm_ops[!duplicated(pm_ops)]
+        op_groups[[length(op_groups) + 1]] <- pm_ops
+        seen_pm <- TRUE
       }
-      part1 <- substr(latex_str, 1, op_locs$pos[1] - 1)
-      part_op <- op_locs$op[1]
-      part2 <- substr(latex_str, op_locs$pos[1] + nchar(part_op), nchar(latex_str))
-      # Check if part2 is too long
-      if (estimate_latex_length(part2) <= max_len) {
-        out <- c(trimws(part1), paste(indent_str, part_op, part2))
-        return(out)
-      } else {
-        # Split part2 it recursively
-        part2 <- split_at_top_level_operators(
-          part2,
-          operators = op,
-          indent_str = indent_str,
-          max_len = max_len
-        )
-        out <- c(trimws(part1), paste(indent_str, part_op, part2[1]), part2[-1])
-        return(out)
-      }
+      next
     }
+    op_groups[[length(op_groups) + 1]] <- op
+  }
+
+  for (op_group in op_groups) {
+    op_locs <- latex_top_level_operators(latex_str, op_group)
+    if (nrow(op_locs) == 0) next
+
+    # Split at the operator location closest to max_len (pack the line)
+    op_locs$len <- vapply(
+      seq_len(nrow(op_locs)),
+      function(k) estimate_latex_length(substr(latex_str, 1, op_locs$pos[k])),
+      numeric(1)
+    )
+    ok <- op_locs$len <= max_len
+    if (any(ok)) {
+      cand <- op_locs[ok, , drop = FALSE]
+      chosen <- cand[which.max(cand$pos), , drop = FALSE]
+    } else {
+      chosen <- op_locs[1, , drop = FALSE]
+    }
+
+    part1 <- substr(latex_str, 1, chosen$pos[1] - 1)
+    part_op <- chosen$op[1]
+    part2 <- substr(latex_str, chosen$pos[1] + nchar(part_op), nchar(latex_str))
+
+    if (estimate_latex_length(part2) <= max_len) {
+      return(c(trimws(part1), paste(indent_str, part_op, part2)))
+    }
+
+    part2_parts <- split_at_top_level_operators(
+      part2,
+      operators = operators,
+      indent_str = indent_str,
+      max_len = max_len
+    )
+    return(c(trimws(part1), paste(indent_str, part_op, part2_parts[1]), part2_parts[-1]))
   }
   return(latex_str)
 }
@@ -1375,7 +1497,6 @@ replace_mapping_placeholders <- function(latex_str,
   }
 
 
-  # browser()
   for (i in 1:99) {
     # pattern <- paste0("\\mathsf\\{m", i, "\\}")
     pattern <- paste0("\\\\(texttt|mathsf)\\{m", i, "\\}")
@@ -1388,7 +1509,6 @@ replace_mapping_placeholders <- function(latex_str,
     # )
     latex_str <- gsub(pattern, repl_fun(i), latex_str, fixed = FALSE)
   }
-  # browser()
   latex_str
 }
 

@@ -27,7 +27,19 @@ Parsed GMPL model structure or multimod object
 Read GMPL model file
 }
 \examples{
+# Parse model text directly (a character vector of GMPL lines)
+structure <- read_gmpl(c(
+  "set REGION;",
+  "param Demand{r in REGION};",
+  "var x{r in REGION} >= 0;",
+  "minimize cost: sum{r in REGION} x[r];",
+  "s.t. meet{r in REGION}: x[r] >= Demand[r];",
+  "end;"
+))
+names(structure$parameters)
+
 \dontrun{
+# Model and data files on disk
 model <- read_gmpl("model.mod", "data.dat")
 }
 }

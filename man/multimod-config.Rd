@@ -50,7 +50,7 @@ Defaults to \code{"multimod"}.}
 
 \item{config}{Named list of configuration values to write to YAML file.}
 
-\item{global}{Logical; if \code{TRUE}, writes to \verb{~/.multimod/config.yml} (user-wide).
+\item{global}{Logical; if \code{TRUE}, writes to the per-user directory given by \code{tools::R_user_dir("multimod", "config")} (user-wide).
 If \code{FALSE} (default), writes to \code{.multimod.yml} in current working directory.}
 }
 \description{
@@ -61,7 +61,7 @@ can be set via R options, environment variables, or a YAML config file.
 \enumerate{
 \item R option: \code{getOption("multimod.<solver>_path")}
 \item Environment variable: \verb{MULTIMOD_<SOLVER>}
-\item YAML config file: \verb{~/.multimod/config.yml} or \code{.multimod.yml}
+\item YAML config file: the per-user directory given by \code{tools::R_user_dir("multimod", "config")} or \code{.multimod.yml}
 \item Intelligent defaults (reticulate for Python, system PATH for others)
 }
 }
@@ -86,7 +86,7 @@ options(
 # Or use environment variables (system-wide):
 Sys.setenv(MULTIMOD_PYTHON = "C:/Python310/python.exe")
 
-# Or use YAML config file (~/.multimod/config.yml):
+# Or use YAML config file (the config.yml under tools::R_user_dir("multimod", "config")):
 multimod_config_write(list(
   python = list(path = "C:/Python310/python.exe", env_name = "multimod"),
   julia = list(path = "C:/Julia-1.10/bin/julia.exe"),

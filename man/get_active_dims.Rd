@@ -28,13 +28,13 @@ dimensionality. This function provides a consistent way to retrieve the appropri
 dimensions for code generation and validation.
 }
 \examples{
-\dontrun{
-# Get active dimensions (works for folded or unfolded)
-dims <- get_active_dims(param)
+m <- example_models$energyRt$multimod
+param <- m$parameters$pTechCinp2use
 
-# Check if parameter is folded
-folded_dims <- get_active_dims(param, folded = TRUE)
-is_folded <- !is.null(folded_dims)
-}
+# Active dimensions: the folded ones if folded, else the declared ones
+get_active_dims(param)
+
+# Folded dimensions only
+get_active_dims(param, folded = TRUE)
 
 }

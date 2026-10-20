@@ -12,7 +12,6 @@ literals), and a lightweight `solve.py` runner.
 ``` r
 write_pyomo(
   model,
-  file = NULL,
   model_dir = NULL,
   solver_dir = "pyomo",
   model_name = "model",
@@ -34,13 +33,15 @@ write_pyomo(
 
   A `multimod` model object
 
-- file:
-
-  Output file path (optional, overrides model_dir/solver_dir)
-
 - model_dir:
 
-  Directory where model was saved with save_model() (contains model.rds)
+  Model workspace directory. The scaffold is written to
+  `<model_dir>/solvers/<solver_dir>/` and reads its data from the
+  workspace, so the directory must hold one written by
+  [`save_model()`](https://optimal2050.github.io/multimod/reference/save_model.md);
+  if it does not, the model is saved there first (CSV format). Defaults
+  to the directory the model was loaded from or saved to
+  (`model$base_path`).
 
 - solver_dir:
 

@@ -30,11 +30,14 @@ otherwise. Also returns TRUE if the model has folded_equations.
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
-# Check if a parameter is folded
-is_folded(model$parameters$pTechCinp2use)
+m <- example_models$energyRt$multimod
+is_folded(m)
+#> [1] FALSE
+is_folded(m$parameters$pTechCinp2use)
+#> [1] FALSE
 
-# Check if a model has any folded parameters
-is_folded(model)
-} # }
+spec <- create_fold_spec(m, fold_dims = "timeslice", verbose = FALSE)
+m_folded <- fold_model(m, fold_spec = spec, verbose = FALSE)
+is_folded(m_folded)
+#> [1] TRUE
 ```
