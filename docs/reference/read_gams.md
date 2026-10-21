@@ -56,3 +56,18 @@ read_gams(
 
 A `model_structure` object containing the parsed GAMS model structure,
 including sets, mappings, aliases, parameters, variables, and equations.
+
+## Examples
+
+``` r
+structure <- read_gams(c(
+  "set tech, region;",
+  "parameter demand(region);",
+  "positive variable gen(tech, region);",
+  "equation eqDemand(region);",
+  "eqDemand(region).. sum(tech, gen(tech, region)) =g= demand(region);"
+))
+m <- as_multimod(structure)
+as_gmpl(m$equations$eqDemand, model = m)
+#> [1] "s.t. eqDemand{r in region}: sum{t in tech}(gen[t,r]) >= demand[r];"
+```

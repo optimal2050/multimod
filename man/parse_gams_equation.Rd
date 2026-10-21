@@ -12,7 +12,9 @@ parse_gams_equation(eqn_info, symbols)
 \item{symbols}{A list of symbols (sets, parameters, variables) used in the GAMS model, which will be used to resolve dimensions and expressions.}
 }
 \value{
-An \code{equation} object containing the parsed equation structure, including its name, dimensions, left-hand side (LHS), right-hand side (RHS), relation, domain, and description.
+An \code{mm_equation} object holding the parsed equation: its name,
+dimensions, left-hand side, right-hand side, relation, domain and
+description.
 }
 \description{
 Parse a GAMS equation into an AST object.

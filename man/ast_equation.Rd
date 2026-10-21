@@ -28,7 +28,7 @@ One of \code{"=="}, \code{"<="}, or \code{">="}.}
 \item{desc}{Optional character string. A description or label for the equation.}
 }
 \value{
-An \code{ast} node of class \code{equation}.
+An \code{mm_equation} AST node.
 }
 \description{
 Constructs an equation node representing a mathematical equation.

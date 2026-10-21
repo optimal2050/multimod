@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Define and Render Mathematical Models Across Optimization Languages • multimod</title>
+<title>Define and Render Mathematical Models Across Modeling Languages • multimod</title>
 <!-- favicons --><link rel="icon" type="image/png" sizes="96x96" href="favicon-96x96.png">
 <link rel="icon" type="”image/svg+xml”" href="favicon.svg">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
@@ -15,9 +15,9 @@
 <link href="deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Define and Render Mathematical Models Across Optimization Languages">
-<meta name="description" content="A domain-specific language for defining sets, parameters, variables, mappings and equations of an algebraic optimization model in R, and rendering the model to several mathematical programming languages, including GAMS, GNU MathProg, Pyomo and JuMP, or to an LP matrix solved in R. Models can be folded, trimmed, validated, compared and stored, and solutions read back into R. Linear programs with continuous variables are the tested class; integer and binary variables are carried in the model and written by some backends, and nonlinear expressions have no tested route to a solver.">
-<meta property="og:description" content="A domain-specific language for defining sets, parameters, variables, mappings and equations of an algebraic optimization model in R, and rendering the model to several mathematical programming languages, including GAMS, GNU MathProg, Pyomo and JuMP, or to an LP matrix solved in R. Models can be folded, trimmed, validated, compared and stored, and solutions read back into R. Linear programs with continuous variables are the tested class; integer and binary variables are carried in the model and written by some backends, and nonlinear expressions have no tested route to a solver.">
+<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Define and Render Mathematical Models Across Modeling Languages">
+<meta name="description" content="Represents a linear optimization model as an abstract syntax tree of sets, mappings, parameters, variables and equations, independent of any modeling language. Models are built in R or read from GAMS and GNU MathProg source, rendered to GAMS, GNU MathProg, JuMP, Pyomo and LaTeX, or assembled into a linear programming (LP) matrix and solved in R with HiGHS. Models can be validated, reduced by folding repeated parameter values and trimming unused symbols, stored as data workspaces and exchanged as JSON, and solutions are read back into R. Linear programs with continuous variables are the tested class; integer and binary variables are carried in the model and written by the JuMP and Pyomo writers, and nonlinear expressions have no tested route to a solver.">
+<meta property="og:description" content="Represents a linear optimization model as an abstract syntax tree of sets, mappings, parameters, variables and equations, independent of any modeling language. Models are built in R or read from GAMS and GNU MathProg source, rendered to GAMS, GNU MathProg, JuMP, Pyomo and LaTeX, or assembled into a linear programming (LP) matrix and solved in R with HiGHS. Models can be validated, reduced by folding repeated parameter values and trimming unused symbols, stored as data workspaces and exchanged as JSON, and solutions are read back into R. Linear programs with continuous variables are the tested class; integer and binary variables are carried in the model and written by the JuMP and Pyomo writers, and nonlinear expressions have no tested route to a solver.">
 <meta property="og:image" content="https://optimal2050.github.io/multimod/logo.png">
 <!-- Google tag (gtag.js) --><script async src="https://www.googletagmanager.com/gtag/js?id=G-LNY00P1MW7"></script><script>
   window.dataLayer = window.dataLayer || [];
@@ -125,7 +125,7 @@
 │      Input Formats          │
 ├─────────────────────────────┤
 │ GAMS    (basic/linear only) │ → read_gams()
-│ GMPL    (limited features)  │ → read_gmpl()
+│ MathProg (limited features) │ → read_gmpl()
 │ JuMP    (constraints only)  │ → mm_equation()
 │ {{Pyomo, AMPL, MPS, ...}}   │ → {{...}}
 └─────────────────────────────┘
@@ -145,7 +145,7 @@
 │ Output: model code               │  │ Output: LP matrix                │
 ├──────────────────────────────────┤  ├──────────────────────────────────┤
 │ LaTeX    write_latex()       [x] │  │ model_to_lp()               [x]  │
-│ GMPL     write_gmpl()        [x] │  │ write_mps()                 [x]  │
+│ MathProg write_gmpl()        [x] │  │ write_mps()                 [x]  │
 │ JuMP     write_jump()        [x] │  │ solve_highs()               [x]  │
 │ Pyomo    write_pyomo()       [x] │  │ solve_mps()                 [x]  │
 │ GAMS     write_gams() +      [x] │  │ read_mps_solution()         [x]  │
@@ -158,7 +158,7 @@
 
 Status: [x] implemented | [~] and { } developing | [ ] and {{ }} considering</code></pre>
 <!-- ![multimod architecture](man/figures/multimod-architecture.svg) -->
-<p>The diagram summarizes the architecture; the inventory below details the implemented functions and limitations.</p>
+<p>The diagram summarizes the architecture; the table under <a href="#capabilities">Capabilities</a> lists the implemented functions.</p>
 <p>The current tested scope is <strong>linear programming with continuous variables</strong>. Language importers cover documented subsets, and some output routes remain experimental; see <a href="#capabilities">Capabilities</a> and the <a href="https://optimal2050.github.io/multimod/articles/roadmap.html">roadmap</a>.</p>
 </div>
 <div class="section level2">
@@ -166,7 +166,7 @@ Status: [x] implemented | [~] and { } developing | [ ] and {{ }} considering</co
 </h2>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pkg_install.html" class="external-link">pkg_install</a></span><span class="op">(</span><span class="st">"optimal2050/multimod"</span><span class="op">)</span></span></code></pre></div>
-<p>The direct-matrix route requires the <code>highs</code> R package. Other routes require their corresponding toolchains: <code>glpsol</code> (the ‘glpsol’ R package ships it), Julia with JuMP, or Python with Pyomo; see the “Configuring solver paths” article.</p>
+<p>The matrix route requires the ‘highs’ R package. Other routes require their corresponding toolchains: <code>glpsol</code> (the ‘glpsol’ R package ships it), Julia with JuMP, or Python with Pyomo; see the “Configuring solver paths” article.</p>
 </div>
 <div class="section level2">
 <h2 id="quickstart-one-model-several-representations">Quickstart: one model, several representations<a class="anchor" aria-label="anchor" href="#quickstart-one-model-several-representations"></a>
@@ -174,7 +174,7 @@ Status: [x] implemented | [~] and { } developing | [ ] and {{ }} considering</co
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://optimal2050.github.io/multimod/">multimod</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">toy</span> <span class="op">&lt;-</span> <span class="va">example_models</span><span class="op">$</span><span class="va">toy</span>          <span class="co"># built in R, see vignette("ast")</span></span>
+<span><span class="va">toy</span> <span class="op">&lt;-</span> <span class="va">example_models</span><span class="op">$</span><span class="va">toy</span>          <span class="co"># built in R, see "Writing a model in R"</span></span>
 <span><span class="va">toy</span></span>
 <span><span class="co">#&gt; Model: toy</span></span>
 <span><span class="co">#&gt; Description: two-region capacity expansion toy model</span></span>
@@ -213,9 +213,8 @@ Status: [x] implemented | [~] and { } developing | [ ] and {{ }} considering</co
 <p>With the documented toolchains and example data, these routes return an objective value of 198000. The “Solving and reading results” article runs them side by side; “Two models from the field” does the same for the energyRt reference model and for OSeMOSYS, read from its MathProg source and solved both through JuMP and from the matrix.</p>
 </div>
 <div class="section level2">
-<h2 id="architecture-and-capabilities">Architecture and capabilities<a class="anchor" aria-label="anchor" href="#architecture-and-capabilities"></a>
+<h2 id="capabilities">Capabilities<a class="anchor" aria-label="anchor" href="#capabilities"></a>
 </h2>
-<p>The diagram above replaces the ASCII overview; the table retains the function-level inventory.</p>
 <table class="table">
 <colgroup>
 <col width="50%">
@@ -267,12 +266,12 @@ Status: [x] implemented | [~] and { } developing | [ ] and {{ }} considering</co
 </h2>
 <ul>
 <li>
-<code><a href="articles/multimod.html">vignette("multimod")</a></code>: the representation and what the package does with it.</li>
+<code><a href="articles/multimod.html">vignette("multimod")</a></code>: reading, translating, analyzing, exporting and solving a model in a few calls.</li>
 <li>
-<code><a href="articles/ast.html">vignette("ast")</a></code>: writing a model in R.</li>
+<a href="https://optimal2050.github.io/multimod/articles/ast.html">Writing a model in R</a>: the constructors, step by step.</li>
 <li>
-<code><a href="articles/folding.html">vignette("folding")</a></code>: folding and trimming.</li>
-<li>Articles on the <a href="https://optimal2050.github.io/multimod/">website</a>: solving and reading results, the two field models, the model workspace, configuration, LaTeX.</li>
+<a href="https://optimal2050.github.io/multimod/articles/folding.html">Folding and trimming</a>: reducing a model to the size its data needs.</li>
+<li>Further articles on the <a href="https://optimal2050.github.io/multimod/">website</a>: solving and reading results, the two field models, the model workspace, configuration, LaTeX.</li>
 </ul>
 </div>
 <div class="section level2">
@@ -288,7 +287,7 @@ Status: [x] implemented | [~] and { } developing | [ ] and {{ }} considering</co
 <div class="section level2">
 <h2 id="license">License<a class="anchor" aria-label="anchor" href="#license"></a>
 </h2>
-<p>Apache License 2.0; see <code>LICENSE.md</code>. The bundled <code>example_models</code> dataset is derived from energyRt and remains under energyRt’s Apache License 2.0; <code>LICENSE.note</code> has the details, and the attribution for OSeMOSYS, which the documentation reads from its public repository and does not bundle.</p>
+<p>Apache License 2.0; see <code>LICENSE.md</code>. The bundled <code>example_models</code> dataset is derived from energyRt and remains under energyRt’s Apache License 2.0; <code>inst/COPYRIGHTS</code> has the details, and the attribution for OSeMOSYS, which the documentation reads from its public repository and does not bundle.</p>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="links">

@@ -1,6 +1,6 @@
 # Remove variables not appearing in any non-trimmed equation
 
-Final pass to mark variables that don't appear in any active equation.
+Final pass to mark variables that do not appear in any active equation.
 
 ## Usage
 

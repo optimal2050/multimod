@@ -141,15 +141,19 @@ sort_model_components <- function(components, type = "sets") {
 
 #' Write LaTeX representation of an equation or model
 #'
-#' @param x An object of class `equation` or `model`.
+#' @param x An `mm_equation` or an `mm_model`.
 #'
-#' @param file Path to the output LaTeX file. If `NULL`, returns the LaTeX code as a character string.
+#' @param file Path to the output LaTeX file. For a model, `NULL` returns the
+#'   LaTeX source instead of writing it.
 #' @param ... Additional arguments passed to the specific method.
 #'
 #' @return For an `mm_equation`, invisibly `file`. For an `mm_model`, invisibly
 #'   `file` when a path is given, otherwise the LaTeX source as a single
 #'   character string.
 #' @export
+#' @examples
+#' tex <- write_latex(example_models$toy, file = NULL)
+#' cat(substr(tex, 1, 600))
 write_latex <- function(x, file, ...) {
   UseMethod("write_latex")
 }

@@ -104,6 +104,16 @@
     <p>Data frame with fold analysis</p>
     </div>
 
+    <div class="section level2">
+    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">ops</span> <span class="op">&lt;-</span> <span class="fu">analyze_fold_opportunities</span><span class="op">(</span><span class="va">example_models</span><span class="op">$</span><span class="va">energyRt</span><span class="op">$</span><span class="va">multimod</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">ops</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                         parameter    original_dims folded_dims removed_dims</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> pTimesliceWeight pTimesliceWeight year × timeslice        year    timeslice</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                  original_rows folded_rows compression</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> pTimesliceWeight            68           4          17</span>
+</code></pre></div>
+    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 

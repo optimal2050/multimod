@@ -39,3 +39,14 @@ analyze_fold_opportunities(
 ## Value
 
 Data frame with fold analysis
+
+## Examples
+
+``` r
+ops <- analyze_fold_opportunities(example_models$energyRt$multimod)
+head(ops)
+#>                         parameter    original_dims folded_dims removed_dims
+#> pTimesliceWeight pTimesliceWeight year × timeslice        year    timeslice
+#>                  original_rows folded_rows compression
+#> pTimesliceWeight            68           4          17
+```

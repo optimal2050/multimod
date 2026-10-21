@@ -76,3 +76,24 @@ new_model(
 ## Value
 
 A model object
+
+## Examples
+
+``` r
+region <- new_set("region", desc = "model regions", data = c("north", "south"))
+demand <- new_parameter("pDemand", desc = "annual demand, MWh", dims = "region",
+                        data = data.frame(region = c("north", "south"),
+                                          value = c(1000, 600)))
+m <- new_model(name = "tiny", desc = "one set and one parameter",
+               sets = list(region = region),
+               parameters = list(pDemand = demand))
+m
+#> Model: tiny
+#> Description: one set and one parameter
+#> Sets:  1 
+#> Mappings:  0 
+#> Aliases:  0 
+#> Parameters:  1 
+#> Variables:  0 
+#> Equations:  0 
+```

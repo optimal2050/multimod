@@ -90,3 +90,7 @@ Character vector or writes file if \code{file} or \code{model_dir} is given
 \description{
 Write a GMPL/MathProg model file from a multimod object
 }
+\examples{
+code <- write_gmpl(example_models$toy)
+cat(head(code, 20), sep = "\n")
+}

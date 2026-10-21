@@ -4,6 +4,9 @@
 #' @param ... Additional arguments (not used).
 #' @returns A character string with valid Julia/JuMP syntax.
 #' @export
+#' @examples
+#' toy <- example_models$toy
+#' as_jump(toy$equations$eqDemand, model = toy)
 as_jump <- function(x, ...) {
   UseMethod("as_jump", x)
 }

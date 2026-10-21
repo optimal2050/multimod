@@ -2,7 +2,7 @@
 % Please edit documentation in R/trim.R
 \name{trim_model}
 \alias{trim_model}
-\title{Trim a model to the elements its data actually uses}
+\title{Trim a model to the elements its data uses}
 \usage{
 trim_model(model, strategy = "unused", verbose = TRUE, .progress = "auto")
 }
@@ -24,7 +24,7 @@ The model with trim marks set; \code{is_trimmed()} is \code{TRUE} for it.
 \description{
 Marks sets, parameters and mappings with no data, then the variables and
 equations whose domains are empty as a consequence, so that renderers skip
-them. The model keeps every element; \code{\link[=untrim_model]{untrim_model()}} restores the marks
+them. The model keeps every element; \code{\link[=untrim_model]{untrim_model()}} clears the marks
 and \code{\link[=get_trim_summary]{get_trim_summary()}} reports what was trimmed.
 }
 \examples{

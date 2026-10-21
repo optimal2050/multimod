@@ -22,3 +22,19 @@ unfold_model(model, verbose = TRUE)
 ## Value
 
 Modified model with fold removed
+
+## Examples
+
+``` r
+m <- example_models$energyRt$multimod
+spec <- create_fold_spec(m, fold_dims = "timeslice", verbose = FALSE)
+folded <- fold_model(m, fold_spec = spec, verbose = FALSE)
+is_folded(folded)
+#> [1] TRUE
+restored <- unfold_model(folded)
+#> ✓ Unfolded pTimesliceWeight 
+#> 
+#> Unfolded 1 parameters
+is_folded(restored)
+#> [1] FALSE
+```

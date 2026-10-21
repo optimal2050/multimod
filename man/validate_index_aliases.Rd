@@ -15,6 +15,6 @@ validate_index_aliases(x, verbose = FALSE)
 A list with components: errors, warnings, info
 }
 \description{
-Checks that index_aliases are properly defined and don't conflict with
+Checks that index_aliases are properly defined and do not conflict with
 set names, aliases, or other symbols in the model.
 }

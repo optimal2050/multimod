@@ -98,14 +98,15 @@
     
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://optimal2050.github.io/multimod/">multimod</a></span><span class="op">)</span></span></code></pre></div>
-<p><code><a href="../articles/ast.html">vignette("ast")</a></code> builds a model in R. This article takes
-that model to a solution and back: what the model object contains once
-it has data, where its files go, how multimod turns it into a matrix or
-into code for another toolchain, how to run that code, how the results
-come back, and what to look at when two routes disagree. The example is
-<code>example_models$toy</code>, three technologies supplying two
-regions. The chunks that need a solver run where it is installed; the
-text quotes the numbers from a run with all of them present.</p>
+<p>The <a href="ast.html">Writing a model in R</a> article builds a
+model in R. This article takes that model to a solution and back: what
+the model object contains once it has data, where its files go, how
+multimod turns it into a matrix or into code for another toolchain, how
+to run that code, how the results come back, and what to look at when
+two routes disagree. The example is <code>example_models$toy</code>,
+three technologies supplying two regions. The chunks that need a solver
+run where it is installed; the text quotes the numbers from a run with
+all of them present.</p>
 <div class="section level2">
 <h2 id="the-model-as-an-object">The model as an object<a class="anchor" aria-label="anchor" href="#the-model-as-an-object"></a>
 </h2>
@@ -121,8 +122,8 @@ text quotes the numbers from a run with all of them present.</p>
 <span><span class="co">#&gt; Parameters:  4 </span></span>
 <span><span class="co">#&gt; Variables:  3 </span></span>
 <span><span class="co">#&gt; Equations:  3</span></span></code></pre></div>
-<p>A model is a list of named components. Two kinds of content live in
-it and it pays to keep them apart:</p>
+<p>A model is a list of named components. It holds two kinds of content,
+which are best kept apart:</p>
 <ul>
 <li>
 <strong>Declarations</strong> say what exists. A parameter has
@@ -134,7 +135,7 @@ declarations.</li>
 members, mappings their tuples, parameters their values. Solving needs
 data.</li>
 </ul>
-<p>The domain is the hinge between the two. A variable declared over
+<p>The domain connects the two. A variable declared over
 <code>c("tech", "region")</code> with domain <code>"mTR"</code> has one
 instance per row of the mapping <code>mTR</code>, not one per
 combination of the sets. That is how a sparse model stays sparse, and it
@@ -284,11 +285,10 @@ with changed data.</p>
 <div class="section level2">
 <h2 id="generating-code">Generating code<a class="anchor" aria-label="anchor" href="#generating-code"></a>
 </h2>
-<p>The file routes render the model in another language and leave the
-solve to that language’s toolchain. MathProg is the one to read first:
-the whole generated model fits on a screen, and the other two backends
-differ from it in ways that are easier to see once this one is
-understood.</p>
+<p>The code-generation routes render the model in another language and
+leave the solve to that language’s toolchain. MathProg is shown first
+and in full, because the generated model is short; the JuMP and Pyomo
+code is described by how it differs from it.</p>
 <div class="section level3">
 <h3 id="mathprog-in-full">MathProg, in full<a class="anchor" aria-label="anchor" href="#mathprog-in-full"></a>
 </h3>
@@ -308,7 +308,7 @@ understood.</p>
 <span><span class="co">#&gt; set mTR dimen 2;  # technology x region pairs</span></span>
 <span><span class="co">#&gt; set mR dimen 1;  # regions</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; param pCapCost{tech};  # annualised capacity cost, EUR/kW</span></span>
+<span><span class="co">#&gt; param pCapCost{tech};  # annualized capacity cost, EUR/kW</span></span>
 <span><span class="co">#&gt; param pVarCost{tech};  # variable cost, EUR/MWh</span></span>
 <span><span class="co">#&gt; param pAvail{tech,region};  # availability factor</span></span>
 <span><span class="co">#&gt; param pDemand{region};  # annual demand, MWh</span></span>
@@ -405,7 +405,7 @@ regenerating the model.</p>
 <span><span class="co">#&gt;     vGen[(h, r)] &lt;= get(pAvail, (h, r), pAvailDef) * vCap[(h, r)]</span></span>
 <span><span class="co">#&gt; )</span></span>
 <span><span class="co">#&gt; _log_constraint(constraint_stats, "eqCapLim", eqCapLim, length(eqCapLim), time() - _t0)</span></span></code></pre></div>
-<p>Three choices in this code are worth knowing about:</p>
+<p>Three properties of this code matter:</p>
 <ul>
 <li>
 <strong>Variables are indexed by their domain mapping</strong>,
@@ -431,8 +431,8 @@ visible there before any solve.</li>
 and detects the format from <code>format.txt</code>, so the same file
 works for CSV, Arrow IPC and Parquet workspaces. With
 <code>data_mode = "embedded"</code> the data is written into the Julia
-source instead, which makes a model file that runs anywhere but has to
-be regenerated when the data changes.</p>
+source instead, which makes the model file self-contained but means it
+has to be regenerated when the data changes.</p>
 </div>
 <div class="section level3">
 <h3 id="pyomo">Pyomo<a class="anchor" aria-label="anchor" href="#pyomo"></a>
@@ -488,8 +488,8 @@ under <code>$model</code>.</p>
 <span><span class="co">#&gt; [1] 198000</span></span>
 <span><span class="va">p</span><span class="op">$</span><span class="va">status</span><span class="op">$</span><span class="va">termination</span></span>
 <span><span class="co">#&gt; [1] "optimal"</span></span></code></pre></div>
-<p>What each one runs, which is also how to run the code by hand from
-the backend’s directory when something needs a closer look:</p>
+<p>The command each route runs, which also runs the code by hand from
+the backend’s directory for closer inspection:</p>
 <table class="table">
 <colgroup>
 <col width="33%">
@@ -527,12 +527,12 @@ output</td>
 </tr>
 </tbody>
 </table>
-<p>The first Julia run installs the packages the model needs and
-compiles them, which takes minutes; later runs take seconds.
+<p>The first Julia run installs and compiles the packages the model
+needs, which makes it much slower than later runs.
 <code><a href="../reference/solve_jump.html">solve_jump()</a></code> and <code><a href="../reference/solve_gmpl.html">solve_gmpl()</a></code> accept
-<code>timeout =</code>; <code><a href="../reference/solve_pyomo.html">solve_pyomo()</a></code> checks the Python
-environment with <code><a href="../reference/mm_check_python.html">mm_check_python()</a></code> before running unless
-<code>ensure_env = FALSE</code>.</p>
+<code>timeout =</code>; <code>solve_pyomo(ensure_env = TRUE)</code>
+checks the Python environment with <code><a href="../reference/mm_check_python.html">mm_check_python()</a></code> before
+running.</p>
 </div>
 <div class="section level2">
 <h2 id="results-back-in-r">Results back in R<a class="anchor" aria-label="anchor" href="#results-back-in-r"></a>
@@ -583,8 +583,8 @@ with <code>NA</code>; the matrix route reports every column.</p>
 <h2 id="when-routes-disagree">When routes disagree<a class="anchor" aria-label="anchor" href="#when-routes-disagree"></a>
 </h2>
 <p>Same model, same data, different objective: the translation has read
-something differently. The cases below account for nearly all of them,
-in the order to check.</p>
+something differently. The cases below are the common causes, in the
+order in which they are checked.</p>
 <ol style="list-style-type: decimal">
 <li>
 <strong>An equation produces no rows.</strong> Its domain mapping
@@ -612,19 +612,20 @@ receive <code>Inf</code> as a bound where the value is a bound and as a
 coefficient otherwise, where the solver decides. Search the data for
 <code>Inf</code> before comparing.</li>
 <li>
-<strong>Missing index aliases.</strong> The text backends write
+<strong>Missing index aliases.</strong> The code generators write
 iterator names from the model’s index aliases. A model built in R has
 none until <code><a href="../reference/add_index_aliases.html">add_index_aliases()</a></code> adds them; without them a
 <code>sum{}</code> is written with no iterator and glpsol rejects the
-file. <code><a href="../reference/has_index_aliases.html">has_index_aliases()</a></code> tells.</li>
+file. <code><a href="../reference/has_index_aliases.html">has_index_aliases()</a></code> reports whether they are
+present.</li>
 <li>
 <strong>Row counts, not objectives.</strong> When the objectives
 differ, compare per-equation instance counts first
 (<code>table(lp$row_index$symbol)</code> against
 <code>constraint_stats.csv</code>), then per-variable bounds
 (<code>lp$col_index</code> against <code>variable_stats.csv</code>). A
-count that differs points at the equation; an objective that differs
-points nowhere.</li>
+count that differs identifies the equation; an objective that differs
+does not.</li>
 </ol>
 </div>
 <div class="section level2">
@@ -648,14 +649,14 @@ points nowhere.</li>
 <td><code><a href="../reference/solve_highs.html">solve_highs()</a></code></td>
 <td>the ‘highs’ R package</td>
 <td>primal, duals, reduced costs, the LP arrays</td>
-<td>the model fits in memory and you want duals or repeated solves
-(<code><a href="../reference/mm_session.html">mm_session()</a></code>)</td>
+<td>the model fits in memory and duals or repeated solves
+(<code><a href="../reference/mm_session.html">mm_session()</a></code>) are needed</td>
 </tr>
 <tr class="even">
 <td><code><a href="../reference/write_mps.html">write_mps()</a></code></td>
-<td>nothing</td>
+<td>the ‘highs’ R package</td>
 <td>an MPS file</td>
-<td>the solver is elsewhere, including cloud hardware</td>
+<td>the solver runs elsewhere</td>
 </tr>
 <tr class="odd">
 <td><code><a href="../reference/solve_gmpl.html">solve_gmpl()</a></code></td>

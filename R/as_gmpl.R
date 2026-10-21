@@ -5,6 +5,9 @@
 #' @param ... Additional arguments (not used).
 #' @returns A character string with valid GMPL syntax.
 #' @export
+#' @examples
+#' toy <- example_models$toy
+#' as_gmpl(toy$equations$eqDemand, model = toy)
 as_gmpl <- function(x, ...) {
   UseMethod("as_gmpl", x)
 }
@@ -797,8 +800,16 @@ as_gmpl_sum_prod <- function(x, ...) {
   # GMPL: sum{c in comm: (...) in mTechGroupComm}(expr)
 
   if (!inherits(x$index, "when")) {
-    # Fallback to regular handling if not a conditional index
-    idx <- as_gmpl(x$index, brackets = "{}", ...)
+    # An unconditional index over sets, `sum(tech, ...)` in GAMS: MathProg
+    # needs an iterator per set, `sum{h in tech}`, and the body then refers to
+    # that iterator. .gmpl_sum_index() names them and binds them for the body.
+    idx_dims <- if (inherits(x$index, "dims")) x$index else ast_dims(x$index)
+    if (length(idx_dims) > 0 &&
+        all(vapply(idx_dims, function(d) inherits(d, c("mm_set", "symbol")), logical(1)))) {
+      idx <- .gmpl_sum_index(idx_dims)
+    } else {
+      idx <- as_gmpl(x$index, brackets = "{}", ...)
+    }
     val <- as_gmpl(x$value, ...)
     return(paste0(x$name, "{", idx, "}(", val, ")"))
   }

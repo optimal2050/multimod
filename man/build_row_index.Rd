@@ -29,3 +29,7 @@ Counting is \strong{per equation}, which is what an LP needs. energyRt's
 \code{model_size()} counts per \emph{map} and therefore undercounts whenever one
 mapping gates several equations.
 }
+\examples{
+rows <- build_row_index(example_models$toy)
+table(rows$symbol)
+}

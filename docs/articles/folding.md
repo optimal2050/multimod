@@ -18,22 +18,22 @@ mod
 
 ## The flexibility-performance tradeoff
 
-Framework models such as energyRt are written for maximum flexibility:
-one generic set of equations covers technologies, storage, trade,
-emissions and more, and every parameter is indexed over every dimension
-it could ever vary by (technology, commodity, region, year, timeslice).
-A given scenario uses only part of that:
+Framework models such as energyRt are written to cover many cases: one
+generic set of equations covers technologies, storage, trade, emissions
+and more, and every parameter is indexed over every dimension it may
+vary by (technology, commodity, region, year, timeslice). A given
+scenario uses only part of that:
 
 - a single-region model has no interregional trade,
 - most technologies have the same efficiency in every timeslice,
 - features the scenario does not use leave sets and mappings empty, and
   the equations that depend on them generate no constraints.
 
-The flexibility is paid for at model-build time and in the solver: data
+This generality has a cost at model-build time and in the solver: data
 that is repeated across a dimension inflates the data files and the
 coefficient count, and equations with empty domains are still processed.
-`multimod` offers two complementary transformations that remove this
-redundancy without changing the optimum:
+multimod offers two complementary transformations that remove this
+redundancy without changing the optimum, as the appendix verifies:
 
 1.  **Folding** removes a dimension from a parameter when the values are
     constant across it (data redundancy).
@@ -41,14 +41,14 @@ redundancy without changing the optimum:
     equations that have no data or no instances, so code generators skip
     them (structural redundancy).
 
-Both are reversible and both are honoured by every writer and by the
-direct matrix route.
+Both are reversible, and both are honored by the MathProg, JuMP, Pyomo
+and LaTeX writers and by the matrix route.
 
 ## Folding
 
 ### The idea
 
-Take a 5-dimensional parameter whose values do not depend on the
+Consider a 5-dimensional parameter whose values do not depend on the
 timeslice:
 
     pTechCinp2use[E01, ELC, R1, 2025, s1] = 0.95
@@ -133,10 +133,10 @@ parameters that failed only because no validation mapping was found for
 their entity type; supplying one (for example `sup = "mSupTimeslice"`)
 would let them be checked.
 
-Why validate against a mapping? A parameter may be constant across the
-timeslice *in the data* only because the scenario never varied it. The
-mapping says which entities are allowed to vary by that dimension, so
-folding stays consistent with the model structure, not just with one
+The validation mapping matters because a parameter may be constant
+across the timeslice *in the data* only because the scenario never
+varied it. The mapping states which entities may vary by that dimension,
+so folding stays consistent with the model structure, not only with one
 dataset. A value of `c("mStorageComm", "mCommTimeslice")` chains two
 mappings when the entity is linked to the dimension indirectly.
 
@@ -289,7 +289,7 @@ when no surviving equation needs it.
 
 ### Apply the trim
 
-Fold first, then trim: folding can empty a parameter that trimming then
+Folding comes first: it can empty a parameter that trimming then
 removes.
 
 ``` r
@@ -348,30 +348,30 @@ is_trimmed(mod_back)
 | Needs | a fold specification (validation mappings) | nothing; driven by the data |
 | Reversed by | [`unfold_model()`](https://optimal2050.github.io/multimod/reference/unfold_model.md) | [`untrim_model()`](https://optimal2050.github.io/multimod/reference/untrim_model.md) |
 
-**Fold** when parameters are constant across a dimension the scenario
-does not need (timeslice is the usual case), when data files or solver
-memory are the bottleneck, or when a model written for many regions or
-years is run with one.
+**Folding** applies when parameters are constant across a dimension the
+scenario does not need (timeslice is the usual case), when data files or
+solver memory are the bottleneck, or when a model written for many
+regions or years is run with one.
 
-**Trim** when the scenario leaves optional features unused, when empty
-sets or parameters exist, or when many equations generate no
+**Trimming** applies when the scenario leaves optional features unused,
+when empty sets or parameters exist, or when many equations generate no
 constraints.
 
-**Do both** for framework models: fold first, then trim. Check that the
-objective is unchanged before relying on a transformed model (see the
-appendix).
+**Both** suit framework models, folding first and trimming second. The
+objective of a transformed model is worth comparing with the original’s
+before relying on it (see the appendix).
 
 Folding and trimming change what the generated model *contains*; they do
-not change what it *means*. Do not fold a dimension that genuinely
-varies in the data
+not change what it *means*. A dimension that varies in the data is not
+foldable
 ([`create_fold_spec()`](https://optimal2050.github.io/multimod/reference/create_fold_spec.md)
-refuses, but a hand-edited specification can override it), and keep an
-untrimmed copy when the complete structure is wanted for documentation
-or comparison.
+refuses it, although a hand-edited specification can override that), and
+an untrimmed copy remains useful when the complete structure is wanted
+for documentation or comparison.
 
 ## Writing transformed models
 
-Every writer honours the flags.
+The writers honor the flags.
 [`write_gmpl()`](https://optimal2050.github.io/multimod/reference/write_gmpl.md),
 [`write_jump()`](https://optimal2050.github.io/multimod/reference/write_jump.md)
 and
@@ -394,8 +394,8 @@ write_jump(mod_trimmed, model_dir = dir)
 write_latex(mod_trimmed, file = file.path(dir, "model.tex"), model_view = "full")
 ```
 
-A fold specification is an ordinary data frame; save it with
-[`saveRDS()`](https://rdrr.io/r/base/readRDS.html) to reproduce the
+A fold specification is an ordinary data frame; saved with
+[`saveRDS()`](https://rdrr.io/r/base/readRDS.html), it reproduces the
 transformation on another scenario of the same model.
 
 ## Limitations
@@ -403,8 +403,8 @@ transformation on another scenario of the same model.
 - Folding is all-or-nothing per parameter: either every group is
   constant across the dimension or the parameter is left alone.
 - Folding needs validation mappings that reflect the model’s structure;
-  for a non-energyRt model, name the mappings that link each entity to
-  the dimension.
+  for a model other than energyRt, the specification names the mappings
+  that link each entity to the dimension.
 - Folding loads the parameter data into memory while it runs.
 - Trimming only flags elements; the data stays on disk and in the
   object.
@@ -414,10 +414,8 @@ transformation on another scenario of the same model.
 
 ## Appendix: the objective is unchanged
 
-The transformed models must solve to the same objective as the original.
-The check below uses the in-process HiGHS route; it is not run when the
-vignette is built because it needs the `highs` package and takes a few
-seconds.
+The transformed models solve to the same objective as the original. The
+check below uses the matrix route with the ‘highs’ package.
 
 ``` r
 
@@ -425,6 +423,10 @@ r0 <- solve_highs(mod, attach = FALSE)
 r1 <- solve_highs(mod_folded, attach = FALSE)
 r2 <- solve_highs(mod_trimmed, attach = FALSE)
 c(original = r0$objective, folded = r1$objective, trimmed = r2$objective)
+#> original   folded  trimmed 
+#> 46398.42 46398.42 46398.42
 all.equal(r0$objective, r1$objective)
+#> [1] TRUE
 all.equal(r0$objective, r2$objective)
+#> [1] TRUE
 ```

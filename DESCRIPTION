@@ -1,5 +1,5 @@
 Package: multimod
-Title: Define and Render Mathematical Models Across Optimization Languages
+Title: Define and Render Mathematical Models Across Modeling Languages
 Version: 0.5.0
 Authors@R:
   c(person(given = "Oleg", 
@@ -7,15 +7,16 @@ Authors@R:
           email = "olugovoy@optimalsolution.dev", 
           role = c("aut", "cre"), 
           comment = c(ORCID = "0000-0001-5546-9875")))
-Description: A domain-specific language for defining sets, parameters,
-    variables, mappings and equations of an algebraic optimization model in R,
-    and rendering the model to several mathematical programming languages,
-    including 'GAMS', 'GNU MathProg', 'Pyomo' and 'JuMP', or to an LP matrix
-    solved in R. Models can be folded, trimmed, validated, compared and
-    stored, and solutions read back into R. Linear programs with continuous
-    variables are the tested class; integer and binary variables are carried in
-    the model and written by some backends, and nonlinear expressions have no
-    tested route to a solver.
+Copyright: The example_models dataset contains content derived from energyRt,
+    copyright the energyRt development team; see inst/COPYRIGHTS.
+Description: A unified framework for mathematical model representation,
+    analysis, transformation, and optimization. Uses a universal intermediate
+    representation (IR) to construct, import, inspect, simplify, and export
+    mathematical models independently of modeling languages and solvers.
+    Supports 'GAMS', 'GNU MathProg', 'JuMP', 'Pyomo', and 'LaTeX', direct
+    generation and reduction of linear programming (LP) matrices, solving
+    with 'HiGHS', 'cuOpt', and solution decoding. Currently focused on
+    continuous linear optimization.
 URL: https://optimal2050.github.io/multimod/, https://github.com/optimal2050/multimod
 BugReports: https://github.com/optimal2050/multimod/issues
 License: Apache License (>= 2)
@@ -31,7 +32,11 @@ Imports:
     purrr,
     digest,
     magrittr,
-    jsonlite
+    jsonlite,
+    methods,
+    stats,
+    tools,
+    utils
 Suggests:
     arrow,
     visNetwork,
@@ -40,7 +45,6 @@ Suggests:
     glpsol,
     withr,
     reticulate (>= 1.28),
-    tidync,
     knitr,
     lobstr,
     rmarkdown,

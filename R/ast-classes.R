@@ -97,6 +97,10 @@ ast_dims <- function(...) {
   } else {
     symb_list <- NULL
   }
+  # an explicit `symbols = NULL` would otherwise count as a dimension
+  args <- args[!vapply(args, is.null, logical(1))]
+  # a dims node passed on its own is returned as it is, not wrapped in another
+  if (length(args) == 1L && inherits(args[[1]], "dims")) return(args[[1]])
   dims <- args
 
   is_simple_identifier <- function(value) {
@@ -228,7 +232,7 @@ ast_variable <- function(name, dims = ast_dims(), vtype = NULL, bounds = NULL, .
   stopifnot(is.character(name))
   stopifnot(length(name) == 1)
   # Only include non-NULL optional arguments
-  args <- list(name = name, dims = dims, ...)
+  args <- list(name = name, dims = .as_ref_dims(dims), ...)
   if (!is.null(vtype)) args$vtype <- vtype
   if (!is.null(bounds)) args$bounds <- bounds
   do.call(new_ast, c(list("mm_variable"), args))
@@ -245,7 +249,15 @@ ast_variable <- function(name, dims = ast_dims(), vtype = NULL, bounds = NULL, .
 ast_parameter <- function(name, dims = ast_dims(), ...) {
   stopifnot(is.character(name))
   stopifnot(length(name) == 1)
-  new_ast("mm_parameter", name = name, dims = dims, ...)
+  new_ast("mm_parameter", name = name, dims = .as_ref_dims(dims), ...)
+}
+
+# A reference's `dims` is a `dims` node. A character vector of index names
+# (including character(0) for a scalar) is converted, so it cannot be stored as
+# a bare vector that the renderers and the JSON writer do not recognise.
+.as_ref_dims <- function(dims) {
+  if (is.character(dims)) return(do.call(ast_dims, as.list(dims)))
+  dims
 }
 
 #' Create a symbol AST node (for unclassified identifiers)
@@ -269,6 +281,9 @@ ast_symbol <- function(name, ...) {
 #'
 #' @param symbol A character string representing the index symbol (e.g., "y", "ls", "ld").
 #' @param offset An integer offset. Negative for backward shift (e.g., -1 for y-1), positive for forward shift (e.g., +1 for y+1).
+#' @param circular Logical. `FALSE` (default): a shift past either end of the
+#'   set refers to no member, so the term is dropped. `TRUE`: the shift wraps
+#'   around the ends of the set (GAMS `y--1`, `y++1`).
 #' @param ... Additional fields stored on the node (passed to [new_ast()]).
 #'
 #' @return A `shift` S3 object (subclass of `ast`).
@@ -485,7 +500,7 @@ ast_unary <- function(op, rhs) {
 #' @param domain Optional AST node representing the domain condition.
 #' @param desc Optional character string. A description or label for the equation.
 #'
-#' @return An `ast` node of class `equation`.
+#' @return An `mm_equation` AST node.
 #' @export
 ast_equation <- function(lhs, rhs, relation = "==",
                          name = NULL, domain = NULL, desc = NULL) {

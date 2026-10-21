@@ -6,11 +6,12 @@ multimod is distributed under the **Apache License 2.0** (see `LICENSE.md`).
 
 ### energyRt — `example_models$energyRt`
 
-The `example_models` dataset bundles model source generated from energyRt's
-BASE_UTOPIA scenario, in GAMS, GMPL and JuMP form, together with its parsed
-multimod representation.
+The `example_models` dataset bundles energyRt's GAMS model source
+(`gams/energyRt.gms`) and the multimod model parsed from it, with data from an
+interpolated energyRt scenario (TOPIA kit, R7 regions). The shipped copy of
+this notice is `inst/COPYRIGHTS`.
 
-- **Source:** https://github.com/energyRt/energyRt
+- **Source:** https://github.com/optimal2050/energyRt
 - **License:** Apache License 2.0
 - **Copyright:** The energyRt Development Team
 

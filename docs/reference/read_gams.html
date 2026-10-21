@@ -111,6 +111,20 @@ Only applies when reading from a file path.</p></dd>
     <p>A <code>model_structure</code> object containing the parsed GAMS model structure, including sets, mappings, aliases, parameters, variables, and equations.</p>
     </div>
 
+    <div class="section level2">
+    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">structure</span> <span class="op">&lt;-</span> <span class="fu">read_gams</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  <span class="st">"set tech, region;"</span>,</span></span>
+<span class="r-in"><span>  <span class="st">"parameter demand(region);"</span>,</span></span>
+<span class="r-in"><span>  <span class="st">"positive variable gen(tech, region);"</span>,</span></span>
+<span class="r-in"><span>  <span class="st">"equation eqDemand(region);"</span>,</span></span>
+<span class="r-in"><span>  <span class="st">"eqDemand(region).. sum(tech, gen(tech, region)) =g= demand(region);"</span></span></span>
+<span class="r-in"><span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="as_multimod.html">as_multimod</a></span><span class="op">(</span><span class="va">structure</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="as_gmpl.html">as_gmpl</a></span><span class="op">(</span><span class="va">m</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqDemand</span>, model <span class="op">=</span> <span class="va">m</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "s.t. eqDemand{r in region}: sum{t in tech}(gen[t,r]) &gt;= demand[r];"</span>
+</code></pre></div>
+    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 

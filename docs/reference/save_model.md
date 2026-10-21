@@ -63,28 +63,23 @@ Invisibly, the model with storage metadata attached.
 
 ## Details
 
-Directory structure created:
+Directory structure created (the extension follows `format`):
 
-    model_path/
-      model.rds              # Model structure (thinned if keep_in_memory=FALSE)
-      metadata.json          # Human-readable metadata
-      format.txt             # Storage format
-      sets/
-        set_name.txt         # Set members (one per line)
-      parameters/
-        param_name/
-          data.{csv|arrow|parquet}   # Parameter data
-          metadata.rds               # Parameter metadata
-      mappings/
-        mapping_name/
-          data.{csv|arrow|parquet}
-      folded_data/           # If folding applied
-        param_name/
-          folded_data.{csv|arrow|parquet}
-      equations/
-        equations.rds        # All equations
-      variables/
-        variables.rds        # All variables
+    path/
+      model.rds                       model structure (without data when
+                                      keep_in_memory = FALSE)
+      metadata.json                   counts and format, for readers outside R
+      format.txt                      "csv", "ipc" or "parquet"
+      sets/sets.csv                   index of the sets
+      sets/<name>/data.*              one file per set, column `member`
+      mappings/mappings.csv           index of the mappings
+      mappings/<name>/data.*          one column per dimension
+      parameters/parameters.csv       index of the parameters
+      parameters/<name>/data.*        dimension columns plus `value`
+      parameters/<name>/folded_data/data.*   if the parameter is folded
+
+The solvers write their generated code and output under
+`path/solvers/<backend>/`; see the "Model workspace and data" article.
 
 ## Examples
 

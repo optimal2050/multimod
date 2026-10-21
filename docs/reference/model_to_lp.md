@@ -49,12 +49,12 @@ model_to_lp(
 
   What to do about equation rows that carry no coefficients. Such a row
   reads `0 <op> rhs`: it constrains nothing, yet the model still
-  assembles and the solver still reports Optimal, so the answer is
-  silently to a different question. `"user_constraints"` (the default)
-  refuses when a USER constraint (`eqCns*`) is empty – a relaxed user
-  constraint is never what the author meant – and warns about any other
-  empty rows. `"all"` refuses on any empty row, `"warn"` only warns,
-  `"ignore"` says nothing.
+  assembles and the solver still reports Optimal, for a problem other
+  than the one intended. `"user_constraints"` (the default) refuses when
+  a user constraint (an equation named `eqCns*`, the convention of
+  energyRt models) is empty, since a relaxed user constraint changes the
+  problem, and warns about any other empty rows. `"all"` refuses on any
+  empty row, `"warn"` only warns, `"ignore"` says nothing.
 
 - chunk_rows:
 
@@ -74,3 +74,20 @@ A list with `A` (a `Matrix::dgCMatrix`), `obj`, `row_lo`, `row_up`,
 `col_lo`, `col_up`, `maximum`, and the `row_index` / `col_index` used.
 Row bounds encode the constraint sense: `==` gives equal bounds, `<=` an
 upper bound only, `>=` a lower bound only.
+
+## Examples
+
+``` r
+lp <- model_to_lp(example_models$toy)
+dim(lp$A)
+#> [1]  9 13
+head(lp$row_index)
+#>        i   symbol     i1     i2  sense   rhs
+#>    <int>   <char> <char> <char> <char> <num>
+#> 1:     1 eqCapLim   coal  north     <=    NA
+#> 2:     2 eqCapLim    gas  north     <=    NA
+#> 3:     3 eqCapLim   wind  north     <=    NA
+#> 4:     4 eqCapLim   coal  south     <=    NA
+#> 5:     5 eqCapLim    gas  south     <=    NA
+#> 6:     6 eqCapLim   wind  south     <=    NA
+```

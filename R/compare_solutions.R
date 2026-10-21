@@ -5,8 +5,8 @@
 #'
 #' @param path1 Path to first solver output directory (reference/expected)
 #' @param path2 Path to second solver output directory (to compare)
-#' @param solver1 Solver name for path1 if it's a model root (e.g., "gmpl", "jump"). NULL for direct solution paths.
-#' @param solver2 Solver name for path2 if it's a model root (e.g., "gmpl", "jump"). NULL for direct solution paths.
+#' @param solver1 Solver name for path1 if it is a model root (e.g., "gmpl", "jump"). NULL for direct solution paths.
+#' @param solver2 Solver name for path2 if it is a model root (e.g., "gmpl", "jump"). NULL for direct solution paths.
 #' @param variables Character vector of variable names to compare. If NULL, compares all common variables.
 #' @param tol Numeric tolerance for comparing values (default 1e-5)
 #' @param keep What to return: "all", "differences", "matches" (default "differences")

@@ -23,3 +23,7 @@ A character string with valid GMPL syntax.
 \description{
 Render a \code{multimod} object as a GMPL code string.
 }
+\examples{
+toy <- example_models$toy
+as_gmpl(toy$equations$eqDemand, model = toy)
+}

@@ -29,3 +29,10 @@ new_set(name, desc = NULL, subset_of = NULL, data = NULL)
 ## Value
 
 An object of class `set`
+
+## Examples
+
+``` r
+new_set("tech", desc = "generation technologies", data = c("coal", "gas", "wind"))
+#> <AST set> tech
+```

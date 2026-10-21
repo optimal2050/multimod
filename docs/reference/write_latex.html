@@ -74,11 +74,12 @@
 
 
 <dl><dt id="arg-x">x<a class="anchor" aria-label="anchor" href="#arg-x"></a></dt>
-<dd><p>An object of class <code>equation</code> or <code>model</code>.</p></dd>
+<dd><p>An <code>mm_equation</code> or an <code>mm_model</code>.</p></dd>
 
 
 <dt id="arg-file">file<a class="anchor" aria-label="anchor" href="#arg-file"></a></dt>
-<dd><p>Path to the output LaTeX file. If <code>NULL</code>, returns the LaTeX code as a character string.</p></dd>
+<dd><p>Path to the output LaTeX file. For a model, <code>NULL</code> returns the
+LaTeX source instead of writing it.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
@@ -92,6 +93,39 @@
 character string.</p>
     </div>
 
+    <div class="section level2">
+    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">tex</span> <span class="op">&lt;-</span> <span class="fu">write_latex</span><span class="op">(</span><span class="va">example_models</span><span class="op">$</span><span class="va">toy</span>, file <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/substr.html" class="external-link">substr</a></span><span class="op">(</span><span class="va">tex</span>, <span class="fl">1</span>, <span class="fl">600</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> \documentclass{article}</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> \usepackage[letterpaper,margin=1in]{geometry}</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> \usepackage{amsmath,amssymb}</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> \usepackage{breqn}</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> \usepackage{graphicx}</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> \usepackage{longtable}</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> \usepackage{adjustbox}</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> \usepackage{multicol}</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> \usepackage{bm}</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> \usepackage[mathcal]{eucal}</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> \usepackage{tikz}</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> \begin{document}</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> \title{Model: toy\\\large two-region capacity expansion toy model}</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> \date{\today}</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> \maketitle</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> \section{Sets}</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> \texttt{region} -- model regions</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   \quad \textit{(2 elements: north, south)}</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> \\</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> \texttt{tech} -- generation technologies</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   \quad \textit{(3 elements: coal, gas, wind)}</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> \\</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> \section{Aliases}\</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> \begin{flushl</span>
+</code></pre></div>
+    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 

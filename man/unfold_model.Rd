@@ -18,3 +18,11 @@ Modified model with fold removed
 Removes all fold information and restores parameters to their original
 full-dimensional state.
 }
+\examples{
+m <- example_models$energyRt$multimod
+spec <- create_fold_spec(m, fold_dims = "timeslice", verbose = FALSE)
+folded <- fold_model(m, fold_spec = spec, verbose = FALSE)
+is_folded(folded)
+restored <- unfold_model(folded)
+is_folded(restored)
+}

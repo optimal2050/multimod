@@ -38,3 +38,21 @@ check_matrix_numbers(
 Invisibly, a list with `summary` (one row per section), `decades` (a
 magnitude histogram of the matrix coefficients), and `offenders_row` /
 `offenders_col` (entries below `small`, by equation and by variable).
+
+## Examples
+
+``` r
+lp <- model_to_lp(example_models$toy)
+chk <- check_matrix_numbers(lp, verbose = FALSE)
+chk$summary
+#>     section entries zeros nonfinite min_abs max_abs orders below_small
+#> 1   COLUMNS      29     0         0    0.25     120    2.7           0
+#> 2 OBJECTIVE       1     0         0    1.00       1    0.0           0
+#> 3       RHS      10     8         0  600.00    1000    0.2           0
+#> 4    BOUNDS       0     0         0      NA      NA     NA           0
+#>   above_large
+#> 1           0
+#> 2           0
+#> 3           0
+#> 4           0
+```

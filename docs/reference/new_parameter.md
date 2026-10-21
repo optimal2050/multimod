@@ -78,3 +78,12 @@ new_parameter(
 ## Value
 
 a parameter object
+
+## Examples
+
+``` r
+new_parameter("pDemand", desc = "annual demand, MWh", dims = "region",
+              data = data.frame(region = c("north", "south"), value = c(1000, 600)))
+#> <AST parameter> pDemand
+#>   dims:  [region] 
+```

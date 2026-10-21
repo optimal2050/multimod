@@ -1,8 +1,10 @@
+year <- if (!is.null(meta$Date)) sub("-.*", "", meta$Date) else "2026"
+
 bibentry(
   bibtype = "Manual",
-  title = "multimod: Define and Render Mathematical Models Across Multiple Optimization Languages",
+  title = paste0("multimod: ", meta$Title),
   author = person("Oleg", "Lugovoy"),
-  year = "2025",
-  note = "R package version 0.0.3.9005",
+  year = year,
+  note = paste("R package version", meta$Version),
   url = "https://github.com/optimal2050/multimod"
 )

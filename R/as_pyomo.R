@@ -14,6 +14,9 @@
 #'
 #' @return Character string containing Pyomo-compatible code.
 #' @export
+#' @examples
+#' toy <- example_models$toy
+#' cat(as_pyomo(toy$equations$eqDemand, model = toy))
 as_pyomo <- function(x, ...) {
   UseMethod("as_pyomo", x)
 }
@@ -752,6 +755,13 @@ as_pyomo.when <- function(x, model = NULL, var_names = NULL, scope = NULL, ...) 
 }
 
 # Equations -------------------------------------------------------------------
+
+#' @export
+#' @method as_pyomo mm_equation
+as_pyomo.mm_equation <- function(x, model = NULL, ...) {
+  out <- render_pyomo_equation(x, model = model)
+  paste(c(out$rule, out$assignment), collapse = "\n")
+}
 
 #' Convert an equation node to Pyomo rule definition (internal helper)
 #' @return A list with `rule`, the Python source lines of the rule function,

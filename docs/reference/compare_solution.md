@@ -31,12 +31,12 @@ compare_solution(
 
 - solver1:
 
-  Solver name for path1 if it's a model root (e.g., "gmpl", "jump").
+  Solver name for path1 if it is a model root (e.g., "gmpl", "jump").
   NULL for direct solution paths.
 
 - solver2:
 
-  Solver name for path2 if it's a model root (e.g., "gmpl", "jump").
+  Solver name for path2 if it is a model root (e.g., "gmpl", "jump").
   NULL for direct solution paths.
 
 - variables:

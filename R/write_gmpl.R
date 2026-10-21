@@ -22,6 +22,9 @@
 #'
 #' @return Character vector or writes file if `file` or `model_dir` is given
 #' @export
+#' @examples
+#' code <- write_gmpl(example_models$toy)
+#' cat(head(code, 20), sep = "\n")
 write_gmpl <- function(model, file = NULL, model_dir = model$base_dir,
                        format_expr = FALSE, include_solve = TRUE,
                       export_vars = NULL, use_table_output = FALSE, use_folded = NULL, objective = "cost",

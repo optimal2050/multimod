@@ -15,6 +15,6 @@ remove_unused_variables(model, verbose = FALSE)
 Model with unused variables trimmed
 }
 \description{
-Final pass to mark variables that don't appear in any active equation.
+Final pass to mark variables that do not appear in any active equation.
 }
 \keyword{internal}

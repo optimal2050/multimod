@@ -36,6 +36,10 @@
 #'   (a magnitude histogram of the matrix coefficients), and `offenders_row` /
 #'   `offenders_col` (entries below `small`, by equation and by variable).
 #' @export
+#' @examples
+#' lp <- model_to_lp(example_models$toy)
+#' chk <- check_matrix_numbers(lp, verbose = FALSE)
+#' chk$summary
 check_matrix_numbers <- function(lp, small = 1e-4, large = 1e6, top = 15,
                                  verbose = TRUE) {
   stopifnot(is.list(lp), !is.null(lp$A))

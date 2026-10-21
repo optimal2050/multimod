@@ -2,7 +2,7 @@
 % Please edit documentation in R/mm_equation.R
 \name{mm_equation}
 \alias{mm_equation}
-\title{Write an equation as MathProg or GAMS text}
+\title{Write an equation as MathProg, GAMS or JuMP text}
 \usage{
 mm_equation(model, text, desc = "", lang = c("gmpl", "gams", "jump"))
 }
@@ -28,10 +28,10 @@ and GAMS are read as well; all three produce the same AST.}
 An equation node, ready to assign into \code{model$equations}.
 }
 \description{
-Equations are the one part of a model that does not read well as nested
-constructors: a cost balance becomes several levels of \code{\link[=ast_expression]{ast_expression()}}
-before it says anything. \code{mm_equation()} takes the statement as a modeller
-would write it and parses it into the same AST the constructors build.
+Equations are the part of a model that is hardest to read as nested
+constructors: a cost balance takes several levels of \code{\link[=ast_expression]{ast_expression()}}.
+\code{mm_equation()} takes the statement in modeling-language notation and parses
+it into the same AST the constructors build.
 }
 \details{
 Declarations stay in R. \code{\link[=new_set]{new_set()}}, \code{\link[=new_parameter]{new_parameter()}} and

@@ -173,7 +173,7 @@ preferred_dummy_names <- list(
 #' Creates a short dummy variable name from a set name following conventions:
 #' - Uses preferred names for common sets (tech -> h, timeslice -> ts, etc.)
 #' - First letter of the set name (lowercase) for others
-#' - If it's an alias, use two letters (checking against all_set_names)
+#' - Two letters for an alias (checked against all_set_names)
 #' - Ensures uniqueness by checking against all symbols in model
 #'
 #' @param set_name Character. The name of the set

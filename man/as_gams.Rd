@@ -23,3 +23,7 @@ A character string with valid GAMS syntax.
 \description{
 Render a \code{multimod} object as a GAMS code string.
 }
+\examples{
+toy <- example_models$toy
+as_gams(toy$equations$eqDemand)
+}

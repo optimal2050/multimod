@@ -1,15 +1,11 @@
 # Solve a Pyomo model exported by `multimod`
 
-Executes the generated `solve.py` script inside `solvers/pyomo/` after
-ensuring a Python environment exists. By default the helper
-[`mm_setup_python()`](https://optimal2050.github.io/multimod/reference/mm_setup_python.md)
-is invoked so that a Conda environment named "multimod" (configurable)
-is created, populated with Pyomo, and activated via the `reticulate`
-toolkit. Once the environment is ready the solver script is executed
-with [`system2()`](https://rdrr.io/r/base/system2.html) or `processx`
-and basic status information is returned, together with the status the
-script writes to `solution/status.json`. With `load_results = TRUE` the
-variable values the script exports are read back into `model`.
+Runs the generated `model.py` (or `solve.py`, written by
+`write_pyomo(split = TRUE)`) in `solvers/pyomo/` with the configured
+Python interpreter, and returns basic status information together with
+the status the script writes to `solution/status.json`. With
+`load_results = TRUE` the variable values the script exports are read
+back into `model`.
 
 ## Usage
 
@@ -19,7 +15,7 @@ solve_pyomo(
   model_dir,
   solver_dir = "pyomo",
   env_name = "multimod",
-  ensure_env = TRUE,
+  ensure_env = FALSE,
   packages = NULL,
   python_version = NULL,
   ensure_miniconda = TRUE,
@@ -46,7 +42,7 @@ solve_pyomo(
 
   Path to the saved model directory created by
   [`save_model()`](https://optimal2050.github.io/multimod/reference/save_model.md).
-  Must contain `solvers/<solver_dir>/solve.py` (generated via
+  Must contain `solvers/<solver_dir>/model.py` (generated via
   [`write_pyomo()`](https://optimal2050.github.io/multimod/reference/write_pyomo.md)).
 
 - solver_dir:
@@ -63,12 +59,12 @@ solve_pyomo(
 
 - ensure_env:
 
-  Logical; when `TRUE` (default) the environment is checked with
+  Logical; when `TRUE` the environment is checked with
   [`mm_check_python()`](https://optimal2050.github.io/multimod/reference/mm_check_python.md)
   and
   [`mm_setup_python()`](https://optimal2050.github.io/multimod/reference/mm_setup_python.md)
-  runs only if it is not usable. Set to `FALSE` if you want to manage
-  activation yourself.
+  runs if it is not usable. Default `FALSE`: the configured interpreter
+  is used as it is, and nothing is installed.
 
 - packages:
 
@@ -137,3 +133,11 @@ raw output, parsed status metadata when available, and environment
 details). With `load_results = TRUE`, also `model`, the input model with
 a `solution` data frame on every variable the solver reported.
 `objective` is the objective value the script records in `status.json`.
+
+## Details
+
+The Python environment is created once with
+[`mm_setup_python()`](https://optimal2050.github.io/multimod/reference/mm_setup_python.md).
+With `ensure_env = TRUE`, `solve_pyomo()` checks the environment and
+creates it when it is not usable, which may install Miniconda and Python
+packages.

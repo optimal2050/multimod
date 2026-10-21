@@ -1,9 +1,9 @@
-#' Write an equation as MathProg or GAMS text
+#' Write an equation as MathProg, GAMS or JuMP text
 #'
-#' Equations are the one part of a model that does not read well as nested
-#' constructors: a cost balance becomes several levels of [ast_expression()]
-#' before it says anything. `mm_equation()` takes the statement as a modeller
-#' would write it and parses it into the same AST the constructors build.
+#' Equations are the part of a model that is hardest to read as nested
+#' constructors: a cost balance takes several levels of [ast_expression()].
+#' `mm_equation()` takes the statement in modeling-language notation and parses
+#' it into the same AST the constructors build.
 #'
 #' Declarations stay in R. [new_set()], [new_parameter()] and
 #' [new_variable()] are flat and read well; only the expression needs the
@@ -58,7 +58,7 @@
 mm_equation <- function(model, text, desc = "",
                         lang = c("gmpl", "gams", "jump")) {
   lang <- match.arg(lang)
-  if (!(inherits(model, "multimod") || inherits(model, "model"))) {
+  if (!inherits(model, "mm_model")) {
     stop("`model` must be a multimod model.", call. = FALSE)
   }
   if (!is.character(text) || length(text) != 1L || !nzchar(trimws(text))) {

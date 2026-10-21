@@ -53,9 +53,9 @@ toy$base_path == ws
 
 [`save_model()`](https://optimal2050.github.io/multimod/reference/save_model.md)
 returns the model with `base_path` set to the workspace. With
-`format = "ipc"` or `"parquet"` the data files are Arrow files, smaller
-and faster to read; both need the ‘arrow’ package, and the generated
-Julia and Python read them as readily as CSV.
+`format = "ipc"` or `"parquet"` the data files are Arrow files, which
+are typically smaller than CSV and faster to read; both need the ‘arrow’
+package, and the generated Julia and Python read them as readily as CSV.
 
 ``` r
 
@@ -84,8 +84,8 @@ head(m$parameters$pAvail$data)
 
 ## Data on demand
 
-A large model is loaded without its data and asked for one table at a
-time.
+A large model can be loaded without its data and its tables read one at
+a time.
 [`get_data()`](https://optimal2050.github.io/multimod/reference/get_data.md)
 reads the table from the workspace and caches it in the model object it
 returns from.
@@ -144,15 +144,16 @@ solve_highs(m, attach = FALSE)$objective
 
 ## Solutions
 
-The file routes write their results under `solvers/<backend>/solution/`.
-With `load_results = TRUE` (the default when a model is passed),
+The code-generation routes write their results under
+`solvers/<backend>/solution/`. With `load_results = TRUE` (the default
+when a model is passed),
 [`solve_gmpl()`](https://optimal2050.github.io/multimod/reference/solve_gmpl.md),
 [`solve_jump()`](https://optimal2050.github.io/multimod/reference/solve_jump.md)
 and
 [`solve_pyomo()`](https://optimal2050.github.io/multimod/reference/solve_pyomo.md)
 read the variable values into `model$variables[[name]]$solution`, copy
 them to `variables/`, and append a line to `solution_log.txt`, so the
-workspace always holds the latest solution and a record of when it was
+workspace holds the latest loaded solution and a record of when it was
 loaded.
 
 ``` r
@@ -165,8 +166,8 @@ readLines(file.path(ws, "solution_log.txt"))
 
 ## Folded data
 
-A folded parameter (see
-[`vignette("folding")`](https://optimal2050.github.io/multimod/articles/folding.md))
+A folded parameter (see [Folding and
+trimming](https://optimal2050.github.io/multimod/articles/folding.md))
 keeps both tables: the original under `data.*` and the reduced one under
 `folded_data/data.*`.
 [`save_model()`](https://optimal2050.github.io/multimod/reference/save_model.md)
@@ -198,7 +199,7 @@ cat(readLines(file.path(ws, "metadata.json")), sep = "\n")
 #> {
 #>   "name": "toy",
 #>   "desc": "two-region capacity expansion toy model",
-#>   "saved": "2026-10-19 22:17:56",
+#>   "saved": "2026-10-21 09:32:34",
 #>   "format": "csv",
 #>   "compression": null,
 #>   "compression_level": null,

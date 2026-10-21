@@ -115,23 +115,25 @@ generate proper fold specification with entity-specific mappings.</p></dd>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>The algorithm uses per-group validation: for each combination of OTHER dimensions,
-it checks if values are identical. This is an "all or nothing" approach - if ANY
-group shows variation, the dimension is not folded.</p>
-<p>Folding analyzes each parameter to identify dimensions that don't provide
-variation in the data. For each parameter, it groups by all OTHER dimensions
-and checks if values are constant within each group (within tolerance).</p>
+    <p>The algorithm uses per-group validation: for each combination of the other
+dimensions, it checks whether the values are identical. The test is all or
+nothing: if any group shows variation, the dimension is not folded.</p>
+<p>Folding analyzes each parameter to identify dimensions that do not provide
+variation in the data. For each parameter, it groups by all other dimensions
+and checks whether the values are constant within each group (within
+tolerance).</p>
 <p>Example: For <code>pStorageInpEff[stg, comm, region, year, timeslice]</code> testing timeslice:</p><ul><li><p>Groups by <code>(stg, comm, region, year)</code></p></li>
-<li><p>For each group, checks if ALL timeslice values are identical</p></li>
-<li><p>Only folds if EVERY group has constant values</p></li>
-</ul><p>This handles sparse data correctly - if a parameter only has values for
-peak hours (1 timeslice out of 17), that's fine. It only checks if the values
-that DO exist are constant within each group.</p>
+<li><p>For each group, checks whether all timeslice values are identical</p></li>
+<li><p>Folds only if every group has constant values</p></li>
+</ul><p>Sparse data is handled: a parameter with values only for peak hours (one
+timeslice out of 17) is tested on the values that exist, which must be
+constant within each group.</p>
 <p>The fold creates three slots per parameter:</p><ul><li><p><code>data</code>: Original complete data (preserved)</p></li>
 <li><p><code>folded_data</code>: Collapsed data with reduced dimensions</p></li>
 <li><p><code>active_dims</code>: Dimensions remaining after fold</p></li>
-</ul><p>Safety measures:</p><ul><li><p>Only folds dimensions explicitly requested by user</p></li>
-<li><p>Never folds structural dimensions (tech, comm, sup, dem, stg, trade, etc.)</p></li>
+</ul><p>Safeguards:</p><ul><li><p>Only the dimensions named in <code>fold_spec</code> are folded</p></li>
+<li><p>Dimensions that identify an entity (for an energyRt model: tech, comm,
+sup, dem, stg, trade) are never folded</p></li>
 <li><p>Skips parameters where all dimensions would be folded (would become scalar)</p></li>
 <li><p>Validates consistency before folding</p></li>
 <li><p>Updates equation ASTs to match reduced dimensions</p></li>

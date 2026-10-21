@@ -29,3 +29,7 @@ Data frame with fold analysis
 \description{
 Reports which parameters could be folded and the potential compression.
 }
+\examples{
+ops <- analyze_fold_opportunities(example_models$energyRt$multimod)
+head(ops)
+}

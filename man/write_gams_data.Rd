@@ -41,12 +41,12 @@ zeros for parameters, so a stored zero would otherwise be indistinguishable
 from an absent one and would be overwritten by the default that
 \code{\link[=write_gams]{write_gams()}} assigns after loading.
 }
-\section{Testing status}{
+\section{Experimental}{
 
-This route is exercised against an older GDX library and gdxtools 0.7, which
-does not install on R >= 4.6, with the solve run on NEOS. Contributions
-testing current GDX libraries, a newer gdxtools and other GAMS entry points
-are welcome.
+This function is experimental and is not covered by the package tests. It
+was exercised against an older GDX library and gdxtools 0.7, with the solve
+run on NEOS; it has not been tested with the current gdxtools on CRAN.
+Its interface may change.
 }
 
 \seealso{

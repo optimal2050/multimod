@@ -73,7 +73,7 @@ new_equation(
 
 ## Value
 
-An object of class `equation`, containing the parsed equation structure.
+An `mm_equation` object.
 
 ## Examples
 
@@ -94,6 +94,6 @@ eq <- new_equation(
 print(eq)
 #> <AST equation> eqTechEff
 #>   relation:  == 
-#>   lhs:  vTechOuttech vTechOutregion 
-#>   rhs:  pTechEfftech * vTechInptech 
+#>   lhs:  vTechOut[tech,region] 
+#>   rhs:  pTechEff[tech] * vTechInp[tech,region] 
 ```

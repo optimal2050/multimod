@@ -73,7 +73,7 @@
           <code><a href="mm_equation.html">mm_equation()</a></code>
 
         </dt>
-        <dd>Write an equation as MathProg or GAMS text</dd>
+        <dd>Write an equation as MathProg, GAMS or JuMP text</dd>
 
         <dt>
 
@@ -354,7 +354,7 @@
         </dt>
         <dd>Convert AST expression to character</dd>
       </dl></div><div class="section level2">
-      <h2 id="schema-and-serialisation">Schema and serialisation<a class="anchor" aria-label="anchor" href="#schema-and-serialisation"></a></h2>
+      <h2 id="schema-and-serialization">Schema and serialization<a class="anchor" aria-label="anchor" href="#schema-and-serialization"></a></h2>
 
       <div class="section-desc"><p>The node schema, validation, and the JSON round trip.</p></div>
 
@@ -504,17 +504,10 @@
 
         </dt>
         <dd>Write a GAMS model file from a multimod object</dd>
-
-        <dt>
-
-          <code><a href="write_gams_data.html">write_gams_data()</a></code>
-
-        </dt>
-        <dd>Write a model's data to a GDX for GAMS</dd>
       </dl></div><div class="section level2">
-      <h2 id="gmpl-mathprog">GMPL / MathProg<a class="anchor" aria-label="anchor" href="#gmpl-mathprog"></a></h2>
+      <h2 id="mathprog">MathProg<a class="anchor" aria-label="anchor" href="#mathprog"></a></h2>
 
-      <div class="section-desc"><p>Read MathProg, render it, and solve with the glpsol executable.</p></div>
+      <div class="section-desc"><p>Read GNU MathProg, render it, and solve it with the glpsol executable.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -598,7 +591,7 @@
         </dt>
         <dd>Import GMPL Data to Model</dd>
       </dl></div><div class="section level2">
-      <h2 id="jump-julia">JuMP / Julia<a class="anchor" aria-label="anchor" href="#jump-julia"></a></h2>
+      <h2 id="jump">JuMP<a class="anchor" aria-label="anchor" href="#jump"></a></h2>
 
 
 
@@ -619,7 +612,7 @@
           <code><a href="write_jump.html">write_jump()</a></code>
 
         </dt>
-        <dd>Write a Julia/JuMP model file from a multimod object</dd>
+        <dd>Write a JuMP model file from a multimod model</dd>
 
         <dt>
 
@@ -642,7 +635,7 @@
         </dt>
         <dd>Parse one JuMP constraint into a multimod equation</dd>
       </dl></div><div class="section level2">
-      <h2 id="pyomo-python">Pyomo / Python<a class="anchor" aria-label="anchor" href="#pyomo-python"></a></h2>
+      <h2 id="pyomo">Pyomo<a class="anchor" aria-label="anchor" href="#pyomo"></a></h2>
 
 
 
@@ -816,7 +809,7 @@
           <code><a href="trim_model.html">trim_model()</a></code>
 
         </dt>
-        <dd>Trim a model to the elements its data actually uses</dd>
+        <dd>Trim a model to the elements its data uses</dd>
 
         <dt>
 
@@ -839,9 +832,9 @@
         </dt>
         <dd>Check if model or object is trimmed</dd>
       </dl></div><div class="section level2">
-      <h2 id="direct-matrix-and-mps-backend">Direct matrix and MPS backend<a class="anchor" aria-label="anchor" href="#direct-matrix-and-mps-backend"></a></h2>
+      <h2 id="matrix-route-and-mps">Matrix route and MPS<a class="anchor" aria-label="anchor" href="#matrix-route-and-mps"></a></h2>
 
-      <div class="section-desc"><p>Assemble the LP from the AST, write MPS, solve in process.</p></div>
+      <div class="section-desc"><p>Assemble the LP from the AST, write MPS, and solve in R.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -1062,7 +1055,7 @@
           <code><a href="example_models.html">example_models</a></code>
 
         </dt>
-        <dd>Example Model in Multiple Formats</dd>
+        <dd>Example models</dd>
       </dl></div><div class="section level2">
       <h2 id="utility-functions">Utility functions<a class="anchor" aria-label="anchor" href="#utility-functions"></a></h2>
 
@@ -1279,6 +1272,13 @@
 
 
       <dl><dt>
+
+          <code><a href="write_gams_data.html">write_gams_data()</a></code>
+
+        </dt>
+        <dd>Write a model's data to a GDX for GAMS</dd>
+
+        <dt>
 
           <code><a href="as_r.html">as_r()</a></code>
 

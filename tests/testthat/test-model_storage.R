@@ -48,7 +48,7 @@ create_test_model <- function(name = "test", sets = NULL, parameters = NULL, map
     equations = equations %||% list(),
     variables = variables %||% list()
   )
-  class(model) <- c("multimod", "model", "list")
+  class(model) <- c("mm_model", "multimod")
   model
 }
 

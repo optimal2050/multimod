@@ -62,9 +62,9 @@ creates the target environment when missing, installs the requested Python
 packages, and activates the environment for the current R session via
 \code{reticulate::use_condaenv()}.
 
-After setup, you can optionally configure multimod to use this environment
-via \code{set_multimod_python()} or by letting \code{get_multimod_python()} detect it
-automatically through reticulate.
+After setup, multimod uses this environment either when it is set with
+\code{set_multimod_python()} or when \code{get_multimod_python()} detects it through
+reticulate.
 }
 \seealso{
 \code{\link[=get_multimod_python]{get_multimod_python()}}, \code{\link[=set_multimod_python]{set_multimod_python()}}

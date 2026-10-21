@@ -109,11 +109,11 @@ index building (one interned string per LP row and column).</p></dd>
 <dt id="arg-on-empty-row">on_empty_row<a class="anchor" aria-label="anchor" href="#arg-on-empty-row"></a></dt>
 <dd><p>What to do about equation rows that carry no
 coefficients. Such a row reads <code>0 &lt;op&gt; rhs</code>: it constrains nothing, yet
-the model still assembles and the solver still reports Optimal, so the
-answer is silently to a different question. <code>"user_constraints"</code> (the
-default) refuses when a USER constraint (<code>eqCns*</code>) is empty – a relaxed
-user constraint is never what the author meant – and warns about any
-other empty rows. <code>"all"</code> refuses on any empty row, <code>"warn"</code> only warns,
+the model still assembles and the solver still reports Optimal, for a
+problem other than the one intended. <code>"user_constraints"</code> (the default)
+refuses when a user constraint (an equation named <code>eqCns*</code>, the
+convention of energyRt models) is empty, since a relaxed user constraint
+changes the problem, and warns about any other empty rows. <code>"all"</code> refuses on any empty row, <code>"warn"</code> only warns,
 <code>"ignore"</code> says nothing.</p></dd>
 
 
@@ -135,6 +135,22 @@ constraint sense: <code>==</code> gives equal bounds, <code>&lt;=</code> an uppe
 a lower bound only.</p>
     </div>
 
+    <div class="section level2">
+    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">lp</span> <span class="op">&lt;-</span> <span class="fu">model_to_lp</span><span class="op">(</span><span class="va">example_models</span><span class="op">$</span><span class="va">toy</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">lp</span><span class="op">$</span><span class="va">A</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1]  9 13</span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">lp</span><span class="op">$</span><span class="va">row_index</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        i   symbol     i1     i2  sense   rhs</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;int&gt;   &lt;char&gt; &lt;char&gt; &lt;char&gt; &lt;char&gt; &lt;num&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:     1 eqCapLim   coal  north     &lt;=    NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2:     2 eqCapLim    gas  north     &lt;=    NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3:     3 eqCapLim   wind  north     &lt;=    NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4:     4 eqCapLim   coal  south     &lt;=    NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5:     5 eqCapLim    gas  south     &lt;=    NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6:     6 eqCapLim   wind  south     &lt;=    NA</span>
+</code></pre></div>
+    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 

@@ -25,6 +25,9 @@ gams_desc <- function(x) {
 #' @param ... Additional arguments (not used).
 #' @returns A character string with valid GAMS syntax.
 #' @export
+#' @examples
+#' toy <- example_models$toy
+#' as_gams(toy$equations$eqDemand)
 as_gams <- function(x, ...) {
   UseMethod("as_gams", x)
 }
@@ -58,8 +61,10 @@ as_gams.mm_set <- function(x, declaration = FALSE, desc = declaration, ...) {
   stopifnot(inherits(x, "mm_set"))
   if (declaration) {
     paste0("set ", x$name, ifelse(desc, paste0("  ", gams_desc(x$desc)), ""),";")
+  } else if (isTRUE(desc)) {
+    paste(x$name, gams_desc(x$desc), sep = "  ")
   } else {
-    paste(x$name, ifelse(desc, gams_desc(x$desc), ""), sep = "  ")
+    x$name
   }
 }
 
@@ -119,9 +124,111 @@ as_gams.symbol <- function(x, ...) {
 #' @export
 #' @method as_gams sum
 as_gams.sum <- function(x, ...) {
-  idx <- as_gams(x$index, brackets = .gams_index_brackets(x$index), ...)
+  idx <- .gams_iterated_index(x$index, body = x$value, ...)
   val <- as_gams(x$value, ...)
   paste0("sum(", idx, ", ", val,")")
+}
+
+# A MathProg iterator ranges over a set under its own name (`sum{t in TECH}`);
+# the body then refers to `t`. GAMS has no iterator distinct from a set, so the
+# iterator is rendered as the controlling index and `write_gams()` declares it
+# an alias of the set. An index whose entries carry no iterator name, or carry
+# the set's own name, renders as before.
+.gams_iterated_index <- function(index, body = NULL, ...) {
+  iters <- .gams_index_iterators(index, body)
+  if (is.null(iters)) {
+    return(as_gams(index, brackets = .gams_index_brackets(index), ...))
+  }
+  if (length(iters) > 1) paste0("[", paste(iters, collapse = ","), "]") else iters
+}
+
+# Iterator names of a dims index, or NULL when they add nothing to the set
+# names. They are used only when the body refers to them: a parse that has
+# already resolved the body's indices to set names (`x[L]`) keeps the set
+# names in the index too.
+.gams_index_iterators <- function(index, body = NULL) {
+  if (!inherits(index, "dims") || length(index) == 0) return(NULL)
+  iters <- names(index)
+  if (is.null(iters) || any(is.na(iters) | !nzchar(iters))) return(NULL)
+  sets <- vapply(index, function(d) if (is.null(d$name)) NA_character_ else d$name, "")
+  if (any(is.na(sets)) || identical(unname(iters), unname(sets))) return(NULL)
+  if (!.gams_body_uses(body, setdiff(iters, sets))) return(NULL)
+  iters
+}
+
+# Whether any of `names` appears as an index symbol anywhere in `node`.
+.gams_body_uses <- function(node, names) {
+  if (!length(names)) return(TRUE)
+  found <- FALSE
+  walk <- function(x) {
+    if (found) return(invisible())
+    if (inherits(x, "symbol") && !is.null(x$name) && x$name %in% names) {
+      found <<- TRUE
+      return(invisible())
+    }
+    if (is.list(x)) for (child in x) walk(child)
+  }
+  walk(node)
+  found
+}
+
+# Set-iterator pairs an equation needs declared as GAMS aliases: from its own
+# header (`dims_index_aliases`) and from every sum or product inside it.
+.gams_equation_aliases <- function(eq) {
+  pairs <- list()
+  sets <- vapply(eq$dims, function(d) if (is.null(d$name)) NA_character_ else d$name, "")
+  hdr <- .gams_header_iterators(eq)
+  if (!is.null(hdr)) pairs <- c(pairs, Map(c, sets, hdr))
+  walk <- function(node) {
+    if (inherits(node, c("sum", "prod"))) {
+      iters <- .gams_index_iterators(node$index, node$value)
+      if (!is.null(iters)) {
+        isets <- vapply(node$index, function(d) d$name, "")
+        pairs <<- c(pairs, Map(c, isets, iters))
+      }
+    }
+    if (is.list(node)) for (child in node) walk(child)
+  }
+  walk(eq$lhs)
+  walk(eq$rhs)
+  unique(lapply(pairs, unname))
+}
+
+# Declaration domain of an equation, bracketed; "" for a scalar. It is the
+# index of the definition header (see as_gams.mm_equation()) before MathProg
+# iterators are substituted, so a header over aliases matches its declaration.
+.gams_equation_domain <- function(eq) {
+  index_dims <- .gams_equation_index_dims(eq)
+  if (length(index_dims) == 0) return("")
+  sets <- vapply(index_dims, function(d) if (is.null(d$name)) NA_character_ else d$name, "")
+  if (any(is.na(sets))) return("")
+  paste0("[", paste(sets, collapse = ","), "]")
+}
+
+# The equation is indexed by its domain mapping when it has one, so the header
+# binds the domain's dims rather than the base sets carried by eq$dims.
+.gams_equation_index_dims <- function(eq) {
+  if (inherits(eq$domain, "mm_mapping") && !is.null(eq$domain$dims) &&
+      length(eq$domain$dims) == length(eq$dims)) {
+    return(eq$domain$dims)
+  }
+  eq$dims
+}
+
+# Iterator names for an equation header, or NULL to keep the set names.
+.gams_header_iterators <- function(eq) {
+  iters <- eq$dims_index_aliases
+  if (is.null(iters) || length(iters) != length(eq$dims) || length(iters) == 0) {
+    return(NULL)
+  }
+  iters <- unname(as.character(iters))
+  sets <- vapply(eq$dims, function(d) if (is.null(d$name)) NA_character_ else d$name, "")
+  if (any(is.na(iters) | !nzchar(iters)) || any(is.na(sets)) ||
+      identical(iters, unname(sets))) {
+    return(NULL)
+  }
+  if (!.gams_body_uses(list(eq$lhs, eq$rhs), setdiff(iters, sets))) return(NULL)
+  iters
 }
 
 # GAMS needs a controlling index of several sets bracketed: sum((i,j), ...).
@@ -135,7 +242,7 @@ as_gams.sum <- function(x, ...) {
 #' @export
 #' @method as_gams prod
 as_gams.prod <- function(x, ...) {
-  idx <- as_gams(x$index, brackets = .gams_index_brackets(x$index), ...)
+  idx <- .gams_iterated_index(x$index, body = x$value, ...)
   val <- as_gams(x$value, ...)
   paste0("prod(", idx, ", ", val, ")")
 }
@@ -297,14 +404,11 @@ as_gams.unary <- function(x, ...) {
 #' @method as_gams mm_equation
 as_gams.mm_equation <- function(x, ...) {
   eqname <- x$name
-  # The equation is indexed by its domain mapping, so the header binds the
-  # domain's dims rather than the base sets carried by x$dims.
-  index_dims <- x$dims
-  if (inherits(x$domain, "mm_mapping") && !is.null(x$domain$dims) &&
-      length(x$domain$dims) == length(x$dims)) {
-    index_dims <- x$domain$dims
+  index <- as_gams(.gams_equation_index_dims(x), ...)
+  if (is.null(x$domain)) {
+    hdr <- .gams_header_iterators(x)
+    if (!is.null(hdr)) index <- paste0("[", paste(hdr, collapse = ","), "]")
   }
-  index <- as_gams(index_dims, ...)
   domain <- if (!is.null(x$domain)) paste0("$", as_gams(x$domain, ...)) else ""
   lhs <- as_gams(x$lhs, ...)
   rhs <- as_gams(x$rhs, ...)

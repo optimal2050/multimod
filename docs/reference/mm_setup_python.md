@@ -87,12 +87,11 @@ missing, installs the requested Python packages, and activates the
 environment for the current R session via
 [`reticulate::use_condaenv()`](https://rstudio.github.io/reticulate/reference/use_python.html).
 
-After setup, you can optionally configure multimod to use this
-environment via
+After setup, multimod uses this environment either when it is set with
 [`set_multimod_python()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
-or by letting
+or when
 [`get_multimod_python()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
-detect it automatically through reticulate.
+detects it through reticulate.
 
 ## See also
 

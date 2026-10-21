@@ -34,11 +34,11 @@
 #'   index building (one interned string per LP row and column).
 #' @param on_empty_row What to do about equation rows that carry no
 #'   coefficients. Such a row reads `0 <op> rhs`: it constrains nothing, yet
-#'   the model still assembles and the solver still reports Optimal, so the
-#'   answer is silently to a different question. `"user_constraints"` (the
-#'   default) refuses when a USER constraint (`eqCns*`) is empty -- a relaxed
-#'   user constraint is never what the author meant -- and warns about any
-#'   other empty rows. `"all"` refuses on any empty row, `"warn"` only warns,
+#'   the model still assembles and the solver still reports Optimal, for a
+#'   problem other than the one intended. `"user_constraints"` (the default)
+#'   refuses when a user constraint (an equation named `eqCns*`, the
+#'   convention of energyRt models) is empty, since a relaxed user constraint
+#'   changes the problem, and warns about any other empty rows. `"all"` refuses on any empty row, `"warn"` only warns,
 #'   `"ignore"` says nothing.
 #' @param chunk_rows Passed to [build_triplets()]: evaluate each equation over
 #'   at most this many LP rows at a time. It bounds the pre-aggregation
@@ -53,6 +53,10 @@
 #'   constraint sense: `==` gives equal bounds, `<=` an upper bound only, `>=`
 #'   a lower bound only.
 #' @export
+#' @examples
+#' lp <- model_to_lp(example_models$toy)
+#' dim(lp$A)
+#' head(lp$row_index)
 model_to_lp <- function(model, col_index = NULL, row_index = NULL,
                         on_duplicate = c("error", "last", "first"),
                         verbose = FALSE, index_names = FALSE,
@@ -204,8 +208,8 @@ model_to_lp <- function(model, col_index = NULL, row_index = NULL,
 #' Solve a model in-process with HiGHS
 #'
 #' Uses the solver-object interface rather than [highs::highs_solve()], because
-#' only that path returns dual values - energy-system models generally need the
-#' constraint marginals, not just primal levels.
+#' only that path returns dual values (constraint marginals) as well as primal
+#' levels.
 #'
 #' @param model A multimod model with data attached.
 #' @param lp Optional pre-built LP from [model_to_lp()].
@@ -219,6 +223,11 @@ model_to_lp <- function(model, col_index = NULL, row_index = NULL,
 #'   (a `data.table` of `j`, symbol, index tuple and value), `dual` (per row),
 #'   the `lp`, and - when `attach` is `TRUE` - the updated `model`.
 #' @export
+#' @examples
+#' if (requireNamespace("highs", quietly = TRUE)) {
+#'   r <- solve_highs(example_models$toy, attach = FALSE)
+#'   r$objective
+#' }
 solve_highs <- function(model, lp = NULL, attach = TRUE, control = list(),
                         verbose = FALSE) {
   if (!requireNamespace("highs", quietly = TRUE)) {
@@ -303,10 +312,21 @@ solve_highs <- function(model, lp = NULL, attach = TRUE, control = list(),
 #' @param lp Optional pre-built LP from [model_to_lp()].
 #' @param format Storage format for the index tables, passed to the package's
 #'   `.save_dataframe()`: `"parquet"` (default), `"ipc"` or `"csv"`.
+#' @param presolve Logical; eliminate proportional columns with
+#'   [lp_presolve()] before writing. [read_mps_solution()] restores them.
+#'   Defaults to `getOption("multimod.presolve", FALSE)`.
 #' @param verbose Logical; report progress.
 #'
 #' @return Invisibly, a list of the paths written.
 #' @export
+#' @examples
+#' if (requireNamespace("highs", quietly = TRUE)) {
+#'   dir <- tempfile("mps-")
+#'   dir.create(dir)
+#'   mps <- file.path(dir, "toy.mps")
+#'   write_mps(example_models$toy, mps, format = "csv")
+#'   list.files(dir)
+#' }
 write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
                       format = c("parquet", "ipc", "csv"), verbose = FALSE,
                       presolve = getOption("multimod.presolve", FALSE)) {

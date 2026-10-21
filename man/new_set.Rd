@@ -21,3 +21,6 @@ An object of class \code{set}
 \description{
 Create a new set object
 }
+\examples{
+new_set("tech", desc = "generation technologies", data = c("coal", "gas", "wind"))
+}

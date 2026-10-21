@@ -26,6 +26,12 @@ the \code{lp}, and - when \code{attach} is \code{TRUE} - the updated \code{model
 }
 \description{
 Uses the solver-object interface rather than \code{\link[highs:highs_solve]{highs::highs_solve()}}, because
-only that path returns dual values - energy-system models generally need the
-constraint marginals, not just primal levels.
+only that path returns dual values (constraint marginals) as well as primal
+levels.
+}
+\examples{
+if (requireNamespace("highs", quietly = TRUE)) {
+  r <- solve_highs(example_models$toy, attach = FALSE)
+  r$objective
+}
 }

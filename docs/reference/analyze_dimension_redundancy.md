@@ -1,8 +1,8 @@
 # Analyze if a dimension can be safely folded
 
 Checks if a parameter's dimension is redundant (values constant across
-it). Uses per-group validation: for each combination of OTHER
-dimensions, checks if values are identical within that group.
+it). Uses per-group validation: for each combination of the other
+dimensions, checks whether the values are identical within that group.
 
 ## Usage
 
@@ -46,5 +46,5 @@ List with can_fold (logical) and reason (character)
 
 ## Details
 
-This is an "all or nothing" approach - if ANY group shows variation, the
-dimension cannot be folded, as we don't support partial folding.
+The test is all or nothing: if any group shows variation, the dimension
+cannot be folded, because partial folding is not supported.

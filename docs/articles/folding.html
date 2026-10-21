@@ -90,7 +90,7 @@
       <img src="../logo.png" class="logo" alt=""><h1>Folding and trimming</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/optimal2050/multimod/blob/HEAD/vignettes/folding.Rmd" class="external-link"><code>vignettes/folding.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/optimal2050/multimod/blob/HEAD/vignettes/articles/folding.Rmd" class="external-link"><code>vignettes/articles/folding.Rmd</code></a></small>
       <div class="d-none name"><code>folding.Rmd</code></div>
     </div>
 
@@ -112,22 +112,22 @@
 <div class="section level2">
 <h2 id="the-flexibility-performance-tradeoff">The flexibility-performance tradeoff<a class="anchor" aria-label="anchor" href="#the-flexibility-performance-tradeoff"></a>
 </h2>
-<p>Framework models such as energyRt are written for maximum
-flexibility: one generic set of equations covers technologies, storage,
-trade, emissions and more, and every parameter is indexed over every
-dimension it could ever vary by (technology, commodity, region, year,
-timeslice). A given scenario uses only part of that:</p>
+<p>Framework models such as energyRt are written to cover many cases:
+one generic set of equations covers technologies, storage, trade,
+emissions and more, and every parameter is indexed over every dimension
+it may vary by (technology, commodity, region, year, timeslice). A given
+scenario uses only part of that:</p>
 <ul>
 <li>a single-region model has no interregional trade,</li>
 <li>most technologies have the same efficiency in every timeslice,</li>
 <li>features the scenario does not use leave sets and mappings empty,
 and the equations that depend on them generate no constraints.</li>
 </ul>
-<p>The flexibility is paid for at model-build time and in the solver:
+<p>This generality has a cost at model-build time and in the solver:
 data that is repeated across a dimension inflates the data files and the
 coefficient count, and equations with empty domains are still processed.
-<code>multimod</code> offers two complementary transformations that
-remove this redundancy without changing the optimum:</p>
+multimod offers two complementary transformations that remove this
+redundancy without changing the optimum, as the appendix verifies:</p>
 <ol style="list-style-type: decimal">
 <li>
 <strong>Folding</strong> removes a dimension from a parameter when
@@ -137,8 +137,8 @@ the values are constant across it (data redundancy).</li>
 variables and equations that have no data or no instances, so code
 generators skip them (structural redundancy).</li>
 </ol>
-<p>Both are reversible and both are honoured by every writer and by the
-direct matrix route.</p>
+<p>Both are reversible, and both are honored by the MathProg, JuMP,
+Pyomo and LaTeX writers and by the matrix route.</p>
 </div>
 <div class="section level2">
 <h2 id="folding">Folding<a class="anchor" aria-label="anchor" href="#folding"></a>
@@ -146,7 +146,7 @@ direct matrix route.</p>
 <div class="section level3">
 <h3 id="the-idea">The idea<a class="anchor" aria-label="anchor" href="#the-idea"></a>
 </h3>
-<p>Take a 5-dimensional parameter whose values do not depend on the
+<p>Consider a 5-dimensional parameter whose values do not depend on the
 timeslice:</p>
 <pre><code><span><span class="va">pTechCinp2use</span><span class="op">[</span><span class="va">E01</span>, <span class="va">ELC</span>, <span class="va">R1</span>, <span class="fl">2025</span>, <span class="va">s1</span><span class="op">]</span> <span class="op">=</span> <span class="fl">0.95</span></span>
 <span><span class="va">pTechCinp2use</span><span class="op">[</span><span class="va">E01</span>, <span class="va">ELC</span>, <span class="va">R1</span>, <span class="fl">2025</span>, <span class="va">s2</span><span class="op">]</span> <span class="op">=</span> <span class="fl">0.95</span></span>
@@ -223,11 +223,11 @@ other indices. <code>unproven</code> flags parameters that failed only
 because no validation mapping was found for their entity type; supplying
 one (for example <code>sup = "mSupTimeslice"</code>) would let them be
 checked.</p>
-<p>Why validate against a mapping? A parameter may be constant across
-the timeslice <em>in the data</em> only because the scenario never
-varied it. The mapping says which entities are allowed to vary by that
+<p>The validation mapping matters because a parameter may be constant
+across the timeslice <em>in the data</em> only because the scenario
+never varied it. The mapping states which entities may vary by that
 dimension, so folding stays consistent with the model structure, not
-just with one dataset. A value of
+only with one dataset. A value of
 <code>c("mStorageComm", "mCommTimeslice")</code> chains two mappings
 when the entity is linked to the dimension indirectly.</p>
 <p>Several dimensions can be folded in one specification; they are
@@ -369,8 +369,8 @@ trimmed when no surviving equation needs it.</p>
 <div class="section level3">
 <h3 id="apply-the-trim">Apply the trim<a class="anchor" aria-label="anchor" href="#apply-the-trim"></a>
 </h3>
-<p>Fold first, then trim: folding can empty a parameter that trimming
-then removes.</p>
+<p>Folding comes first: it can empty a parameter that trimming then
+removes.</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">mod_trimmed</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/trim_model.html">trim_model</a></span><span class="op">(</span><span class="va">mod_folded</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/is_trimmed.html">is_trimmed</a></span><span class="op">(</span><span class="va">mod</span><span class="op">)</span></span>
@@ -450,27 +450,28 @@ default or on the ones named in <code>elements</code>:</p>
 </tr>
 </tbody>
 </table>
-<p><strong>Fold</strong> when parameters are constant across a dimension
-the scenario does not need (timeslice is the usual case), when data
-files or solver memory are the bottleneck, or when a model written for
-many regions or years is run with one.</p>
-<p><strong>Trim</strong> when the scenario leaves optional features
-unused, when empty sets or parameters exist, or when many equations
-generate no constraints.</p>
-<p><strong>Do both</strong> for framework models: fold first, then trim.
-Check that the objective is unchanged before relying on a transformed
-model (see the appendix).</p>
+<p><strong>Folding</strong> applies when parameters are constant across
+a dimension the scenario does not need (timeslice is the usual case),
+when data files or solver memory are the bottleneck, or when a model
+written for many regions or years is run with one.</p>
+<p><strong>Trimming</strong> applies when the scenario leaves optional
+features unused, when empty sets or parameters exist, or when many
+equations generate no constraints.</p>
+<p><strong>Both</strong> suit framework models, folding first and
+trimming second. The objective of a transformed model is worth comparing
+with the original’s before relying on it (see the appendix).</p>
 <p>Folding and trimming change what the generated model
-<em>contains</em>; they do not change what it <em>means</em>. Do not
-fold a dimension that genuinely varies in the data
-(<code><a href="../reference/create_fold_spec.html">create_fold_spec()</a></code> refuses, but a hand-edited
-specification can override it), and keep an untrimmed copy when the
-complete structure is wanted for documentation or comparison.</p>
+<em>contains</em>; they do not change what it <em>means</em>. A
+dimension that varies in the data is not foldable
+(<code><a href="../reference/create_fold_spec.html">create_fold_spec()</a></code> refuses it, although a hand-edited
+specification can override that), and an untrimmed copy remains useful
+when the complete structure is wanted for documentation or
+comparison.</p>
 </div>
 <div class="section level2">
 <h2 id="writing-transformed-models">Writing transformed models<a class="anchor" aria-label="anchor" href="#writing-transformed-models"></a>
 </h2>
-<p>Every writer honours the flags. <code><a href="../reference/write_gmpl.html">write_gmpl()</a></code>,
+<p>The writers honor the flags. <code><a href="../reference/write_gmpl.html">write_gmpl()</a></code>,
 <code><a href="../reference/write_jump.html">write_jump()</a></code> and <code><a href="../reference/write_pyomo.html">write_pyomo()</a></code> use the folded
 dimensions by default and skip trimmed elements;
 <code><a href="../reference/write_latex.html">write_latex()</a></code> chooses <code>model_view = "reduced"</code>
@@ -484,8 +485,8 @@ dimensions directly.</p>
 <span><span class="fu"><a href="../reference/write_gmpl.html">write_gmpl</a></span><span class="op">(</span><span class="va">mod_trimmed</span>, model_dir <span class="op">=</span> <span class="va">dir</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/write_jump.html">write_jump</a></span><span class="op">(</span><span class="va">mod_trimmed</span>, model_dir <span class="op">=</span> <span class="va">dir</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/write_latex.html">write_latex</a></span><span class="op">(</span><span class="va">mod_trimmed</span>, file <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">dir</span>, <span class="st">"model.tex"</span><span class="op">)</span>, model_view <span class="op">=</span> <span class="st">"full"</span><span class="op">)</span></span></code></pre></div>
-<p>A fold specification is an ordinary data frame; save it with
-<code><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS()</a></code> to reproduce the transformation on another
+<p>A fold specification is an ordinary data frame; saved with
+<code><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS()</a></code>, it reproduces the transformation on another
 scenario of the same model.</p>
 </div>
 <div class="section level2">
@@ -495,8 +496,8 @@ scenario of the same model.</p>
 <li>Folding is all-or-nothing per parameter: either every group is
 constant across the dimension or the parameter is left alone.</li>
 <li>Folding needs validation mappings that reflect the model’s
-structure; for a non-energyRt model, name the mappings that link each
-entity to the dimension.</li>
+structure; for a model other than energyRt, the specification names the
+mappings that link each entity to the dimension.</li>
 <li>Folding loads the parameter data into memory while it runs.</li>
 <li>Trimming only flags elements; the data stays on disk and in the
 object.</li>
@@ -508,17 +509,19 @@ equations are kept.</li>
 <div class="section level2">
 <h2 id="appendix-the-objective-is-unchanged">Appendix: the objective is unchanged<a class="anchor" aria-label="anchor" href="#appendix-the-objective-is-unchanged"></a>
 </h2>
-<p>The transformed models must solve to the same objective as the
-original. The check below uses the in-process HiGHS route; it is not run
-when the vignette is built because it needs the <code>highs</code>
-package and takes a few seconds.</p>
+<p>The transformed models solve to the same objective as the original.
+The check below uses the matrix route with the ‘highs’ package.</p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">r0</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_highs.html">solve_highs</a></span><span class="op">(</span><span class="va">mod</span>, attach <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="va">r1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_highs.html">solve_highs</a></span><span class="op">(</span><span class="va">mod_folded</span>, attach <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="va">r2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_highs.html">solve_highs</a></span><span class="op">(</span><span class="va">mod_trimmed</span>, attach <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>original <span class="op">=</span> <span class="va">r0</span><span class="op">$</span><span class="va">objective</span>, folded <span class="op">=</span> <span class="va">r1</span><span class="op">$</span><span class="va">objective</span>, trimmed <span class="op">=</span> <span class="va">r2</span><span class="op">$</span><span class="va">objective</span><span class="op">)</span></span>
+<span><span class="co">#&gt; original   folded  trimmed </span></span>
+<span><span class="co">#&gt; 46398.42 46398.42 46398.42</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="va">r0</span><span class="op">$</span><span class="va">objective</span>, <span class="va">r1</span><span class="op">$</span><span class="va">objective</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="va">r0</span><span class="op">$</span><span class="va">objective</span>, <span class="va">r2</span><span class="op">$</span><span class="va">objective</span><span class="op">)</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] TRUE</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="va">r0</span><span class="op">$</span><span class="va">objective</span>, <span class="va">r2</span><span class="op">$</span><span class="va">objective</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

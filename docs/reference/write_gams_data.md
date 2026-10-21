@@ -57,12 +57,12 @@ default that
 [`write_gams()`](https://optimal2050.github.io/multimod/reference/write_gams.md)
 assigns after loading.
 
-## Testing status
+## Experimental
 
-This route is exercised against an older GDX library and gdxtools 0.7,
-which does not install on R \>= 4.6, with the solve run on NEOS.
-Contributions testing current GDX libraries, a newer gdxtools and other
-GAMS entry points are welcome.
+This function is experimental and is not covered by the package tests.
+It was exercised against an older GDX library and gdxtools 0.7, with the
+solve run on NEOS; it has not been tested with the current gdxtools on
+CRAN. Its interface may change.
 
 ## See also
 

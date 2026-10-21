@@ -1,6 +1,6 @@
 # Validate index_aliases for a model
 
-Checks that index_aliases are properly defined and don't conflict with
+Checks that index_aliases are properly defined and do not conflict with
 set names, aliases, or other symbols in the model.
 
 ## Usage

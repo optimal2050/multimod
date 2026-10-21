@@ -33,20 +33,29 @@ This is more efficient for large models as it directly populates the model
 and can save to CSV/arrow format.
 }
 \examples{
-\dontrun{
-# Read model structure
-model <- read_gmpl("model.mod", as_multimod = TRUE)
+# Read the model structure
+model <- read_gmpl(c(
+  "set REGION;",
+  "param Demand{r in REGION};",
+  "var x{r in REGION} >= 0;",
+  "minimize cost: sum{r in REGION} x[r];",
+  "s.t. meet{r in REGION}: x[r] >= Demand[r];",
+  "end;"
+), as_multimod = TRUE)
 
-# Import data from file
-model <- import_gmpl_data(model, gmpl_data = "data.dat")
+# Import data given as text
+data_text <- c(
+  "data;",
+  "set REGION := north south;",
+  "param Demand := north 10 south 5;",
+  "end;"
+)
+model <- import_gmpl_data(model, gmpl_data = data_text)
+get_data(model, "Demand")
 
-# Or import pre-parsed data
-data <- read_gmpl_data("utopia.txt")
-model <- import_gmpl_data(model, gmpl_data = data)
-
-# Save to specific directory as CSV
-model <- import_gmpl_data(model, gmpl_data = "utopia.txt",
-                          model_path = "path/to/model/data",
+# Or import pre-parsed data, saving it as CSV in a model directory
+data <- read_gmpl_data(data_text)
+model <- import_gmpl_data(model, gmpl_data = data,
+                          model_path = tempfile("gmpl-data-"),
                           format = "csv")
-}
 }

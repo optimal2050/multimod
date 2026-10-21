@@ -34,7 +34,7 @@ of June 2025, which read GAMS and rendered models to LaTeX and back to GAMS.
 * `as_gmpl()`, `as_pyomo()` and `write_gmpl()`, `write_jump()`,
   `write_pyomo()` render a model to MathProg, JuMP and Pyomo, with its data
   embedded or read from CSV, Arrow IPC or Parquet files.
-* `write_gams_data()` writes a model's data to a GDX file, and
+* `write_gams_data()` (experimental) writes a model's data to a GDX file, and
   `write_gams(gdx =, include_solve =)` emits the matching load and solve
   statements. Parameters defined by a formula are written as assignments.
 
@@ -51,7 +51,9 @@ of June 2025, which read GAMS and rendered models to LaTeX and back to GAMS.
   `read_cuopt_solution()` and `read_solver_solution()` read solutions back.
 * `check_matrix_numbers()` reports the coefficient range of an assembled LP.
 * `solve_gmpl()`, `solve_jump()` and `solve_pyomo()` run the generated code
-  and load the solution into the model.
+  and load the solution into the model. `solve_pyomo()` uses the configured
+  Python interpreter; `ensure_env = TRUE` creates the environment with
+  `mm_setup_python()` when it is not usable.
 
 ### Workspace, reduction and exchange
 
@@ -78,21 +80,27 @@ of June 2025, which read GAMS and rendered models to LaTeX and back to GAMS.
 
 ### Documentation
 
-* Vignettes: an overview, writing a model in R, and folding and trimming.
-  Website articles cover solving and reading results, two published models,
-  the model workspace, configuration and LaTeX rendering.
+* `vignette("multimod")` takes a small model through reading, translation,
+  redundancy analysis, LaTeX, export and solving. Website articles cover
+  writing a model in R, folding and trimming, solving and reading results,
+  two published models, the model workspace, configuration and LaTeX
+  rendering.
 
 ## Bug fixes
 
 * `read_gams()` parses a sum over several indices, numbers in scientific
   notation with a signed exponent, and decimal literals in equation bodies.
+* `read_gams()` reads several symbols declared on one line
+  (`set tech, region;`), and an equation header without a `$` condition.
 * `^` no longer distributes over the terms of its base, so `(1 + r)^n` is
   evaluated as written.
 * `as_gams()` output compiles: conditions are bracketed, function arguments
   and multi-index sums are rendered, and iterated minima and maxima are
   written as `smin()` and `smax()`.
+* `write_gams()` declares each equation over its sets, as GAMS requires,
+  and writes no empty `sets` block.
 * `as_latex()` renders an equation's index names in its header.
-* `ast_dims()` accepts a single node.
+* `ast_dims()` accepts a single node, and returns a `dims` node unchanged.
 
 ---
 

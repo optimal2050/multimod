@@ -29,3 +29,8 @@ Invisibly, a list with \code{summary} (one row per section), \code{decades}
 \description{
 Report the magnitude spectrum of an assembled LP
 }
+\examples{
+lp <- model_to_lp(example_models$toy)
+chk <- check_matrix_numbers(lp, verbose = FALSE)
+chk$summary
+}

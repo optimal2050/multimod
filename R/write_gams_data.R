@@ -1,9 +1,7 @@
 # GAMS data export via GDX ----------------------------------------------------
 #
-# Status: the GAMS route is exercised against an older GDX library and
-# gdxtools 0.7, which does not install on R >= 4.6, with the solve itself run
-# on NEOS. Contributions testing it against current GDX libraries, a newer
-# gdxtools and other GAMS entry points are welcome.
+# Status: experimental. Exercised against an older GDX library and gdxtools
+# 0.7, with the solve run on NEOS; not tested with the current gdxtools.
 #
 # write_gams() emits declarations and equations; the values travel in a GDX.
 # The GDX library ships with GAMS and needs no licence, so a GDX can be written
@@ -133,11 +131,11 @@ gams_gdx_records <- function(tbl) {
 #' from an absent one and would be overwritten by the default that
 #' [write_gams()] assigns after loading.
 #'
-#' @section Testing status:
-#' This route is exercised against an older GDX library and gdxtools 0.7, which
-#' does not install on R >= 4.6, with the solve run on NEOS. Contributions
-#' testing current GDX libraries, a newer gdxtools and other GAMS entry points
-#' are welcome.
+#' @section Experimental:
+#' This function is experimental and is not covered by the package tests. It
+#' was exercised against an older GDX library and gdxtools 0.7, with the solve
+#' run on NEOS; it has not been tested with the current gdxtools on CRAN.
+#' Its interface may change.
 #'
 #' @param model A `multimod` model with data attached.
 #' @param file Path of the GDX to write. NEOS decodes its input GDX to
@@ -154,7 +152,7 @@ write_gams_data <- function(model, file, use_folded = FALSE, gams_dir = NULL,
                             verbose = FALSE) {
   if (!requireNamespace("gdxtools", quietly = TRUE)) {
     stop("Writing a GDX needs the 'gdxtools' package.\n",
-         '  pak::pak("lolow/gdxtools")', call. = FALSE)
+         '  install.packages("gdxtools")', call. = FALSE)
   }
   loaded <- tryCatch({
     if (is.null(gams_dir)) gdxtools::igdx(silent = TRUE) else

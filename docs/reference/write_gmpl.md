@@ -135,3 +135,30 @@ write_gmpl(
 ## Value
 
 Character vector or writes file if `file` or `model_dir` is given
+
+## Examples
+
+``` r
+code <- write_gmpl(example_models$toy)
+cat(head(code, 20), sep = "\n")
+#> # Model: toy
+#> # two-region capacity expansion toy model
+#> 
+#> set tech;  # generation technologies
+#> set region;  # model regions
+#> 
+#> 
+#> set _IF_;  # Singleton set for GAMS $ operator emulation
+#> 
+#> set mTR dimen 2;  # technology x region pairs
+#> set mR dimen 1;  # regions
+#> 
+#> param pCapCost{tech};  # annualized capacity cost, EUR/kW
+#> param pVarCost{tech};  # variable cost, EUR/MWh
+#> param pAvail{tech,region};  # availability factor
+#> param pDemand{region};  # annual demand, MWh
+#> 
+#> var vCap{t in tech, r in region} >= 0;  # installed capacity, kW
+#> var vGen{t in tech, r in region} >= 0;  # generation, MWh
+#> 
+```

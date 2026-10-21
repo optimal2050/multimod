@@ -11,6 +11,10 @@ ast_shift(symbol, offset, circular = FALSE, ...)
 
 \item{offset}{An integer offset. Negative for backward shift (e.g., -1 for y-1), positive for forward shift (e.g., +1 for y+1).}
 
+\item{circular}{Logical. \code{FALSE} (default): a shift past either end of the
+set refers to no member, so the term is dropped. \code{TRUE}: the shift wraps
+around the ends of the set (GAMS \code{y--1}, \code{y++1}).}
+
 \item{...}{Additional fields stored on the node (passed to \code{\link[=new_ast]{new_ast()}}).}
 }
 \value{

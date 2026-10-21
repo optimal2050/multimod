@@ -499,9 +499,9 @@ should_enable_progress_fold <- function(model, fold_spec,
 #' those dimensions. Only folds high-cardinality indexing dimensions (timeslice,
 #' optionally region/year) while preserving structural dimensions (tech, comm, etc.).
 #'
-#' The algorithm uses per-group validation: for each combination of OTHER dimensions,
-#' it checks if values are identical. This is an "all or nothing" approach - if ANY
-#' group shows variation, the dimension is not folded.
+#' The algorithm uses per-group validation: for each combination of the other
+#' dimensions, it checks whether the values are identical. The test is all or
+#' nothing: if any group shows variation, the dimension is not folded.
 #'
 #' @param model A multimod model object
 #' @param fold_spec Data frame specifying fold configuration. Must have columns:
@@ -516,27 +516,29 @@ should_enable_progress_fold <- function(model, fold_spec,
 #' @return Modified model with folded parameters
 #' 
 #' @details
-#' Folding analyzes each parameter to identify dimensions that don't provide
-#' variation in the data. For each parameter, it groups by all OTHER dimensions
-#' and checks if values are constant within each group (within tolerance).
+#' Folding analyzes each parameter to identify dimensions that do not provide
+#' variation in the data. For each parameter, it groups by all other dimensions
+#' and checks whether the values are constant within each group (within
+#' tolerance).
 #' 
 #' Example: For \code{pStorageInpEff[stg, comm, region, year, timeslice]} testing timeslice:
 #' - Groups by \code{(stg, comm, region, year)}
-#' - For each group, checks if ALL timeslice values are identical
-#' - Only folds if EVERY group has constant values
+#' - For each group, checks whether all timeslice values are identical
+#' - Folds only if every group has constant values
 #' 
-#' This handles sparse data correctly - if a parameter only has values for
-#' peak hours (1 timeslice out of 17), that's fine. It only checks if the values
-#' that DO exist are constant within each group.
+#' Sparse data is handled: a parameter with values only for peak hours (one
+#' timeslice out of 17) is tested on the values that exist, which must be
+#' constant within each group.
 #' 
 #' The fold creates three slots per parameter:
 #' - `data`: Original complete data (preserved)
 #' - `folded_data`: Collapsed data with reduced dimensions  
 #' - `active_dims`: Dimensions remaining after fold
 #' 
-#' Safety measures:
-#' - Only folds dimensions explicitly requested by user
-#' - Never folds structural dimensions (tech, comm, sup, dem, stg, trade, etc.)
+#' Safeguards:
+#' - Only the dimensions named in `fold_spec` are folded
+#' - Dimensions that identify an entity (for an energyRt model: tech, comm,
+#'   sup, dem, stg, trade) are never folded
 #' - Skips parameters where all dimensions would be folded (would become scalar)
 #' - Validates consistency before folding
 #' - Updates equation ASTs to match reduced dimensions
@@ -849,11 +851,11 @@ fold_model_loop <- function(model, fold_spec, tolerance, verbose, p = NULL) {
 #' Analyze if a dimension can be safely folded
 #'
 #' Checks if a parameter's dimension is redundant (values constant across it).
-#' Uses per-group validation: for each combination of OTHER dimensions,
-#' checks if values are identical within that group.
+#' Uses per-group validation: for each combination of the other dimensions,
+#' checks whether the values are identical within that group.
 #'
-#' This is an "all or nothing" approach - if ANY group shows variation,
-#' the dimension cannot be folded, as we don't support partial folding.
+#' The test is all or nothing: if any group shows variation, the dimension
+#' cannot be folded, because partial folding is not supported.
 #'
 #' @param param Parameter object
 #' @param dim_to_test Dimension name to analyze
@@ -1243,6 +1245,13 @@ get_dim_names <- function(dims) {
 #'
 #' @return Modified model with fold removed
 #' @export
+#' @examples
+#' m <- example_models$energyRt$multimod
+#' spec <- create_fold_spec(m, fold_dims = "timeslice", verbose = FALSE)
+#' folded <- fold_model(m, fold_spec = spec, verbose = FALSE)
+#' is_folded(folded)
+#' restored <- unfold_model(folded)
+#' is_folded(restored)
 unfold_model <- function(model, verbose = TRUE) {
   stopifnot(inherits(model, "multimod") || inherits(model, "mm_model"))
   
@@ -1395,6 +1404,9 @@ validate_fold <- function(model, verbose = TRUE) {
 #'
 #' @return Data frame with fold analysis
 #' @export
+#' @examples
+#' ops <- analyze_fold_opportunities(example_models$energyRt$multimod)
+#' head(ops)
 analyze_fold_opportunities <- function(model,
                                       fold_timeslice = TRUE,
                                       fold_region = FALSE,

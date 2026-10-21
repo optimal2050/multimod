@@ -125,29 +125,21 @@
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>Directory structure created:</p><div class="sourceCode"><pre><code>
-model_path/
-  model.rds              # Model structure (thinned if keep_in_memory=FALSE)
-  metadata.json          # Human-readable metadata
-  format.txt             # Storage format
-  sets/
-    set_name.txt         # Set members (one per line)
-  parameters/
-    param_name/
-      data.{csv|arrow|parquet}   # Parameter data
-      metadata.rds               # Parameter metadata
-  mappings/
-    mapping_name/
-      data.{csv|arrow|parquet}
-  folded_data/           # If folding applied
-    param_name/
-      folded_data.{csv|arrow|parquet}
-  equations/
-    equations.rds        # All equations
-  variables/
-    variables.rds        # All variables
-</code></pre></div>
-
+    <p>Directory structure created (the extension follows <code>format</code>):</p><div class="sourceCode"><pre><code>
+path/
+  model.rds                       model structure (without data when
+                                  keep_in_memory = FALSE)
+  metadata.json                   counts and format, for readers outside R
+  format.txt                      "csv", "ipc" or "parquet"
+  sets/sets.csv                   index of the sets
+  sets/&lt;name&gt;/data.*              one file per set, column `member`
+  mappings/mappings.csv           index of the mappings
+  mappings/&lt;name&gt;/data.*          one column per dimension
+  parameters/parameters.csv       index of the parameters
+  parameters/&lt;name&gt;/data.*        dimension columns plus `value`
+  parameters/&lt;name&gt;/folded_data/data.*   if the parameter is folded
+</code></pre></div><p>The solvers write their generated code and output under
+<code>path/solvers/&lt;backend&gt;/</code>; see the "Model workspace and data" article.</p>
     </div>
 
     <div class="section level2">

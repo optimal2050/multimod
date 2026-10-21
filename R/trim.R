@@ -51,11 +51,11 @@ should_enable_progress_trim <- function(model,
   return(total_rows > row_threshold)
 }
 
-#' Trim a model to the elements its data actually uses
+#' Trim a model to the elements its data uses
 #'
 #' Marks sets, parameters and mappings with no data, then the variables and
 #' equations whose domains are empty as a consequence, so that renderers skip
-#' them. The model keeps every element; [`untrim_model()`] restores the marks
+#' them. The model keeps every element; [`untrim_model()`] clears the marks
 #' and [`get_trim_summary()`] reports what was trimmed.
 #'
 #' @param model A `mm_model` with data attached.
@@ -633,7 +633,7 @@ untrim_required_elements <- function(model, verbose = FALSE) {
 
 #' Remove variables not appearing in any non-trimmed equation
 #'
-#' Final pass to mark variables that don't appear in any active equation.
+#' Final pass to mark variables that do not appear in any active equation.
 #'
 #' @param model A multimod model object
 #' @param verbose Logical. Print progress messages
@@ -764,8 +764,8 @@ is_trimmed <- function(x) {
 #' Check if any elements are actually trimmed
 #'
 #' Walks through model structure to check if any sets, parameters, mappings,
-#' variables, or equations have `$trimmed = TRUE`. More robust than checking
-#' only the `model$misc$trimmed` flag.
+#' variables, or equations have `$trimmed = TRUE`, rather than relying on the
+#' `model$misc$trimmed` flag alone.
 #'
 #' @param model A multimod model object
 #' @param include_equations Logical. If TRUE (default), include equations in check.
@@ -944,12 +944,16 @@ get_trim_summary <- function(model, format = c("list", "data.frame", "text")) {
 #' @return Model with trimmed flags removed
 #'
 #' @examples
-#' \dontrun{
-#' # Untrim everything
-#' model <- untrim_model(model)
-#' 
+#' \donttest{
+#' trimmed <- trim_model(example_models$energyRt$multimod, verbose = FALSE)
+#' is_trimmed(trimmed)
+#'
 #' # Untrim only variables and equations
-#' model <- untrim_model(model, elements = c("variables", "equations"))
+#' partly <- untrim_model(trimmed, elements = c("variables", "equations"))
+#'
+#' # Untrim everything
+#' restored <- untrim_model(trimmed)
+#' is_trimmed(restored)
 #' }
 #'
 #' @export

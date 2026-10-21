@@ -49,7 +49,7 @@ ast_when(
 #> <AST symbol> i_active(i)
 #>   then :
 #> <AST variable> x
-#>   dims:  i 
+#>   dims:  [i] 
 #>   otherwise :
 #> NULL
 ```

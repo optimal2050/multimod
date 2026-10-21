@@ -143,8 +143,8 @@ Results can be optionally loaded back into the model object.</p>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>The function supports three execution methods:</p>
-<p><strong>system</strong> (default): Uses system2() to call Julia. No extra dependencies.
-Simple, robust, works everywhere Julia is installed.</p>
+<p><strong>system</strong> (default): Uses system2() to call Julia. No extra dependencies;
+works wherever Julia is installed.</p>
 <p><strong>juliacall</strong>: Uses JuliaCall package for R-Julia integration. Allows
 bi-directional data transfer and access to Julia objects from R. Requires
 JuliaCall package.</p>
@@ -154,7 +154,8 @@ running multiple models in parallel. Requires callr package.</p>
 (in Arrow IPC or CSV format). If load_results=TRUE and model is provided,
 solutions are loaded into result$model and moved to model_dir/variables/.
 A log file (solution_log.txt) in model_dir tracks all solution loads.
-You must reassign your model variable to access the solutions:</p>
+The solutions are available in the returned model, which replaces the one
+passed in:</p>
 <p><code>result &lt;- solve_jump(my_model, "path/to/model", load_results = TRUE)</code></p>
 <p><code>my_model &lt;- result$model  # Update with loaded solutions</code></p>
     </div>
@@ -162,27 +163,24 @@ You must reassign your model variable to access the solutions:</p>
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
-<span class="r-in"><span><span class="co"># Generate and solve model</span></span></span>
-<span class="r-in"><span><span class="va">model</span> <span class="op">&lt;-</span> <span class="fu"><a href="as_multimod.html">as_multimod</a></span><span class="op">(</span><span class="fu"><a href="read_gams.html">read_gams</a></span><span class="op">(</span><span class="st">"model.gms"</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="save_model.html">save_model</a></span><span class="op">(</span><span class="va">model</span>, <span class="st">"tmp/my_model"</span>, format <span class="op">=</span> <span class="st">"ipc"</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="write_jump.html">write_jump</a></span><span class="op">(</span><span class="va">model</span>, model_dir <span class="op">=</span> <span class="st">"tmp/my_model"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="co"># needs Julia with JuMP and HiGHS</span></span></span>
+<span class="r-in"><span><span class="va">toy</span> <span class="op">&lt;-</span> <span class="va">example_models</span><span class="op">$</span><span class="va">toy</span></span></span>
+<span class="r-in"><span><span class="va">ws</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span><span class="st">"toy-"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="write_jump.html">write_jump</a></span><span class="op">(</span><span class="va">toy</span>, model_dir <span class="op">=</span> <span class="va">ws</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Solve with default settings</span></span></span>
-<span class="r-in"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu">solve_jump</span><span class="op">(</span>model_dir <span class="op">=</span> <span class="st">"tmp/my_model"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu">solve_jump</span><span class="op">(</span>model_dir <span class="op">=</span> <span class="va">ws</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Solve and load results back into model</span></span></span>
-<span class="r-in"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu">solve_jump</span><span class="op">(</span><span class="va">model</span>, model_dir <span class="op">=</span> <span class="st">"tmp/my_model"</span>, load_results <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="co"># Solve and load the results back into the model</span></span></span>
+<span class="r-in"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu">solve_jump</span><span class="op">(</span><span class="va">toy</span>, model_dir <span class="op">=</span> <span class="va">ws</span>, load_results <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">toy</span> <span class="op">&lt;-</span> <span class="va">result</span><span class="op">$</span><span class="va">model</span></span></span>
+<span class="r-in"><span><span class="va">toy</span><span class="op">$</span><span class="va">variables</span><span class="op">$</span><span class="va">vCap</span><span class="op">$</span><span class="va">solution</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Access solution values</span></span></span>
-<span class="r-in"><span><span class="va">vTechCap_solution</span> <span class="op">&lt;-</span> <span class="va">model</span><span class="op">$</span><span class="va">variables</span><span class="op">$</span><span class="va">vTechCap</span><span class="op">$</span><span class="va">solution</span></span></span>
+<span class="r-in"><span><span class="co"># Use a different backend</span></span></span>
+<span class="r-in"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu">solve_jump</span><span class="op">(</span>model_dir <span class="op">=</span> <span class="va">ws</span>, method <span class="op">=</span> <span class="st">"juliacall"</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Use different backend</span></span></span>
-<span class="r-in"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu">solve_jump</span><span class="op">(</span>model_dir <span class="op">=</span> <span class="st">"tmp/my_model"</span>, method <span class="op">=</span> <span class="st">"juliacall"</span><span class="op">)</span></span></span>
-<span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Parallel execution with timeout</span></span></span>
-<span class="r-in"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu">solve_jump</span><span class="op">(</span>model_dir <span class="op">=</span> <span class="st">"tmp/my_model"</span>, </span></span>
-<span class="r-in"><span>                     method <span class="op">=</span> <span class="st">"background"</span>, </span></span>
-<span class="r-in"><span>                     timeout <span class="op">=</span> <span class="fl">3600</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="co"># Background execution with a timeout</span></span></span>
+<span class="r-in"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu">solve_jump</span><span class="op">(</span>model_dir <span class="op">=</span> <span class="va">ws</span>, method <span class="op">=</span> <span class="st">"background"</span>, timeout <span class="op">=</span> <span class="fl">3600</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

@@ -1,8 +1,8 @@
 # Check if any elements are actually trimmed
 
 Walks through model structure to check if any sets, parameters,
-mappings, variables, or equations have `$trimmed = TRUE`. More robust
-than checking only the `model$misc$trimmed` flag.
+mappings, variables, or equations have `$trimmed = TRUE`, rather than
+relying on the `model$misc$trimmed` flag alone.
 
 ## Usage
 
