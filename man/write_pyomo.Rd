@@ -29,7 +29,7 @@ so the directory must hold one written by \code{\link[=save_model]{save_model()}
 the model is saved there first (CSV format). Defaults to the directory the
 model was loaded from or saved to (\code{model$base_path}).}
 
-\item{solver_dir}{Solver subdirectory name (default: "jump", e.g., "jump-highs", "jump-cplex")}
+\item{solver_dir}{Solver subdirectory name (default: "jump", e.g., "jump-highs")}
 
 \item{model_name}{Name for the JuMP model variable (default: "model")}
 
@@ -47,8 +47,7 @@ Python code (\code{"embedded"}).}
 \item{split}{Logical flag controlling whether solver execution should live
 in a separate \code{solve.py} (when \code{TRUE}) or be embedded directly in
 \code{model.py} (default). The embedded mode mirrors the two-file workflow used
-by the other writers (\code{model} + \code{data}). Set \code{split = TRUE} to preserve the
-previous three-file scaffold.}
+by the other writers (\code{model} + \code{data}).}
 
 \item{export_vars}{logical; whether to export variable values to CSV files in vars_export/ directory after solve (default: FALSE).
 Note: Solution is always saved to solution/ directory regardless of this setting (required for load_results).}
@@ -59,9 +58,12 @@ Note: Solution is always saved to solution/ directory regardless of this setting
 
 \item{...}{Additional arguments (not used)}
 }
+\value{
+Invisibly, the path of the written \code{model.py}.
+}
 \description{
-This mirrors \code{write_jump()} but targets Python/Pyomo. The function emits a
-\code{model.py} file containing component declarations, a \code{data_loader.py} helper
-that knows how to stream data from the saved model directory (or use
-embedded literals), and a lightweight \code{solve.py} runner.
+This mirrors \code{write_jump()} but targets Pyomo. It writes \code{model.py}, holding
+the component declarations and, by default, the solve runner, and \code{data.py},
+which reads the model's data from the workspace. With \code{split = TRUE} the
+runner is written to a separate \code{solve.py}.
 }

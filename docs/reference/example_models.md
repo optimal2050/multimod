@@ -1,9 +1,9 @@
-# Example Model in Multiple Formats
+# Example models
 
-An example energy system model in several optimization modeling
-languages (GAMS, GMPL, JuMP/Julia), along with its parsed multimod
-representation. Used for testing and validating multimod's parsers and
-conversion functions.
+Two example models: a small capacity-expansion LP written with the
+multimod constructors, and the energyRt energy system model, both as
+GAMS source text and as the multimod model parsed from it with data
+attached.
 
 ## Usage
 
@@ -24,28 +24,27 @@ A list with 2 elements:
   [`model_to_lp()`](https://optimal2050.github.io/multimod/reference/model_to_lp.md)
   gives a 9 x 13 LP and
   [`solve_highs()`](https://optimal2050.github.io/multimod/reference/solve_highs.md)
-  finds the optimum (198000) in well under a second. Used by
-  [`vignette("ast")`](https://optimal2050.github.io/multimod/articles/ast.md)
-  and the solver examples.
+  finds the optimum (198000).
 
 - energyRt:
 
-  energyRt TOPIA test case with components:
+  The energyRt model on the TOPIA test case:
 
   gams
 
   : List with `model`: energyRt's GAMS template source
     (`gams/energyRt.gms`) as a character vector, ready for
-    `read_gams(include = FALSE)`
+    `read_gams(include = FALSE)`.
 
   multimod
 
-  : Parsed multimod model object with energyRt data attached
+  : The multimod model parsed from that source, with data from an
+    interpolated energyRt scenario attached.
 
   metadata
 
   : List with source, scenario, repository, license, energyRt_version,
-    gams_source, date_imported, note
+    gams_source, date_imported, note.
 
 ## Source
 
@@ -53,46 +52,18 @@ A list with 2 elements:
 
 ## Details
 
-### Structure
-
-The example contains:
-
-- **Source code** in several formats (character vectors, ready to parse)
-
-- **Parsed multimod object** (already converted, ready to use)
-
-- **Metadata** about the source, license, and provenance
-
-All source code character vectors can be used directly with
-[`read_gams()`](https://optimal2050.github.io/multimod/reference/read_gams.md),
-[`read_gmpl()`](https://optimal2050.github.io/multimod/reference/read_gmpl.md),
-etc. without writing temporary files.
-
-### energyRt Test Case
-
-The energyRt package is an R-based energy systems modeling framework.
-The TOPIA R7 kit is a small 7-region, multi-timeslice test case used for
-validation.
+energyRt is an R package for energy system modeling. The TOPIA R7 kit is
+a seven-region test case with a seasonal timeslice calendar.
 
 The model *structure* is parsed from energyRt's GAMS template with
-`read_gams(include = FALSE)`; GAMS is the source of truth because the
-GMPL/JuMP/Pyomo templates are still evolving. The *data* is attached
-from an interpolated energyRt scenario. See
-`data-raw/build_energyRt_fixture.R`.
+`read_gams(include = FALSE)`; the *data* is attached from an
+interpolated energyRt scenario. See `data-raw/build_energyRt_fixture.R`
+in the source repository.
 
-**License**: Apache License 2.0, the same license as multimod itself.
-See `LICENSE.note`.
-
-## Usage
-
-    data(example_models)
-
-    energyRt_gams  <- example_models$energyRt$gams$model
-    energyRt_model <- example_models$energyRt$multimod
-
-## References
-
-energyRt package: <https://github.com/optimal2050/energyRt>
+**License**: the energyRt content is distributed under the Apache
+License 2.0, the license of multimod itself. See the `COPYRIGHTS` file
+installed with the package,
+`system.file("COPYRIGHTS", package = "multimod")`.
 
 ## See also
 
@@ -100,7 +71,7 @@ energyRt package: <https://github.com/optimal2050/energyRt>
   for parsing GAMS models
 
 - [`read_gmpl`](https://optimal2050.github.io/multimod/reference/read_gmpl.md)
-  for parsing GMPL models
+  for parsing MathProg models
 
 - [`as_multimod`](https://optimal2050.github.io/multimod/reference/as_multimod.md)
   for converting model structures to multimod
@@ -108,16 +79,10 @@ energyRt package: <https://github.com/optimal2050/energyRt>
 ## Examples
 
 ``` r
-# Load examples
-data(example_models)
-
-# Inspect structure
 names(example_models)
 #> [1] "energyRt" "toy"     
 names(example_models$energyRt)
 #> [1] "gams"     "multimod" "metadata"
-
-# Check metadata
 example_models$energyRt$metadata
 #> $source
 #> [1] "energyRt TOPIA kit"
@@ -144,27 +109,35 @@ example_models$energyRt$metadata
 #> [1] "Model structure parsed from energyRt's GAMS template with read_gams(include = FALSE); data attached from an interpolated energyRt scenario. See data-raw/build_energyRt_fixture.R."
 #> 
 
-# Use the pre-parsed multimod model
-summary(example_models$energyRt$multimod)
-#>               Length Class  Mode     
-#> name            0    -none- NULL     
-#> desc            0    -none- NULL     
-#> sets           27    -none- list     
-#> aliases         7    -none- list     
-#> mappings      324    -none- list     
-#> parameters    218    -none- list     
-#> variables      93    -none- list     
-#> equations     153    -none- list     
-#> inMemory        1    -none- logical  
-#> base_path       0    -none- NULL     
-#> metadata        2    -none- list     
-#> objectives      1    -none- list     
-#> index_aliases  44    -none- character
-#> misc            2    -none- list     
+# the small model built in R
+example_models$toy
+#> Model: toy
+#> Description: two-region capacity expansion toy model
+#> Language:  multimod 
+#> Sets:  2 
+#> Mappings:  2 
+#> Aliases:  0 
+#> Parameters:  4 
+#> Variables:  3 
+#> Equations:  3 
 
-# Parse the structure from the bundled GAMS source (no temp files needed)
+# the parsed energyRt model
+example_models$energyRt$multimod
+#> Model: 
+#> Source:  C:/Users/admin/Documents/R/energyRt/gams/energyRt.gms 
+#> Language:  GAMS 
+#> Sets:  27 
+#> Mappings:  324 
+#> Aliases:  7 
+#> Parameters:  218 
+#> Variables:  93 
+#> Equations:  153 
+
+# \donttest{
+# parse the structure again from the bundled GAMS source
 structure <- read_gams(
   file_or_text = example_models$energyRt$gams$model,
   include = FALSE
 )
+# }
 ```

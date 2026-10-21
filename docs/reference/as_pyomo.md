@@ -33,3 +33,19 @@ as_pyomo(x, ...)
 ## Value
 
 Character string containing Pyomo-compatible code.
+
+## Examples
+
+``` r
+toy <- example_models$toy
+cat(as_pyomo(toy$equations$eqDemand, model = toy))
+#> def _eqDemand_rule(model, r):
+#>     if not (r in model.mR):
+#>         return Constraint.Skip
+#>     _expr = sum(model.vGen[tech, r] for tech in model.tech) >= model.pDemand[r]
+#>     if _expr is True or _expr is False:
+#>         return Constraint.Feasible if _expr else Constraint.Infeasible
+#>     return _expr
+#> 
+#> model.eqDemand = Constraint(model.region, rule=_eqDemand_rule)
+```

@@ -8,8 +8,8 @@ library(multimod)
 The matrix route
 ([`model_to_lp()`](https://optimal2050.github.io/multimod/reference/model_to_lp.md),
 [`solve_highs()`](https://optimal2050.github.io/multimod/reference/solve_highs.md))
-needs nothing beyond the ‘highs’ R package. The file routes run external
-toolchains, and multimod has to find three executables:
+needs nothing beyond the ‘highs’ R package. The code-generation routes
+run external toolchains, and multimod has to find three executables:
 
 | Route | Executable | Looked up by |
 |----|----|----|
@@ -23,7 +23,8 @@ Each lookup checks, in this order, and stops at the first hit:
     [`set_multimod_python()`](https://optimal2050.github.io/multimod/reference/multimod-config.md),
     [`set_multimod_julia()`](https://optimal2050.github.io/multimod/reference/multimod-config.md),
     [`set_multimod_glpsol()`](https://optimal2050.github.io/multimod/reference/multimod-config.md)
-    (or `options(multimod.python_path = ...)` and friends);
+    (or the corresponding options, such as
+    `options(multimod.python_path = ...)`);
 2.  an environment variable: `MULTIMOD_PYTHON`, `MULTIMOD_JULIA`,
     `MULTIMOD_GLPSOL`;
 3.  a YAML configuration file, project-level `.multimod.yml` first, then
@@ -115,8 +116,8 @@ set_multimod_python(NULL)
 
 ## GLPK
 
-The simplest way to get `glpsol` is the ‘glpsol’ R package, which ships
-the executable and is found automatically:
+The ‘glpsol’ R package ships the `glpsol` executable, which multimod
+finds automatically:
 
 ``` r
 
@@ -173,8 +174,10 @@ mm_check_python()
 reports the interpreter that will be used, its version and the packages
 that fail to import.
 [`solve_pyomo()`](https://optimal2050.github.io/multimod/reference/solve_pyomo.md)
-calls it before bootstrapping, so a usable environment is not
-reinstalled on every solve.
+uses the configured interpreter as it is;
+`solve_pyomo(ensure_env = TRUE)` checks it first and runs
+[`mm_setup_python()`](https://optimal2050.github.io/multimod/reference/mm_setup_python.md)
+when it is not usable.
 
 To use an existing interpreter instead, point to it and check it carries
 the packages a route needs:
@@ -193,5 +196,7 @@ mm_check_python(packages = c("pyomo", "highspy", "pyarrow"))
 - `Sys.which("julia")` and `Sys.which("glpsol")` show what the `PATH`
   resolves. On Windows the conda environment’s `bin` directory is not on
   the `PATH`; multimod looks inside it for glpsol, but a shell will not.
-- `solve_pyomo(ensure_env = FALSE)` skips the environment check when the
-  interpreter is managed elsewhere.
+- [`mm_check_python()`](https://optimal2050.github.io/multimod/reference/mm_check_python.md)
+  reports whether the interpreter
+  [`solve_pyomo()`](https://optimal2050.github.io/multimod/reference/solve_pyomo.md)
+  will use carries the needed packages.

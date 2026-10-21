@@ -287,6 +287,16 @@ read_solver_solution <- function(file, solver = c("auto", "highs", "cuopt"),
 #'   value) and `dual` (`i`, symbol, name, value, marginal) - the same shape
 #'   [solve_highs()] returns, so the two paths are interchangeable.
 #' @export
+#' @examples
+#' if (requireNamespace("highs", quietly = TRUE)) {
+#'   dir <- tempfile("mps-")
+#'   dir.create(dir)
+#'   mps <- file.path(dir, "toy.mps")
+#'   write_mps(example_models$toy, mps, format = "csv")
+#'   run <- solve_mps(mps)
+#'   sol <- read_mps_solution(run$sol_file, index_dir = dir, format = "csv")
+#'   names(sol)
+#' }
 read_mps_solution <- function(sol, index_dir = NULL, col_index = NULL,
                               row_index = NULL, base = NULL,
                               format = c("parquet", "ipc", "csv"),

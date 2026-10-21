@@ -100,9 +100,10 @@
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://optimal2050.github.io/multimod/">multimod</a></span><span class="op">)</span></span></code></pre></div>
 <p>Every node of a model renders as LaTeX with <code><a href="../reference/as_latex.html">as_latex()</a></code>,
 and <code><a href="../reference/write_latex.html">write_latex()</a></code> assembles a complete document: sets,
-parameters, variables, mappings and equations, with the data summarised
+parameters, variables, mappings and equations, with the data summarized
 and the folded or trimmed parts annotated. The examples use the small
-model from <code><a href="../articles/ast.html">vignette("ast")</a></code>.</p>
+model built in the <a href="ast.html">Writing a model in R</a>
+article.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">toy</span> <span class="op">&lt;-</span> <span class="va">example_models</span><span class="op">$</span><span class="va">toy</span></span></code></pre></div>
 <div class="section level2">
@@ -169,7 +170,7 @@ vector and, with <code>file =</code>, writes it.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; \section{Parameters}</span></span>
 <span><span class="co">#&gt; $\mathsf{pAvail}_{\texttt{tech},\texttt{region}}$ -- availability factor \quad \textit{(6 values)}\\</span></span>
-<span><span class="co">#&gt; $\mathsf{pCapCost}_{\texttt{tech}}$ -- annualised capacity cost, EUR/kW \quad \textit{(3 values)}\\</span></span>
+<span><span class="co">#&gt; $\mathsf{pCapCost}_{\texttt{tech}}$ -- annualized capacity cost, EUR/kW \quad \textit{(3 values)}\\</span></span>
 <span><span class="co">#&gt; $\mathsf{pDemand}_{\texttt{region}}$ -- annual demand, MWh \quad \textit{(2 values)}\\</span></span>
 <span><span class="co">#&gt; $\mathsf{pVarCost}_{\texttt{tech}}$ -- variable cost, EUR/MWh \quad \textit{(3 values)}\\</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -272,7 +273,7 @@ vector and, with <code>file =</code>, writes it.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; \section{Parameters}</span></span>
 <span><span class="co">#&gt; $\mathsf{pAvail}_{\texttt{tech},\texttt{region}}$ -- availability factor \quad \textit{(6 values)}\\</span></span>
-<span><span class="co">#&gt; $\mathsf{pCapCost}_{\texttt{tech}}$ -- annualised capacity cost, EUR/kW \quad \textit{(3 values)}\\</span></span>
+<span><span class="co">#&gt; $\mathsf{pCapCost}_{\texttt{tech}}$ -- annualized capacity cost, EUR/kW \quad \textit{(3 values)}\\</span></span>
 <span><span class="co">#&gt; $\mathsf{pDemand}_{\texttt{region}}$ -- annual demand, MWh \quad \textit{(2 values)}\\</span></span>
 <span><span class="co">#&gt; $\mathsf{pVarCost}_{\texttt{tech}}$ -- variable cost, EUR/MWh \quad \textit{(3 values)}\\</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -340,8 +341,7 @@ vector and, with <code>file =</code>, writes it.</p>
 <span><span class="co">#&gt; NA</span></span>
 <span><span class="co">#&gt; NA</span></span>
 <span><span class="co">#&gt; NA</span></span></code></pre></div>
-<p>Compiled, that is what the reader sees - the same subsections,
-typeset:</p>
+<p>Compiled, the same subsections appear typeset:</p>
 <p><img src="images/toy-latex-rendered.png" class="r-plt" alt="Equations section of the toy model, compiled to PDF" width="100%"></p>
 <p>Arguments select the sections and the amount of data shown:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
@@ -368,7 +368,7 @@ control how long sets are abbreviated.</li>
 <li>
 <code>use_aliases_in_declarations = TRUE</code> uses the short
 indices in the declarations as well; <code>alias_map</code> supplies
-aliases of your own.</li>
+custom aliases.</li>
 <li>
 <code>include_toc</code>, <code>title</code>, <code>subtitle</code>
 and <code>author</code> shape the document; <code>preamble</code> and
@@ -379,9 +379,9 @@ and <code>author</code> shape the document; <code>preamble</code> and
 <h2 id="folded-and-trimmed-models">Folded and trimmed models<a class="anchor" aria-label="anchor" href="#folded-and-trimmed-models"></a>
 </h2>
 <p>A model that has been through <code><a href="../reference/fold_model.html">fold_model()</a></code> or
-<code><a href="../reference/trim_model.html">trim_model()</a></code> (<code><a href="../articles/folding.html">vignette("folding")</a></code>) renders in
-two views. <code>model_view = "reduced"</code>, the default for such a
-model, shows the model as it will be solved;
+<code><a href="../reference/trim_model.html">trim_model()</a></code> (see <a href="folding.html">Folding and
+trimming</a>) renders in two views. <code>model_view = "reduced"</code>,
+the default for such a model, shows the model as it will be solved;
 <code>model_view = "full"</code> shows the original declarations with
 the folded parameters marked in <code>folded_color</code> and the
 trimmed symbols in <code>trimmed_color</code>, plus a summary of what
@@ -398,8 +398,10 @@ folding and trimming did.</p>
 <div class="section level2">
 <h2 id="compiling">Compiling<a class="anchor" aria-label="anchor" href="#compiling"></a>
 </h2>
-<p>The source compiles with pdflatex or xelatex; it uses amsmath, bm,
-hyperref, longtable and xcolor.</p>
+<p>The source compiles with pdflatex or xelatex. Its preamble loads
+geometry, amsmath, amssymb, breqn, graphicx, longtable, adjustbox,
+multicol, bm, eucal and tikz; <code>\textcolor</code> for trimmed
+elements comes from xcolor, which tikz loads.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/write_latex.html">write_latex</a></span><span class="op">(</span><span class="va">toy</span>, file <span class="op">=</span> <span class="st">"toy.tex"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/system2.html" class="external-link">system2</a></span><span class="op">(</span><span class="st">"pdflatex"</span>, <span class="st">"toy.tex"</span><span class="op">)</span></span></code></pre></div>

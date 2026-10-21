@@ -113,10 +113,35 @@
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">structure</span><span class="op">$</span><span class="va">parameters</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Demand"</span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
 <span class="r-in"><span><span class="co"># Model and data files on disk</span></span></span>
-<span class="r-in"><span><span class="va">model</span> <span class="op">&lt;-</span> <span class="fu">read_gmpl</span><span class="op">(</span><span class="st">"model.mod"</span>, <span class="st">"data.dat"</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
+<span class="r-in"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".mod"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".dat"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/writeLines.html" class="external-link">writeLines</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  <span class="st">"set REGION;"</span>,</span></span>
+<span class="r-in"><span>  <span class="st">"param Demand{r in REGION};"</span>,</span></span>
+<span class="r-in"><span>  <span class="st">"var x{r in REGION} &gt;= 0;"</span>,</span></span>
+<span class="r-in"><span>  <span class="st">"minimize cost: sum{r in REGION} x[r];"</span>,</span></span>
+<span class="r-in"><span>  <span class="st">"s.t. meet{r in REGION}: x[r] &gt;= Demand[r];"</span>,</span></span>
+<span class="r-in"><span>  <span class="st">"end;"</span></span></span>
+<span class="r-in"><span><span class="op">)</span>, <span class="va">mod</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/writeLines.html" class="external-link">writeLines</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  <span class="st">"data;"</span>,</span></span>
+<span class="r-in"><span>  <span class="st">"set REGION := north south;"</span>,</span></span>
+<span class="r-in"><span>  <span class="st">"param Demand := north 10 south 5;"</span>,</span></span>
+<span class="r-in"><span>  <span class="st">"end;"</span></span></span>
+<span class="r-in"><span><span class="op">)</span>, <span class="va">dat</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">model</span> <span class="op">&lt;-</span> <span class="fu">read_gmpl</span><span class="op">(</span><span class="va">mod</span>, <span class="va">dat</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">model</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Model: file87901f544d9</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Description: GMPL model from file87901f544d9.mod</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Source:  C:\Users\admin\AppData\Local\Temp\Rtmpqg9hPG\file87901f544d9.mod </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Language:  gmpl </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Sets:  1 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Mappings:  0 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Aliases:  1 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Parameters:  1 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Variables:  2 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Equations:  2 </span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

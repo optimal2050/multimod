@@ -10,9 +10,10 @@ Every node of a model renders as LaTeX with
 and
 [`write_latex()`](https://optimal2050.github.io/multimod/reference/write_latex.md)
 assembles a complete document: sets, parameters, variables, mappings and
-equations, with the data summarised and the folded or trimmed parts
-annotated. The examples use the small model from
-[`vignette("ast")`](https://optimal2050.github.io/multimod/articles/ast.md).
+equations, with the data summarized and the folded or trimmed parts
+annotated. The examples use the small model built in the [Writing a
+model in R](https://optimal2050.github.io/multimod/articles/ast.md)
+article.
 
 ``` r
 
@@ -92,7 +93,7 @@ cat(tex[grep("\\\\section", tex)], sep = "\n")
 #> 
 #> \section{Parameters}
 #> $\mathsf{pAvail}_{\texttt{tech},\texttt{region}}$ -- availability factor \quad \textit{(6 values)}\\
-#> $\mathsf{pCapCost}_{\texttt{tech}}$ -- annualised capacity cost, EUR/kW \quad \textit{(3 values)}\\
+#> $\mathsf{pCapCost}_{\texttt{tech}}$ -- annualized capacity cost, EUR/kW \quad \textit{(3 values)}\\
 #> $\mathsf{pDemand}_{\texttt{region}}$ -- annual demand, MWh \quad \textit{(2 values)}\\
 #> $\mathsf{pVarCost}_{\texttt{tech}}$ -- variable cost, EUR/MWh \quad \textit{(3 values)}\\
 #> 
@@ -199,7 +200,7 @@ cat(tex[i:(i + 6)], sep = "\n")
 #> 
 #> \section{Parameters}
 #> $\mathsf{pAvail}_{\texttt{tech},\texttt{region}}$ -- availability factor \quad \textit{(6 values)}\\
-#> $\mathsf{pCapCost}_{\texttt{tech}}$ -- annualised capacity cost, EUR/kW \quad \textit{(3 values)}\\
+#> $\mathsf{pCapCost}_{\texttt{tech}}$ -- annualized capacity cost, EUR/kW \quad \textit{(3 values)}\\
 #> $\mathsf{pDemand}_{\texttt{region}}$ -- annual demand, MWh \quad \textit{(2 values)}\\
 #> $\mathsf{pVarCost}_{\texttt{tech}}$ -- variable cost, EUR/MWh \quad \textit{(3 values)}\\
 #> 
@@ -269,7 +270,7 @@ cat(tex[i:(i + 6)], sep = "\n")
 #> NA
 ```
 
-Compiled, that is what the reader sees - the same subsections, typeset:
+Compiled, the same subsections appear typeset:
 
 ![Equations section of the toy model, compiled to
 PDF](images/toy-latex-rendered.png)
@@ -297,7 +298,7 @@ length(tex_theory)
   `set_display_head_n` and `set_display_tail_n` control how long sets
   are abbreviated.
 - `use_aliases_in_declarations = TRUE` uses the short indices in the
-  declarations as well; `alias_map` supplies aliases of your own.
+  declarations as well; `alias_map` supplies custom aliases.
 - `include_toc`, `title`, `subtitle` and `author` shape the document;
   `preamble` and `ending` replace the default wrapper.
 
@@ -307,7 +308,8 @@ A model that has been through
 [`fold_model()`](https://optimal2050.github.io/multimod/reference/fold_model.md)
 or
 [`trim_model()`](https://optimal2050.github.io/multimod/reference/trim_model.md)
-([`vignette("folding")`](https://optimal2050.github.io/multimod/articles/folding.md))
+(see [Folding and
+trimming](https://optimal2050.github.io/multimod/articles/folding.md))
 renders in two views. `model_view = "reduced"`, the default for such a
 model, shows the model as it will be solved; `model_view = "full"` shows
 the original declarations with the folded parameters marked in
@@ -327,8 +329,10 @@ sum(grepl("textcolor\\{gray\\}", tex_full))
 
 ## Compiling
 
-The source compiles with pdflatex or xelatex; it uses amsmath, bm,
-hyperref, longtable and xcolor.
+The source compiles with pdflatex or xelatex. Its preamble loads
+geometry, amsmath, amssymb, breqn, graphicx, longtable, adjustbox,
+multicol, bm, eucal and tikz; `\textcolor` for trimmed elements comes
+from xcolor, which tikz loads.
 
 ``` r
 

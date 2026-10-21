@@ -49,6 +49,14 @@ write_mps(
 
   Logical; report progress.
 
+- presolve:
+
+  Logical; eliminate proportional columns with
+  [`lp_presolve()`](https://optimal2050.github.io/multimod/reference/lp_presolve.md)
+  before writing.
+  [`read_mps_solution()`](https://optimal2050.github.io/multimod/reference/read_mps_solution.md)
+  restores them. Defaults to `getOption("multimod.presolve", FALSE)`.
+
 ## Value
 
 Invisibly, a list of the paths written.
@@ -57,3 +65,23 @@ Invisibly, a list of the paths written.
 
 **The `.mps` and its index files must travel together** - the file alone
 cannot be mapped back to model symbols.
+
+## Examples
+
+``` r
+if (requireNamespace("highs", quietly = TRUE)) {
+  dir <- tempfile("mps-")
+  dir.create(dir)
+  mps <- file.path(dir, "toy.mps")
+  write_mps(example_models$toy, mps, format = "csv")
+  list.files(dir)
+}
+#> WARNING: Column names are not present, or contain duplicates: using names with prefix "c", beginning with suffix 0
+#> 
+#> WARNING: Row    names are not present, or contain duplicates: using names with prefix "r", beginning with suffix 0
+#> 
+#> Writing the model to C:\Users\admin\AppData\Local\Temp\Rtmpqg9hPG\mps-87904a876054/toy.mps
+#> 
+#> [1] "toy.mps"           "toy_col_index.csv" "toy_dim_names.csv"
+#> [4] "toy_row_index.csv"
+```

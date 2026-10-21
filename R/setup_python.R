@@ -11,9 +11,9 @@
 #' packages, and activates the environment for the current R session via
 #' `reticulate::use_condaenv()`.
 #'
-#' After setup, you can optionally configure multimod to use this environment
-#' via `set_multimod_python()` or by letting `get_multimod_python()` detect it
-#' automatically through reticulate.
+#' After setup, multimod uses this environment either when it is set with
+#' `set_multimod_python()` or when `get_multimod_python()` detects it through
+#' reticulate.
 #'
 #' @param env_name Name of the Conda environment to manage. Defaults to
 #'   "multimod" so the generated Pyomo artifacts have a predictable runtime.

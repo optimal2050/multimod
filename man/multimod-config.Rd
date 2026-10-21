@@ -53,6 +53,22 @@ Defaults to \code{"multimod"}.}
 \item{global}{Logical; if \code{TRUE}, writes to the per-user directory given by \code{tools::R_user_dir("multimod", "config")} (user-wide).
 If \code{FALSE} (default), writes to \code{.multimod.yml} in current working directory.}
 }
+\value{
+\itemize{
+\item \code{get_multimod_python()}, \code{get_multimod_julia()}, \code{get_multimod_glpsol()}
+and \code{get_multimod_solver()}: the resolved path, or the bare executable
+name (\code{"python"}, \code{"julia"}, \code{"glpsol"}, or \code{solver_name}) to be found on
+the \code{PATH} when nothing is configured.
+\item \verb{set_multimod_*()} and \code{set_multimod_solver()}: invisibly, the path set.
+\item \code{multimod_config_write()}: invisibly, the path of the file written.
+\item \code{multimod_config_read()}: the configuration as a list, or \code{NULL} when no
+file is found.
+\item \code{multimod_config_path()}: the path of the configuration file, marked
+"(not found)" when it does not exist.
+\item \code{multimod_config_show()}: called for its printed summary; returns
+\code{NULL} invisibly.
+}
+}
 \description{
 These functions manage solver executable paths for multimod. Configuration
 can be set via R options, environment variables, or a YAML config file.
@@ -66,6 +82,10 @@ can be set via R options, environment variables, or a YAML config file.
 }
 }
 \examples{
+# where the configuration would be read from, and what is resolved now
+multimod_config_path()
+multimod_config_show()
+
 \dontrun{
 # Set paths via R options (session-persistent)
 set_multimod_python("C:/Python310/python.exe")

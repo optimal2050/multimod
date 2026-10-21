@@ -14,7 +14,8 @@
   rendering](https://optimal2050.github.io/multimod/articles/latex.md):
 - [Model workspace and
   data](https://optimal2050.github.io/multimod/articles/model_workspace.md):
-- [multimod](https://optimal2050.github.io/multimod/articles/multimod.md):
+- [Get started with
+  multimod](https://optimal2050.github.io/multimod/articles/multimod.md):
 - [Development status and
   roadmap](https://optimal2050.github.io/multimod/articles/roadmap.md):
 - [Solving and reading

@@ -99,12 +99,12 @@
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://optimal2050.github.io/multimod/">multimod</a></span><span class="op">)</span></span></code></pre></div>
 <p>The toy model of the other articles fits on one screen. This article
-runs two models written by other people for real work: OSeMOSYS, which
-is read from its public source, and the energyRt reference model, which
-ships with multimod. Both are energy system models; neither was written
-with multimod in mind. Chunks that need a solver or the OSeMOSYS files
-run only where those are present; the numbers quoted in the text are
-from a run with everything installed.</p>
+runs two published models written independently of multimod: OSeMOSYS,
+which is read from its public source, and the energyRt reference model,
+which ships with multimod. Both are energy system models; neither was
+written with multimod in mind. Chunks that need a solver or the OSeMOSYS
+files run only where those are present; the numbers quoted in the text
+are from a run with everything installed.</p>
 <div class="section level2">
 <h2 id="osemosys">OSeMOSYS<a class="anchor" aria-label="anchor" href="#osemosys"></a>
 </h2>
@@ -117,11 +117,11 @@ with multimod; this section reads a local clone whose path is in the
 environment variable <code>MULTIMOD_OSEMOSYS_DIR</code>. The reference
 result for UTOPIA is the objective glpsol reports on those two files,
 29446.86.</p>
-<p>Cite: Howells, M., Rogner, H., Strachan, N., Heaps, C., Huntington,
-H., Kypreos, S., Hughes, A., Silveira, S., DeCarolis, J., Bazilian, M.
-and Roehrl, A. (2011). OSeMOSYS: The Open Source Energy Modeling System.
-An introduction to its ethos, structure and development. <em>Energy
-Policy</em>, 39(10), 5850-5870. <a href="https://doi.org/10.1016/j.enpol.2011.06.033" class="external-link uri">https://doi.org/10.1016/j.enpol.2011.06.033</a></p>
+<p>The reference for OSeMOSYS is Howells, M., Rogner, H., Strachan, N.,
+Heaps, C., Huntington, H., Kypreos, S., Hughes, A., Silveira, S.,
+DeCarolis, J., Bazilian, M. and Roehrl, A. (2011). OSeMOSYS: The Open
+Source Energy Modeling System. An introduction to its ethos, structure
+and development. <em>Energy Policy</em>, 39(10), 5850-5870. <a href="https://doi.org/10.1016/j.enpol.2011.06.033" class="external-link uri">https://doi.org/10.1016/j.enpol.2011.06.033</a></p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ose</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_gmpl.html">read_gmpl</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">osemosys_dir</span>, <span class="st">"src"</span>, <span class="st">"osemosys.txt"</span><span class="op">)</span>,</span>
 <span>                 <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">osemosys_dir</span>, <span class="st">"tests"</span>, <span class="st">"utopia.txt"</span><span class="op">)</span><span class="op">)</span></span>
@@ -171,7 +171,7 @@ at run time, and the parametric default becomes a nested
 code. OSeMOSYS declares every symbol over a set product with no domain
 mapping, restricts 34 of its 95 equations with data-dependent
 conditions, references lagged years (<code>y-1</code>, <code>y+1</code>)
-and defines six parameters by formula; the matrix backend expands the
+and defines six parameters by formula; the matrix route expands the
 declared sets, evaluates the conditions, resolves the lags and computes
 the formulas itself.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
@@ -180,12 +180,12 @@ the formulas itself.</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="fu"><a href="../reference/build_row_index.html">build_row_index</a></span><span class="op">(</span><span class="va">ose</span><span class="op">)</span><span class="op">)</span>   <span class="co"># glpsol generates exactly this many rows</span></span></code></pre></div>
 </div>
 <div class="section level3">
-<h3 id="what-does-not-work-yet">What does not work yet<a class="anchor" aria-label="anchor" href="#what-does-not-work-yet"></a>
+<h3 id="known-limitations">Known limitations<a class="anchor" aria-label="anchor" href="#known-limitations"></a>
 </h3>
 <p>Four storage-bracket equations (<code>SC2_*</code>,
 <code>SC4_*</code>) assemble with no coefficients on this case; UTOPIA’s
 storage is inactive, so the objective is unaffected, and
-<code><a href="../reference/model_to_lp.html">model_to_lp()</a></code> says so in a warning rather than hiding it.
+<code><a href="../reference/model_to_lp.html">model_to_lp()</a></code> reports them in a warning.
 <code><a href="../reference/write_gams.html">write_gams()</a></code> output of this model is readable but not yet
 runnable without edits. There is no Pyomo reader.</p>
 </div>
@@ -196,8 +196,8 @@ runnable without edits. There is no Pyomo reader.</p>
 <p><a href="https://github.com/optimal2050/energyRt" class="external-link">energyRt</a> is an
 R package for energy system models that writes its own GAMS, MathProg,
 JuMP and Pyomo code. <code>example_models$energyRt</code> holds one of
-its reference scenarios, the “TOPIA” kit (seven regions, seasonal time
-slices, a base horizon), parsed by <code><a href="../reference/read_gams.html">read_gams()</a></code> from the
+its reference scenarios, the “TOPIA” kit (seven regions, seasonal
+timeslices, a base horizon), parsed by <code><a href="../reference/read_gams.html">read_gams()</a></code> from the
 GAMS template energyRt generates and populated with the scenario’s
 data.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
@@ -246,11 +246,10 @@ model:</p>
 <span><span class="va">r</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_highs.html">solve_highs</a></span><span class="op">(</span><span class="va">m</span>, attach <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="va">r</span><span class="op">$</span><span class="va">objective</span></span>
 <span><span class="co">#&gt; [1] 46398.42</span></span></code></pre></div>
-<p>Nineteen thousand rows and columns assemble and solve in a few
-seconds.</p>
+<p>The model has about nineteen thousand rows and columns.</p>
 </div>
 <div class="section level3">
-<h3 id="the-file-routes">The file routes<a class="anchor" aria-label="anchor" href="#the-file-routes"></a>
+<h3 id="the-code-generation-routes">The code-generation routes<a class="anchor" aria-label="anchor" href="#the-code-generation-routes"></a>
 </h3>
 <p>The same model goes through each generated language; the objective is
 the one to compare.</p>
@@ -286,16 +285,14 @@ the one to compare.</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>objective <span class="op">=</span> <span class="va">p</span><span class="op">$</span><span class="va">objective</span>, status <span class="op">=</span> <span class="va">p</span><span class="op">$</span><span class="va">status</span><span class="op">$</span><span class="va">termination</span><span class="op">)</span></span>
 <span><span class="co">#&gt;          objective             status </span></span>
 <span><span class="co">#&gt; "46398.4234209742"          "optimal"</span></span></code></pre></div>
-<p>With everything installed the four routes return 46398.42; GLPK takes
-about ten seconds on this model, Pyomo and JuMP somewhat longer, mostly
-in start-up.</p>
+<p>With everything installed the four routes return 46398.42.</p>
 <p>The GAMS source this model came from can also be regenerated:</p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/write_gams.html">write_gams</a></span><span class="op">(</span><span class="va">m</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">out</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 2069</span></span></code></pre></div>
-<p>Any energyRt scenario enters the same way: energyRt’s
-<code>multimod_from_energyRt()</code> builds the model from an
+<p>Any energyRt scenario enters the same way:
+<code><a href="https://energyRt.org/reference/multimod_from_energyRt.html" class="external-link">energyRt::multimod_from_energyRt()</a></code> builds the model from an
 interpolated scenario, with the structure from the GAMS template and the
 data from the scenario’s tables.</p>
 </div>

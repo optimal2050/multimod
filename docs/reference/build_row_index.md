@@ -36,3 +36,13 @@ A `data.table` with columns `i` (1-based row index), `symbol`, `name`
 Counting is **per equation**, which is what an LP needs. energyRt's
 `model_size()` counts per *map* and therefore undercounts whenever one
 mapping gates several equations.
+
+## Examples
+
+``` r
+rows <- build_row_index(example_models$toy)
+table(rows$symbol)
+#> 
+#> eqCapLim   eqCost eqDemand 
+#>        6        1        2 
+```

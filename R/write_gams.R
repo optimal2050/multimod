@@ -8,6 +8,9 @@
 #'
 #' @return Character vector or writes file if `file` is given
 #' @export
+#' @examples
+#' gms <- write_gams(example_models$toy)
+#' cat(head(gms, 25), sep = "\n")
 write_gams <- function(model, file = NULL, format_expr = TRUE, ...) {
   UseMethod("write_gams")
 }
@@ -69,16 +72,27 @@ write_gams.mm_model <- function(model, file = NULL, format_expr = TRUE,
       }
     }
   }
+  # Iterators of a MathProg-style model (`{r in REGION}`) are rendered as GAMS
+  # aliases of their sets; see .gams_equation_aliases().
+  declared <- c(names(model$sets), names(model$mappings), names(model$parameters),
+                names(model$variables), unlist(model$aliases))
+  iter_pairs <- unique(unlist(lapply(model$equations, .gams_equation_aliases),
+                              recursive = FALSE))
+  for (p in iter_pairs) {
+    if (p[2] %in% declared) next
+    lines <- c(lines, paste0("alias (", p[1], ", ", p[2], ");"))
+    declared <- c(declared, p[2])
+  }
 
   lines <- c(lines, "")
-  lines <- c(lines, "sets")
-  # Mappings
+  # Mappings; a model without them gets no empty `sets ;` block
+  map_lines <- character()
   for (m in model$mappings) {
     # Already declared with the sets above, ahead of the aliases.
     if (!is.null(m$name) && m$name %in% subset_symbols) next
-    lines <- c(lines, as_gams(m, desc = TRUE))
+    map_lines <- c(map_lines, as_gams(m, desc = TRUE))
   }
-  lines <- c(lines, ";")
+  if (length(map_lines)) lines <- c(lines, "sets", map_lines, ";")
 
   lines <- c(lines, "")
   lines <- c(lines, "parameters")
@@ -133,7 +147,9 @@ write_gams.mm_model <- function(model, file = NULL, format_expr = TRUE,
 
   # Equations (definitions)
   for (eq in model$equations) {
-    lines <- c(lines, paste0("equation ", eq$name, "   ", eq$desc, ";"))
+    # Declared over its sets; the definition below may index it by aliases
+    lines <- c(lines, paste0("equation ", eq$name, .gams_equation_domain(eq),
+                             "   ", eq$desc, ";"))
     gams_eq <- as_gams(eq)
     if (format_expr) {
       gams_eq <- format_gams_expression(gams_eq, ...)

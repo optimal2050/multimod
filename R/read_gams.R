@@ -506,6 +506,21 @@ parse_gams_expr <- function(
   return(ast_symbol(expr))
 }
 
+# Split a declaration line of several symbols, `tech, region` or
+# `eqDemand(region), eqCost`, into one line per symbol. Splitting stops at the
+# first symbol that is not followed by a comma, so that symbol keeps the rest
+# of the line, description and data included.
+.gams_split_declaration_list <- function(line) {
+  head_pattern <- "^\\s*([A-Za-z_][A-Za-z0-9_]*(\\([^()]*\\))?)\\s*,\\s*(.+)$"
+  out <- character()
+  rest <- line
+  while (grepl(head_pattern, rest, perl = TRUE)) {
+    out <- c(out, sub(head_pattern, "\\1", rest, perl = TRUE))
+    rest <- sub(head_pattern, "\\3", rest, perl = TRUE)
+  }
+  c(out, trimws(rest))
+}
+
 #' Read GAMS model file and parse its core structure.
 #'
 #' This function reads a GAMS model file or text, expands any included files, removes comments, and parses the core structure into sets, parameters, variables, equations, and aliases, returning a `model_structure` object.
@@ -521,6 +536,16 @@ parse_gams_expr <- function(
 #'
 #' @returns A `model_structure` object containing the parsed GAMS model structure, including sets, mappings, aliases, parameters, variables, and equations.
 #' @export
+#' @examples
+#' structure <- read_gams(c(
+#'   "set tech, region;",
+#'   "parameter demand(region);",
+#'   "positive variable gen(tech, region);",
+#'   "equation eqDemand(region);",
+#'   "eqDemand(region).. sum(tech, gen(tech, region)) =g= demand(region);"
+#' ))
+#' m <- as_multimod(structure)
+#' as_gmpl(m$equations$eqDemand, model = m)
 read_gams <- function(
     file_or_text,
     include = TRUE,
@@ -771,6 +796,18 @@ read_gams <- function(
     if (verbose) cat(i, line, "\n")
 
     ## Mode-based parsing ####
+    # Several symbols declared on one line (`set tech, region;`) are split
+    # into one line each. Only a leading run of bare `name` or `name(dims)`
+    # followed by a comma is split, so a description containing commas stays
+    # with its symbol.
+    if (!is.null(mode) && mode %in% c("sets", "parameters", "variables", "equations")) {
+      split_decl <- .gams_split_declaration_list(line)
+      if (length(split_decl) > 1) {
+        lines <- append(lines[-i], split_decl, after = i - 1)
+        line <- split_decl[1]
+      }
+    }
+
     if (!is.null(mode) && mode == "sets") {
       # drop data - everything after the first "/"
       line <- sub("/.*$", "", line)
@@ -1039,7 +1076,9 @@ parse_equation_header <- function(line) {
 #' @param eqn_info A GAMS-code snippet containing the equation information, including its name, GAMS body, domain, and description.
 #' @param symbols A list of symbols (sets, parameters, variables) used in the GAMS model, which will be used to resolve dimensions and expressions.
 #'
-#' @returns An `equation` object containing the parsed equation structure, including its name, dimensions, left-hand side (LHS), right-hand side (RHS), relation, domain, and description.
+#' @returns An `mm_equation` object holding the parsed equation: its name,
+#'   dimensions, left-hand side, right-hand side, relation, domain and
+#'   description.
 #' @export
 parse_gams_equation <- function(eqn_info, symbols) {
   name <- trimws(eqn_info$name)

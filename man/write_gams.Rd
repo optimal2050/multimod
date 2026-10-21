@@ -21,3 +21,7 @@ Character vector or writes file if \code{file} is given
 \description{
 Write a GAMS model file from a multimod object
 }
+\examples{
+gms <- write_gams(example_models$toy)
+cat(head(gms, 25), sep = "\n")
+}

@@ -17,8 +17,8 @@ Logical indicating if any elements are trimmed
 }
 \description{
 Walks through model structure to check if any sets, parameters, mappings,
-variables, or equations have \verb{$trimmed = TRUE}. More robust than checking
-only the \code{model$misc$trimmed} flag.
+variables, or equations have \verb{$trimmed = TRUE}, rather than relying on the
+\code{model$misc$trimmed} flag alone.
 }
 \examples{
 m <- example_models$energyRt$multimod

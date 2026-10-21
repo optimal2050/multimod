@@ -27,3 +27,11 @@ as_gmpl(x, ...)
 ## Value
 
 A character string with valid GMPL syntax.
+
+## Examples
+
+``` r
+toy <- example_models$toy
+as_gmpl(toy$equations$eqDemand, model = toy)
+#> [1] "s.t. eqDemand{r in mR}: sum{t in tech} vGen[t,r] >= pDemand[r];"
+```

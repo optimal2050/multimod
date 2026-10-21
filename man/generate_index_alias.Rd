@@ -28,7 +28,7 @@ Creates a short dummy variable name from a set name following conventions:
 \itemize{
 \item Uses preferred names for common sets (tech -> h, timeslice -> ts, etc.)
 \item First letter of the set name (lowercase) for others
-\item If it's an alias, use two letters (checking against all_set_names)
+\item Two letters for an alias (checked against all_set_names)
 \item Ensures uniqueness by checking against all symbols in model
 }
 }

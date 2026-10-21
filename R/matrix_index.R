@@ -171,6 +171,9 @@
 #'   Per-symbol dimension names are kept in the `dim_names` attribute (a named
 #'   list).
 #' @export
+#' @examples
+#' cols <- build_col_index(example_models$toy)
+#' table(cols$symbol)
 build_col_index <- function(model, verbose = FALSE, names = TRUE) {
   stopifnot(inherits(model, "multimod") || inherits(model, "mm_model"))
   vars <- model$variables
@@ -250,6 +253,9 @@ build_col_index <- function(model, verbose = FALSE, names = TRUE) {
 #'   `name` (when `names = TRUE`), `i1`..`iN`, `sense` (`"=="`, `"<="`,
 #'   `">="`) and `rhs` (`NA_real_` until coefficient extraction fills it).
 #' @export
+#' @examples
+#' rows <- build_row_index(example_models$toy)
+#' table(rows$symbol)
 build_row_index <- function(model, verbose = FALSE, names = TRUE) {
   stopifnot(inherits(model, "multimod") || inherits(model, "mm_model"))
   eqs <- model$equations

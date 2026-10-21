@@ -26,3 +26,7 @@ The implementation focuses on linear expressions (sum/prod, arithmetic
 operators, variable/parameter references). Unsupported node types raise
 informative errors so coverage can be extended incrementally.
 }
+\examples{
+toy <- example_models$toy
+cat(as_pyomo(toy$equations$eqDemand, model = toy))
+}

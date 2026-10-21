@@ -47,8 +47,8 @@ Results can be optionally loaded back into the model object.
 \details{
 The function supports three execution methods:
 
-\strong{system} (default): Uses system2() to call Julia. No extra dependencies.
-Simple, robust, works everywhere Julia is installed.
+\strong{system} (default): Uses system2() to call Julia. No extra dependencies;
+works wherever Julia is installed.
 
 \strong{juliacall}: Uses JuliaCall package for R-Julia integration. Allows
 bi-directional data transfer and access to Julia objects from R. Requires
@@ -61,7 +61,8 @@ Solution values are saved by the Julia model to solvers/jump/solution/
 (in Arrow IPC or CSV format). If load_results=TRUE and model is provided,
 solutions are loaded into result$model and moved to model_dir/variables/.
 A log file (solution_log.txt) in model_dir tracks all solution loads.
-You must reassign your model variable to access the solutions:
+The solutions are available in the returned model, which replaces the one
+passed in:
 
 \code{result <- solve_jump(my_model, "path/to/model", load_results = TRUE)}
 
@@ -69,27 +70,24 @@ You must reassign your model variable to access the solutions:
 }
 \examples{
 \dontrun{
-# Generate and solve model
-model <- as_multimod(read_gams("model.gms"))
-save_model(model, "tmp/my_model", format = "ipc")
-write_jump(model, model_dir = "tmp/my_model")
+# needs Julia with JuMP and HiGHS
+toy <- example_models$toy
+ws <- tempfile("toy-")
+write_jump(toy, model_dir = ws)
 
 # Solve with default settings
-result <- solve_jump(model_dir = "tmp/my_model")
+result <- solve_jump(model_dir = ws)
 
-# Solve and load results back into model
-result <- solve_jump(model, model_dir = "tmp/my_model", load_results = TRUE)
+# Solve and load the results back into the model
+result <- solve_jump(toy, model_dir = ws, load_results = TRUE)
+toy <- result$model
+toy$variables$vCap$solution
 
-# Access solution values
-vTechCap_solution <- model$variables$vTechCap$solution
+# Use a different backend
+result <- solve_jump(model_dir = ws, method = "juliacall")
 
-# Use different backend
-result <- solve_jump(model_dir = "tmp/my_model", method = "juliacall")
-
-# Parallel execution with timeout
-result <- solve_jump(model_dir = "tmp/my_model", 
-                     method = "background", 
-                     timeout = 3600)
+# Background execution with a timeout
+result <- solve_jump(model_dir = ws, method = "background", timeout = 3600)
 }
 
 }

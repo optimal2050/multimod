@@ -1,9 +1,9 @@
 #' Write Pyomo model artifacts
 #'
-#' This mirrors `write_jump()` but targets Python/Pyomo. The function emits a
-#' `model.py` file containing component declarations, a `data_loader.py` helper
-#' that knows how to stream data from the saved model directory (or use
-#' embedded literals), and a lightweight `solve.py` runner.
+#' This mirrors `write_jump()` but targets Pyomo. It writes `model.py`, holding
+#' the component declarations and, by default, the solve runner, and `data.py`,
+#' which reads the model's data from the workspace. With `split = TRUE` the
+#' runner is written to a separate `solve.py`.
 #'
 #' @inheritParams write_jump
 #' @param model_dir Model workspace directory. The scaffold is written to
@@ -19,8 +19,8 @@
 #' @param split Logical flag controlling whether solver execution should live
 #'   in a separate `solve.py` (when `TRUE`) or be embedded directly in
 #'   `model.py` (default). The embedded mode mirrors the two-file workflow used
-#'   by the other writers (`model` + `data`). Set `split = TRUE` to preserve the
-#'   previous three-file scaffold.
+#'   by the other writers (`model` + `data`).
+#' @return Invisibly, the path of the written `model.py`.
 #' @export
 write_pyomo <- function(model, model_dir = NULL, solver_dir = "pyomo",
                         model_name = "model", solver = "highs",
@@ -482,7 +482,7 @@ build_pyomo_solve_lines <- function(solver = "highs", data_mode = c("external", 
     "from pyomo.environ import *",
     "from pyomo.opt import SolverFactory",
     "from model import model",
-    "from data_loader import DATA_MODE, build_data" ,
+    "from data import DATA_MODE, build_data",
     "",
     pyomo_runner_body(solver = solver, solver_dir = solver_dir)
   )

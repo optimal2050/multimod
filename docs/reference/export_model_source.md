@@ -78,11 +78,11 @@ The workspace layout is the one every `solve_*()` function expects:
 # \donttest{
 ws <- file.path(tempdir(), "energyrt_ws")
 files <- export_model_source("energyrt", ws, format = "gmpl")
-#> Created directory: C:\Users\admin\AppData\Local\Temp\Rtmp0u9C8p/energyrt_ws
+#> Created directory: C:\Users\admin\AppData\Local\Temp\Rtmpqg9hPG/energyrt_ws
 #> Wrote: model workspace (model.rds, sets/, mappings/, parameters/)
 #> Wrote: README.txt
 #> Wrote: solvers/gmpl/ (model.mod, data.dat)
-#> Export complete: 4 file(s) written to C:\Users\admin\AppData\Local\Temp\Rtmp0u9C8p\energyrt_ws
+#> Export complete: 4 file(s) written to C:\Users\admin\AppData\Local\Temp\Rtmpqg9hPG\energyrt_ws
 basename(files)
 #> [1] "model.rds"  "README.txt" "model.mod"  "data.dat"  
 

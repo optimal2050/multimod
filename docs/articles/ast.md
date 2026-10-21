@@ -10,12 +10,12 @@ multimod models are usually read from a source file:
 and
 [`read_gmpl()`](https://optimal2050.github.io/multimod/reference/read_gmpl.md)
 turn a GAMS or MathProg model into the structure described here. This
-vignette builds the same kind of object directly in R, which is the way
+article builds the same kind of object directly in R, which is the way
 to write a new model, to generate one programmatically, or to understand
 what the readers produce. The model is a small capacity-expansion
 problem: three technologies supply electricity to two regions at least
 cost. It ships with the package as `example_models$toy`; the code below
-is the file that built it.
+reproduces it.
 
 ## The parts of a model
 
@@ -29,8 +29,8 @@ A model is a list of named components, each a small S3 object:
 | variables | [`new_variable()`](https://optimal2050.github.io/multimod/reference/new_variable.md) | decision variables, with a domain and bounds |
 | equations | [`new_equation()`](https://optimal2050.github.io/multimod/reference/new_equation.md) | left side, relation, right side, over a domain |
 
-The sides of an equation are *expressions*: trees of AST nodes built
-with
+The sides of an equation are *expressions*: trees of nodes of the
+abstract syntax tree (AST), built with
 [`ast_variable()`](https://optimal2050.github.io/multimod/reference/ast_variable.md),
 [`ast_parameter()`](https://optimal2050.github.io/multimod/reference/ast_parameter.md),
 [`ast_expression()`](https://optimal2050.github.io/multimod/reference/ast_expression.md),
@@ -93,7 +93,7 @@ column per dimension plus `value`.
 ``` r
 
 parameters <- list(
-  pCapCost = new_parameter("pCapCost", desc = "annualised capacity cost, EUR/kW",
+  pCapCost = new_parameter("pCapCost", desc = "annualized capacity cost, EUR/kW",
     dims = "tech",
     data = data.frame(tech = techs, value = c(120, 70, 90))),
   pVarCost = new_parameter("pVarCost", desc = "variable cost, EUR/MWh",
@@ -223,7 +223,7 @@ defines it, the variable it defines and the sense.
 ``` r
 
 toy <- new_model(
-  name = "toy", desc = "two-region capacity expansion",
+  name = "toy", desc = "two-region capacity expansion toy model",
   sets = sets, mappings = mappings, parameters = parameters,
   variables = variables,
   equations = list(eqCapLim = eqCapLim, eqDemand = eqDemand, eqCost = eqCost),
@@ -232,7 +232,7 @@ toy <- new_model(
 )
 toy
 #> Model: toy
-#> Description: two-region capacity expansion
+#> Description: two-region capacity expansion toy model
 #> Sets:  2 
 #> Mappings:  2 
 #> Aliases:  0 
@@ -257,7 +257,7 @@ v$valid
 #> [1] TRUE
 ```
 
-The text backends write indexed expressions with short iterator names
+The code generators write indexed expressions with short iterator names
 (`sum{t in tech}` in MathProg, `for t in tech` in Julia). A model built
 in R has none until
 [`add_index_aliases()`](https://optimal2050.github.io/multimod/reference/add_index_aliases.md)
@@ -301,15 +301,15 @@ head(r$primal[r$primal$value > 0, ], 10)
 #> 5:    13  vCost   <NA>   <NA>  -Inf   Inf continuous 198000.0000            0
 ```
 
-The file routes render the same model for an external solver:
+The code-generation routes render the same model for an external solver:
 [`write_gmpl()`](https://optimal2050.github.io/multimod/reference/write_gmpl.md)
 for GLPK,
 [`write_jump()`](https://optimal2050.github.io/multimod/reference/write_jump.md)
-for Julia and
+for JuMP and
 [`write_pyomo()`](https://optimal2050.github.io/multimod/reference/write_pyomo.md)
-for Python;
-[`vignette("multimod")`](https://optimal2050.github.io/multimod/articles/multimod.md)
-lists them with their `solve_*()` counterparts.
+for Pyomo; the [Solving and reading
+results](https://optimal2050.github.io/multimod/articles/solving.md)
+article runs each with its `solve_*()` counterpart.
 
 ``` r
 
@@ -317,7 +317,7 @@ mod_file <- tempfile(fileext = ".mod")
 write_gmpl(toy, file = mod_file)
 cat(head(readLines(mod_file), 12), sep = "\n")
 #> # Model: toy
-#> # two-region capacity expansion
+#> # two-region capacity expansion toy model
 #> 
 #> set tech;  # generation technologies
 #> set region;  # model regions
@@ -332,7 +332,7 @@ cat(head(readLines(mod_file), 12), sep = "\n")
 ## Saving and exchanging the model
 
 [`model_to_json()`](https://optimal2050.github.io/multimod/reference/model_to_json.md)
-serialises the whole model, including the AST, in the language-neutral
+serializes the whole model, including the AST, in the language-neutral
 JSON format defined by
 [`ast_json_schema()`](https://optimal2050.github.io/multimod/reference/ast_json_schema.md);
 [`model_from_json()`](https://optimal2050.github.io/multimod/reference/model_from_json.md)
@@ -353,13 +353,20 @@ as_gams(back$equations$eqDemand)
 and
 [`load_model()`](https://optimal2050.github.io/multimod/reference/load_model.md)
 write a model as a workspace directory with its data tables in CSV or
-Arrow files; see the “Model workspace” article on the package website.
+Arrow files; see the [Model workspace and
+data](https://optimal2050.github.io/multimod/articles/model_workspace.md)
+article.
 
-## Where next
+## Further reading
 
-- [`vignette("multimod")`](https://optimal2050.github.io/multimod/articles/multimod.md):
-  reading an existing GAMS model and what the package does with it.
-- [`vignette("folding")`](https://optimal2050.github.io/multimod/articles/folding.md):
-  folding and trimming a model to the size its data actually needs.
-- The website articles cover the solver backends (GLPK, JuMP, Pyomo) and
-  their configuration.
+- [Get
+  started](https://optimal2050.github.io/multimod/articles/multimod.md):
+  reading, translating, analyzing and solving a model in a few calls.
+- [Folding and
+  trimming](https://optimal2050.github.io/multimod/articles/folding.md):
+  reducing a model to the size its data needs.
+- [Solving and reading
+  results](https://optimal2050.github.io/multimod/articles/solving.md)
+  and [Configuring solver
+  paths](https://optimal2050.github.io/multimod/articles/configuration.md):
+  the code-generation routes (GLPK, JuMP, Pyomo) and their setup.

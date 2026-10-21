@@ -56,3 +56,17 @@ new_mapping(
 ## Value
 
 An object of class `mapping`
+
+## Examples
+
+``` r
+pairs <- expand.grid(
+  tech = c("coal", "wind"),
+  region = c("north", "south"),
+  stringsAsFactors = FALSE
+)
+new_mapping("mTR", desc = "technology x region pairs",
+            dims = c("tech", "region"), data = pairs)
+#> <AST mapping> mTR
+#>   dims:  [tech,region] 
+```

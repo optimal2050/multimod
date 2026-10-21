@@ -47,4 +47,4 @@ ast_equation(
 
 ## Value
 
-An `ast` node of class `equation`.
+An `mm_equation` AST node.

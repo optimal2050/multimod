@@ -3,7 +3,7 @@
 \docType{data}
 \name{example_models}
 \alias{example_models}
-\title{Example Model in Multiple Formats}
+\title{Example models}
 \format{
 A list with 2 elements:
 \describe{
@@ -11,16 +11,16 @@ A list with 2 elements:
 4 parameters, 3 variables, 3 equations) written with the multimod
 constructors in \code{data-raw/toy_model.R}. Every parameter carries
 data, so \code{model_to_lp()} gives a 9 x 13 LP and
-\code{solve_highs()} finds the optimum (198000) in well under a second.
-Used by \code{vignette("ast")} and the solver examples.}
-\item{energyRt}{energyRt TOPIA test case with components:
+\code{solve_highs()} finds the optimum (198000).}
+\item{energyRt}{The energyRt model on the TOPIA test case:
 \describe{
 \item{gams}{List with \code{model}: energyRt's GAMS template source
 (\code{gams/energyRt.gms}) as a character vector, ready for
-\code{read_gams(include = FALSE)}}
-\item{multimod}{Parsed multimod model object with energyRt data attached}
+\code{read_gams(include = FALSE)}.}
+\item{multimod}{The multimod model parsed from that source, with data
+from an interpolated energyRt scenario attached.}
 \item{metadata}{List with source, scenario, repository, license,
-energyRt_version, gams_source, date_imported, note}
+energyRt_version, gams_source, date_imported, note.}
 }
 }
 }
@@ -34,77 +34,47 @@ energyRt_version, gams_source, date_imported, note}
 example_models
 }
 \description{
-An example energy system model in several optimization modeling languages
-(GAMS, GMPL, JuMP/Julia), along with its parsed multimod representation.
-Used for testing and validating multimod's parsers and conversion functions.
+Two example models: a small capacity-expansion LP written with the multimod
+constructors, and the energyRt energy system model, both as GAMS source text
+and as the multimod model parsed from it with data attached.
 }
 \details{
-\subsection{Structure}{
-
-The example contains:
-\itemize{
-\item \strong{Source code} in several formats (character vectors, ready to parse)
-\item \strong{Parsed multimod object} (already converted, ready to use)
-\item \strong{Metadata} about the source, license, and provenance
-}
-
-All source code character vectors can be used directly with \code{read_gams()},
-\code{read_gmpl()}, etc. without writing temporary files.
-}
-
-\subsection{energyRt Test Case}{
-
-The energyRt package is an R-based energy systems modeling framework. The
-TOPIA R7 kit is a small 7-region, multi-timeslice test case used for
-validation.
+energyRt is an R package for energy system modeling. The TOPIA R7 kit is a
+seven-region test case with a seasonal timeslice calendar.
 
 The model \emph{structure} is parsed from energyRt's GAMS template with
-\code{read_gams(include = FALSE)}; GAMS is the source of truth because the
-GMPL/JuMP/Pyomo templates are still evolving. The \emph{data} is attached from an
-interpolated energyRt scenario. See \code{data-raw/build_energyRt_fixture.R}.
+\code{read_gams(include = FALSE)}; the \emph{data} is attached from an
+interpolated energyRt scenario. See \code{data-raw/build_energyRt_fixture.R}
+in the source repository.
 
-\strong{License}: Apache License 2.0, the same license as multimod itself. See
-\code{LICENSE.note}.
+\strong{License}: the energyRt content is distributed under the Apache License
+2.0, the license of multimod itself. See the \code{COPYRIGHTS} file installed
+with the package, \code{system.file("COPYRIGHTS", package = "multimod")}.
 }
-}
-\section{Usage}{
-
-
-\if{html}{\out{<div class="sourceCode r">}}\preformatted{data(example_models)
-
-energyRt_gams  <- example_models$energyRt$gams$model
-energyRt_model <- example_models$energyRt$multimod
-}\if{html}{\out{</div>}}
-}
-
 \examples{
-# Load examples
-data(example_models)
-
-# Inspect structure
 names(example_models)
 names(example_models$energyRt)
-
-# Check metadata
 example_models$energyRt$metadata
 
-# Use the pre-parsed multimod model
-summary(example_models$energyRt$multimod)
+# the small model built in R
+example_models$toy
 
-# Parse the structure from the bundled GAMS source (no temp files needed)
+# the parsed energyRt model
+example_models$energyRt$multimod
+
+\donttest{
+# parse the structure again from the bundled GAMS source
 structure <- read_gams(
   file_or_text = example_models$energyRt$gams$model,
   include = FALSE
 )
-
 }
-\references{
-energyRt package: \url{https://github.com/optimal2050/energyRt}
+
 }
 \seealso{
 \itemize{
 \item \code{\link{read_gams}} for parsing GAMS models
-\item \code{\link{read_gmpl}} for parsing GMPL models
+\item \code{\link{read_gmpl}} for parsing MathProg models
 \item \code{\link{as_multimod}} for converting model structures to multimod
 }
 }

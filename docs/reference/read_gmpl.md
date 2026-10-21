@@ -51,8 +51,33 @@ structure <- read_gmpl(c(
 names(structure$parameters)
 #> [1] "Demand"
 
-if (FALSE) { # \dontrun{
 # Model and data files on disk
-model <- read_gmpl("model.mod", "data.dat")
-} # }
+mod <- tempfile(fileext = ".mod")
+dat <- tempfile(fileext = ".dat")
+writeLines(c(
+  "set REGION;",
+  "param Demand{r in REGION};",
+  "var x{r in REGION} >= 0;",
+  "minimize cost: sum{r in REGION} x[r];",
+  "s.t. meet{r in REGION}: x[r] >= Demand[r];",
+  "end;"
+), mod)
+writeLines(c(
+  "data;",
+  "set REGION := north south;",
+  "param Demand := north 10 south 5;",
+  "end;"
+), dat)
+model <- read_gmpl(mod, dat)
+model
+#> Model: file87901f544d9
+#> Description: GMPL model from file87901f544d9.mod
+#> Source:  C:\Users\admin\AppData\Local\Temp\Rtmpqg9hPG\file87901f544d9.mod 
+#> Language:  gmpl 
+#> Sets:  1 
+#> Mappings:  0 
+#> Aliases:  1 
+#> Parameters:  1 
+#> Variables:  2 
+#> Equations:  2 
 ```

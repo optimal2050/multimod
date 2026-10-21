@@ -257,6 +257,7 @@
     index_aliases = .f("any"),
     inMemory      = .f("logical"),
     base_path     = .f("string"),
+    storage       = .f("any"),
     metadata      = .f("any"),
     misc          = .f("any")
   )

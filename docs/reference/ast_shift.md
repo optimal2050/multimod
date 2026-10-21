@@ -23,6 +23,12 @@ ast_shift(symbol, offset, circular = FALSE, ...)
   An integer offset. Negative for backward shift (e.g., -1 for y-1),
   positive for forward shift (e.g., +1 for y+1).
 
+- circular:
+
+  Logical. `FALSE` (default): a shift past either end of the set refers
+  to no member, so the term is dropped. `TRUE`: the shift wraps around
+  the ends of the set (GAMS `y--1`, `y++1`).
+
 - ...:
 
   Additional fields stored on the node (passed to

@@ -32,11 +32,11 @@ index building (one interned string per LP row and column).}
 
 \item{on_empty_row}{What to do about equation rows that carry no
 coefficients. Such a row reads \verb{0 <op> rhs}: it constrains nothing, yet
-the model still assembles and the solver still reports Optimal, so the
-answer is silently to a different question. \code{"user_constraints"} (the
-default) refuses when a USER constraint (\verb{eqCns*}) is empty -- a relaxed
-user constraint is never what the author meant -- and warns about any
-other empty rows. \code{"all"} refuses on any empty row, \code{"warn"} only warns,
+the model still assembles and the solver still reports Optimal, for a
+problem other than the one intended. \code{"user_constraints"} (the default)
+refuses when a user constraint (an equation named \verb{eqCns*}, the
+convention of energyRt models) is empty, since a relaxed user constraint
+changes the problem, and warns about any other empty rows. \code{"all"} refuses on any empty row, \code{"warn"} only warns,
 \code{"ignore"} says nothing.}
 
 \item{chunk_rows}{Passed to \code{\link[=build_triplets]{build_triplets()}}: evaluate each equation over
@@ -55,4 +55,9 @@ a lower bound only.
 }
 \description{
 Assemble a model into LP arrays
+}
+\examples{
+lp <- model_to_lp(example_models$toy)
+dim(lp$A)
+head(lp$row_index)
 }

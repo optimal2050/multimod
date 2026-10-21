@@ -105,7 +105,7 @@ reference:
   - starts_with("show")
   - matches("as.character")
 
-- title: Schema and serialisation
+- title: Schema and serialization
   desc: The node schema, validation, and the JSON round trip.
   contents:
   - ast_schema
@@ -131,9 +131,10 @@ reference:
   - starts_with("as_gams")
   - starts_with("write_gams")
   - matches("gams")
+  - -write_gams_data
 
-- title: GMPL / MathProg
-  desc: Read MathProg, render it, and solve with the glpsol executable.
+- title: MathProg
+  desc: Read GNU MathProg, render it, and solve it with the glpsol executable.
   contents:
   - starts_with("read_gmpl")
   - starts_with("as_gmpl")
@@ -143,7 +144,7 @@ reference:
   - read_csv_results
   - matches("gmpl")
 
-- title: JuMP / Julia
+- title: JuMP
   contents:
   - starts_with("read_jump")
   - starts_with("as_jump")
@@ -152,7 +153,7 @@ reference:
   - matches("jump")
   - -compare_jump_stats
 
-- title: Pyomo / Python
+- title: Pyomo
   contents:
   - starts_with("as_pyomo")
   - starts_with("write_pyomo")
@@ -187,8 +188,8 @@ reference:
   - get_trim_summary
   - is_trimmed
 
-- title: Direct matrix and MPS backend
-  desc: Assemble the LP from the AST, write MPS, solve in process.
+- title: Matrix route and MPS
+  desc: Assemble the LP from the AST, write MPS, and solve in R.
   contents:
   - model_to_lp
   - build_col_index
@@ -276,6 +277,7 @@ reference:
 - title: Experimental
   desc: Exported but untested; interfaces may change or be withdrawn.
   contents:
+  - write_gams_data
   - as_r
   - as_r.ast_formula
   - as_rfunction

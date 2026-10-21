@@ -10,8 +10,26 @@
 #' 3. YAML config file: the per-user directory given by `tools::R_user_dir("multimod", "config")` or `.multimod.yml`
 #' 4. Intelligent defaults (reticulate for Python, system PATH for others)
 #'
+#' @return
+#' - `get_multimod_python()`, `get_multimod_julia()`, `get_multimod_glpsol()`
+#'   and `get_multimod_solver()`: the resolved path, or the bare executable
+#'   name (`"python"`, `"julia"`, `"glpsol"`, or `solver_name`) to be found on
+#'   the `PATH` when nothing is configured.
+#' - `set_multimod_*()` and `set_multimod_solver()`: invisibly, the path set.
+#' - `multimod_config_write()`: invisibly, the path of the file written.
+#' - `multimod_config_read()`: the configuration as a list, or `NULL` when no
+#'   file is found.
+#' - `multimod_config_path()`: the path of the configuration file, marked
+#'   "(not found)" when it does not exist.
+#' - `multimod_config_show()`: called for its printed summary; returns
+#'   `NULL` invisibly.
+#'
 #' @name multimod-config
 #' @examples
+#' # where the configuration would be read from, and what is resolved now
+#' multimod_config_path()
+#' multimod_config_show()
+#'
 #' \dontrun{
 #' # Set paths via R options (session-persistent)
 #' set_multimod_python("C:/Python310/python.exe")

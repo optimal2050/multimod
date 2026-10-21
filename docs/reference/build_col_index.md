@@ -33,3 +33,13 @@ A `data.table` with columns `j` (1-based column index), `symbol`, `name`
 `NA` beyond a symbol's arity), and bounds `lo`, `up`, `vtype`.
 Per-symbol dimension names are kept in the `dim_names` attribute (a
 named list).
+
+## Examples
+
+``` r
+cols <- build_col_index(example_models$toy)
+table(cols$symbol)
+#> 
+#>  vCap vCost  vGen 
+#>     6     1     6 
+```

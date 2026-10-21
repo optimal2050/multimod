@@ -7,9 +7,10 @@
 write_latex(x, file, ...)
 }
 \arguments{
-\item{x}{An object of class \code{equation} or \code{model}.}
+\item{x}{An \code{mm_equation} or an \code{mm_model}.}
 
-\item{file}{Path to the output LaTeX file. If \code{NULL}, returns the LaTeX code as a character string.}
+\item{file}{Path to the output LaTeX file. For a model, \code{NULL} returns the
+LaTeX source instead of writing it.}
 
 \item{...}{Additional arguments passed to the specific method.}
 }
@@ -20,4 +21,8 @@ character string.
 }
 \description{
 Write LaTeX representation of an equation or model
+}
+\examples{
+tex <- write_latex(example_models$toy, file = NULL)
+cat(substr(tex, 1, 600))
 }

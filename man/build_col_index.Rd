@@ -27,3 +27,7 @@ One row per LP column. Columns are enumerated per variable from the tuples of
 the mapping named by \code{variable$domain}; a variable with no domain is treated
 as a scalar and contributes a single column.
 }
+\examples{
+cols <- build_col_index(example_models$toy)
+table(cols$symbol)
+}

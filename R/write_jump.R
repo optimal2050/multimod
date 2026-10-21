@@ -33,18 +33,18 @@
   members
 }
 
-#' Write a Julia/JuMP model file from a multimod object
+#' Write a JuMP model file from a multimod model
 #'
 #' @param model A `multimod` model object
 #' @param file Output file path (optional, overrides model_dir/solver_dir)
 #' @param model_dir Directory where model was saved with save_model() (contains model.rds)
-#' @param solver_dir Solver subdirectory name (default: "jump", e.g., "jump-highs", "jump-cplex")
+#' @param solver_dir Solver subdirectory name (default: "jump", e.g., "jump-highs")
 #' @param output_name Output filename (default: "model.jl")
 #' @param model_name Name for the JuMP model variable (default: "model")
-#' @param optimizer Julia optimizer to use (e.g., "HiGHS.Optimizer", "GLPK.Optimizer", "CPLEX.Optimizer")
+#' @param optimizer Julia optimizer to use (e.g., "HiGHS.Optimizer", "GLPK.Optimizer")
 #' @param optimizer_attributes Named list of optimizer attributes to set (e.g., list(solver = "ipm", presolve = "on", parallel = "on")).
 #'   For HiGHS: solver can be "simplex", "ipm" (interior point/barrier), or "choose" (default). 
-#'   Use "ipm" for large models (>1M rows) as it scales better than simplex.
+#'   "ipm" is usually faster than simplex on large models.
 #'   If NULL, uses solver defaults with automatic barrier method selection for large models (>1M constraints).
 #' @param use_folded logical; whether to use folded equations if available (default: TRUE)
 #' @param cleanup logical; whether to remove existing solver_dir before generating new files (default: TRUE)

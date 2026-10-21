@@ -40,3 +40,12 @@ An object of class \code{mapping}
 \description{
 Create a multimod mapping object
 }
+\examples{
+pairs <- expand.grid(
+  tech = c("coal", "wind"),
+  region = c("north", "south"),
+  stringsAsFactors = FALSE
+)
+new_mapping("mTR", desc = "technology x region pairs",
+            dims = c("tech", "region"), data = pairs)
+}

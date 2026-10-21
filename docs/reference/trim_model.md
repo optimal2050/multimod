@@ -1,10 +1,10 @@
-# Trim a model to the elements its data actually uses
+# Trim a model to the elements its data uses
 
 Marks sets, parameters and mappings with no data, then the variables and
 equations whose domains are empty as a consequence, so that renderers
 skip them. The model keeps every element;
 [`untrim_model()`](https://optimal2050.github.io/multimod/reference/untrim_model.md)
-restores the marks and
+clears the marks and
 [`get_trim_summary()`](https://optimal2050.github.io/multimod/reference/get_trim_summary.md)
 reports what was trimmed.
 

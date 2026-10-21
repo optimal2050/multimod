@@ -26,11 +26,17 @@ Model with trimmed flags removed
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
-# Untrim everything
-model <- untrim_model(model)
+# \donttest{
+trimmed <- trim_model(example_models$energyRt$multimod, verbose = FALSE)
+is_trimmed(trimmed)
+#> [1] TRUE
 
 # Untrim only variables and equations
-model <- untrim_model(model, elements = c("variables", "equations"))
-} # }
+partly <- untrim_model(trimmed, elements = c("variables", "equations"))
+
+# Untrim everything
+restored <- untrim_model(trimmed)
+is_trimmed(restored)
+#> [1] FALSE
+# }
 ```

@@ -69,7 +69,7 @@ maintain.
 │      Input Formats          │
 ├─────────────────────────────┤
 │ GAMS    (basic/linear only) │ → read_gams()
-│ GMPL    (limited features)  │ → read_gmpl()
+│ MathProg (limited features) │ → read_gmpl()
 │ JuMP    (constraints only)  │ → mm_equation()
 │ {{Pyomo, AMPL, MPS, ...}}   │ → {{...}}
 └─────────────────────────────┘
@@ -89,7 +89,7 @@ maintain.
 │ Output: model code               │  │ Output: LP matrix                │
 ├──────────────────────────────────┤  ├──────────────────────────────────┤
 │ LaTeX    write_latex()       [x] │  │ model_to_lp()               [x]  │
-│ GMPL     write_gmpl()        [x] │  │ write_mps()                 [x]  │
+│ MathProg write_gmpl()        [x] │  │ write_mps()                 [x]  │
 │ JuMP     write_jump()        [x] │  │ solve_highs()               [x]  │
 │ Pyomo    write_pyomo()       [x] │  │ solve_mps()                 [x]  │
 │ GAMS     write_gams() +      [x] │  │ read_mps_solution()         [x]  │
@@ -105,8 +105,8 @@ Status: [x] implemented | [~] and { } developing | [ ] and {{ }} considering
 
 <!-- ![multimod architecture](man/figures/multimod-architecture.svg) -->
 
-The diagram summarizes the architecture; the inventory below details the
-implemented functions and limitations.
+The diagram summarizes the architecture; the table under
+[Capabilities](#capabilities) lists the implemented functions.
 
 The current tested scope is **linear programming with continuous
 variables**. Language importers cover documented subsets, and some
@@ -120,17 +120,17 @@ the
 pak::pkg_install("optimal2050/multimod")
 ```
 
-The direct-matrix route requires the `highs` R package. Other routes
-require their corresponding toolchains: `glpsol` (the ‘glpsol’ R package
-ships it), Julia with JuMP, or Python with Pyomo; see the “Configuring
-solver paths” article.
+The matrix route requires the ‘highs’ R package. Other routes require
+their corresponding toolchains: `glpsol` (the ‘glpsol’ R package ships
+it), Julia with JuMP, or Python with Pyomo; see the “Configuring solver
+paths” article.
 
 ## Quickstart: one model, several representations
 
 ``` r
 library(multimod)
 
-toy <- example_models$toy          # built in R, see vignette("ast")
+toy <- example_models$toy          # built in R, see "Writing a model in R"
 toy
 #> Model: toy
 #> Description: two-region capacity expansion toy model
@@ -184,10 +184,7 @@ runs them side by side; “Two models from the field” does the same for
 the energyRt reference model and for OSeMOSYS, read from its MathProg
 source and solved both through JuMP and from the matrix.
 
-## Architecture and capabilities
-
-The diagram above replaces the ASCII overview; the table retains the
-function-level inventory.
+## Capabilities
 
 |  |  |
 |----|----|
@@ -208,13 +205,18 @@ lists what else is not done yet.
 
 ## Documentation and next steps
 
-- `vignette("multimod")`: the representation and what the package does
-  with it.
-- `vignette("ast")`: writing a model in R.
-- `vignette("folding")`: folding and trimming.
-- Articles on the [website](https://optimal2050.github.io/multimod/):
-  solving and reading results, the two field models, the model
-  workspace, configuration, LaTeX.
+- `vignette("multimod")`: reading, translating, analyzing, exporting and
+  solving a model in a few calls.
+- [Writing a model in
+  R](https://optimal2050.github.io/multimod/articles/ast.html): the
+  constructors, step by step.
+- [Folding and
+  trimming](https://optimal2050.github.io/multimod/articles/folding.html):
+  reducing a model to the size its data needs.
+- Further articles on the
+  [website](https://optimal2050.github.io/multimod/): solving and
+  reading results, the two field models, the model workspace,
+  configuration, LaTeX.
 
 ## Development direction
 
@@ -235,6 +237,6 @@ hardware through the mmcloud package.
 
 Apache License 2.0; see `LICENSE.md`. The bundled `example_models`
 dataset is derived from energyRt and remains under energyRt’s Apache
-License 2.0; `LICENSE.note` has the details, and the attribution for
+License 2.0; `inst/COPYRIGHTS` has the details, and the attribution for
 OSeMOSYS, which the documentation reads from its public repository and
 does not bundle.

@@ -87,6 +87,12 @@ Negative offset represents backward shift (lag), positive represents forward shi
 <dd><p>An integer offset. Negative for backward shift (e.g., -1 for y-1), positive for forward shift (e.g., +1 for y+1).</p></dd>
 
 
+<dt id="arg-circular">circular<a class="anchor" aria-label="anchor" href="#arg-circular"></a></dt>
+<dd><p>Logical. <code>FALSE</code> (default): a shift past either end of the
+set refers to no member, so the term is dropped. <code>TRUE</code>: the shift wraps
+around the ends of the set (GAMS <code>y--1</code>, <code>y++1</code>).</p></dd>
+
+
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
 <dd><p>Additional fields stored on the node (passed to <code><a href="new_ast.html">new_ast()</a></code>).</p></dd>
 

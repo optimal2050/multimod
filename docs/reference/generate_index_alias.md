@@ -8,7 +8,7 @@ conventions:
 
 - First letter of the set name (lowercase) for others
 
-- If it's an alias, use two letters (checking against all_set_names)
+- Two letters for an alias (checked against all_set_names)
 
 - Ensures uniqueness by checking against all symbols in model
 

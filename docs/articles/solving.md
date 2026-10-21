@@ -5,7 +5,8 @@
 library(multimod)
 ```
 
-[`vignette("ast")`](https://optimal2050.github.io/multimod/articles/ast.md)
+The [Writing a model in
+R](https://optimal2050.github.io/multimod/articles/ast.md) article
 builds a model in R. This article takes that model to a solution and
 back: what the model object contains once it has data, where its files
 go, how multimod turns it into a matrix or into code for another
@@ -32,8 +33,8 @@ toy
 #> Equations:  3
 ```
 
-A model is a list of named components. Two kinds of content live in it
-and it pays to keep them apart:
+A model is a list of named components. It holds two kinds of content,
+which are best kept apart:
 
 - **Declarations** say what exists. A parameter has dimensions, a
   variable has dimensions and a *domain*, an equation has sides, a
@@ -42,7 +43,7 @@ and it pays to keep them apart:
 - **Data** says how much of it exists. Sets carry their members,
   mappings their tuples, parameters their values. Solving needs data.
 
-The domain is the hinge between the two. A variable declared over
+The domain connects the two. A variable declared over
 `c("tech", "region")` with domain `"mTR"` has one instance per row of
 the mapping `mTR`, not one per combination of the sets. That is how a
 sparse model stays sparse, and it is also the first thing to check when
@@ -218,11 +219,10 @@ with changed data.
 
 ## Generating code
 
-The file routes render the model in another language and leave the solve
-to that language’s toolchain. MathProg is the one to read first: the
-whole generated model fits on a screen, and the other two backends
-differ from it in ways that are easier to see once this one is
-understood.
+The code-generation routes render the model in another language and
+leave the solve to that language’s toolchain. MathProg is shown first
+and in full, because the generated model is short; the JuMP and Pyomo
+code is described by how it differs from it.
 
 ### MathProg, in full
 
@@ -243,7 +243,7 @@ cat(mod[1:grep("^solve;", mod)], sep = "\n")
 #> set mTR dimen 2;  # technology x region pairs
 #> set mR dimen 1;  # regions
 #> 
-#> param pCapCost{tech};  # annualised capacity cost, EUR/kW
+#> param pCapCost{tech};  # annualized capacity cost, EUR/kW
 #> param pVarCost{tech};  # variable cost, EUR/MWh
 #> param pAvail{tech,region};  # availability factor
 #> param pDemand{region};  # annual demand, MWh
@@ -352,7 +352,7 @@ cat(jl[(i - 2):(i + 2)], sep = "\n")
 #> _log_constraint(constraint_stats, "eqCapLim", eqCapLim, length(eqCapLim), time() - _t0)
 ```
 
-Three choices in this code are worth knowing about:
+Three properties of this code matter:
 
 - **Variables are indexed by their domain mapping**, `vCap[mTR]`, and
   constraints iterate over it, `eqCapLim[(h, r) in mTR]`. The mapping is
@@ -374,8 +374,8 @@ Three choices in this code are worth knowing about:
 `data.jl` finds the workspace relative to its own location and detects
 the format from `format.txt`, so the same file works for CSV, Arrow IPC
 and Parquet workspaces. With `data_mode = "embedded"` the data is
-written into the Julia source instead, which makes a model file that
-runs anywhere but has to be regenerated when the data changes.
+written into the Julia source instead, which makes the model file
+self-contained but means it has to be regenerated when the data changes.
 
 ### Pyomo
 
@@ -439,8 +439,8 @@ p$status$termination
 #> [1] "optimal"
 ```
 
-What each one runs, which is also how to run the code by hand from the
-backend’s directory when something needs a closer look:
+The command each route runs, which also runs the code by hand from the
+backend’s directory for closer inspection:
 
 | Route | Command | Leaves behind in `solvers/<backend>/` |
 |----|----|----|
@@ -448,16 +448,15 @@ backend’s directory when something needs a closer look:
 | JuMP | `julia model.jl` | `solution/*.csv`, the two stats files, the Julia output |
 | Pyomo | `python model.py` | `solution/status.json`, `solution/variables.json` |
 
-The first Julia run installs the packages the model needs and compiles
-them, which takes minutes; later runs take seconds.
+The first Julia run installs and compiles the packages the model needs,
+which makes it much slower than later runs.
 [`solve_jump()`](https://optimal2050.github.io/multimod/reference/solve_jump.md)
 and
 [`solve_gmpl()`](https://optimal2050.github.io/multimod/reference/solve_gmpl.md)
-accept `timeout =`;
-[`solve_pyomo()`](https://optimal2050.github.io/multimod/reference/solve_pyomo.md)
-checks the Python environment with
+accept `timeout =`; `solve_pyomo(ensure_env = TRUE)` checks the Python
+environment with
 [`mm_check_python()`](https://optimal2050.github.io/multimod/reference/mm_check_python.md)
-before running unless `ensure_env = FALSE`.
+before running.
 
 ## Results back in R
 
@@ -517,8 +516,8 @@ reports every column.
 ## When routes disagree
 
 Same model, same data, different objective: the translation has read
-something differently. The cases below account for nearly all of them,
-in the order to check.
+something differently. The cases below are the common causes, in the
+order in which they are checked.
 
 1.  **An equation produces no rows.** Its domain mapping has no tuples,
     or the tuples do not match the data. In R,
@@ -540,25 +539,25 @@ in the order to check.
     (`write_gmpl(INF = )`); JuMP and Pyomo receive `Inf` as a bound
     where the value is a bound and as a coefficient otherwise, where the
     solver decides. Search the data for `Inf` before comparing.
-4.  **Missing index aliases.** The text backends write iterator names
+4.  **Missing index aliases.** The code generators write iterator names
     from the model’s index aliases. A model built in R has none until
     [`add_index_aliases()`](https://optimal2050.github.io/multimod/reference/add_index_aliases.md)
     adds them; without them a `sum{}` is written with no iterator and
     glpsol rejects the file.
     [`has_index_aliases()`](https://optimal2050.github.io/multimod/reference/has_index_aliases.md)
-    tells.
+    reports whether they are present.
 5.  **Row counts, not objectives.** When the objectives differ, compare
     per-equation instance counts first (`table(lp$row_index$symbol)`
     against `constraint_stats.csv`), then per-variable bounds
     (`lp$col_index` against `variable_stats.csv`). A count that differs
-    points at the equation; an objective that differs points nowhere.
+    identifies the equation; an objective that differs does not.
 
 ## Choosing a route
 
 | Route | Needs | Returns | Use when |
 |----|----|----|----|
-| [`solve_highs()`](https://optimal2050.github.io/multimod/reference/solve_highs.md) | the ‘highs’ R package | primal, duals, reduced costs, the LP arrays | the model fits in memory and you want duals or repeated solves ([`mm_session()`](https://optimal2050.github.io/multimod/reference/mm_session.md)) |
-| [`write_mps()`](https://optimal2050.github.io/multimod/reference/write_mps.md) | nothing | an MPS file | the solver is elsewhere, including cloud hardware |
+| [`solve_highs()`](https://optimal2050.github.io/multimod/reference/solve_highs.md) | the ‘highs’ R package | primal, duals, reduced costs, the LP arrays | the model fits in memory and duals or repeated solves ([`mm_session()`](https://optimal2050.github.io/multimod/reference/mm_session.md)) are needed |
+| [`write_mps()`](https://optimal2050.github.io/multimod/reference/write_mps.md) | the ‘highs’ R package | an MPS file | the solver runs elsewhere |
 | [`solve_gmpl()`](https://optimal2050.github.io/multimod/reference/solve_gmpl.md) | `glpsol` | primal values | a small or medium LP, or when a readable model file is the point |
 | [`solve_jump()`](https://optimal2050.github.io/multimod/reference/solve_jump.md) | Julia | primal values, build statistics | a large model, or a solver only JuMP wraps (`optimizer =`) |
 | [`solve_pyomo()`](https://optimal2050.github.io/multimod/reference/solve_pyomo.md) | Python with pyomo | primal values, status | the results continue in a Python pipeline |

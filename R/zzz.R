@@ -15,7 +15,8 @@
 }
 
 # Column names used in data.table / dplyr expressions, and R6 bindings.
-utils::globalVariables(c(".", "value", "n", "self", "private", "min_val", "max_val"))
+utils::globalVariables(c(".", "value", "n", "self", "private", "min_val", "max_val",
+                         ".N", "lo", "up"))
 
 # Package-level state (e.g. whether Julia was initialised in this session);
 # never the global environment.

@@ -1,14 +1,17 @@
-# multimod: Define and Render Mathematical Models Across Optimization Languages
+# multimod: Define and Render Mathematical Models Across Modeling Languages
 
-A domain-specific language for defining sets, parameters, variables,
-mappings and equations of an algebraic optimization model in R, and
-rendering the model to several mathematical programming languages,
-including 'GAMS', 'GNU MathProg', 'Pyomo' and 'JuMP', or to an LP matrix
-solved in R. Models can be folded, trimmed, validated, compared and
-stored, and solutions read back into R. Linear programs with continuous
-variables are the tested class; integer and binary variables are carried
-in the model and written by some backends, and nonlinear expressions
-have no tested route to a solver.
+Represents a linear optimization model as an abstract syntax tree of
+sets, mappings, parameters, variables and equations, independent of any
+modeling language. Models are built in R or read from 'GAMS' and 'GNU
+MathProg' source, rendered to 'GAMS', 'GNU MathProg', 'JuMP', 'Pyomo'
+and 'LaTeX', or assembled into a linear programming (LP) matrix and
+solved in R with 'HiGHS'. Models can be validated, reduced by folding
+repeated parameter values and trimming unused symbols, stored as data
+workspaces and exchanged as JSON, and solutions are read back into R.
+Linear programs with continuous variables are the tested class; integer
+and binary variables are carried in the model and written by the 'JuMP'
+and 'Pyomo' writers, and nonlinear expressions have no tested route to a
+solver.
 
 ## See also
 

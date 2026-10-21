@@ -6,7 +6,7 @@ Constructors for the declarations a model is made of, and the text route
 for writing an equation.
 
 - [`mm_equation()`](https://optimal2050.github.io/multimod/reference/mm_equation.md)
-  : Write an equation as MathProg or GAMS text
+  : Write an equation as MathProg, GAMS or JuMP text
 - [`new_equation()`](https://optimal2050.github.io/multimod/reference/new_equation.md)
   : Create a multimod equation object
 - [`new_mapping()`](https://optimal2050.github.io/multimod/reference/new_mapping.md)
@@ -97,7 +97,7 @@ Printing, plotting and summarising model objects.
 - [`as.character(`*`<expression>`*`)`](https://optimal2050.github.io/multimod/reference/as.character.expression.md)
   : Convert AST expression to character
 
-## Schema and serialisation
+## Schema and serialization
 
 The node schema, validation, and the JSON round trip.
 
@@ -166,12 +166,10 @@ Read GAMS, and render a model or any node back to it.
   : Write a full GAMS model file from a multimod object
 - [`write_gams()`](https://optimal2050.github.io/multimod/reference/write_gams.md)
   : Write a GAMS model file from a multimod object
-- [`write_gams_data()`](https://optimal2050.github.io/multimod/reference/write_gams_data.md)
-  : Write a model's data to a GDX for GAMS
 
-## GMPL / MathProg
+## MathProg
 
-Read MathProg, render it, and solve with the glpsol executable.
+Read GNU MathProg, render it, and solve it with the glpsol executable.
 
 - [`read_gmpl()`](https://optimal2050.github.io/multimod/reference/read_gmpl.md)
   : Read GMPL model file
@@ -197,12 +195,12 @@ Read MathProg, render it, and solve with the glpsol executable.
 - [`import_gmpl_data()`](https://optimal2050.github.io/multimod/reference/import_gmpl_data.md)
   : Import GMPL Data to Model
 
-## JuMP / Julia
+## JuMP
 
 - [`as_jump()`](https://optimal2050.github.io/multimod/reference/as_jump.md)
   : Convert multimod object to Julia/JuMP syntax
 - [`write_jump()`](https://optimal2050.github.io/multimod/reference/write_jump.md)
-  : Write a Julia/JuMP model file from a multimod object
+  : Write a JuMP model file from a multimod model
 - [`write_jump_solution_code()`](https://optimal2050.github.io/multimod/reference/write_jump_solution_code.md)
   : Julia source of the JuMP solution writer
 - [`solve_jump()`](https://optimal2050.github.io/multimod/reference/solve_jump.md)
@@ -210,7 +208,7 @@ Read MathProg, render it, and solve with the glpsol executable.
 - [`parse_jump_equation()`](https://optimal2050.github.io/multimod/reference/parse_jump_equation.md)
   : Parse one JuMP constraint into a multimod equation
 
-## Pyomo / Python
+## Pyomo
 
 - [`as_pyomo()`](https://optimal2050.github.io/multimod/reference/as_pyomo.md)
   : Convert a multimod AST node to Pyomo syntax
@@ -270,7 +268,7 @@ Drop dimensions a parameter does not vary over.
 Drop symbols the model does not use.
 
 - [`trim_model()`](https://optimal2050.github.io/multimod/reference/trim_model.md)
-  : Trim a model to the elements its data actually uses
+  : Trim a model to the elements its data uses
 - [`untrim_model()`](https://optimal2050.github.io/multimod/reference/untrim_model.md)
   : Untrim model or specific elements
 - [`get_trim_summary()`](https://optimal2050.github.io/multimod/reference/get_trim_summary.md)
@@ -278,9 +276,9 @@ Drop symbols the model does not use.
 - [`is_trimmed()`](https://optimal2050.github.io/multimod/reference/is_trimmed.md)
   : Check if model or object is trimmed
 
-## Direct matrix and MPS backend
+## Matrix route and MPS
 
-Assemble the LP from the AST, write MPS, solve in process.
+Assemble the LP from the AST, write MPS, and solve in R.
 
 - [`model_to_lp()`](https://optimal2050.github.io/multimod/reference/model_to_lp.md)
   : Assemble a model into LP arrays
@@ -376,7 +374,7 @@ Where the interpreters and solvers are found.
 ## Data and examples
 
 - [`example_models`](https://optimal2050.github.io/multimod/reference/example_models.md)
-  : Example Model in Multiple Formats
+  : Example models
 
 ## Utility functions
 
@@ -445,6 +443,8 @@ Helpers used across the package.
 
 Exported but untested; interfaces may change or be withdrawn.
 
+- [`write_gams_data()`](https://optimal2050.github.io/multimod/reference/write_gams_data.md)
+  : Write a model's data to a GDX for GAMS
 - [`as_r()`](https://optimal2050.github.io/multimod/reference/as_r.md) :
   Convert AST to R Code
 - [`as_r(`*`<ast_formula>`*`)`](https://optimal2050.github.io/multimod/reference/as_r.ast_formula.md)

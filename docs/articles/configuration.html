@@ -100,8 +100,8 @@
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://optimal2050.github.io/multimod/">multimod</a></span><span class="op">)</span></span></code></pre></div>
 <p>The matrix route (<code><a href="../reference/model_to_lp.html">model_to_lp()</a></code>,
 <code><a href="../reference/solve_highs.html">solve_highs()</a></code>) needs nothing beyond the ‘highs’ R package.
-The file routes run external toolchains, and multimod has to find three
-executables:</p>
+The code-generation routes run external toolchains, and multimod has to
+find three executables:</p>
 <table class="table">
 <thead><tr class="header">
 <th>Route</th>
@@ -133,7 +133,8 @@ executables:</p>
 <ol style="list-style-type: decimal">
 <li>an R option, set with <code><a href="../reference/multimod-config.html">set_multimod_python()</a></code>,
 <code><a href="../reference/multimod-config.html">set_multimod_julia()</a></code>, <code><a href="../reference/multimod-config.html">set_multimod_glpsol()</a></code>
-(or <code>options(multimod.python_path = ...)</code> and friends);</li>
+(or the corresponding options, such as
+<code>options(multimod.python_path = ...)</code>);</li>
 <li>an environment variable: <code>MULTIMOD_PYTHON</code>,
 <code>MULTIMOD_JULIA</code>, <code>MULTIMOD_GLPSOL</code>;</li>
 <li>a YAML configuration file, project-level <code>.multimod.yml</code>
@@ -201,8 +202,8 @@ paths are user-specific.</p>
 <div class="section level2">
 <h2 id="glpk">GLPK<a class="anchor" aria-label="anchor" href="#glpk"></a>
 </h2>
-<p>The simplest way to get <code>glpsol</code> is the ‘glpsol’ R
-package, which ships the executable and is found automatically:</p>
+<p>The ‘glpsol’ R package ships the <code>glpsol</code> executable,
+which multimod finds automatically:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"glpsol"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/multimod-config.html">get_multimod_glpsol</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
@@ -240,8 +241,9 @@ reticulate. Miniconda is installed first if there is none.</p>
 <span><span class="fu"><a href="../reference/mm_check_python.html">mm_check_python</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p><code><a href="../reference/mm_check_python.html">mm_check_python()</a></code> reports the interpreter that will be
 used, its version and the packages that fail to import.
-<code><a href="../reference/solve_pyomo.html">solve_pyomo()</a></code> calls it before bootstrapping, so a usable
-environment is not reinstalled on every solve.</p>
+<code><a href="../reference/solve_pyomo.html">solve_pyomo()</a></code> uses the configured interpreter as it is;
+<code>solve_pyomo(ensure_env = TRUE)</code> checks it first and runs
+<code><a href="../reference/mm_setup_python.html">mm_setup_python()</a></code> when it is not usable.</p>
 <p>To use an existing interpreter instead, point to it and check it
 carries the packages a route needs:</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
@@ -263,8 +265,8 @@ environment’s <code>bin</code> directory is not on the
 <code>PATH</code>; multimod looks inside it for glpsol, but a shell will
 not.</li>
 <li>
-<code>solve_pyomo(ensure_env = FALSE)</code> skips the environment
-check when the interpreter is managed elsewhere.</li>
+<code><a href="../reference/mm_check_python.html">mm_check_python()</a></code> reports whether the interpreter
+<code><a href="../reference/solve_pyomo.html">solve_pyomo()</a></code> will use carries the needed packages.</li>
 </ul>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

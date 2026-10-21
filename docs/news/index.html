@@ -90,7 +90,7 @@
 <ul><li>
 <code><a href="../reference/as_gmpl.html">as_gmpl()</a></code>, <code><a href="../reference/as_pyomo.html">as_pyomo()</a></code> and <code><a href="../reference/write_gmpl.html">write_gmpl()</a></code>, <code><a href="../reference/write_jump.html">write_jump()</a></code>, <code><a href="../reference/write_pyomo.html">write_pyomo()</a></code> render a model to MathProg, JuMP and Pyomo, with its data embedded or read from CSV, Arrow IPC or Parquet files.</li>
 <li>
-<code><a href="../reference/write_gams_data.html">write_gams_data()</a></code> writes a model’s data to a GDX file, and <code>write_gams(gdx =, include_solve =)</code> emits the matching load and solve statements. Parameters defined by a formula are written as assignments.</li>
+<code><a href="../reference/write_gams_data.html">write_gams_data()</a></code> (experimental) writes a model’s data to a GDX file, and <code>write_gams(gdx =, include_solve =)</code> emits the matching load and solve statements. Parameters defined by a formula are written as assignments.</li>
 </ul></div>
 <div class="section level4">
 <h4 id="solving-0-5-0">Solving<a class="anchor" aria-label="anchor" href="#solving-0-5-0"></a></h4>
@@ -103,7 +103,7 @@
 <li>
 <code><a href="../reference/check_matrix_numbers.html">check_matrix_numbers()</a></code> reports the coefficient range of an assembled LP.</li>
 <li>
-<code><a href="../reference/solve_gmpl.html">solve_gmpl()</a></code>, <code><a href="../reference/solve_jump.html">solve_jump()</a></code> and <code><a href="../reference/solve_pyomo.html">solve_pyomo()</a></code> run the generated code and load the solution into the model.</li>
+<code><a href="../reference/solve_gmpl.html">solve_gmpl()</a></code>, <code><a href="../reference/solve_jump.html">solve_jump()</a></code> and <code><a href="../reference/solve_pyomo.html">solve_pyomo()</a></code> run the generated code and load the solution into the model. <code><a href="../reference/solve_pyomo.html">solve_pyomo()</a></code> uses the configured Python interpreter; <code>ensure_env = TRUE</code> creates the environment with <code><a href="../reference/mm_setup_python.html">mm_setup_python()</a></code> when it is not usable.</li>
 </ul></div>
 <div class="section level4">
 <h4 id="workspace-reduction-and-exchange-0-5-0">Workspace, reduction and exchange<a class="anchor" aria-label="anchor" href="#workspace-reduction-and-exchange-0-5-0"></a></h4>
@@ -124,7 +124,8 @@
 </ul></div>
 <div class="section level4">
 <h4 id="documentation-0-5-0">Documentation<a class="anchor" aria-label="anchor" href="#documentation-0-5-0"></a></h4>
-<ul><li>Vignettes: an overview, writing a model in R, and folding and trimming. Website articles cover solving and reading results, two published models, the model workspace, configuration and LaTeX rendering.</li>
+<ul><li>
+<code><a href="../articles/multimod.html">vignette("multimod")</a></code> takes a small model through reading, translation, redundancy analysis, LaTeX, export and solving. Website articles cover writing a model in R, folding and trimming, solving and reading results, two published models, the model workspace, configuration and LaTeX rendering.</li>
 </ul></div>
 </div>
 <div class="section level3">
@@ -132,13 +133,17 @@
 <ul><li>
 <code><a href="../reference/read_gams.html">read_gams()</a></code> parses a sum over several indices, numbers in scientific notation with a signed exponent, and decimal literals in equation bodies.</li>
 <li>
+<code><a href="../reference/read_gams.html">read_gams()</a></code> reads several symbols declared on one line (<code>set tech, region;</code>), and an equation header without a <code>$</code> condition.</li>
+<li>
 <code>^</code> no longer distributes over the terms of its base, so <code>(1 + r)^n</code> is evaluated as written.</li>
 <li>
 <code><a href="../reference/as_gams.html">as_gams()</a></code> output compiles: conditions are bracketed, function arguments and multi-index sums are rendered, and iterated minima and maxima are written as <code>smin()</code> and <code>smax()</code>.</li>
 <li>
+<code><a href="../reference/write_gams.html">write_gams()</a></code> declares each equation over its sets, as GAMS requires, and writes no empty <code>sets</code> block.</li>
+<li>
 <code><a href="../reference/as_latex.html">as_latex()</a></code> renders an equation’s index names in its header.</li>
 <li>
-<code><a href="../reference/ast_dims.html">ast_dims()</a></code> accepts a single node.</li>
+<code><a href="../reference/ast_dims.html">ast_dims()</a></code> accepts a single node, and returns a <code>dims</code> node unchanged.</li>
 </ul><hr></div>
 </div>
     <div class="section level2">

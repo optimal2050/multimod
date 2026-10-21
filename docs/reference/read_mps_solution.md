@@ -57,3 +57,24 @@ A list with `objective`, `status`, `primal` (`j`, symbol, name, value)
 and `dual` (`i`, symbol, name, value, marginal) - the same shape
 [`solve_highs()`](https://optimal2050.github.io/multimod/reference/solve_highs.md)
 returns, so the two paths are interchangeable.
+
+## Examples
+
+``` r
+if (requireNamespace("highs", quietly = TRUE)) {
+  dir <- tempfile("mps-")
+  dir.create(dir)
+  mps <- file.path(dir, "toy.mps")
+  write_mps(example_models$toy, mps, format = "csv")
+  run <- solve_mps(mps)
+  sol <- read_mps_solution(run$sol_file, index_dir = dir, format = "csv")
+  names(sol)
+}
+#> WARNING: Column names are not present, or contain duplicates: using names with prefix "c", beginning with suffix 0
+#> 
+#> WARNING: Row    names are not present, or contain duplicates: using names with prefix "r", beginning with suffix 0
+#> 
+#> Writing the model to C:\Users\admin\AppData\Local\Temp\Rtmpqg9hPG\mps-87901d633a00/toy.mps
+#> 
+#> [1] "objective" "status"    "primal"    "dual"      "col_index" "row_index"
+```

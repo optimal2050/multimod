@@ -4,11 +4,11 @@
 \name{multimod-package}
 \alias{multimod}
 \alias{multimod-package}
-\title{multimod: Define and Render Mathematical Models Across Optimization Languages}
+\title{multimod: Define and Render Mathematical Models Across Modeling Languages}
 \description{
 \if{html}{\figure{logo.png}{options: style='float: right' alt='logo' width='120'}}
 
-A domain-specific language for defining sets, parameters, variables, mappings and equations of an algebraic optimization model in R, and rendering the model to several mathematical programming languages, including 'GAMS', 'GNU MathProg', 'Pyomo' and 'JuMP', or to an LP matrix solved in R. Models can be folded, trimmed, validated, compared and stored, and solutions read back into R. Linear programs with continuous variables are the tested class; integer and binary variables are carried in the model and written by some backends, and nonlinear expressions have no tested route to a solver.
+A unified framework for mathematical model representation, analysis, transformation, and optimization. Uses a universal intermediate representation (IR) to construct, import, inspect, simplify, and export mathematical models independently of modeling languages and solvers. Supports 'GAMS', 'GNU MathProg', 'JuMP', 'Pyomo', and 'LaTeX', direct generation and reduction of linear programming (LP) matrices, solving with 'HiGHS', 'cuOpt', and solution decoding. Currently focused on continuous linear optimization.
 }
 \seealso{
 Useful links:

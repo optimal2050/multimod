@@ -1,6 +1,6 @@
-# Write a Julia/JuMP model file from a multimod object
+# Write a JuMP model file from a multimod model
 
-Write a Julia/JuMP model file from a multimod object
+Write a JuMP model file from a multimod model
 
 ## Usage
 
@@ -41,8 +41,7 @@ write_jump(
 
 - solver_dir:
 
-  Solver subdirectory name (default: "jump", e.g., "jump-highs",
-  "jump-cplex")
+  Solver subdirectory name (default: "jump", e.g., "jump-highs")
 
 - output_name:
 
@@ -54,17 +53,16 @@ write_jump(
 
 - optimizer:
 
-  Julia optimizer to use (e.g., "HiGHS.Optimizer", "GLPK.Optimizer",
-  "CPLEX.Optimizer")
+  Julia optimizer to use (e.g., "HiGHS.Optimizer", "GLPK.Optimizer")
 
 - optimizer_attributes:
 
   Named list of optimizer attributes to set (e.g., list(solver = "ipm",
   presolve = "on", parallel = "on")). For HiGHS: solver can be
-  "simplex", "ipm" (interior point/barrier), or "choose" (default). Use
-  "ipm" for large models (\>1M rows) as it scales better than simplex.
-  If NULL, uses solver defaults with automatic barrier method selection
-  for large models (\>1M constraints).
+  "simplex", "ipm" (interior point/barrier), or "choose" (default).
+  "ipm" is usually faster than simplex on large models. If NULL, uses
+  solver defaults with automatic barrier method selection for large
+  models (\>1M constraints).
 
 - use_folded:
 
@@ -128,5 +126,5 @@ write_jump(m, model_dir = ws, solver_dir = "jump-highs")
 # Barrier method for large models
 write_jump(m, model_dir = ws,
            optimizer_attributes = list(solver = "ipm", parallel = "on"))
-#> Removing existing solver directory: C:\Users\admin\AppData\Local\Temp\Rtmp0u9C8p/energyRt_ws/solvers/jump
+#> Removing existing solver directory: C:\Users\admin\AppData\Local\Temp\Rtmpqg9hPG/energyRt_ws/solvers/jump
 ```

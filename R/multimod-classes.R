@@ -6,6 +6,8 @@
 #' @param data Optional values (e.g., character vector or data.frame).
 #' @return An object of class `set`
 #' @export
+#' @examples
+#' new_set("tech", desc = "generation technologies", data = c("coal", "gas", "wind"))
 new_set <- function(name, desc = NULL, subset_of = NULL,
                              data = NULL) {
   stopifnot(is.character(name), length(name) == 1)
@@ -39,6 +41,14 @@ new_set <- function(name, desc = NULL, subset_of = NULL,
 #'   resolve dimension names in [ast_dims()]
 #' @return An object of class `mapping`
 #' @export
+#' @examples
+#' pairs <- expand.grid(
+#'   tech = c("coal", "wind"),
+#'   region = c("north", "south"),
+#'   stringsAsFactors = FALSE
+#' )
+#' new_mapping("mTR", desc = "technology x region pairs",
+#'             dims = c("tech", "region"), data = pairs)
 new_mapping <- function(name,
                                  desc = NULL,
                                  subset_of = NULL,
@@ -84,6 +94,9 @@ new_mapping <- function(name,
 #'
 #' @returns a parameter object
 #' @export
+#' @examples
+#' new_parameter("pDemand", desc = "annual demand, MWh", dims = "region",
+#'               data = data.frame(region = c("north", "south"), value = c(1000, 600)))
 new_parameter <- function(
     name,
     desc = NULL,
@@ -146,6 +159,9 @@ new_parameter <- function(
 #'
 #' @returns a variable object
 #' @export
+#' @examples
+#' new_variable("vGen", desc = "generation, MWh", dims = c("tech", "region"),
+#'              domain = "mTR", vtype = "positive", bounds = list(lo = 0))
 new_variable <- function(
     name,
     desc = NULL,
@@ -211,7 +227,7 @@ new_variable <- function(
 #' @param symbols Optional named list of known symbols (sets, aliases) used to
 #'   resolve dimension names in [ast_dims()].
 #'
-#' @returns An object of class `equation`, containing the parsed equation structure.
+#' @returns An `mm_equation` object.
 #'
 #' @export
 #'
@@ -318,6 +334,15 @@ new_model_structure <- function(
 #'
 #' @returns A model object
 #' @export
+#' @examples
+#' region <- new_set("region", desc = "model regions", data = c("north", "south"))
+#' demand <- new_parameter("pDemand", desc = "annual demand, MWh", dims = "region",
+#'                         data = data.frame(region = c("north", "south"),
+#'                                           value = c(1000, 600)))
+#' m <- new_model(name = "tiny", desc = "one set and one parameter",
+#'                sets = list(region = region),
+#'                parameters = list(pDemand = demand))
+#' m
 new_model <- function(
     name = NULL,
     desc = NULL,

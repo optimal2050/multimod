@@ -42,7 +42,7 @@ model, e.g. by \code{read_gmpl()}).}
 resolve dimension names in \code{\link[=ast_dims]{ast_dims()}}.}
 }
 \value{
-An object of class \code{equation}, containing the parsed equation structure.
+An \code{mm_equation} object.
 }
 \description{
 Constructs an equation object used in the \code{multimod} modeling framework.

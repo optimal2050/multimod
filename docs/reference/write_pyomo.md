@@ -2,10 +2,10 @@
 
 This mirrors
 [`write_jump()`](https://optimal2050.github.io/multimod/reference/write_jump.md)
-but targets Python/Pyomo. The function emits a `model.py` file
-containing component declarations, a `data_loader.py` helper that knows
-how to stream data from the saved model directory (or use embedded
-literals), and a lightweight `solve.py` runner.
+but targets Pyomo. It writes `model.py`, holding the component
+declarations and, by default, the solve runner, and `data.py`, which
+reads the model's data from the workspace. With `split = TRUE` the
+runner is written to a separate `solve.py`.
 
 ## Usage
 
@@ -45,8 +45,7 @@ write_pyomo(
 
 - solver_dir:
 
-  Solver subdirectory name (default: "jump", e.g., "jump-highs",
-  "jump-cplex")
+  Solver subdirectory name (default: "jump", e.g., "jump-highs")
 
 - model_name:
 
@@ -77,8 +76,7 @@ write_pyomo(
   Logical flag controlling whether solver execution should live in a
   separate `solve.py` (when `TRUE`) or be embedded directly in
   `model.py` (default). The embedded mode mirrors the two-file workflow
-  used by the other writers (`model` + `data`). Set `split = TRUE` to
-  preserve the previous three-file scaffold.
+  used by the other writers (`model` + `data`).
 
 - export_vars:
 
@@ -100,3 +98,7 @@ write_pyomo(
 - ...:
 
   Additional arguments (not used)
+
+## Value
+
+Invisibly, the path of the written `model.py`.

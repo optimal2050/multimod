@@ -17,3 +17,7 @@ A character string with valid Julia/JuMP syntax.
 \description{
 Render a \code{multimod} object as a JuMP code string.
 }
+\examples{
+toy <- example_models$toy
+as_jump(toy$equations$eqDemand, model = toy)
+}

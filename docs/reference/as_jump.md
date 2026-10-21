@@ -21,3 +21,11 @@ as_jump(x, ...)
 ## Value
 
 A character string with valid Julia/JuMP syntax.
+
+## Examples
+
+``` r
+toy <- example_models$toy
+as_jump(toy$equations$eqDemand, model = toy)
+#> [1] "@constraint(\n    model,\n    eqDemand[(r) in mR],\n    sum(vGen[(h, r)] for h in tech) >= get(pDemand, r, pDemandDef)\n)"
+```

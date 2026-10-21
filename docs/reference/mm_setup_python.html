@@ -146,9 +146,9 @@ ensures <code><a href="https://rstudio.github.io/reticulate/reference/install_mi
 creates the target environment when missing, installs the requested Python
 packages, and activates the environment for the current R session via
 <code><a href="https://rstudio.github.io/reticulate/reference/use_python.html" class="external-link">reticulate::use_condaenv()</a></code>.</p>
-<p>After setup, you can optionally configure multimod to use this environment
-via <code><a href="multimod-config.html">set_multimod_python()</a></code> or by letting <code><a href="multimod-config.html">get_multimod_python()</a></code> detect it
-automatically through reticulate.</p>
+<p>After setup, multimod uses this environment either when it is set with
+<code><a href="multimod-config.html">set_multimod_python()</a></code> or when <code><a href="multimod-config.html">get_multimod_python()</a></code> detects it through
+reticulate.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

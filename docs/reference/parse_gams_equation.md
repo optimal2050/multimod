@@ -22,6 +22,6 @@ parse_gams_equation(eqn_info, symbols)
 
 ## Value
 
-An `equation` object containing the parsed equation structure, including
-its name, dimensions, left-hand side (LHS), right-hand side (RHS),
-relation, domain, and description.
+An `mm_equation` object holding the parsed equation: its name,
+dimensions, left-hand side, right-hand side, relation, domain and
+description.

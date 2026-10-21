@@ -140,8 +140,9 @@ create a workspace when they are given an empty
 <p><code><a href="../reference/save_model.html">save_model()</a></code> returns the model with
 <code>base_path</code> set to the workspace. With
 <code>format = "ipc"</code> or <code>"parquet"</code> the data files are
-Arrow files, smaller and faster to read; both need the ‘arrow’ package,
-and the generated Julia and Python read them as readily as CSV.</p>
+Arrow files, which are typically smaller than CSV and faster to read;
+both need the ‘arrow’ package, and the generated Julia and Python read
+them as readily as CSV.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ws_ipc</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span><span class="st">"toy-ipc-"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/save_model.html">save_model</a></span><span class="op">(</span><span class="va">toy</span>, <span class="va">ws_ipc</span>, format <span class="op">=</span> <span class="st">"ipc"</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
@@ -164,9 +165,9 @@ data table:</p>
 <div class="section level2">
 <h2 id="data-on-demand">Data on demand<a class="anchor" aria-label="anchor" href="#data-on-demand"></a>
 </h2>
-<p>A large model is loaded without its data and asked for one table at a
-time. <code><a href="../reference/get_data.html">get_data()</a></code> reads the table from the workspace and
-caches it in the model object it returns from.</p>
+<p>A large model can be loaded without its data and its tables read one
+at a time. <code><a href="../reference/get_data.html">get_data()</a></code> reads the table from the workspace
+and caches it in the model object it returns from.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/load_model.html">load_model</a></span><span class="op">(</span><span class="va">ws</span>, load_data <span class="op">=</span> <span class="cn">FALSE</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">m</span><span class="op">$</span><span class="va">parameters</span><span class="op">$</span><span class="va">pAvail</span><span class="op">$</span><span class="va">data</span><span class="op">)</span></span>
@@ -214,14 +215,14 @@ data through any route, for example in R:</p>
 <div class="section level2">
 <h2 id="solutions">Solutions<a class="anchor" aria-label="anchor" href="#solutions"></a>
 </h2>
-<p>The file routes write their results under
+<p>The code-generation routes write their results under
 <code>solvers/&lt;backend&gt;/solution/</code>. With
 <code>load_results = TRUE</code> (the default when a model is passed),
 <code><a href="../reference/solve_gmpl.html">solve_gmpl()</a></code>, <code><a href="../reference/solve_jump.html">solve_jump()</a></code> and
 <code><a href="../reference/solve_pyomo.html">solve_pyomo()</a></code> read the variable values into
 <code>model$variables[[name]]$solution</code>, copy them to
 <code>variables/</code>, and append a line to
-<code>solution_log.txt</code>, so the workspace always holds the latest
+<code>solution_log.txt</code>, so the workspace holds the latest loaded
 solution and a record of when it was loaded.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">r</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_jump.html">solve_jump</a></span><span class="op">(</span><span class="va">m</span>, <span class="va">ws</span><span class="op">)</span></span>
@@ -232,11 +233,12 @@ solution and a record of when it was loaded.</p>
 <div class="section level2">
 <h2 id="folded-data">Folded data<a class="anchor" aria-label="anchor" href="#folded-data"></a>
 </h2>
-<p>A folded parameter (see <code><a href="../articles/folding.html">vignette("folding")</a></code>) keeps both
-tables: the original under <code>data.*</code> and the reduced one under
-<code>folded_data/data.*</code>. <code><a href="../reference/save_model.html">save_model()</a></code> writes both,
-<code><a href="../reference/load_model.html">load_model()</a></code> reads both, and the writers take the folded
-table when the model is folded.</p>
+<p>A folded parameter (see <a href="folding.html">Folding and
+trimming</a>) keeps both tables: the original under <code>data.*</code>
+and the reduced one under <code>folded_data/data.*</code>.
+<code><a href="../reference/save_model.html">save_model()</a></code> writes both, <code><a href="../reference/load_model.html">load_model()</a></code> reads
+both, and the writers take the folded table when the model is
+folded.</p>
 </div>
 <div class="section level2">
 <h2 id="reading-the-files-elsewhere">Reading the files elsewhere<a class="anchor" aria-label="anchor" href="#reading-the-files-elsewhere"></a>
@@ -254,7 +256,7 @@ reader can orient itself without R.</p>
 <span><span class="co">#&gt; {</span></span>
 <span><span class="co">#&gt;   "name": "toy",</span></span>
 <span><span class="co">#&gt;   "desc": "two-region capacity expansion toy model",</span></span>
-<span><span class="co">#&gt;   "saved": "2026-10-19 22:17:56",</span></span>
+<span><span class="co">#&gt;   "saved": "2026-10-21 09:32:34",</span></span>
 <span><span class="co">#&gt;   "format": "csv",</span></span>
 <span><span class="co">#&gt;   "compression": null,</span></span>
 <span><span class="co">#&gt;   "compression_level": null,</span></span>

@@ -138,10 +138,49 @@ Defaults to <code>"multimod"</code>.</p></dd>
 If <code>FALSE</code> (default), writes to <code>.multimod.yml</code> in current working directory.</p></dd>
 
 </dl></div>
+    <div class="section level2">
+    <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
+
+<ul><li><p><code>get_multimod_python()</code>, <code>get_multimod_julia()</code>, <code>get_multimod_glpsol()</code>
+and <code>get_multimod_solver()</code>: the resolved path, or the bare executable
+name (<code>"python"</code>, <code>"julia"</code>, <code>"glpsol"</code>, or <code>solver_name</code>) to be found on
+the <code>PATH</code> when nothing is configured.</p></li>
+<li><p><code>set_multimod_*()</code> and <code>set_multimod_solver()</code>: invisibly, the path set.</p></li>
+<li><p><code>multimod_config_write()</code>: invisibly, the path of the file written.</p></li>
+<li><p><code>multimod_config_read()</code>: the configuration as a list, or <code>NULL</code> when no
+file is found.</p></li>
+<li><p><code>multimod_config_path()</code>: the path of the configuration file, marked
+"(not found)" when it does not exist.</p></li>
+<li><p><code>multimod_config_show()</code>: called for its printed summary; returns
+<code>NULL</code> invisibly.</p></li>
+</ul></div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># where the configuration would be read from, and what is resolved now</span></span></span>
+<span class="r-in"><span><span class="fu">multimod_config_path</span><span class="op">(</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "C:/Users/admin/Documents/R/multimod/docs/reference/.multimod.yml (not found)"</span>
+<span class="r-in"><span><span class="fu">multimod_config_show</span><span class="op">(</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Current multimod configuration:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Python:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Path:     C:\Users\admin\.conda\envs\multimod\python.exe </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Option:   (not set) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Env var:  (not set) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Julia:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Path:     julia </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Option:   (not set) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Env var:  (not set) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> glpsol:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Path:     C:/Users/admin/AppData/Local/R/win-library/4.6/glpsol/bin/x64/glpsol.exe </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Option:   (not set) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Env var:  (not set) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> YAML config file: (none found)</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
 <span class="r-in"><span><span class="co"># Set paths via R options (session-persistent)</span></span></span>
 <span class="r-in"><span><span class="fu">set_multimod_python</span><span class="op">(</span><span class="st">"C:/Python310/python.exe"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">set_multimod_julia</span><span class="op">(</span><span class="st">"C:/Julia-1.10/bin/julia.exe"</span><span class="op">)</span></span></span>

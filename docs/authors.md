@@ -10,14 +10,14 @@
 Source:
 [`inst/CITATION`](https://github.com/optimal2050/multimod/blob/HEAD/inst/CITATION)
 
-Lugovoy O (2025). *multimod: Define and Render Mathematical Models
-Across Multiple Optimization Languages*. R package version 0.0.3.9005,
+Lugovoy O (2026). *multimod: Define and Render Mathematical Models
+Across Modeling Languages*. R package version 0.5.0,
 <https://github.com/optimal2050/multimod>.
 
     @Manual{,
-      title = {multimod: Define and Render Mathematical Models Across Multiple Optimization Languages},
+      title = {multimod: Define and Render Mathematical Models Across Modeling Languages},
       author = {Oleg Lugovoy},
-      year = {2025},
-      note = {R package version 0.0.3.9005},
+      year = {2026},
+      note = {R package version 0.5.0},
       url = {https://github.com/optimal2050/multimod},
     }

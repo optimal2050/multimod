@@ -34,3 +34,14 @@ A \code{model_structure} object containing the parsed GAMS model structure, incl
 \description{
 This function reads a GAMS model file or text, expands any included files, removes comments, and parses the core structure into sets, parameters, variables, equations, and aliases, returning a \code{model_structure} object.
 }
+\examples{
+structure <- read_gams(c(
+  "set tech, region;",
+  "parameter demand(region);",
+  "positive variable gen(tech, region);",
+  "equation eqDemand(region);",
+  "eqDemand(region).. sum(tech, gen(tech, region)) =g= demand(region);"
+))
+m <- as_multimod(structure)
+as_gmpl(m$equations$eqDemand, model = m)
+}

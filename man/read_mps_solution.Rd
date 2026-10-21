@@ -41,3 +41,14 @@ value) and \code{dual} (\code{i}, symbol, name, value, marginal) - the same shap
 \description{
 Map a solved MPS back onto model symbols
 }
+\examples{
+if (requireNamespace("highs", quietly = TRUE)) {
+  dir <- tempfile("mps-")
+  dir.create(dir)
+  mps <- file.path(dir, "toy.mps")
+  write_mps(example_models$toy, mps, format = "csv")
+  run <- solve_mps(mps)
+  sol <- read_mps_solution(run$sol_file, index_dir = dir, format = "csv")
+  names(sol)
+}
+}

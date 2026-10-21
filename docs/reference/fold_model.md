@@ -50,28 +50,28 @@ Modified model with folded parameters
 
 ## Details
 
-The algorithm uses per-group validation: for each combination of OTHER
-dimensions, it checks if values are identical. This is an "all or
-nothing" approach - if ANY group shows variation, the dimension is not
+The algorithm uses per-group validation: for each combination of the
+other dimensions, it checks whether the values are identical. The test
+is all or nothing: if any group shows variation, the dimension is not
 folded.
 
-Folding analyzes each parameter to identify dimensions that don't
+Folding analyzes each parameter to identify dimensions that do not
 provide variation in the data. For each parameter, it groups by all
-OTHER dimensions and checks if values are constant within each group
-(within tolerance).
+other dimensions and checks whether the values are constant within each
+group (within tolerance).
 
 Example: For `pStorageInpEff[stg, comm, region, year, timeslice]`
 testing timeslice:
 
 - Groups by `(stg, comm, region, year)`
 
-- For each group, checks if ALL timeslice values are identical
+- For each group, checks whether all timeslice values are identical
 
-- Only folds if EVERY group has constant values
+- Folds only if every group has constant values
 
-This handles sparse data correctly - if a parameter only has values for
-peak hours (1 timeslice out of 17), that's fine. It only checks if the
-values that DO exist are constant within each group.
+Sparse data is handled: a parameter with values only for peak hours (one
+timeslice out of 17) is tested on the values that exist, which must be
+constant within each group.
 
 The fold creates three slots per parameter:
 
@@ -81,12 +81,12 @@ The fold creates three slots per parameter:
 
 - `active_dims`: Dimensions remaining after fold
 
-Safety measures:
+Safeguards:
 
-- Only folds dimensions explicitly requested by user
+- Only the dimensions named in `fold_spec` are folded
 
-- Never folds structural dimensions (tech, comm, sup, dem, stg, trade,
-  etc.)
+- Dimensions that identify an entity (for an energyRt model: tech, comm,
+  sup, dem, stg, trade) are never folded
 
 - Skips parameters where all dimensions would be folded (would become
   scalar)

@@ -38,8 +38,23 @@ structure <- read_gmpl(c(
 ))
 names(structure$parameters)
 
-\dontrun{
 # Model and data files on disk
-model <- read_gmpl("model.mod", "data.dat")
-}
+mod <- tempfile(fileext = ".mod")
+dat <- tempfile(fileext = ".dat")
+writeLines(c(
+  "set REGION;",
+  "param Demand{r in REGION};",
+  "var x{r in REGION} >= 0;",
+  "minimize cost: sum{r in REGION} x[r];",
+  "s.t. meet{r in REGION}: x[r] >= Demand[r];",
+  "end;"
+), mod)
+writeLines(c(
+  "data;",
+  "set REGION := north south;",
+  "param Demand := north 10 south 5;",
+  "end;"
+), dat)
+model <- read_gmpl(mod, dat)
+model
 }

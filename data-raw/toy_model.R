@@ -27,7 +27,7 @@ mappings <- list(
 )
 
 parameters <- list(
-  pCapCost = new_parameter("pCapCost", desc = "annualised capacity cost, EUR/kW",
+  pCapCost = new_parameter("pCapCost", desc = "annualized capacity cost, EUR/kW",
     dims = "tech",
     data = data.frame(tech = techs, value = c(120, 70, 90))),
   pVarCost = new_parameter("pVarCost", desc = "variable cost, EUR/MWh",
@@ -71,7 +71,7 @@ eqDemand <- new_equation("eqDemand", desc = "demand is met in every region",
 # vCost == sum((tech, region), pCapCost[tech] * vCap + pVarCost[tech] * vGen)
 eqCost <- new_equation("eqCost", desc = "total cost",
   dims = character(0),
-  lhs = ast_variable("vCost", dims = character(0)),
+  lhs = ast_variable("vCost", dims = ast_dims()),
   rhs = ast_sum(ast_dims("tech", "region"),
     ast_expression("+",
       ast_expression("*", ast_parameter("pCapCost", dims = ast_dims("tech")),

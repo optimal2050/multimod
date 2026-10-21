@@ -317,9 +317,6 @@ ast_from_json <- function(j) .node_from_json(j)
 model_to_json <- function(model, path = NULL, data = c("omit", "inline"),
                           pretty = TRUE) {
   data <- match.arg(data)
-  if (!requireNamespace("jsonlite", quietly = TRUE)) {
-    stop("model_to_json() needs the 'jsonlite' package.", call. = FALSE)
-  }
   # A model slot the schema does not declare would otherwise be dropped in
   # silence, and the reader would get a model that assembles into a matrix of
   # the right SHAPE with the wrong contents - which is much harder to notice
@@ -372,9 +369,6 @@ model_to_json <- function(model, path = NULL, data = c("omit", "inline"),
 #' model_to_json(example_models$energyRt$multimod, path = f)
 #' m2 <- model_from_json(f)
 model_from_json <- function(json) {
-  if (!requireNamespace("jsonlite", quietly = TRUE)) {
-    stop("model_from_json() needs the 'jsonlite' package.", call. = FALSE)
-  }
   if (length(json) == 1L && !grepl("[{}]", json) && file.exists(json)) {
     json <- paste(readLines(json, warn = FALSE), collapse = "\n")
   }
@@ -423,9 +417,6 @@ model_from_json <- function(json) {
 #' schema <- ast_json_schema()
 #' cat(substr(schema, 1, 300))
 ast_json_schema <- function(path = NULL) {
-  if (!requireNamespace("jsonlite", quietly = TRUE)) {
-    stop("ast_json_schema() needs the 'jsonlite' package.", call. = FALSE)
-  }
   jtype <- function(t) switch(t,
     string        = list(type = "string"),
     number        = list(type = "number"),

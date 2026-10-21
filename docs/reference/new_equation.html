@@ -135,7 +135,7 @@ resolve dimension names in <code><a href="ast_dims.html">ast_dims()</a></code>.<
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>An object of class <code>equation</code>, containing the parsed equation structure.</p>
+    <p>An <code>mm_equation</code> object.</p>
     </div>
 
     <div class="section level2">
@@ -156,8 +156,8 @@ resolve dimension names in <code><a href="ast_dims.html">ast_dims()</a></code>.<
 <span class="r-in"><span><span class="fu"><a href="print.html">print</a></span><span class="op">(</span><span class="va">eq</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> &lt;AST equation&gt; eqTechEff</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   relation:  == </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   lhs:  vTechOuttech vTechOutregion </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   rhs:  pTechEfftech * vTechInptech </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   lhs:  vTechOut[tech,region] </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   rhs:  pTechEff[tech] * vTechInp[tech,region] </span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

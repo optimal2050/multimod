@@ -27,3 +27,11 @@ as_gams(x, ...)
 ## Value
 
 A character string with valid GAMS syntax.
+
+## Examples
+
+``` r
+toy <- example_models$toy
+as_gams(toy$equations$eqDemand)
+#> [1] "eqDemand[region]$mR[region]..\n  sum(tech, vGen[tech,region]) =g=\n  pDemand[region];"
+```

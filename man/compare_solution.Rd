@@ -21,9 +21,9 @@ compare_solution(
 
 \item{path2}{Path to second solver output directory (to compare)}
 
-\item{solver1}{Solver name for path1 if it's a model root (e.g., "gmpl", "jump"). NULL for direct solution paths.}
+\item{solver1}{Solver name for path1 if it is a model root (e.g., "gmpl", "jump"). NULL for direct solution paths.}
 
-\item{solver2}{Solver name for path2 if it's a model root (e.g., "gmpl", "jump"). NULL for direct solution paths.}
+\item{solver2}{Solver name for path2 if it is a model root (e.g., "gmpl", "jump"). NULL for direct solution paths.}
 
 \item{variables}{Character vector of variable names to compare. If NULL, compares all common variables.}
 

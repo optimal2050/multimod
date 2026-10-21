@@ -28,6 +28,10 @@ of \code{file}.}
 \code{.save_dataframe()}: \code{"parquet"} (default), \code{"ipc"} or \code{"csv"}.}
 
 \item{verbose}{Logical; report progress.}
+
+\item{presolve}{Logical; eliminate proportional columns with
+\code{\link[=lp_presolve]{lp_presolve()}} before writing. \code{\link[=read_mps_solution]{read_mps_solution()}} restores them.
+Defaults to \code{getOption("multimod.presolve", FALSE)}.}
 }
 \value{
 Invisibly, a list of the paths written.
@@ -41,4 +45,13 @@ so a solution vector returned by a remote solver can be interpreted.
 \details{
 \strong{The \code{.mps} and its index files must travel together} - the file alone
 cannot be mapped back to model symbols.
+}
+\examples{
+if (requireNamespace("highs", quietly = TRUE)) {
+  dir <- tempfile("mps-")
+  dir.create(dir)
+  mps <- file.path(dir, "toy.mps")
+  write_mps(example_models$toy, mps, format = "csv")
+  list.files(dir)
+}
 }

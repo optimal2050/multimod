@@ -1,27 +1,28 @@
 #' Solve a Pyomo model exported by `multimod`
 #'
-#' Executes the generated `solve.py` script inside `solvers/pyomo/` after
-#' ensuring a Python environment exists. By default the helper
-#' [mm_setup_python()] is invoked so that a Conda environment named
-#' "multimod" (configurable) is created, populated with Pyomo, and activated via
-#' the `reticulate` toolkit. Once the environment is ready the solver script is
-#' executed with `system2()` or `processx` and basic status information is
-#' returned, together with the status the script writes to
-#' `solution/status.json`. With `load_results = TRUE` the variable values the
-#' script exports are read back into `model`.
+#' Runs the generated `model.py` (or `solve.py`, written by
+#' `write_pyomo(split = TRUE)`) in `solvers/pyomo/` with the configured Python
+#' interpreter, and returns basic status information together with the status
+#' the script writes to `solution/status.json`. With `load_results = TRUE` the
+#' variable values the script exports are read back into `model`.
+#'
+#' The Python environment is created once with [mm_setup_python()]. With
+#' `ensure_env = TRUE`, `solve_pyomo()` checks the environment and creates it
+#' when it is not usable, which may install Miniconda and Python packages.
 #'
 #' @param model Optional multimod model. Required when `load_results = TRUE`:
 #'   the solution of each variable is stored in
 #'   `model$variables[[name]]$solution`.
 #' @param model_dir Path to the saved model directory created by `save_model()`.
-#'   Must contain `solvers/<solver_dir>/solve.py` (generated via `write_pyomo()`).
+#'   Must contain `solvers/<solver_dir>/model.py` (generated via `write_pyomo()`).
 #' @param solver_dir Name of the solver sub-directory inside `model_dir/solvers`.
 #'   Defaults to "pyomo" to match `write_pyomo()`.
 #' @param env_name Name of the Conda environment handled by
 #'   `mm_setup_python()`. Defaults to "multimod".
-#' @param ensure_env Logical; when `TRUE` (default) the environment is checked
-#'   with [mm_check_python()] and `mm_setup_python()` runs only if it is not
-#'   usable. Set to `FALSE` if you want to manage activation yourself.
+#' @param ensure_env Logical; when `TRUE` the environment is checked with
+#'   [mm_check_python()] and `mm_setup_python()` runs if it is not usable.
+#'   Default `FALSE`: the configured interpreter is used as it is, and nothing
+#'   is installed.
 #' @param packages Character vector of Python packages to request when the
 #'   helper runs. `NULL` (default) uses [mm_setup_python()]'s own list, so the
 #'   environment contents have a single owner.
@@ -57,7 +58,7 @@ solve_pyomo <- function(model = NULL,
                         model_dir,
                         solver_dir = "pyomo",
                         env_name = "multimod",
-                        ensure_env = TRUE,
+                        ensure_env = FALSE,
                         packages = NULL,
                         python_version = NULL,
                         ensure_miniconda = TRUE,

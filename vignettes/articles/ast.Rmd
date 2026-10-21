@@ -1,10 +1,6 @@
 ---
 title: "Writing a model in R"
 output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{Writing a model in R}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
 ---
 
 ```{r, include = FALSE}
@@ -18,11 +14,11 @@ library(multimod)
 
 multimod models are usually read from a source file: `read_gams()` and
 `read_gmpl()` turn a GAMS or MathProg model into the structure described here.
-This vignette builds the same kind of object directly in R, which is the way
+This article builds the same kind of object directly in R, which is the way
 to write a new model, to generate one programmatically, or to understand what
 the readers produce. The model is a small capacity-expansion problem: three
 technologies supply electricity to two regions at least cost. It ships with
-the package as `example_models$toy`; the code below is the file that built it.
+the package as `example_models$toy`; the code below reproduces it.
 
 ## The parts of a model
 
@@ -36,7 +32,8 @@ A model is a list of named components, each a small S3 object:
 | variables   | `new_variable()`  | decision variables, with a domain and bounds       |
 | equations   | `new_equation()`  | left side, relation, right side, over a domain     |
 
-The sides of an equation are *expressions*: trees of AST nodes built with
+The sides of an equation are *expressions*: trees of nodes of the abstract
+syntax tree (AST), built with
 `ast_variable()`, `ast_parameter()`, `ast_expression()`, `ast_sum()` and
 their relatives. Every renderer (`as_gams()`, `as_latex()`, the LP matrix) is
 a walk over that tree.
@@ -82,7 +79,7 @@ per dimension plus `value`.
 
 ```{r parameters}
 parameters <- list(
-  pCapCost = new_parameter("pCapCost", desc = "annualised capacity cost, EUR/kW",
+  pCapCost = new_parameter("pCapCost", desc = "annualized capacity cost, EUR/kW",
     dims = "tech",
     data = data.frame(tech = techs, value = c(120, 70, 90))),
   pVarCost = new_parameter("pVarCost", desc = "variable cost, EUR/MWh",
@@ -182,7 +179,7 @@ equation that defines it, the variable it defines and the sense.
 
 ```{r model}
 toy <- new_model(
-  name = "toy", desc = "two-region capacity expansion",
+  name = "toy", desc = "two-region capacity expansion toy model",
   sets = sets, mappings = mappings, parameters = parameters,
   variables = variables,
   equations = list(eqCapLim = eqCapLim, eqDemand = eqDemand, eqCost = eqCost),
@@ -202,7 +199,7 @@ v <- validate(toy)
 v$valid
 ```
 
-The text backends write indexed expressions with short iterator names
+The code generators write indexed expressions with short iterator names
 (`sum{t in tech}` in MathProg, `for t in tech` in Julia). A model built in R
 has none until `add_index_aliases()` derives them from the set names:
 
@@ -228,9 +225,10 @@ r$objective
 head(r$primal[r$primal$value > 0, ], 10)
 ```
 
-The file routes render the same model for an external solver:
-`write_gmpl()` for GLPK, `write_jump()` for Julia and `write_pyomo()` for
-Python; `vignette("multimod")` lists them with their `solve_*()` counterparts.
+The code-generation routes render the same model for an external solver:
+`write_gmpl()` for GLPK, `write_jump()` for JuMP and `write_pyomo()` for
+Pyomo; the [Solving and reading results](solving.html) article runs each with
+its `solve_*()` counterpart.
 
 ```{r write}
 mod_file <- tempfile(fileext = ".mod")
@@ -240,7 +238,7 @@ cat(head(readLines(mod_file), 12), sep = "\n")
 
 ## Saving and exchanging the model
 
-`model_to_json()` serialises the whole model, including the AST, in the
+`model_to_json()` serializes the whole model, including the AST, in the
 language-neutral JSON format defined by `ast_json_schema()`;
 `model_from_json()` reads it back. This is the interchange format for other
 implementations of the model structure.
@@ -253,14 +251,15 @@ as_gams(back$equations$eqDemand)
 ```
 
 `save_model()` and `load_model()` write a model as a workspace directory with
-its data tables in CSV or Arrow files; see the "Model workspace" article on
-the package website.
+its data tables in CSV or Arrow files; see the
+[Model workspace and data](model_workspace.html) article.
 
-## Where next
+## Further reading
 
-- `vignette("multimod")`: reading an existing GAMS model and what the package
-  does with it.
-- `vignette("folding")`: folding and trimming a model to the size its data
-  actually needs.
-- The website articles cover the solver backends (GLPK, JuMP, Pyomo) and
-  their configuration.
+- [Get started](multimod.html): reading, translating, analyzing and solving a
+  model in a few calls.
+- [Folding and trimming](folding.html): reducing a model to the size its data
+  needs.
+- [Solving and reading results](solving.html) and
+  [Configuring solver paths](configuration.html): the code-generation routes
+  (GLPK, JuMP, Pyomo) and their setup.

@@ -34,10 +34,11 @@ model generation changes.
 }
 \examples{
 \dontrun{
-# Compare two JuMP model versions
+# Compare two JuMP model versions written to workspaces ws1 and ws2 and
+# solved with solve_jump() (needs Julia)
 comp <- compare_jump_stats(
-  "tmp/model_v1/solvers/jump",
-  "tmp/model_v2/solvers/jump",
+  file.path(ws1, "solvers", "jump"),
+  file.path(ws2, "solvers", "jump"),
   verbose = TRUE
 )
 

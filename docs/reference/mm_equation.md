@@ -1,11 +1,10 @@
-# Write an equation as MathProg or GAMS text
+# Write an equation as MathProg, GAMS or JuMP text
 
-Equations are the one part of a model that does not read well as nested
-constructors: a cost balance becomes several levels of
-[`ast_expression()`](https://optimal2050.github.io/multimod/reference/ast_expression.md)
-before it says anything. `mm_equation()` takes the statement as a
-modeller would write it and parses it into the same AST the constructors
-build.
+Equations are the part of a model that is hardest to read as nested
+constructors: a cost balance takes several levels of
+[`ast_expression()`](https://optimal2050.github.io/multimod/reference/ast_expression.md).
+`mm_equation()` takes the statement in modeling-language notation and
+parses it into the same AST the constructors build.
 
 ## Usage
 

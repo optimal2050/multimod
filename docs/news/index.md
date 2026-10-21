@@ -49,7 +49,7 @@ back to GAMS.
   render a model to MathProg, JuMP and Pyomo, with its data embedded or
   read from CSV, Arrow IPC or Parquet files.
 - [`write_gams_data()`](https://optimal2050.github.io/multimod/reference/write_gams_data.md)
-  writes a model’s data to a GDX file, and
+  (experimental) writes a model’s data to a GDX file, and
   `write_gams(gdx =, include_solve =)` emits the matching load and solve
   statements. Parameters defined by a formula are written as
   assignments.
@@ -83,6 +83,11 @@ back to GAMS.
   and
   [`solve_pyomo()`](https://optimal2050.github.io/multimod/reference/solve_pyomo.md)
   run the generated code and load the solution into the model.
+  [`solve_pyomo()`](https://optimal2050.github.io/multimod/reference/solve_pyomo.md)
+  uses the configured Python interpreter; `ensure_env = TRUE` creates
+  the environment with
+  [`mm_setup_python()`](https://optimal2050.github.io/multimod/reference/mm_setup_python.md)
+  when it is not usable.
 
 #### Workspace, reduction and exchange
 
@@ -132,26 +137,33 @@ back to GAMS.
 
 #### Documentation
 
-- Vignettes: an overview, writing a model in R, and folding and
-  trimming. Website articles cover solving and reading results, two
-  published models, the model workspace, configuration and LaTeX
-  rendering.
+- [`vignette("multimod")`](https://optimal2050.github.io/multimod/articles/multimod.md)
+  takes a small model through reading, translation, redundancy analysis,
+  LaTeX, export and solving. Website articles cover writing a model in
+  R, folding and trimming, solving and reading results, two published
+  models, the model workspace, configuration and LaTeX rendering.
 
 ### Bug fixes
 
 - [`read_gams()`](https://optimal2050.github.io/multimod/reference/read_gams.md)
   parses a sum over several indices, numbers in scientific notation with
   a signed exponent, and decimal literals in equation bodies.
+- [`read_gams()`](https://optimal2050.github.io/multimod/reference/read_gams.md)
+  reads several symbols declared on one line (`set tech, region;`), and
+  an equation header without a `$` condition.
 - `^` no longer distributes over the terms of its base, so `(1 + r)^n`
   is evaluated as written.
 - [`as_gams()`](https://optimal2050.github.io/multimod/reference/as_gams.md)
   output compiles: conditions are bracketed, function arguments and
   multi-index sums are rendered, and iterated minima and maxima are
   written as `smin()` and `smax()`.
+- [`write_gams()`](https://optimal2050.github.io/multimod/reference/write_gams.md)
+  declares each equation over its sets, as GAMS requires, and writes no
+  empty `sets` block.
 - [`as_latex()`](https://optimal2050.github.io/multimod/reference/as_latex.md)
   renders an equation’s index names in its header.
 - [`ast_dims()`](https://optimal2050.github.io/multimod/reference/ast_dims.md)
-  accepts a single node.
+  accepts a single node, and returns a `dims` node unchanged.
 
 ------------------------------------------------------------------------
 

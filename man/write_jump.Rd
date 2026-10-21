@@ -2,7 +2,7 @@
 % Please edit documentation in R/write_jump.R
 \name{write_jump}
 \alias{write_jump}
-\title{Write a Julia/JuMP model file from a multimod object}
+\title{Write a JuMP model file from a multimod model}
 \usage{
 write_jump(
   model,
@@ -30,17 +30,17 @@ write_jump(
 
 \item{model_dir}{Directory where model was saved with save_model() (contains model.rds)}
 
-\item{solver_dir}{Solver subdirectory name (default: "jump", e.g., "jump-highs", "jump-cplex")}
+\item{solver_dir}{Solver subdirectory name (default: "jump", e.g., "jump-highs")}
 
 \item{output_name}{Output filename (default: "model.jl")}
 
 \item{model_name}{Name for the JuMP model variable (default: "model")}
 
-\item{optimizer}{Julia optimizer to use (e.g., "HiGHS.Optimizer", "GLPK.Optimizer", "CPLEX.Optimizer")}
+\item{optimizer}{Julia optimizer to use (e.g., "HiGHS.Optimizer", "GLPK.Optimizer")}
 
 \item{optimizer_attributes}{Named list of optimizer attributes to set (e.g., list(solver = "ipm", presolve = "on", parallel = "on")).
 For HiGHS: solver can be "simplex", "ipm" (interior point/barrier), or "choose" (default).
-Use "ipm" for large models (>1M rows) as it scales better than simplex.
+"ipm" is usually faster than simplex on large models.
 If NULL, uses solver defaults with automatic barrier method selection for large models (>1M constraints).}
 
 \item{use_folded}{logical; whether to use folded equations if available (default: TRUE)}
@@ -64,7 +64,7 @@ Note: Solution is always saved to solution/ directory regardless of this setting
 Character vector of Julia code, or writes file if path is determined
 }
 \description{
-Write a Julia/JuMP model file from a multimod object
+Write a JuMP model file from a multimod model
 }
 \examples{
 m <- example_models$energyRt$multimod
