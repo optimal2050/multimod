@@ -5,6 +5,7 @@ of June 2025, which read GAMS and rendered models to LaTeX and back to GAMS.
 
 ## Breaking changes
 
+* multimod requires R >= 4.1.0.
 * The S3 classes of model objects carry an `mm_` prefix: `mm_model`,
   `mm_set`, `mm_mapping`, `mm_parameter`, `mm_variable`, `mm_equation`.
   Code testing `inherits(x, "model")` must use the new names; models saved

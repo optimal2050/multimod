@@ -15,6 +15,7 @@
 # =============================================================================
 
 test_that("ord() renders as the model's position parameter, not a bare call", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   m <- example_models$energyRt$multimod
 
@@ -30,6 +31,7 @@ test_that("ord() renders as the model's position parameter, not a bare call", {
 })
 
 test_that("ord() uses the iterator, not the raw set name", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   m <- example_models$energyRt$multimod
   skip_if(is.null(m$equations$eqStorageInpCap))
@@ -43,6 +45,7 @@ test_that("ord() uses the iterator, not the raw set name", {
 })
 
 test_that("alias sets resolve to the base set's position parameter", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   m <- example_models$energyRt$multimod
   skip_if(is.null(m$equations$eqStorageInpCap))
@@ -56,6 +59,7 @@ test_that("alias sets resolve to the base set's position parameter", {
 })
 
 test_that("a missing position parameter fails loudly, not silently", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   m <- example_models$energyRt$multimod
   skip_if(is.null(m$equations$eqStorageInpCap))

@@ -975,7 +975,9 @@ get_data <- function(model, name, type = c("parameter", "mapping", "set", "varia
     file_path <- paste0(path, ".arrow")
     if (file.exists(file_path)) {
       if (requireNamespace("arrow", quietly = TRUE)) {
-        return(as.data.frame(arrow::read_feather(file_path)))
+        # mmap = FALSE: a memory-mapped file stays locked on Windows while the
+        # returned data frame lives, so it could not be replaced or removed
+        return(as.data.frame(arrow::read_feather(file_path, mmap = FALSE)))
       }
     }
   }
@@ -984,7 +986,7 @@ get_data <- function(model, name, type = c("parameter", "mapping", "set", "varia
     file_path <- paste0(path, ".parquet")
     if (file.exists(file_path)) {
       if (requireNamespace("arrow", quietly = TRUE)) {
-        return(as.data.frame(arrow::read_parquet(file_path)))
+        return(as.data.frame(arrow::read_parquet(file_path, mmap = FALSE)))
       }
     }
   }

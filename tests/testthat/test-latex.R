@@ -37,6 +37,7 @@
 # =============================================================================
 
 test_that("write_latex generates valid LaTeX for basic model", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   # Load test model
   data(example_models, package = "multimod")
   demo_model <- example_models$energyRt$multimod
@@ -54,6 +55,7 @@ test_that("write_latex generates valid LaTeX for basic model", {
 })
 
 test_that("write_latex handles model_view modes correctly", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   demo_model <- example_models$energyRt$multimod
 
@@ -75,6 +77,7 @@ test_that("write_latex handles model_view modes correctly", {
 })
 
 test_that("write_latex includes data correctly", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   demo_model <- example_models$energyRt$multimod
 
@@ -91,6 +94,7 @@ test_that("write_latex includes data correctly", {
 })
 
 test_that("write_latex escapes underscores in set elements", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   demo_model <- example_models$energyRt$multimod
 
@@ -104,6 +108,7 @@ test_that("write_latex escapes underscores in set elements", {
 })
 
 test_that("write_latex applies index aliases correctly", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   demo_model <- example_models$energyRt$multimod
 
@@ -124,6 +129,7 @@ test_that("write_latex applies index aliases correctly", {
 })
 
 test_that("write_latex shows folded annotations", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   demo_model <- example_models$energyRt$multimod
 
@@ -147,6 +153,7 @@ test_that("write_latex shows folded annotations", {
 })
 
 test_that("write_latex includes optimization summary", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   demo_model <- example_models$energyRt$multimod
 
@@ -170,6 +177,7 @@ test_that("write_latex includes optimization summary", {
 })
 
 test_that("write_latex includes table of contents when requested", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   demo_model <- example_models$energyRt$multimod
 
@@ -184,6 +192,7 @@ test_that("write_latex includes table of contents when requested", {
 })
 
 test_that("write_latex includes mappings section by default", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   demo_model <- example_models$energyRt$multimod
 
@@ -197,6 +206,7 @@ test_that("write_latex includes mappings section by default", {
 })
 
 test_that("write_latex handles section visibility flags", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   demo_model <- example_models$energyRt$multimod
 
@@ -249,6 +259,7 @@ test_that("split_at_top_level_operators does not split in scientific notation", 
 })
 
 test_that("write_latex handles use_folded parameter correctly", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   demo_model <- example_models$energyRt$multimod
 
@@ -270,6 +281,7 @@ test_that("write_latex handles use_folded parameter correctly", {
 })
 
 test_that("as_latex handles parameter objects", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   demo_model <- example_models$energyRt$multimod
 
@@ -282,6 +294,7 @@ test_that("as_latex handles parameter objects", {
 })
 
 test_that("as_latex handles variable objects", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   demo_model <- example_models$energyRt$multimod
 
@@ -294,6 +307,7 @@ test_that("as_latex handles variable objects", {
 })
 
 test_that("as_latex handles equation objects", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   demo_model <- example_models$energyRt$multimod
 
@@ -348,6 +362,7 @@ test_that("write_latex generates compilable LaTeX", {
 })
 
 test_that("write_latex handles trimmed color parameter", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   demo_model <- example_models$energyRt$multimod
 
@@ -365,6 +380,7 @@ test_that("write_latex handles trimmed color parameter", {
 })
 
 test_that("write_latex preserves model structure", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   demo_model <- example_models$energyRt$multimod
 

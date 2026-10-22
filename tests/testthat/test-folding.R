@@ -39,6 +39,7 @@
 # =============================================================================
 
 test_that("fold_model accumulates removed dimensions across sequential folds", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   skip_if_not_installed("data.table")
   
   # Load test model
@@ -93,6 +94,7 @@ test_that("fold_model accumulates removed dimensions across sequential folds", {
 })
 
 test_that("get_active_dims returns correct dimensions", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   skip_if_not_installed("data.table")
   
   data(example_models, package = "multimod")
@@ -130,6 +132,7 @@ test_that("get_active_dims returns correct dimensions", {
 })
 
 test_that("is_folded works for parameters and models", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   skip_if_not_installed("data.table")
   
   data(example_models, package = "multimod")
@@ -160,6 +163,7 @@ test_that("is_folded works for parameters and models", {
 })
 
 test_that("get_fold_summary returns folding statistics", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   skip_if_not_installed("data.table")
   
   data(example_models, package = "multimod")
@@ -209,6 +213,7 @@ test_that("get_fold_summary returns folding statistics", {
 })
 
 test_that("fold_equations updates parameter references in AST", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   skip_if_not_installed("data.table")
   
   data(example_models, package = "multimod")
@@ -281,6 +286,7 @@ test_that("fold_equations updates parameter references in AST", {
 })
 
 test_that("JuMP code generation with single-dimension folding produces correct code", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   skip_if_not_installed("data.table")
   
   data(example_models, package = "multimod")
@@ -319,6 +325,7 @@ test_that("JuMP code generation with single-dimension folding produces correct c
 })
 
 test_that("JuMP code generation with multi-dimension folding produces correct code", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   skip_if_not_installed("data.table")
   skip("Generated file inspection needs further investigation")
   
@@ -465,6 +472,7 @@ test_that("JuMP folded and unfolded models produce same objective", {
 })
 
 test_that("GMPL code generation with folding works", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   skip_if_not_installed("data.table")
   
   data(example_models, package = "multimod")
@@ -506,6 +514,7 @@ test_that("GMPL code generation with folding works", {
 })
 
 test_that("folded_data is properly populated", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   skip_if_not_installed("data.table")
   
   data(example_models, package = "multimod")
@@ -539,6 +548,7 @@ test_that("folded_data is properly populated", {
 })
 
 test_that("compression ratios are calculated correctly", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   skip_if_not_installed("data.table")
   
   data(example_models, package = "multimod")
@@ -572,6 +582,7 @@ test_that("compression ratios are calculated correctly", {
 })
 
 test_that("as_jump respects parameter dims from equation AST", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   skip_if_not_installed("data.table")
   
   data(example_models, package = "multimod")
@@ -629,6 +640,7 @@ test_that("as_jump respects parameter dims from equation AST", {
 
 
 test_that("a dimension the parameter carries twice is refused", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   demo_model <- example_models$energyRt$multimod
 
@@ -662,6 +674,7 @@ test_that("a dimension the parameter carries twice is refused", {
 })
 
 test_that("foldability without a validation mapping is reported as unproven", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   demo_model <- example_models$energyRt$multimod
 
@@ -693,6 +706,7 @@ test_that("foldability without a validation mapping is reported as unproven", {
 })
 
 test_that("get_active_dims() treats an empty active_dims as unset", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   m <- example_models$energyRt$multimod
   p <- m$parameters$pTechCinp2use           # reader-built: no data at construction
   expect_identical(get_dim_names(get_active_dims(p)), get_dim_names(p$dims))

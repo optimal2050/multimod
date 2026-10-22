@@ -36,6 +36,7 @@ test_that("parse_equation_header splits a header and declines a non-header", {
 # ---------------------------------------------------------------------------
 
 test_that("create_fold_spec and its energyRt alias agree", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   # Until 2026-09-24 `create_fold_spec` was defined TWICE in fold.R.
   # The first definition delegated to create_fold_spec(), which delegated
   # straight back - infinite mutual recursion, avoided only because the second
@@ -63,6 +64,7 @@ test_that("create_fold_spec does not call anything energyRt-named", {
 # ---------------------------------------------------------------------------
 
 test_that("write_solution writes one table per variable with real set names", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   skip_if_not_installed("highs")
   data(example_models, package = "multimod")
   r <- solve_highs(example_models$energyRt$multimod, attach = FALSE)
@@ -79,6 +81,7 @@ test_that("write_solution writes one table per variable with real set names", {
 })
 
 test_that("write_energyrt_output adds its scaffolding on top of write_solution", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   skip_if_not_installed("highs")
   data(example_models, package = "multimod")
   r <- solve_highs(example_models$energyRt$multimod, attach = FALSE)
@@ -96,6 +99,7 @@ test_that("write_energyrt_output adds its scaffolding on top of write_solution",
 })
 
 test_that("the session's write_output takes a writer and defaults to multimod's", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   skip_if_not_installed("R6")
   skip_if_not_installed("highs")
   data(example_models, package = "multimod")
@@ -123,6 +127,7 @@ test_that("the session does not name energyRt anywhere in write_output", {
 # ---------------------------------------------------------------------------
 
 test_that("fold_model records mode = 'drop' in fold_info", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   # Both packages compute the same whole-column fold but serialise it
   # differently: energyRt keeps the column with NA ("wildcard"), multimod
   # removes it ("drop"). Without the field a reader cannot tell which it has,

@@ -358,7 +358,8 @@ load_jump_solution <- function(model, model_dir, data_ext, verbose = TRUE) {
         read.csv(var_file, stringsAsFactors = FALSE)
       } else {
         .need_pkg("arrow", "reading a JuMP solution in Arrow format")
-        arrow::read_feather(var_file)
+        # not memory-mapped, so the file can be moved afterwards on Windows
+        as.data.frame(arrow::read_feather(var_file, mmap = FALSE))
       }
       
       # model.jl names the key columns dim1, dim2, ...; use the declared dims

@@ -19,6 +19,7 @@ skip_if_no_session <- function() {
 }
 
 fixture <- function() {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   example_models$energyRt$multimod
 }

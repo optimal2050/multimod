@@ -92,6 +92,7 @@ test_that("validate_ast recurses by default and can be told not to", {
 })
 
 test_that("validate_ast accepts the packaged model", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   expect_equal(validate_ast(example_models$energyRt$multimod), character())
 })
