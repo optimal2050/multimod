@@ -6,9 +6,9 @@ title: "Development status and roadmap"
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
-multimod 0.5.0 is the first CRAN release. The API is young: function
-signatures and class structures may still change between minor versions,
-and the NEWS file records every such change. This page lists what the
+multimod 0.5.0 is the first CRAN release. Function signatures and class
+structures may still change between minor versions, and the NEWS file
+records every such change. This page lists what the
 release does not do yet, and the order in which the gaps are to be closed.
 What it does is in the README's capability table and in the articles.
 
@@ -23,11 +23,17 @@ What it does is in the README's capability table and in the articles.
   conditions, `sum`/`prod`, `ord`/`card`, `smax`/`smin`. It does not read
   `TABLE` data, `loop` or `if` blocks, or macros. `read_gmpl()` reads MathProg
   model files with data sections, computed parameters and parametric
-  defaults; set expressions in declarations are not parsed. JuMP is read one
+  defaults. It does not yet read set expressions in declarations, a set of
+  tuples declared as `set S within A cross B` (it is read as one-dimensional),
+  a tuple condition such as `(t,r) in S` inside an iterated operator, or
+  two-dimensional parameter data in list form (`param p := a x 1 b y 2;`).
+  JuMP is read one
   constraint at a time — `mm_equation(lang = "jump")` takes a `@constraint()`
   statement — not as a whole model. There is no Pyomo reader.
-- **Writers.** `write_gams_data()` writes a GDX through the 'gdxtools'
-  package, which at the time of writing does not install on R 4.6 and later.
+- **Writers.** `write_gams_data()`, which writes a GDX through the
+  'gdxtools' package, is experimental and has not been tested with the
+  current 'gdxtools' release. `write_gams()` output has not been compiled
+  with a licensed GAMS installation.
   `write_pyomo(data_mode = "embedded")` is not implemented and falls back to
   the external loader.
 - **Matrix route.** A symbol declared over plain sets, with no domain
@@ -37,7 +43,7 @@ What it does is in the README's capability table and in the articles.
   defined by a formula are computed. A circular lag has no syntax in
   MathProg, JuMP or Pyomo, so those writers refuse it rather than flatten it.
 - **Experimental exports.** Functions grouped under "Experimental" in the
-  reference index (`as_r()`, the `compare_*()` helpers, visualisation, the
+  reference index (`as_r()`, the `compare_*()` helpers, visualization, the
   granular storage functions, configuration file writers) are exported but
   have no tests yet.
 
@@ -45,13 +51,14 @@ What it does is in the README's capability table and in the articles.
 
 ### 0.5.x
 
-- Done in 0.5.0: dense domains, conditions, lags and formula parameters in
-  the matrix route, so a MathProg model solves with `solve_highs()` (see the
-  matrix-route limitation above for what that covers).
+- An opt-in streaming `write_mps()` that writes the matrix to disk as it is
+  assembled, so a large model is not held in memory as a whole.
 - The four `SC2_*`/`SC4_*` storage-bracket equations of OSeMOSYS assemble with
-  no coefficients; find out why.
-- `write_gams()` output that GAMS can run: parenthesised references and
-  `ord()` for a set element used in arithmetic.
+  no coefficients; the cause is to be established.
+- `read_gmpl()`: sets of tuples declared with `within ... cross`, tuple
+  conditions in iterated operators, and two-dimensional list data.
+- `write_gams()` output verified with a GAMS installation, including `ord()`
+  for a set element used in arithmetic.
 - Replace the remaining `cat()` diagnostics with `message()` so they can be
   silenced.
 - Tests for the experimental exports, or their retirement.
@@ -74,7 +81,8 @@ What it does is in the README's capability table and in the articles.
 
 ### Later
 
-- A C++ core with Python and Julia bindings to the same AST and JSON schema.
+- A native C++ or Rust core with R, Python and Julia interfaces to the same
+  AST and JSON schema.
 - AMPL reader and writer; LP and MPS readers.
 - Symbolic simplification of equations; redundancy detection with
   safeguards; data-driven generation of domain mappings.
@@ -84,7 +92,7 @@ What it does is in the README's capability table and in the articles.
 ## Scope
 
 multimod does not aim to translate every model automatically. It keeps a
-transparent intermediate representation that a modeller can read, adapt and
+transparent intermediate representation that a modeler can read, adapt and
 re-render: the symbolic structure is there to be edited by hand during
 development, testing and teaching, and to be documented exactly as solved.
 

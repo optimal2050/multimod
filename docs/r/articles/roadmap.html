@@ -91,12 +91,11 @@
 
     
     
-<p>multimod 0.5.0 is the first CRAN release. The API is young: function
-signatures and class structures may still change between minor versions,
-and the NEWS file records every such change. This page lists what the
-release does not do yet, and the order in which the gaps are to be
-closed. What it does is in the README’s capability table and in the
-articles.</p>
+<p>multimod 0.5.0 is the first CRAN release. Function signatures and
+class structures may still change between minor versions, and the NEWS
+file records every such change. This page lists what the release does
+not do yet, and the order in which the gaps are to be closed. What it
+does is in the README’s capability table and in the articles.</p>
 <div class="section level2">
 <h2 id="limitations-in-0-5-0">Limitations in 0.5.0<a class="anchor" aria-label="anchor" href="#limitations-in-0-5-0"></a>
 </h2>
@@ -114,17 +113,22 @@ aliases, parameters, <code>$</code> conditions,
 <code>smax</code>/<code>smin</code>. It does not read <code>TABLE</code>
 data, <code>loop</code> or <code>if</code> blocks, or macros.
 <code><a href="../reference/read_gmpl.html">read_gmpl()</a></code> reads MathProg model files with data sections,
-computed parameters and parametric defaults; set expressions in
-declarations are not parsed. JuMP is read one constraint at a time —
-<code>mm_equation(lang = "jump")</code> takes a
+computed parameters and parametric defaults. It does not yet read set
+expressions in declarations, a set of tuples declared as
+<code>set S within A cross B</code> (it is read as one-dimensional), a
+tuple condition such as <code>(t,r) in S</code> inside an iterated
+operator, or two-dimensional parameter data in list form
+(<code>param p := a x 1 b y 2;</code>). JuMP is read one constraint at a
+time — <code>mm_equation(lang = "jump")</code> takes a
 <code>@constraint()</code> statement — not as a whole model. There is no
 Pyomo reader.</li>
 <li>
-<strong>Writers.</strong> <code><a href="../reference/write_gams_data.html">write_gams_data()</a></code> writes a
-GDX through the ‘gdxtools’ package, which at the time of writing does
-not install on R 4.6 and later.
-<code>write_pyomo(data_mode = "embedded")</code> is not implemented and
-falls back to the external loader.</li>
+<strong>Writers.</strong> <code><a href="../reference/write_gams_data.html">write_gams_data()</a></code>, which
+writes a GDX through the ‘gdxtools’ package, is experimental and has not
+been tested with the current ‘gdxtools’ release.
+<code><a href="../reference/write_gams.html">write_gams()</a></code> output has not been compiled with a licensed
+GAMS installation. <code>write_pyomo(data_mode = "embedded")</code> is
+not implemented and falls back to the external loader.</li>
 <li>
 <strong>Matrix route.</strong> A symbol declared over plain sets,
 with no domain mapping, is expanded over their cross product; an
@@ -136,7 +140,7 @@ refuse it rather than flatten it.</li>
 <li>
 <strong>Experimental exports.</strong> Functions grouped under
 “Experimental” in the reference index (<code><a href="../reference/as_r.html">as_r()</a></code>, the
-<code>compare_*()</code> helpers, visualisation, the granular storage
+<code>compare_*()</code> helpers, visualization, the granular storage
 functions, configuration file writers) are exported but have no tests
 yet.</li>
 </ul>
@@ -148,16 +152,19 @@ yet.</li>
 <h3 id="x">0.5.x<a class="anchor" aria-label="anchor" href="#x"></a>
 </h3>
 <ul>
-<li>Done in 0.5.0: dense domains, conditions, lags and formula
-parameters in the matrix route, so a MathProg model solves with
-<code><a href="../reference/solve_highs.html">solve_highs()</a></code> (see the matrix-route limitation above for
-what that covers).</li>
+<li>An opt-in streaming <code><a href="../reference/write_mps.html">write_mps()</a></code> that writes the matrix
+to disk as it is assembled, so a large model is not held in memory as a
+whole.</li>
 <li>The four <code>SC2_*</code>/<code>SC4_*</code> storage-bracket
-equations of OSeMOSYS assemble with no coefficients; find out why.</li>
+equations of OSeMOSYS assemble with no coefficients; the cause is to be
+established.</li>
 <li>
-<code><a href="../reference/write_gams.html">write_gams()</a></code> output that GAMS can run: parenthesised
-references and <code>ord()</code> for a set element used in
-arithmetic.</li>
+<code><a href="../reference/read_gmpl.html">read_gmpl()</a></code>: sets of tuples declared with
+<code>within ... cross</code>, tuple conditions in iterated operators,
+and two-dimensional list data.</li>
+<li>
+<code><a href="../reference/write_gams.html">write_gams()</a></code> output verified with a GAMS installation,
+including <code>ord()</code> for a set element used in arithmetic.</li>
 <li>Replace the remaining <code><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat()</a></code> diagnostics with
 <code><a href="https://rdrr.io/r/base/message.html" class="external-link">message()</a></code> so they can be silenced.</li>
 <li>Tests for the experimental exports, or their retirement.</li>
@@ -193,8 +200,8 @@ objective.</li>
 <h3 id="later">Later<a class="anchor" aria-label="anchor" href="#later"></a>
 </h3>
 <ul>
-<li>A C++ core with Python and Julia bindings to the same AST and JSON
-schema.</li>
+<li>A native C++ or Rust core with R, Python and Julia interfaces to the
+same AST and JSON schema.</li>
 <li>AMPL reader and writer; LP and MPS readers.</li>
 <li>Symbolic simplification of equations; redundancy detection with
 safeguards; data-driven generation of domain mappings.</li>
@@ -207,9 +214,9 @@ safeguards; data-driven generation of domain mappings.</li>
 <h2 id="scope">Scope<a class="anchor" aria-label="anchor" href="#scope"></a>
 </h2>
 <p>multimod does not aim to translate every model automatically. It
-keeps a transparent intermediate representation that a modeller can
-read, adapt and re-render: the symbolic structure is there to be edited
-by hand during development, testing and teaching, and to be documented
+keeps a transparent intermediate representation that a modeler can read,
+adapt and re-render: the symbolic structure is there to be edited by
+hand during development, testing and teaching, and to be documented
 exactly as solved.</p>
 </div>
 <div class="section level2">

@@ -221,8 +221,8 @@ lists what else is not done yet.
 ## Development direction
 
 The long-term architecture envisages a native C++ or Rust computational
-core with R and Python interfaces. Future research directions include
-AI-assisted formulation and support for nonlinear and stochastic
+core with R, Python and Julia interfaces. Future research directions
+include AI-assisted formulation and support for nonlinear and stochastic
 optimization. These are planned directions, not implemented features.
 
 The repository is laid out for that architecture: the R package at the
