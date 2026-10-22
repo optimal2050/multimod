@@ -11,6 +11,7 @@
 #include <cpp11/list.hpp>
 #include <cpp11/strings.hpp>
 
+#include <cstring>
 #include <map>
 #include <memory>
 #include <string>
@@ -168,11 +169,21 @@ multimod::Table table_of(list cols, const std::string& tname) {
   return tab;
 }
 
+sexp int_vector(const std::vector<int>& v) {
+  sexp out = safe[Rf_allocVector](INTSXP, static_cast<R_xlen_t>(v.size()));
+  if (!v.empty()) std::memcpy(INTEGER(out), v.data(), v.size() * sizeof(int));
+  return out;
+}
+
+sexp dbl_vector(const std::vector<double>& v) {
+  sexp out = safe[Rf_allocVector](REALSXP, static_cast<R_xlen_t>(v.size()));
+  if (!v.empty()) std::memcpy(REAL(out), v.data(), v.size() * sizeof(double));
+  return out;
+}
+
 list result_of(const multimod::Triplets& out) {
-  writable::integers i(out.i.size()), j(out.j.size()), ri(out.rhs_i.size());
-  writable::doubles coef(out.coef.size()), rhs(out.rhs.size());
-  for (size_t k = 0; k < out.i.size(); ++k) { i[k] = out.i[k]; j[k] = out.j[k]; coef[k] = out.coef[k]; }
-  for (size_t k = 0; k < out.rhs_i.size(); ++k) { ri[k] = out.rhs_i[k]; rhs[k] = out.rhs[k]; }
+  sexp i = int_vector(out.i), j = int_vector(out.j), ri = int_vector(out.rhs_i);
+  sexp coef = dbl_vector(out.coef), rhs = dbl_vector(out.rhs);
   writable::doubles st(out.stats.size());
   writable::strings stn(out.stats.size());
   for (size_t k = 0; k < out.stats.size(); ++k) { st[k] = out.stats[k].second; stn[k] = out.stats[k].first; }
@@ -187,15 +198,32 @@ list result_of(const multimod::Triplets& out) {
 // the tables are read in place: the caller keeps them alive while the
 // executor is used.
 [[cpp11::register]]
-sexp mm_block_open(list tables) {
+sexp mm_block_open(list tables, int threads) {
   std::map<std::string, multimod::Table> tbl;
+  if (tables.size() > 0) {
+    strings tnames(tables.names());
+    for (R_xlen_t t = 0; t < tables.size(); ++t) {
+      std::string nm(tnames[t]);
+      tbl[nm] = table_of(list(tables[t]), nm);
+    }
+  }
+  external_pointer<multimod::Executor> ptr(new multimod::Executor(std::move(tbl), threads));
+  return sexp(static_cast<SEXP>(ptr));
+}
+
+// Register more tables on an open executor; names already present are kept.
+// Returns the names that were added.
+[[cpp11::register]]
+strings mm_block_add(sexp ex, list tables) {
+  external_pointer<multimod::Executor> p(ex);
+  writable::strings added;
+  if (tables.size() == 0) return added;
   strings tnames(tables.names());
   for (R_xlen_t t = 0; t < tables.size(); ++t) {
     std::string nm(tnames[t]);
-    tbl[nm] = table_of(list(tables[t]), nm);
+    if (p->add_table(nm, table_of(list(tables[t]), nm))) added.push_back(nm);
   }
-  external_pointer<multimod::Executor> ptr(new multimod::Executor(std::move(tbl)));
-  return sexp(static_cast<SEXP>(ptr));
+  return added;
 }
 
 // Run a plan over one chunk of rows on an open executor.
@@ -216,7 +244,7 @@ list mm_block_run(sexp ex, list plan, list rows) {
 // One-shot form: open, run, discard.
 [[cpp11::register]]
 list mm_exec_block(list plan, list tables) {
-  sexp ex = mm_block_open(tables);
+  sexp ex = mm_block_open(tables, 1);
   list rows(tables["rows"]);
   return mm_block_run(ex, plan, rows);
 }

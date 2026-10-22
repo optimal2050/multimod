@@ -1449,7 +1449,7 @@
 
 # --- equation assembly ------------------------------------------------------
 
-utils::globalVariables(c(".k", ".outer", "coef", "j", "v", "seq_len", "symbol"))
+utils::globalVariables(c(".k", ".outer", ".I", "coef", "j", "v", "seq_len", "symbol"))
 
 #' Environment of bound indices for one equation
 #'
@@ -1588,8 +1588,6 @@ build_triplets <- function(model, col_index = NULL, row_index = NULL,
     rows <- rows_coded[rg$from:rg$to]
     lowered <- if (identical(engine, "native")) .mx_lower_equation(eq, ctx) else NULL
     native[[nm]] <- !is.null(lowered)
-    # one executor per equation: its hash indexes serve every chunk
-    if (!is.null(lowered)) lowered$ex <- mm_block_open(lowered$tables)
 
     t0 <- Sys.time()
     nr <- nrow(rows)
@@ -1600,7 +1598,7 @@ build_triplets <- function(model, col_index = NULL, row_index = NULL,
       sl <- if (n_chunks == 1L) rows else
         rows[(((ck - 1L) * chunk_rows) + 1L):min(ck * chunk_rows, nr)]
       if (!is.null(lowered)) {
-        blk <- .mx_exec_block(lowered, sl)
+        blk <- .mx_exec_block(lowered, sl, ctx)
         mats[[ck]] <- blk$mat
         csts[[ck]] <- blk$cst
         st <- ctx$native_stats[[nm]]

@@ -388,9 +388,11 @@
       if (!length(newc)) next                          # a filter; applied below
       if (!all(newc %in% iters)) { if (own[n]) return(no("agg:binds-foreign")) else next }
       if (!length(shared)) next                        # needs a bound index first
-      # the most selective join first: the one sharing the most bound indices
-      score <- length(shared) + if (own[n]) 0.5 else 0
-      if (is.null(best) || score > best$score) {
+      # the most selective join first: the fewest table rows per distinct
+      # value of the shared keys (the fan-out of the expansion); an own
+      # condition wins a tie
+      score <- .mx_map_fanout(cn$name, dat, names(dat)[ref %in% cur], ctx) - if (own[n]) 1e-9 else 0
+      if (is.null(best) || score < best$score) {
         best <- list(n = n, ref = ref, dat = dat, shared = shared, newc = newc, score = score)
       }
     }
@@ -429,6 +431,18 @@
   list(steps = steps, cur = cur)
 }
 
+# average rows of a mapping per distinct tuple of `cols`: the fan-out of an
+# expansion joined on those columns; cached per build
+.mx_map_fanout <- function(nm, dat, cols, ctx) {
+  key <- paste(c(nm, cols), collapse = "\x1f")
+  f <- ctx$fanout_cache[[key]]
+  if (!is.null(f)) return(f)
+  f <- nrow(dat) / max(1, data.table::uniqueN(dat, by = cols))
+  if (is.null(ctx$fanout_cache)) ctx$fanout_cache <- list()
+  ctx$fanout_cache[[key]] <- f
+  f
+}
+
 .mx_lower_sum <- function(node, bound, L) {
   st <- .mx_agg_steps(node, bound, L)
   if (is.null(st)) return(.mx_lower_fail(L, L$agg_why %||% "sum"))
@@ -446,15 +460,46 @@
 #' @return list(mat = data.table(i, j, coef), cst = data.table(i, rhs))
 #' @keywords internal
 #' @noRd
-.mx_exec_block <- function(lowered, rows) {
+.mx_exec_block <- function(lowered, rows, ctx = NULL) {
   dims <- lowered$plan$row_keys
   rt <- list(k = rows$i)
   for (n in seq_along(dims)) rt[[dims[n]]] <- rows[[paste0("i", n)]]
-  if (is.null(lowered$ex)) lowered$ex <- mm_block_open(lowered$tables)
-  out <- mm_block_run(lowered$ex, lowered$plan, rt)
+  ex <- if (!is.null(ctx)) .mx_executor(ctx, lowered$tables) else
+    mm_block_open(lowered$tables, .mx_threads())
+  out <- mm_block_run(ex, lowered$plan, rt)
   list(mat = data.table::data.table(i = out$i, j = out$j, coef = out$coef),
        cst = data.table::data.table(i = out$rhs_i, rhs = out$rhs),
        stats = out$stats)
+}
+
+#' The build's executor, with the tables of a lowered equation registered
+#'
+#' One executor serves every equation of a build, so the hash indexes it
+#' builds on a parameter, mapping or column table are built once. The R
+#' vectors behind the registered tables are kept in `ctx$ex_keep` for as
+#' long as the executor lives, since it reads them in place.
+#' @keywords internal
+#' @noRd
+.mx_executor <- function(ctx, tables) {
+  if (is.null(ctx$ex)) {
+    ctx$ex <- mm_block_open(list(), .mx_threads())
+    ctx$ex_keep <- list()
+  }
+  new <- setdiff(names(tables), names(ctx$ex_keep))
+  if (length(new)) {
+    mm_block_add(ctx$ex, tables[new])
+    ctx$ex_keep[new] <- tables[new]
+  }
+  ctx$ex
+}
+
+# threads of the native executor: `options(multimod.threads = )`, default the
+# machine's cores
+.mx_threads <- function() {
+  n <- getOption("multimod.threads", NULL)
+  if (is.null(n)) n <- tryCatch(parallel::detectCores(logical = TRUE), error = function(e) 1L)
+  n <- suppressWarnings(as.integer(n))
+  if (is.na(n) || n < 1L) 1L else n
 }
 
 #' Compare the two engines equation by equation
@@ -485,7 +530,7 @@
     key <- function(d) d[order(d$i, d$j)]
     # the right-hand side is compared as values per row: a constant term the
     # R engine never emits and a zero one the executor emits are the same 0
-    dense <- function(d) { v <- d[rhs != 0]; v[order(i)] }
+    dense <- function(d) { v <- d[d$rhs != 0]; v[order(v$i)] }
     same <- identical(nrow(r$tri), nrow(n$tri)) &&
       isTRUE(all.equal(key(r$tri), key(n$tri), check.attributes = FALSE)) &&
       isTRUE(all.equal(dense(r$rhs), dense(n$rhs), check.attributes = FALSE))

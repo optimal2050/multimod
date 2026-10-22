@@ -1,4 +1,3 @@
 CXX_STD = CXX17
 PKG_CPPFLAGS = -I./core/include
-SOURCES = $(wildcard core/src/*.cpp) $(wildcard *.cpp)
-OBJECTS = $(SOURCES:.cpp=.o)
+OBJECTS = core/src/block.o cpp11.o mm_core.o
