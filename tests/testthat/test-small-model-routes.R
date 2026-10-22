@@ -105,3 +105,12 @@ test_that("a saved model round-trips through JSON", {
   expect_equal(back$storage$format, "csv")
   expect_named(back$equations, names(toy$equations))
 })
+
+test_that("write_latex() renders a whole model as one LaTeX document", {
+  toy <- example_models$toy
+  tex <- write_latex(toy, file = NULL)
+  expect_type(tex, "character")
+  expect_match(tex, "\\begin{document}", fixed = TRUE)
+  expect_match(tex, "eqDemand", fixed = TRUE)
+  expect_match(tex, "\\end{document}", fixed = TRUE)
+})

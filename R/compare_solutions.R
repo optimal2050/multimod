@@ -458,7 +458,7 @@ compare_solution <- function(
       return(read.csv(file_path, stringsAsFactors = FALSE))
     } else if (ext == "arrow") {
       if (requireNamespace("arrow", quietly = TRUE)) {
-        data <- arrow::read_ipc_file(file_path)
+        data <- arrow::read_ipc_file(file_path, mmap = FALSE)
         return(as.data.frame(data))
       } else {
         warning("Package 'arrow' required to read .arrow files")
@@ -466,7 +466,7 @@ compare_solution <- function(
       }
     } else if (ext == "feather") {
       if (requireNamespace("arrow", quietly = TRUE)) {
-        data <- arrow::read_feather(file_path)
+        data <- arrow::read_feather(file_path, mmap = FALSE)
         return(as.data.frame(data))
       } else {
         warning("Package 'arrow' required to read .feather files")

@@ -35,6 +35,7 @@ test_that("integer columns are never eliminated", {
 })
 
 test_that("the fixture solves to the same optimum through an eliminated MPS", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   skip_if_not_installed("highs")
   data(example_models, package = "multimod")
   m <- example_models$energyRt$multimod

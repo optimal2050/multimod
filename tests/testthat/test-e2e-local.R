@@ -16,6 +16,7 @@
 EXPECTED_OBJECTIVE <- 46398.4234209742
 
 test_that("the written MPS solves locally and decodes to the same solution", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   skip_if_not_installed("highs")
   data(example_models, package = "multimod")
   m <- example_models$energyRt$multimod
@@ -64,6 +65,7 @@ test_that("the written MPS solves locally and decodes to the same solution", {
 })
 
 test_that("solve_mps refuses a non-optimal result unless told otherwise", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   skip_if_not_installed("highs")
   data(example_models, package = "multimod")
   m <- example_models$energyRt$multimod

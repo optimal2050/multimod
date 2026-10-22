@@ -67,6 +67,7 @@ test_that("a truncated solution file errors rather than reading partially", {
 })
 
 test_that("a solution for a different model is rejected", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   skip_if_not_installed("highs")
   data(example_models, package = "multimod")
   m <- example_models$energyRt$multimod
@@ -85,6 +86,7 @@ test_that("a solution for a different model is rejected", {
 })
 
 test_that("read_mps_solution reproduces the in-process solve exactly", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   skip_if_not_installed("highs")
   data(example_models, package = "multimod")
   m <- example_models$energyRt$multimod
@@ -107,6 +109,7 @@ test_that("read_mps_solution reproduces the in-process solve exactly", {
 })
 
 test_that("index tables round-trip through write_mps and are found again", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   skip_if_not_installed("highs")
   data(example_models, package = "multimod")
   m <- example_models$energyRt$multimod
@@ -127,6 +130,7 @@ test_that("index tables round-trip through write_mps and are found again", {
 })
 
 test_that("write_energyrt_output writes one file per variable, nonzeros only", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   skip_if_not_installed("highs")
   data(example_models, package = "multimod")
   m <- example_models$energyRt$multimod

@@ -23,6 +23,7 @@ EXPECTED_COLS <- 19218L
 EXPECTED_ROWS <- 19083L
 
 test_that("build_col_index reproduces the LP column count", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   m <- example_models$energyRt$multimod
 
@@ -35,6 +36,7 @@ test_that("build_col_index reproduces the LP column count", {
 })
 
 test_that("build_row_index reproduces the LP row count", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   m <- example_models$energyRt$multimod
 
@@ -47,6 +49,7 @@ test_that("build_row_index reproduces the LP row count", {
 })
 
 test_that("every constraint has a valid sense", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   ri <- build_row_index(example_models$energyRt$multimod)
 
@@ -57,6 +60,7 @@ test_that("every constraint has a valid sense", {
 })
 
 test_that("column bounds are finite-or-infinite numerics consistent with vtype", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   ci <- build_col_index(example_models$energyRt$multimod)
 
@@ -71,6 +75,7 @@ test_that("column bounds are finite-or-infinite numerics consistent with vtype",
 })
 
 test_that("ungated scalars contribute exactly one column and one row", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   m <- example_models$energyRt$multimod
 
@@ -85,6 +90,7 @@ test_that("ungated scalars contribute exactly one column and one row", {
 })
 
 test_that("symbols gated by an empty mapping contribute nothing", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   m <- example_models$energyRt$multimod
 
@@ -106,6 +112,7 @@ test_that("symbols gated by an empty mapping contribute nothing", {
 })
 
 test_that("dim_names records the original set names per symbol", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   ci <- build_col_index(example_models$energyRt$multimod)
 

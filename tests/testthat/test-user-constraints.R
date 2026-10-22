@@ -22,6 +22,7 @@ mx_ctx <- function(model) {
 }
 
 test_that("an empty gating map ends the sum instead of expanding it densely", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   m <- example_models$energyRt$multimod
   # declared, but holding no tuples - and, as an unlinked map does, carrying no
@@ -44,6 +45,7 @@ test_that("an empty gating map ends the sum instead of expanding it densely", {
 })
 
 test_that("a map the model never declared is an error, not an open index", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   m <- example_models$energyRt$multimod
   expect_error(multimod:::.mx_map_data("mNoSuchMap", mx_ctx(m)),
@@ -51,6 +53,7 @@ test_that("a map the model never declared is an error, not an open index", {
 })
 
 test_that("a populated gating map still binds the summation index", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   m <- example_models$energyRt$multimod
   cond <- ast_mapping("mTechSpan", ast_dims(c("tech", "region", "year")))

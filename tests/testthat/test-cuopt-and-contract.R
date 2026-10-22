@@ -101,6 +101,7 @@ test_that("a duplicate or out-of-range position is an error", {
 # --- the full chain, through disk ---------------------------------------------
 
 test_that("write_mps -> disk -> read_mps_solution -> write_energyrt_output", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   skip_if_not_installed("highs")
   data(example_models, package = "multimod")
   m <- example_models$energyRt$multimod
@@ -151,6 +152,7 @@ test_that("write_mps -> disk -> read_mps_solution -> write_energyrt_output", {
 })
 
 test_that("a non-optimal solution is not logged as solved", {
+  skip_on_cran()  # full energyRt model: run locally and in CI
   skip_if_not_installed("highs")
   data(example_models, package = "multimod")
   m <- example_models$energyRt$multimod
