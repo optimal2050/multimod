@@ -18,6 +18,8 @@
 #include <vector>
 
 #include "multimod/block.h"
+#include "multimod/mps.h"
+#include "multimod/scan.h"
 
 using namespace cpp11;
 
@@ -239,6 +241,133 @@ list mm_block_run(sexp ex, list plan, list rows) {
     stop("native block executor: %s", e.what());
   }
   return result_of(out);
+}
+
+// --- streaming sink -----------------------------------------------------------
+
+[[cpp11::register]]
+sexp mm_sink_open(std::string dir, int buckets, double nrow, double ncol) {
+  external_pointer<multimod::Sink> ptr(new multimod::Sink(dir, buckets, static_cast<int64_t>(nrow),
+                                                          static_cast<int64_t>(ncol)));
+  return sexp(static_cast<SEXP>(ptr));
+}
+
+[[cpp11::register]]
+void mm_sink_write(sexp sink, integers i, integers j, doubles x) {
+  external_pointer<multimod::Sink> p(sink);
+  if (i.size() != j.size() || i.size() != x.size()) stop("i, j and x differ in length");
+  try {
+    p->write(INTEGER(i), INTEGER(j), REAL(x), i.size());
+  } catch (const std::exception& e) {
+    stop("sink: %s", e.what());
+  }
+}
+
+// Run a plan over one chunk of rows and write the entries to the sink; only
+// the constants (right-hand side) come back.
+[[cpp11::register]]
+list mm_block_run_sink(sexp ex, list plan, list rows, sexp sink) {
+  external_pointer<multimod::Executor> p(ex);
+  external_pointer<multimod::Sink> sk(sink);
+  p->set_table("rows", table_of(rows, "rows"));
+  multimod::Plan pl = plan_of(plan);
+  multimod::Triplets out;
+  try {
+    out = p->run(pl);
+    sk->write(out.i.data(), out.j.data(), out.coef.data(), static_cast<int64_t>(out.i.size()));
+  } catch (const std::exception& e) {
+    stop("native block executor: %s", e.what());
+  }
+  multimod::Triplets small;
+  small.rhs_i = std::move(out.rhs_i);
+  small.rhs = std::move(out.rhs);
+  small.stats = std::move(out.stats);
+  return result_of(small);
+}
+
+// The substitution the sink applies while writing. The R vectors are read in
+// place and must outlive the sink.
+[[cpp11::register]]
+void mm_sink_map(sexp sink, integers ired, integers jred, integers ref, doubles coef, double tol) {
+  external_pointer<multimod::Sink> p(sink);
+  if (ref.size() != jred.size() || coef.size() != jred.size()) stop("ref and coef must match jred");
+  p->set_map(INTEGER(ired), INTEGER(jred), INTEGER(ref), REAL(coef), ired.size(), jred.size(), tol);
+}
+
+// --- scan pass of the presolve --------------------------------------------
+
+[[cpp11::register]]
+sexp mm_scan_open(double nrow, double ncol, int track) {
+  external_pointer<multimod::Scan> ptr(new multimod::Scan(static_cast<int64_t>(nrow), static_cast<int64_t>(ncol), track));
+  return sexp(static_cast<SEXP>(ptr));
+}
+
+[[cpp11::register]]
+void mm_scan_add(sexp scan, integers i, integers j, doubles x) {
+  external_pointer<multimod::Scan> p(scan);
+  if (i.size() != j.size() || i.size() != x.size()) stop("i, j and x differ in length");
+  try {
+    p->add(INTEGER(i), INTEGER(j), REAL(x), i.size());
+  } catch (const std::exception& e) {
+    stop("scan: %s", e.what());
+  }
+}
+
+[[cpp11::register]]
+list mm_block_run_scan(sexp ex, list plan, list rows, sexp scan) {
+  external_pointer<multimod::Executor> p(ex);
+  external_pointer<multimod::Scan> sc(scan);
+  p->set_table("rows", table_of(rows, "rows"));
+  multimod::Plan pl = plan_of(plan);
+  multimod::Triplets out;
+  try {
+    out = p->run(pl);
+    sc->add(out.i.data(), out.j.data(), out.coef.data(), static_cast<int64_t>(out.i.size()));
+  } catch (const std::exception& e) {
+    stop("native block executor: %s", e.what());
+  }
+  multimod::Triplets small;
+  small.rhs_i = std::move(out.rhs_i);
+  small.rhs = std::move(out.rhs);
+  small.stats = std::move(out.stats);
+  return result_of(small);
+}
+
+[[cpp11::register]]
+list mm_scan_close(sexp scan) {
+  external_pointer<multimod::Scan> p(scan);
+  return writable::list({
+    "row_counts"_nm = int_vector(std::vector<int>(p->row_counts().begin(), p->row_counts().end())),
+    "col_counts"_nm = int_vector(std::vector<int>(p->col_counts().begin(), p->col_counts().end())),
+    "row"_nm = int_vector(std::vector<int>(p->s_row().begin(), p->s_row().end())),
+    "col"_nm = int_vector(std::vector<int>(p->s_col().begin(), p->s_col().end())),
+    "x"_nm = dbl_vector(p->s_x())});
+}
+
+[[cpp11::register]]
+list mm_sink_close(sexp sink) {
+  external_pointer<multimod::Sink> p(sink);
+  try {
+    p->close();
+  } catch (const std::exception& e) {
+    stop("sink: %s", e.what());
+  }
+  return writable::list({"nnz"_nm = as_sexp(static_cast<double>(p->nnz())),
+                         "row_counts"_nm = int_vector(std::vector<int>(p->row_counts().begin(), p->row_counts().end()))});
+}
+
+[[cpp11::register]]
+double mm_mps_write(std::string file, sexp sink, doubles row_lo, doubles row_up,
+                    doubles col_lo, doubles col_up, doubles obj, bool maximum) {
+  external_pointer<multimod::Sink> p(sink);
+  if (row_lo.size() != p->nrow() || row_up.size() != p->nrow()) stop("row bounds do not match the sink's rows");
+  if (col_lo.size() != p->ncol() || col_up.size() != p->ncol() || obj.size() != p->ncol()) stop("column vectors do not match the sink's columns");
+  multimod::LpBounds lp{REAL(row_lo), REAL(row_up), REAL(col_lo), REAL(col_up), REAL(obj), maximum};
+  try {
+    return static_cast<double>(multimod::write_mps(file, *p, lp));
+  } catch (const std::exception& e) {
+    stop("mps: %s", e.what());
+  }
 }
 
 // One-shot form: open, run, discard.

@@ -172,6 +172,144 @@ lp_presolve <- function(lp, steps = "doubletons", max_pass = 50L,
   lp
 }
 
+#' The doubleton substitution from a scan of the rows
+#'
+#' The same reduction as [lp_presolve()], composed from the scan pass of a
+#' streamed build instead of the assembled matrix. The scan keeps the entries
+#' of every row with few entries; after each pass those rows are recomputed
+#' with the substitution applied (entries moved to the reference column,
+#' merged, exact zeros dropped), so a row that collapses to two entries
+#' becomes a candidate exactly as it does on the matrix. The candidate rows
+#' are those with exactly two entries, an equality and a zero right-hand
+#' side; passes choose the column to eliminate by the same preference, keep a
+#' target out of the same pass, tighten the target's bounds from the
+#' eliminated column's, and resolve chains one link per pass. What the
+#' matrix form sees and this one does not: a row with more entries than the
+#' scan tracks that collapses to two, and merges in such rows when the column
+#' entry counts are updated, so a tie in the preference may fall the other
+#' way there.
+#'
+#' @param scan The result of `mm_scan_close()`.
+#' @param sense,rhs Row senses and right-hand sides, full index.
+#' @param col_lo,col_up,vtype Column bounds and types, full index.
+#' @return A list: `eliminated` (col, ref, coef, pass), `jred`, `ired`
+#'   (0 for an eliminated column or row), `ref` and `coef` (per full-index
+#'   column, the kept column and factor an eliminated column resolves to;
+#'   0 and 1 for a kept column), tightened `col_lo` / `col_up`.
+#' @keywords internal
+#' @noRd
+.mx_presolve_map <- function(scan, sense, rhs, col_lo, col_up, vtype = NULL,
+                             max_pass = 50L, tol = 1e-12, verbose = FALSE) {
+  ncol <- length(col_lo)
+  nrow <- length(sense)
+  int <- if (is.null(vtype)) rep(FALSE, ncol) else
+    tolower(as.character(vtype)) %in% c("integer", "binary", "int", "bin", "i", "b")
+  nnz <- as.numeric(scan$col_counts)
+  clo <- col_lo; cup <- col_up
+  # the tracked rows' entries; only equality rows with a zero right-hand side
+  # can ever be candidates, the others are not needed
+  T <- data.table::data.table(r = scan$row, c = scan$col, x = scan$x)
+  T <- T[sense[r] == "==" & rhs[r] == 0]
+  elim <- list()
+  dropped_row <- rep(FALSE, nrow)
+  elim_col <- rep(FALSE, ncol)
+  # where an eliminated column currently resolves to, and with which factor
+  ref <- seq_len(ncol); coef <- rep(1, ncol)
+
+  for (pass in seq_len(max_pass)) {
+    if (!nrow(T)) break
+    # candidates: tracked rows with exactly two entries, columns ascending
+    cnt <- T[, list(n = .N), by = "r"]
+    two <- cnt$r[cnt$n == 2L]
+    if (!length(two)) break
+    d <- T[r %in% two][order(r, c)]
+    first <- seq(1L, nrow(d), by = 2L)
+    r <- d$r[first]; u <- d$c[first]; au <- d$x[first]; v <- d$c[first + 1L]; av <- d$x[first + 1L]
+    pref <- function(w, other) {
+      (!int[w]) * 4L + (!(w %in% c(u, v)[duplicated(c(u, v))])) * 2L +
+        (nnz[w] <= nnz[other])
+    }
+    pick_u <- pref(u, v) >= pref(v, u)
+    x <- ifelse(pick_u, u, v)
+    y <- ifelse(pick_u, v, u)
+    ax <- ifelse(pick_u, au, av)
+    ay <- ifelse(pick_u, av, au)
+    k <- !int[x] & ax != 0
+    k[k] <- !duplicated(x[k])
+    k <- k & !(x %in% y[k])
+    k <- k & !(y %in% x[k])
+    if (!any(k)) break
+    rk <- r[k]; xk <- x[k]; yk <- y[k]
+    cf <- -ay[k] / ax[k]
+
+    lo_y <- ifelse(cf > 0, clo[xk] / cf, cup[xk] / cf)
+    up_y <- ifelse(cf > 0, cup[xk] / cf, clo[xk] / cf)
+    b <- data.table::data.table(y = yk, lo = lo_y, up = up_y)[
+      , list(lo = max(lo), up = min(up)), by = "y"]
+    clo[b$y] <- pmax(clo[b$y], b$lo)
+    cup[b$y] <- pmin(cup[b$y], b$up)
+
+    elim[[pass]] <- data.table::data.table(col = xk, ref = yk, coef = cf, pass = pass)
+    elim_col[xk] <- TRUE
+    dropped_row[rk] <- TRUE
+    ref[xk] <- yk; coef[xk] <- cf
+    # the eliminated column's other entries move to the target, and the
+    # target loses its own entry in the dropped row
+    moved <- data.table::data.table(y = yk, n = nnz[xk] - 2)[, list(n = sum(n)), by = "y"]
+    nnz[moved$y] <- nnz[moved$y] + moved$n
+    nnz[xk] <- 0
+    if (verbose) {
+      message(sprintf("doubletons pass %d: %d columns and rows eliminated", pass, length(xk)))
+    }
+    # the tracked rows after this pass: eliminated rows gone, eliminated
+    # columns moved to their reference, entries on one column merged, exact
+    # zeros dropped (the merges reduce the column counts)
+    T <- T[!(r %in% rk)]
+    if (!nrow(T)) break
+    this <- logical(ncol); this[xk] <- TRUE
+    e <- this[T$c]
+    if (any(e)) {
+      data.table::set(T, i = which(e), j = "x", value = T$x[e] * coef[T$c[e]])
+      data.table::set(T, i = which(e), j = "c", value = ref[T$c[e]])
+      before <- T[, list(n = .N), by = "c"]
+      T <- T[, list(x = sum(x)), by = c("r", "c")]
+      T <- T[abs(x) > tol]
+      after <- T[, list(n = .N), by = "c"]
+      # entries merged or cancelled in the tracked rows leave the column counts
+      left <- after$n[match(before$c, after$c)]
+      gone <- before$n - ifelse(is.na(left), 0L, left)
+      if (any(gone > 0L)) {
+        nnz[before$c] <- nnz[before$c] - gone
+        if (verbose) message(sprintf("  %d entries merged or cancelled in the tracked rows", sum(gone)))
+      }
+    }
+  }
+
+  el <- data.table::rbindlist(elim)
+  if (!nrow(el)) {
+    el <- data.table::data.table(col = integer(), ref = integer(), coef = numeric(), pass = integer())
+  }
+  # resolve every eliminated column to a kept one (chains over passes)
+  final_ref <- seq_len(ncol); final_coef <- rep(1, ncol)
+  if (nrow(el)) {
+    for (p in sort(unique(el$pass), decreasing = TRUE)) {
+      e <- el[el$pass == p]
+      final_ref[e$col] <- final_ref[e$ref]
+      final_coef[e$col] <- e$coef * final_coef[e$ref]
+    }
+  }
+  bad <- which(clo > cup + 1e-9 * pmax(1, abs(clo)))
+  if (length(bad)) {
+    warning("presolve: ", length(bad), " column(s) have crossing bounds after ",
+            "substitution; the LP is infeasible.", call. = FALSE)
+  }
+  jred <- integer(ncol); jred[!elim_col] <- seq_len(sum(!elim_col))
+  ired <- integer(nrow); ired[!dropped_row] <- seq_len(sum(!dropped_row))
+  list(eliminated = el, jred = jred, ired = ired,
+       ref = ifelse(elim_col, final_ref, 0L), coef = ifelse(elim_col, final_coef, 1),
+       col_lo = clo, col_up = cup, nnz = nnz)
+}
+
 #' Expand a reduced-LP column vector to the full index
 #'
 #' @param x Values of the kept columns, in reduced order.

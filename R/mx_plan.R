@@ -460,12 +460,21 @@
 #' @return list(mat = data.table(i, j, coef), cst = data.table(i, rhs))
 #' @keywords internal
 #' @noRd
-.mx_exec_block <- function(lowered, rows, ctx = NULL) {
+.mx_exec_block <- function(lowered, rows, ctx = NULL, sink = NULL) {
   dims <- lowered$plan$row_keys
   rt <- list(k = rows$i)
   for (n in seq_along(dims)) rt[[dims[n]]] <- rows[[paste0("i", n)]]
   ex <- if (!is.null(ctx)) .mx_executor(ctx, lowered$tables) else
     mm_block_open(lowered$tables, .mx_threads())
+  if (!is.null(sink)) {
+    # the entries go straight to the sink (or the scan); only the constants
+    # come back
+    out <- if (inherits(sink, "mm_scan")) mm_block_run_scan(ex, lowered$plan, rt, sink) else
+      mm_block_run_sink(ex, lowered$plan, rt, sink)
+    return(list(mat = data.table::data.table(i = integer(), j = integer(), coef = numeric()),
+                cst = data.table::data.table(i = out$rhs_i, rhs = out$rhs),
+                stats = out$stats))
+  }
   out <- mm_block_run(ex, lowered$plan, rt)
   list(mat = data.table::data.table(i = out$i, j = out$j, coef = out$coef),
        cst = data.table::data.table(i = out$rhs_i, rhs = out$rhs),

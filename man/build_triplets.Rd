@@ -11,7 +11,8 @@ build_triplets(
   equations = NULL,
   on_duplicate = c("error", "last", "first"),
   verbose = FALSE,
-  chunk_rows = 1000000L
+  chunk_rows = 1000000L,
+  sink = NULL
 )
 }
 \arguments{
@@ -37,6 +38,10 @@ exact; what it bounds is the pre-aggregation intermediate of a \code{sum()}
 (outer rows x inner tuples), which on a large full-year model otherwise
 allocates tens of gigabytes in one piece. The aggregated per-chunk
 triplets concatenate without renumbering (\code{.k} carries the global row id).}
+
+\item{sink}{Internal: an open streaming sink (see \code{\link[=write_mps]{write_mps()}} with
+\code{stream = TRUE}). The matrix entries are written to it as each chunk is
+built and \code{triplets} comes back empty; \code{rhs} is returned as usual.}
 }
 \value{
 A list with \code{triplets} (\code{data.table(i, j, coef)}, aggregated), \code{rhs}

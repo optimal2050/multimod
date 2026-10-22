@@ -10,6 +10,14 @@
   run by compiled code; an equation outside the covered subset stays on the
   R engine. `options(multimod.threads = )` sets its threads (default: the
   machine's cores). The package now compiles C++17 code (`LinkingTo: cpp11`).
+* `write_mps(stream = TRUE)` builds the matrix block by block and writes the
+  MPS file itself, spooling the entries to bucket files by column range, so
+  the matrix is never held in memory. The file is equivalent to the one
+  HiGHS writes. With `presolve = TRUE` the blocks are built twice, a scan
+  pass that collects the doubleton rows and an emit pass that applies the
+  substitution as the entries pass through; the substitution is the one
+  `lp_presolve()` makes, and the bundle decodes with `read_mps_solution()`
+  unchanged.
 * `specs/goldens/matrix/` holds the LP of the two example models as plain
   tables; `tests/testthat/test-matrix-goldens.R` checks the assembly against
   them coefficient for coefficient.
