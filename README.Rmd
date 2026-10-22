@@ -84,7 +84,7 @@ Status: [x] implemented | [~] and { } developing | [ ] and {{ }} considering
 
 The diagram summarizes the architecture; the table under [Capabilities](#capabilities) lists the implemented functions.
 
-The current tested scope is **linear programming with continuous variables**. Language importers cover documented subsets, and some output routes remain experimental; see [Capabilities](#capabilities) and the [roadmap](https://optimal2050.github.io/multimod/articles/roadmap.html).
+The current tested scope is **linear programming with continuous variables**. Language importers cover documented subsets, and some output routes remain experimental; see [Capabilities](#capabilities) and the [roadmap](https://optimal2050.github.io/multimod/r/articles/roadmap.html).
 
 ## Installation
 
@@ -155,23 +155,29 @@ and solved both through JuMP and from the matrix.
 
 Linear programs with continuous variables are the tested class. Structural model reduction (`fold_model()`, `trim_model()`) is distinct from numerical solver presolving. GAMS output is
 readable but not yet runnable without edits, and there is no Pyomo reader; the
-[roadmap](https://optimal2050.github.io/multimod/articles/roadmap.html) lists
+[roadmap](https://optimal2050.github.io/multimod/r/articles/roadmap.html) lists
 what else is not done yet.
 
 ## Documentation and next steps
 
 - `vignette("multimod")`: reading, translating, analyzing, exporting and
   solving a model in a few calls.
-- [Writing a model in R](https://optimal2050.github.io/multimod/articles/ast.html): the constructors, step by step.
-- [Folding and trimming](https://optimal2050.github.io/multimod/articles/folding.html): reducing a model to the size
+- [Writing a model in R](https://optimal2050.github.io/multimod/r/articles/ast.html): the constructors, step by step.
+- [Folding and trimming](https://optimal2050.github.io/multimod/r/articles/folding.html): reducing a model to the size
   its data needs.
-- Further articles on the [website](https://optimal2050.github.io/multimod/):
+- Further articles on the [website](https://optimal2050.github.io/multimod/r/):
   solving and reading results, the two field models, the model workspace,
   configuration, LaTeX.
 
 ## Development direction
 
 The long-term architecture envisages a native C++ or Rust computational core with R and Python interfaces. Future research directions include AI-assisted formulation and support for nonlinear and stochastic optimization. These are planned directions, not implemented features.
+
+The repository is laid out for that architecture: the R package at the root,
+`core/` and `python/` reserved for the native core and its Python binding,
+`specs/` for the cross-language goldens, and one documentation site under
+`docs/` with the R reference at [`/r/`](https://optimal2050.github.io/multimod/r/)
+beside the future language sections.
 
 ## Integration with energyRt
 

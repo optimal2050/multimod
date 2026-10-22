@@ -174,7 +174,7 @@ model.
 ## Further reading
 
 The articles on the package website,
-<https://optimal2050.github.io/multimod/>, cover each topic in detail:
+<https://optimal2050.github.io/multimod/r/>, cover each topic in detail:
 
 - "Writing a model in R": the constructors, building `toy` step by step.
 - "Solving and reading results": every solve route and its output.

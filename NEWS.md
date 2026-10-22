@@ -85,6 +85,9 @@ of June 2025, which read GAMS and rendered models to LaTeX and back to GAMS.
   writing a model in R, folding and trimming, solving and reading results,
   two published models, the model workspace, configuration and LaTeX
   rendering.
+* The website moved to <https://optimal2050.github.io/multimod/r/>; the
+  root is a landing page for the languages the repository is laid out for.
+  Links to the old addresses are forwarded.
 
 ## Bug fixes
 

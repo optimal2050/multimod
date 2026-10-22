@@ -24,3 +24,7 @@
 ^cran-comments\.md$
 ^CRAN-SUBMISSION$
 ^LICENSE\.note$
+^python$
+^core$
+^specs$
+^tools$

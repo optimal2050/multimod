@@ -17,3 +17,21 @@ projects/
 # Julia environment created by a --project=. run in the package root
 /Project.toml
 /Manifest.toml
+
+# Python binding
+python/.venv/
+python/build/
+python/dist/
+python/*.egg-info/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Native core build trees
+core/build/
+core/target/
+
+# Quarto (landing page is rendered with embed-resources; no _site)
+/_site/
+/.quarto/

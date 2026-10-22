@@ -6,6 +6,12 @@
 \usage{
 parse_bracket_format(name, text, default_val)
 }
+\value{
+A list describing the parameter: \code{name}, \code{type} (\code{"parameter"}),
+\code{dims} (the number of index positions), \code{defVal} (the default value) and
+\code{data}, a data frame with one column per index position and a \code{value}
+column.
+}
 \description{
 Parses GMPL bracket format like \verb{[idx1,idx2] value [idx1,idx2] value}.
 }

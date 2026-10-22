@@ -82,9 +82,13 @@ can be set via R options, environment variables, or a YAML config file.
 }
 }
 \examples{
-# where the configuration would be read from, and what is resolved now
+# where the configuration would be read from
 multimod_config_path()
+
+\donttest{
+# what is resolved now; probes the machine for Python, Julia and glpsol
 multimod_config_show()
+}
 
 \dontrun{
 # Set paths via R options (session-persistent)

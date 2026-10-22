@@ -13,6 +13,7 @@ A unified framework for mathematical model representation, analysis, transformat
 \seealso{
 Useful links:
 \itemize{
+  \item \url{https://optimal2050.github.io/multimod/r/}
   \item \url{https://optimal2050.github.io/multimod/}
   \item \url{https://github.com/optimal2050/multimod}
   \item Report bugs at \url{https://github.com/optimal2050/multimod/issues}

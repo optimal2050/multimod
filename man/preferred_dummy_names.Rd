@@ -9,6 +9,11 @@ A named list mapping set names to preferred short iterator names.
 \usage{
 preferred_dummy_names
 }
+\value{
+A named list of character scalars, one short iterator name per
+set name; consulted by \code{\link[=generate_index_alias]{generate_index_alias()}} before falling back to the
+first letter of the set name.
+}
 \description{
 Preferred short names for common sets to avoid conflicts
 }

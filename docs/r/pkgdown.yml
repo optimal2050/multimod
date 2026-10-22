@@ -1,0 +1,17 @@
+pandoc: 3.8.3
+pkgdown: 2.2.1
+pkgdown_sha: ~
+articles:
+  articles/ast: ast.html
+  articles/configuration: configuration.html
+  articles/field-models: field-models.html
+  articles/folding: folding.html
+  articles/latex: latex.html
+  articles/model_workspace: model_workspace.html
+  multimod: multimod.html
+  articles/roadmap: roadmap.html
+  articles/solving: solving.html
+last_built: 2026-10-22T01:35Z
+urls:
+  reference: https://optimal2050.github.io/multimod/r/reference
+  article: https://optimal2050.github.io/multimod/r/articles

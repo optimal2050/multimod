@@ -6,6 +6,11 @@
 \usage{
 parse_simple_table_format(name, header, text, default_val)
 }
+\value{
+A list describing the parameter: \code{name}, \code{type} (\code{"parameter"}),
+\code{dims} (2), \code{defVal} (the default value) and \code{data}, a data frame with
+the row index, the column index and a \code{value} column.
+}
 \description{
 Parse simple table format: : cols := rows values
 }

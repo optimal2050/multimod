@@ -1,0 +1,83 @@
+# Read GMPL model file
+
+Read GMPL model file
+
+## Usage
+
+``` r
+read_gmpl(
+  model_file,
+  data_file = NULL,
+  as_multimod = !is.null(data_file),
+  verbose = FALSE
+)
+```
+
+## Arguments
+
+- model_file:
+
+  Path to GMPL model file or character vector of GMPL code
+
+- data_file:
+
+  Optional path to GMPL data file
+
+- as_multimod:
+
+  Logical; convert to multimod format (default: TRUE if data_file
+  provided)
+
+- verbose:
+
+  Logical; print detailed progress messages (default: FALSE)
+
+## Value
+
+Parsed GMPL model structure or multimod object
+
+## Examples
+
+``` r
+# Parse model text directly (a character vector of GMPL lines)
+structure <- read_gmpl(c(
+  "set REGION;",
+  "param Demand{r in REGION};",
+  "var x{r in REGION} >= 0;",
+  "minimize cost: sum{r in REGION} x[r];",
+  "s.t. meet{r in REGION}: x[r] >= Demand[r];",
+  "end;"
+))
+names(structure$parameters)
+#> [1] "Demand"
+
+# Model and data files on disk
+mod <- tempfile(fileext = ".mod")
+dat <- tempfile(fileext = ".dat")
+writeLines(c(
+  "set REGION;",
+  "param Demand{r in REGION};",
+  "var x{r in REGION} >= 0;",
+  "minimize cost: sum{r in REGION} x[r];",
+  "s.t. meet{r in REGION}: x[r] >= Demand[r];",
+  "end;"
+), mod)
+writeLines(c(
+  "data;",
+  "set REGION := north south;",
+  "param Demand := north 10 south 5;",
+  "end;"
+), dat)
+model <- read_gmpl(mod, dat)
+model
+#> Model: fileba244ed57806
+#> Description: GMPL model from fileba244ed57806.mod
+#> Source:  C:\Users\admin\AppData\Local\Temp\RtmpgRRJWR\fileba244ed57806.mod 
+#> Language:  gmpl 
+#> Sets:  1 
+#> Mappings:  0 
+#> Aliases:  1 
+#> Parameters:  1 
+#> Variables:  2 
+#> Equations:  2 
+```

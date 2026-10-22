@@ -151,6 +151,9 @@ has_index_aliases <- function(model) {
 
 #' Preferred short names for common sets to avoid conflicts
 #' @format A named list mapping set names to preferred short iterator names.
+#' @return A named list of character scalars, one short iterator name per
+#'   set name; consulted by [generate_index_alias()] before falling back to the
+#'   first letter of the set name.
 #' @keywords internal
 preferred_dummy_names <- list(
   tech = "h",      # technology (avoid 't' conflict with time, trade)

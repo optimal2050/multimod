@@ -1,4 +1,9 @@
-url: https://optimal2050.github.io/multimod/
+# pkgdown builds ONLY the R reference, into `docs/r/`. The `docs/` root is the
+# multi-language landing page (docs/index.qmd), beside the future `python/`
+# and `core/` sections; see docs/README.md.
+url: https://optimal2050.github.io/multimod/r/
+destination: docs/r
+
 home:
   sidebar:
     structure: [links, license, community, citation, dev]
@@ -15,15 +20,8 @@ template:
   light-switch: true
   includes:
     in_header: |
-      <!-- Google tag (gtag.js) -->
-      <script async src="https://www.googletagmanager.com/gtag/js?id=G-LNY00P1MW7"></script>
-      <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
-
-        gtag('config', 'G-LNY00P1MW7');
-      </script>
+      <script data-goatcounter="https://multimod.goatcounter.com/count"
+              async src="//gc.zgo.at/count.js"></script>
 
 title: multimod
 
@@ -35,8 +33,11 @@ navbar:
   # bg: light
   structure:
     left:  [intro, reference, articles, news]
-    right: [search, github, lightswitch]
+    right: [search, languages, github, lightswitch]
   components:
+    languages:
+      text: Languages
+      href: ../
     news:
       text: News
       href: news/index.html

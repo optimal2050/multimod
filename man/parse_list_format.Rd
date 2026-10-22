@@ -6,6 +6,11 @@
 \usage{
 parse_list_format(name, text, default_val)
 }
+\value{
+A list describing the parameter: \code{name}, \code{type} (\code{"parameter"}),
+\code{dims} (1), \code{defVal} (the default value) and \code{data}, a data frame with
+the index column and a \code{value} column.
+}
 \description{
 Parse list format: idx value idx value
 }
