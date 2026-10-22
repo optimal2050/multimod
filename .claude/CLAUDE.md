@@ -32,15 +32,22 @@ properties) when reading or writing AST code.
 
 ## Layout
 
+The repository follows the *scales multi-language layout: the R package at
+the root, reserved directories for the other implementations, one site.
+
 ```
 R/as_*.R        one renderer per target language (gams, gmpl, jump, pyomo,
                 latex, r, rfunction, visNetwork, multimod)
 R/ast-classes.R the AST node constructors — start here
 R/data_management.R, R/model_storage.R
                 the workspace: save_model()/load_model(), Arrow / Parquet / CSV
-tests/testthat/ 11 files; the *-solve.R ones actually invoke solvers
-vignettes/      one per backend (gmpl, jump, latex), plus ast, folding,
-                configuration, model_workspace
+inst/schema/    multimod-ast-v1.json, the cross-language AST contract
+tests/testthat/ ~40 files; the *-solve.R ones actually invoke solvers
+vignettes/      multimod.Rmd (the CRAN vignette) and articles/ (website only)
+core/, python/  placeholders for the native core and its Python binding
+specs/          placeholder for the cross-language goldens
+tools/site/     build_site.R builds docs/ (pkgdown into docs/r/, Quarto
+                landing page docs/index.qmd); docs/ is committed
 ```
 
 ## Build and test

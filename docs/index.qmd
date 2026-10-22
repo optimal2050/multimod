@@ -1,0 +1,39 @@
+---
+title: "![](logo.png){width=110px style='float: right; margin-left: 1rem;'} multimod"
+subtitle: "Define and render mathematical models across modeling languages"
+format:
+  html:
+    theme: cosmo
+    toc: false
+    css: styles.css
+    embed-resources: true
+    page-layout: full
+    include-in-header:
+      text: |
+        <script data-goatcounter="https://multimod.goatcounter.com/count"
+                async src="//gc.zgo.at/count.js"></script>
+---
+
+::: {.lead}
+`multimod` represents an algebraic optimization model as an abstract syntax
+tree, independent of any modeling language. A model is read from GAMS or GNU
+MathProg or written with constructors, inspected, reduced and validated, then
+rendered to GAMS, MathProg, JuMP, Pyomo or LaTeX, or assembled directly into
+an LP matrix and solved. The R implementation is available; a native core
+with a Python binding is planned.
+:::
+
+## Documentation
+
+| Language | Status | Documentation |
+|----------|--------|---------------|
+| **R** | Available | [R reference and articles](r/) |
+| **Core** (C++ or Rust) | Planned | — |
+| **Python** | Planned | — |
+
+- [Source on GitHub](https://github.com/optimal2050/multimod)
+- Companion packages for the time and space dimensions of model data:
+  [timescales](https://optimal2050.github.io/timescales/) and
+  [geoscales](https://optimal2050.github.io/geoscales/)
+
+Released under the Apache License 2.0.

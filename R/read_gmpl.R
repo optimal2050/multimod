@@ -2364,6 +2364,10 @@ parse_param_declaration <- function(lines, start_line) {
 #' Parses GMPL sliced table format like `[fixed,*,*] : cols := rows values`.
 #' Can have multiple sliced blocks in one parameter.
 #'
+#' @return A list describing the parameter: `name`, `type` (`"parameter"`),
+#'   `dims` (the number of index positions), `defVal` (the default value) and
+#'   `data`, a data frame with one column per index position and a `value`
+#'   column.
 #' @keywords internal
 parse_sliced_table_format <- function(name, header, text, default_val) {
   # Multiple sliced blocks can appear: [slice1] : header := data [slice2] : header := data
@@ -2485,6 +2489,9 @@ parse_sliced_table_format <- function(name, header, text, default_val) {
 
 #' Parse simple table format: : cols := rows values
 #'
+#' @return A list describing the parameter: `name`, `type` (`"parameter"`),
+#'   `dims` (2), `defVal` (the default value) and `data`, a data frame with
+#'   the row index, the column index and a `value` column.
 #' @keywords internal
 parse_simple_table_format <- function(name, header, text, default_val) {
   # Column headers from extracted header
@@ -2545,6 +2552,10 @@ parse_simple_table_format <- function(name, header, text, default_val) {
 #'
 #' Parses GMPL bracket format like `[idx1,idx2] value [idx1,idx2] value`.
 #'
+#' @return A list describing the parameter: `name`, `type` (`"parameter"`),
+#'   `dims` (the number of index positions), `defVal` (the default value) and
+#'   `data`, a data frame with one column per index position and a `value`
+#'   column.
 #' @keywords internal
 parse_bracket_format <- function(name, text, default_val) {
   # Find all [indices] value pairs
@@ -2598,6 +2609,9 @@ parse_bracket_format <- function(name, text, default_val) {
 
 #' Parse list format: idx value idx value
 #'
+#' @return A list describing the parameter: `name`, `type` (`"parameter"`),
+#'   `dims` (1), `defVal` (the default value) and `data`, a data frame with
+#'   the index column and a `value` column.
 #' @keywords internal
 parse_list_format <- function(name, text, default_val) {
   # Remove quoted strings (symbolic parameters like ResultsPath := "results")

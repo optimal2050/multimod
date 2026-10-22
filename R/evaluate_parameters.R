@@ -287,6 +287,9 @@ is_ast_node <- function(x) {
 
 
 #' Extract the member values of a set
+#' @return A character or numeric vector of the set's members (numeric when
+#'   every member is a number), `character()` for a set with no members, or
+#'   `NULL` when `set_obj` or its data is `NULL`.
 #' @keywords internal
 extract_set_members <- function(set_obj) {
   if (is.null(set_obj)) {
@@ -317,6 +320,12 @@ extract_set_members <- function(set_obj) {
 
 
 #' Convert parameter data frames into arrays or vectors for indexing
+#' @return `NULL` when the parameter carries no data or a dimension has no
+#'   members. For a scalar parameter, its value. Otherwise an array with one
+#'   dimension per entry of `param$dims`, with `dimnames` taken from
+#'   `dim_members` (extended by the members observed in the data), holding the
+#'   parameter values; cells without data take the parameter's default value,
+#'   or a scalar `data`, or `NA`.
 #' @keywords internal
 materialize_parameter_values <- function(param, data = NULL, dim_members = list()) {
   if (is.null(data)) {

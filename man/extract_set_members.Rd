@@ -6,6 +6,11 @@
 \usage{
 extract_set_members(set_obj)
 }
+\value{
+A character or numeric vector of the set's members (numeric when
+every member is a number), \code{character()} for a set with no members, or
+\code{NULL} when \code{set_obj} or its data is \code{NULL}.
+}
 \description{
 Extract the member values of a set
 }

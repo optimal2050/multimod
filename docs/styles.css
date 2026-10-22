@@ -1,0 +1,37 @@
+/* Landing page styling for the multi-language docs root.
+   Deliberately small: the per-language sub-sites (pkgdown under r/, later
+   Doxygen under cpp/ and Sphinx-or-Quarto under python/) each bring their own
+   theme, so this only has to make the entry page look intentional. */
+
+.lead {
+  font-size: 1.15rem;
+  line-height: 1.6;
+  border-left: 3px solid #4E79A7;
+  padding-left: 1rem;
+  margin: 1.5rem 0 2rem 0;
+  color: #444;
+}
+
+table {
+  margin: 1.25rem 0;
+}
+
+table td:first-child {
+  white-space: nowrap;
+}
+
+h2 {
+  margin-top: 2.25rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #e6e6e6;
+}
+
+@media (prefers-color-scheme: dark) {
+  .lead {
+    color: #ccc;
+    border-left-color: #6ea8d8;
+  }
+  h2 {
+    border-top-color: #333;
+  }
+}

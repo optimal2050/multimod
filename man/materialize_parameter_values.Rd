@@ -6,6 +6,14 @@
 \usage{
 materialize_parameter_values(param, data = NULL, dim_members = list())
 }
+\value{
+\code{NULL} when the parameter carries no data or a dimension has no
+members. For a scalar parameter, its value. Otherwise an array with one
+dimension per entry of \code{param$dims}, with \code{dimnames} taken from
+\code{dim_members} (extended by the members observed in the data), holding the
+parameter values; cells without data take the parameter's default value,
+or a scalar \code{data}, or \code{NA}.
+}
 \description{
 Convert parameter data frames into arrays or vectors for indexing
 }

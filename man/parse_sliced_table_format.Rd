@@ -6,6 +6,12 @@
 \usage{
 parse_sliced_table_format(name, header, text, default_val)
 }
+\value{
+A list describing the parameter: \code{name}, \code{type} (\code{"parameter"}),
+\code{dims} (the number of index positions), \code{defVal} (the default value) and
+\code{data}, a data frame with one column per index position and a \code{value}
+column.
+}
 \description{
 Parses GMPL sliced table format like \verb{[fixed,*,*] : cols := rows values}.
 Can have multiple sliced blocks in one parameter.
