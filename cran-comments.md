@@ -1,3 +1,10 @@
+## Resubmission
+
+This resubmission fixes the test failure in the incoming pre-tests on
+Debian: the 'arrow' build there has no 'zstd' codec, which `save_model()`
+requested. Arrow files are now written with the first codec the installed
+'arrow' build provides ('zstd', then 'lz4' or 'snappy', then none).
+
 ## R CMD check results
 
 0 errors | 0 warnings | 1 note

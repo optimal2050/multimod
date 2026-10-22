@@ -890,6 +890,18 @@ get_data <- function(model, name, type = c("parameter", "mapping", "set", "varia
 }
 
 
+# The compression codec to write with. Arrow builds differ in the codecs they
+# include (a minimal Linux build may lack zstd), so an unavailable codec falls
+# back to `fallback`, and then to no compression.
+.arrow_codec <- function(compression, fallback) {
+  for (codec in c(compression, fallback)) {
+    if (identical(codec, "uncompressed") || isTRUE(arrow::codec_is_available(codec))) {
+      return(codec)
+    }
+  }
+  "uncompressed"
+}
+
 #' Internal: Save dataframe to disk
 #'
 #' @return Invisibly, the path of the written file, or `NULL` when `data` is
@@ -925,11 +937,12 @@ get_data <- function(model, name, type = c("parameter", "mapping", "set", "varia
       stop("Package 'arrow' required for IPC format. Install with: install.packages('arrow')")
     }
     file_path <- paste0(path, ".arrow")
+    codec <- .arrow_codec(compression, fallback = "lz4")
     arrow::write_feather(
       as.data.frame(data),
       file_path,
-      compression = compression,
-      compression_level = compression_level
+      compression = codec,
+      compression_level = if (identical(codec, compression)) compression_level else NULL
     )
     if (verbose && !is.null(label)) {
       cat("  ", label, ": ", nrow(data), " rows\n", sep = "")
@@ -942,11 +955,12 @@ get_data <- function(model, name, type = c("parameter", "mapping", "set", "varia
       stop("Package 'arrow' required for Parquet format. Install with: install.packages('arrow')")
     }
     file_path <- paste0(path, ".parquet")
+    codec <- .arrow_codec(compression, fallback = "snappy")
     arrow::write_parquet(
       as.data.frame(data),
       file_path,
-      compression = compression,
-      compression_level = compression_level
+      compression = codec,
+      compression_level = if (identical(codec, compression)) compression_level else NULL
     )
     if (verbose && !is.null(label)) {
       cat("  ", label, ": ", nrow(data), " rows\n", sep = "")
