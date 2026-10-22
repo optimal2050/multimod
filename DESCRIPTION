@@ -1,6 +1,6 @@
 Package: multimod
 Title: Define and Render Mathematical Models Across Modeling Languages
-Version: 0.5.0
+Version: 0.5.0.9000
 Authors@R:
   c(person(given = "Oleg", 
           family = "Lugovoy", 
@@ -25,6 +25,8 @@ License: Apache License (>= 2)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Depends: R (>= 4.1.0)
+LinkingTo: cpp11
+SystemRequirements: C++17
 Imports:
     stringr,
     dplyr,

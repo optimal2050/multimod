@@ -5,6 +5,10 @@
   per chunk. The assembled LP is identical; a 4.4M-row model builds about
   30 % faster.
 * `model_to_lp()` fills the `rhs` column of the row index.
+* An experimental native executor for the matrix route, opt-in with
+  `options(multimod.engine = "native")`: equations are lowered to block plans
+  run by compiled code; an equation outside the covered subset stays on the
+  R engine. The package now compiles C++17 code (`LinkingTo: cpp11`).
 * `specs/goldens/matrix/` holds the LP of the two example models as plain
   tables; `tests/testthat/test-matrix-goldens.R` checks the assembly against
   them coefficient for coefficient.

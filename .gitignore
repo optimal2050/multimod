@@ -35,3 +35,10 @@ core/target/
 # Quarto (landing page is rendered with embed-resources; no _site)
 /_site/
 /.quarto/
+
+# compiled objects
+src/*.o
+src/core/**/*.o
+src/*.dll
+src/*.so
+src/*.dylib

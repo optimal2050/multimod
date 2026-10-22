@@ -123,6 +123,52 @@
   out
 }
 
+# --- operation trace (development aid) --------------------------------------
+#
+# `options(multimod.mx_trace = list(dir = , equations = ))` records every join
+# the evaluator performs for the named equations: the input tables as Parquet
+# and one line per operation in `ops.csv` (sequence, equation, operation,
+# table names, join specification as JSON). A replay of the trace on another
+# engine measures that engine on the real key distributions of real blocks.
+
+#' @keywords internal
+#' @noRd
+.mx_trace_open <- function(spec) {
+  if (is.null(spec)) return(NULL)
+  dir.create(spec$dir, recursive = TRUE, showWarnings = FALSE)
+  e <- new.env(parent = emptyenv())
+  e$dir <- spec$dir
+  e$equations <- spec$equations
+  e$n <- 0L
+  e$ops <- file.path(spec$dir, "ops.csv")
+  if (file.exists(e$ops)) unlink(e$ops)
+  e
+}
+
+#' @keywords internal
+#' @noRd
+.mx_trace <- function(ctx, op, tables, spec = list()) {
+  tr <- ctx$trace
+  if (is.null(tr)) return(invisible())
+  eq <- ctx$trace_eq
+  if (!is.null(tr$equations) && !(isTRUE(eq %in% tr$equations))) return(invisible())
+  tr$n <- tr$n + 1L
+  tag <- sprintf("%05d", tr$n)
+  for (nm in names(tables)) {
+    arrow::write_parquet(as.data.frame(tables[[nm]]),
+                         file.path(tr$dir, paste0(tag, "_", nm, ".parquet")))
+  }
+  line <- data.frame(seq = tr$n, equation = eq %||% "", op = op,
+                     tables = paste(names(tables), collapse = ";"),
+                     rows = paste(vapply(tables, nrow, 1L), collapse = ";"),
+                     spec = as.character(jsonlite::toJSON(spec, auto_unbox = TRUE)),
+                     stringsAsFactors = FALSE)
+  new <- !file.exists(tr$ops)
+  utils::write.table(line, tr$ops, append = !new, sep = ",", row.names = FALSE,
+                     col.names = new, qmethod = "double")
+  invisible()
+}
+
 #' Empty term frame
 #' @keywords internal
 #' @noRd
@@ -316,6 +362,8 @@
 
   # a tuple may legitimately be absent -> it takes the parameter default,
   # NOT zero (energyRt stores sparsely, e.g. only the 'lo' rows of a bound)
+  .mx_trace(ctx, "lookup", list(env = env, lk = pp$lk),
+            list(on = as.list(stats::setNames(ref, pp$keys))))
   out <- pp$lk[env, on = stats::setNames(ref, pp$keys)]
   coef <- out$value
   coef[is.na(coef)] <- pp$defv
@@ -527,6 +575,8 @@
   }
 
   # no column there -> no term
+  .mx_trace(ctx, "lookup_j", list(env = env, lk = ci),
+            list(on = as.list(stats::setNames(ref, idx))))
   out <- ci[env, on = stats::setNames(ref, idx), nomatch = NULL]
   if (!nrow(out)) return(.mx_no_terms())
   data.table::data.table(.k = out$.k, j = out$j, coef = 1)
@@ -863,6 +913,7 @@
   if (is.null(inner) || !nrow(inner$env)) return(.mx_no_terms())
   tm <- .mx_eval(node$value, inner$env, ctx)
   if (!nrow(tm)) return(.mx_no_terms())
+  .mx_trace(ctx, "groupsum", list(map = inner$map, tm = tm))
   tm <- inner$map[tm, on = ".k"]
   tm[, .(coef = sum(coef)), by = .(.k = .outer, j)]
 }
@@ -1060,6 +1111,8 @@
   if (length(names(dat)) != length(ref)) return(NULL)
   # the prepared table is unique over all its columns, so each row of `cur`
   # matches at most once: `which` gives the match per row, in `cur`'s order
+  .mx_trace(ctx, "semi", list(cur = cur, lk = dat),
+            list(on = as.list(stats::setNames(ref, names(dat)))))
   hit <- dat[cur, on = stats::setNames(ref, names(dat)), which = TRUE]
   cur[!is.na(hit)]
 }
@@ -1104,6 +1157,7 @@
   budget <- .mx_join_budget()
   sh <- plan$shared
   join1 <- function(x) {
+    .mx_trace(ctx, "merge", list(x = x, lk = plan$lk), list(by = as.list(sh)))
     out <- merge(x, plan$lk, by = sh, allow.cartesian = TRUE)
     for (k in seq_along(rest)) {
       if (!nrow(out)) break
@@ -1350,6 +1404,8 @@
   }
 
   # unique over all columns, so each env row matches at most once
+  .mx_trace(ctx, "semi", list(cur = env, lk = dat),
+            list(on = as.list(stats::setNames(ref, cols))))
   !is.na(dat[env, on = stats::setNames(ref, cols), which = TRUE])
 }
 
@@ -1502,6 +1558,7 @@ build_triplets <- function(model, col_index = NULL, row_index = NULL,
   ctx$set_cache <- list()
   ctx$on_duplicate <- on_duplicate
   ctx$dup_warned <- list()
+  ctx$trace <- .mx_trace_open(getOption("multimod.mx_trace"))
 
   # The row index with its members coded, and each equation's row range: the
   # rows of one equation are contiguous, so a range replaces a scan of the
@@ -1515,13 +1572,24 @@ build_triplets <- function(model, col_index = NULL, row_index = NULL,
 
   tri <- vector("list", length(todo))
   rhs <- vector("list", length(todo))
+  # `options(multimod.engine = "native")` runs the equations the block-plan
+  # lowering covers on the native executor; the others stay on this engine.
+  engine <- getOption("multimod.engine", "r")
+  native <- list()
+  ctx$lower_why <- list()
+  ctx$native_stats <- list()
 
   for (n in seq_along(todo)) {
     nm <- todo[n]
     eq <- model$equations[[nm]]
     if (is.null(eq)) next
+    ctx$trace_eq <- nm
     rg <- ranges[symbol == nm]
     rows <- rows_coded[rg$from:rg$to]
+    lowered <- if (identical(engine, "native")) .mx_lower_equation(eq, ctx) else NULL
+    native[[nm]] <- !is.null(lowered)
+    # one executor per equation: its hash indexes serve every chunk
+    if (!is.null(lowered)) lowered$ex <- mm_block_open(lowered$tables)
 
     t0 <- Sys.time()
     nr <- nrow(rows)
@@ -1531,6 +1599,18 @@ build_triplets <- function(model, col_index = NULL, row_index = NULL,
     for (ck in seq_len(n_chunks)) {
       sl <- if (n_chunks == 1L) rows else
         rows[(((ck - 1L) * chunk_rows) + 1L):min(ck * chunk_rows, nr)]
+      if (!is.null(lowered)) {
+        blk <- .mx_exec_block(lowered, sl)
+        mats[[ck]] <- blk$mat
+        csts[[ck]] <- blk$cst
+        st <- ctx$native_stats[[nm]]
+        ctx$native_stats[[nm]] <- if (is.null(st)) blk$stats else {
+          all <- union(names(st), names(blk$stats))
+          stats::setNames(ifelse(is.na(st[all]), 0, st[all]) +
+                            ifelse(is.na(blk$stats[all]), 0, blk$stats[all]), all)
+        }
+        next
+      }
       env <- .mx_equation_env(eq, sl)
       lhs <- .mx_eval(eq$lhs, env, ctx)
       rhsv <- .mx_eval(eq$rhs, env, ctx)
@@ -1563,10 +1643,14 @@ build_triplets <- function(model, col_index = NULL, row_index = NULL,
     }
   }
 
-  list(
+  out <- list(
     triplets  = data.table::rbindlist(tri, use.names = TRUE),
     rhs       = data.table::rbindlist(rhs, use.names = TRUE),
     row_index = row_index,
     col_index = col_index
   )
+  attr(out, "native") <- native
+  attr(out, "lower_why") <- ctx$lower_why
+  attr(out, "native_stats") <- ctx$native_stats
+  out
 }
