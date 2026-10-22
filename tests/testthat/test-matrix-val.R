@@ -16,10 +16,13 @@ test_that(".mx_env_name resolves short aliases and alias groups", {
 })
 
 test_that("val() evaluates numeric member labels and refuses others", {
-  ctx <- list(model = list(index_aliases = c(year = "y")))
+  ctx <- new.env(parent = emptyenv())
+  ctx$model <- list(index_aliases = c(year = "y"))
+  ctx$codes <- multimod:::.mx_new_codes()
+  # members are bound as integer codes of the context's dictionary
   env <- data.table::data.table(.k = 1:3,
-                                year = c("2030", "2040", "2050"),
-                                tech = c("A", "B", "C"))
+                                year = multimod:::.mx_code(ctx, c("2030", "2040", "2050")),
+                                tech = multimod:::.mx_code(ctx, c("A", "B", "C")))
   # parser shape: value is the argument list, each argument a named node
   node_of <- function(nm) list(name = "val", value = list(list(name = nm)))
 

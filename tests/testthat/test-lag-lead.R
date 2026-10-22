@@ -67,8 +67,11 @@ test_that("the matrix backend resolves a lag by position, and drops it off the e
   ci <- build_col_index(m)
   ctx <- new.env(parent = emptyenv())
   ctx$model <- m; ctx$col_index <- ci; ctx$col_cache <- list()
+  ctx$codes <- multimod:::.mx_new_codes()
   ctx$param_cache <- list(); ctx$map_cache <- list(); ctx$set_cache <- list()
-  env <- data.table::data.table(.k = 1:3, l = c("a", "b", "c"))
+  # the evaluator binds members as integer codes of the context's dictionary
+  env <- data.table::data.table(.k = 1:3,
+                                l = multimod:::.mx_code(ctx, c("a", "b", "c")))
 
   lagged <- ast_variable("x", dims = ast_dims(ast_shift("l", -1)))
   tm <- multimod:::.mx_eval(lagged, env, ctx)
@@ -96,8 +99,9 @@ test_that("a positional lag works on a sparse set, where arithmetic would not", 
   ci <- build_col_index(m)
   ctx <- new.env(parent = emptyenv())
   ctx$model <- m; ctx$col_index <- ci; ctx$col_cache <- list()
+  ctx$codes <- multimod:::.mx_new_codes()
   ctx$param_cache <- list(); ctx$map_cache <- list(); ctx$set_cache <- list()
-  env <- data.table::data.table(.k = 1L, y = "2030")
+  env <- data.table::data.table(.k = 1L, y = multimod:::.mx_code(ctx, "2030"))
 
   tm <- multimod:::.mx_eval(
     ast_variable("v", dims = ast_dims(ast_shift("y", -1))), env, ctx)

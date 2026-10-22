@@ -57,13 +57,16 @@ test_that("a body gate binds the index and a summation alias is not a filter", {
   span <- data.table::as.data.table(get_data(m, "mTechSpan", type = "mapping"))
   ctx <- new.env(parent = emptyenv())
   ctx$model <- m
+  ctx$codes <- multimod:::.mx_new_codes()
   ctx$map_cache <- list()
+  # the evaluator binds members as integer codes of the context's dictionary
   cur <- unique(span[, .(region = as.character(region), year = as.character(year))])
+  cur <- multimod:::.mx_code_cols(ctx, cur, c("region", "year"))
   gate <- ast_mapping("mTechSpan", ast_dims(c("tech", "region", "year")))
   pl <- multimod:::.mx_join_plan(cur, gate, iters = "tech", ctx = ctx)
   expect_equal(pl$n, nrow(unique(span)))
   # `yearp` is still to be bound: the map must not be read as a filter on `year`
   alias <- ast_mapping("mTechSpan", ast_dims(c("tech", "region", "yearp")))
-  cur2 <- cbind(cur, tech = span$tech[1])
+  cur2 <- cbind(cur, tech = multimod:::.mx_code(ctx, as.character(span$tech[1])))
   expect_null(multimod:::.mx_semi_join(cur2, alias, ctx, iters = "yearp"))
 })

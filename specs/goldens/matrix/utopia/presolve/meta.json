@@ -1,0 +1,8 @@
+{
+  "nrow": 9956,
+  "ncol": 10091,
+  "nnz": 29216,
+  "maximum": false,
+  "objective_symbol": "vObjective",
+  "optimum": 46398.4234209742
+}
