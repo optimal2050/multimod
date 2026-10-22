@@ -531,3 +531,20 @@ test_that("get_data(type = 'set') returns the members, in memory or from disk", 
   m$sets$region$data <- NULL
   expect_identical(get_data(m, "region", type = "set"), c("north", "south"))
 })
+
+test_that("save_model() falls back when the Arrow build lacks a codec", {
+  skip_if_not_installed("arrow")
+  # an Arrow build without zstd, or without any compression codec
+  for (have in list(c("lz4", "snappy"), character(0))) {
+    local_mocked_bindings(
+      codec_is_available = function(type) type %in% have,
+      .package = "arrow"
+    )
+    for (fmt in c("ipc", "parquet")) {
+      ws <- withr::local_tempdir()
+      m <- save_model(example_models$toy, ws, format = fmt, verbose = FALSE)
+      back <- load_model(ws, verbose = FALSE)
+      expect_equal(nrow(get_data(back, "pDemand")), 2)
+    }
+  }
+})
