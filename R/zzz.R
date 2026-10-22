@@ -1,5 +1,8 @@
 # File: R/zzz.R
 
+#' @useDynLib multimod, .registration = TRUE
+NULL
+
 .onLoad <- function(libname, pkgname) {
   op <- options()
   op.multimod <- list(

@@ -437,3 +437,4 @@ importFrom(utils,
   tail,
   write.csv
 )
+useDynLib(multimod, .registration = TRUE)
