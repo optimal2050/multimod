@@ -6,10 +6,17 @@
 #include <R_ext/Visibility.h>
 
 // mm_core.cpp
-sexp mm_block_open(list tables);
-extern "C" SEXP _multimod_mm_block_open(SEXP tables) {
+sexp mm_block_open(list tables, int threads);
+extern "C" SEXP _multimod_mm_block_open(SEXP tables, SEXP threads) {
   BEGIN_CPP11
-    return cpp11::as_sexp(mm_block_open(cpp11::as_cpp<cpp11::decay_t<list>>(tables)));
+    return cpp11::as_sexp(mm_block_open(cpp11::as_cpp<cpp11::decay_t<list>>(tables), cpp11::as_cpp<cpp11::decay_t<int>>(threads)));
+  END_CPP11
+}
+// mm_core.cpp
+strings mm_block_add(sexp ex, list tables);
+extern "C" SEXP _multimod_mm_block_add(SEXP ex, SEXP tables) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(mm_block_add(cpp11::as_cpp<cpp11::decay_t<sexp>>(ex), cpp11::as_cpp<cpp11::decay_t<list>>(tables)));
   END_CPP11
 }
 // mm_core.cpp
@@ -29,7 +36,8 @@ extern "C" SEXP _multimod_mm_exec_block(SEXP plan, SEXP tables) {
 
 extern "C" {
 static const R_CallMethodDef CallEntries[] = {
-    {"_multimod_mm_block_open", (DL_FUNC) &_multimod_mm_block_open, 1},
+    {"_multimod_mm_block_add",  (DL_FUNC) &_multimod_mm_block_add,  2},
+    {"_multimod_mm_block_open", (DL_FUNC) &_multimod_mm_block_open, 2},
     {"_multimod_mm_block_run",  (DL_FUNC) &_multimod_mm_block_run,  3},
     {"_multimod_mm_exec_block", (DL_FUNC) &_multimod_mm_exec_block, 2},
     {NULL, NULL, 0}

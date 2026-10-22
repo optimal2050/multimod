@@ -28,3 +28,6 @@
 ^core$
 ^specs$
 ^tools$
+^src/.*\.o$
+^src/.*\.dll$
+^src/.*\.so$

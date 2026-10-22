@@ -109,12 +109,19 @@ struct Env {
 // the row table is replaced per chunk with set_table().
 class Executor {
  public:
-  explicit Executor(std::map<std::string, Table> tables) : tables_(std::move(tables)) {}
+  explicit Executor(std::map<std::string, Table> tables, int threads = 1)
+      : tables_(std::move(tables)), threads_(threads < 1 ? 1 : threads) {}
   void set_table(const std::string& name, Table t);
+  // register a table once; a name already present is kept as it is
+  bool add_table(const std::string& name, Table t);
+  bool has_table(const std::string& name) const { return tables_.count(name) != 0; }
   Triplets run(const Plan& plan);
 
  private:
   Triplets run_terms(const Plan& plan);
+  void keep_mask(Env& env, const std::vector<char>& keep);
+  void group_sum(const std::vector<int>& a, const std::vector<int>& b, const std::vector<double>& w,
+                 std::vector<int>& oa, std::vector<int>& ob, std::vector<double>& os, bool drop_zero);
   const Table& table(const std::string& name) const;
   const KeyIndex& index(const std::string& table, const std::vector<std::string>& cols);
   KeyCols probe_cols(const Env& env, const OnPairs& on) const;
@@ -129,6 +136,7 @@ class Executor {
   std::vector<char> eval_cond(const Cond& c, const Env& env);
 
   std::map<std::string, Table> tables_;
+  int threads_ = 1;
   std::map<std::string, std::unique_ptr<KeyIndex>> index_cache_;
   std::map<std::string, double> stats_;
 };

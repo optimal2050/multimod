@@ -38,6 +38,7 @@ Imports:
     magrittr,
     jsonlite,
     methods,
+    parallel,
     stats,
     tools,
     utils
