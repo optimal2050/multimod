@@ -1,3 +1,14 @@
+# multimod (development version)
+
+* The matrix route joins index members as integer codes of one dictionary
+  per build, and prepares each parameter and mapping lookup once instead of
+  per chunk. The assembled LP is identical; a 4.4M-row model builds about
+  30 % faster.
+* `model_to_lp()` fills the `rhs` column of the row index.
+* `specs/goldens/matrix/` holds the LP of the two example models as plain
+  tables; `tests/testthat/test-matrix-goldens.R` checks the assembly against
+  them coefficient for coefficient.
+
 # multimod 0.5.0
 
 First CRAN release. The changes are listed against 0.0.1, the GitHub release

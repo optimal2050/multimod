@@ -17,8 +17,21 @@
 mx_ctx <- function(model) {
   ctx <- new.env(parent = emptyenv())
   ctx$model <- model
+  ctx$codes <- multimod:::.mx_new_codes()
   ctx$map_cache <- list()
+  ctx$param_cache <- list()
+  ctx$set_cache <- list()
   ctx
+}
+
+# the evaluator binds index members as integer codes of the context's
+# dictionary; a hand-built environment is coded the same way
+mx_env <- function(ctx, ...) {
+  env <- data.table::data.table(...)
+  for (nm in setdiff(names(env), c(".k", ".outer"))) {
+    data.table::set(env, j = nm, value = multimod:::.mx_code(ctx, env[[nm]]))
+  }
+  env
 }
 
 test_that("an empty gating map ends the sum instead of expanding it densely", {
@@ -34,9 +47,10 @@ test_that("an empty gating map ends the sum instead of expanding it densely", {
 
   cond <- ast_mapping("mGateEmpty",
                       ast_dims(c("tech", "region", "year")))
-  cur <- data.table::data.table(region = "R1", year = "2030", .outer = 1L)
+  ctx <- mx_ctx(m)
+  cur <- mx_env(ctx, region = "R1", year = "2030", .outer = 1L)
 
-  res <- multimod:::.mx_join_cond(cur, cond, iters = "tech", ctx = mx_ctx(m))
+  res <- multimod:::.mx_join_cond(cur, cond, iters = "tech", ctx = ctx)
 
   # NULL would mean "no map constrains this index", and the caller would then
   # expand the iterator over every member of `tech`.
@@ -60,12 +74,13 @@ test_that("a populated gating map still binds the summation index", {
   span <- as.data.frame(get_data(m, "mTechSpan", type = "mapping"))
   reg <- as.character(span$region[1])
   yr <- as.character(span$year[1])
-  cur <- data.table::data.table(region = reg, year = yr, .outer = 1L)
+  ctx <- mx_ctx(m)
+  cur <- mx_env(ctx, region = reg, year = yr, .outer = 1L)
 
-  res <- multimod:::.mx_join_cond(cur, cond, iters = "tech", ctx = mx_ctx(m))
+  res <- multimod:::.mx_join_cond(cur, cond, iters = "tech", ctx = ctx)
   expect_true("tech" %in% names(res))
   expect_equal(
-    sort(res$tech),
+    sort(multimod:::.mx_decode(ctx, res$tech)),
     sort(as.character(span$tech[as.character(span$region) == reg &
                                   as.character(span$year) == yr])))
 })
@@ -75,30 +90,35 @@ test_that("a wildcard (NA) index is looked up on its explicit columns", {
   # Joining on the NA key would match nothing and silently take the default;
   # the lookup instead matches wildcard rows on their explicit columns, most
   # explicit first.
+  ctx <- mx_ctx(list())
+  # a prepared wildcard parameter: coded keys `.c1`, `.c2`, grouped by pattern
+  prep <- function(lk, defv) {
+    lk <- multimod:::.mx_code_cols(ctx, lk, c("region", "year"), c(".c1", ".c2"))
+    list(defv = defv,
+         wild = multimod:::.mx_prep_wildcard(lk, c(".c1", ".c2"), "pX", ctx))
+  }
   lk <- data.table::data.table(
     region = c("R1", NA, NA),
     year   = c("2030", "2030", NA),
     value  = c(5, 7, 9))
-  env <- data.table::data.table(
+  env <- mx_env(ctx,
     .k = 1:4,
     region = c("R1", "R2", "R1", "R2"),
     year   = c("2030", "2030", "2040", "2040"))
-  ctx <- new.env(parent = emptyenv())
-  tm <- multimod:::.mx_param_wildcard(lk, c("region", "year"), env, defv = 0,
+  tm <- multimod:::.mx_param_wildcard(prep(lk, 0), c("region", "year"), env,
                                       nm = "pX", ctx = ctx)
   # R1/2030 explicit; R2/2030 from the year-only row; 2040 from the all-NA row
   expect_equal(tm$coef, c(5, 7, 9, 9))
 
   # without the all-wildcard row the unmatched tuples take the default
-  tm2 <- multimod:::.mx_param_wildcard(lk[1:2], c("region", "year"), env,
-                                       defv = -1, nm = "pX", ctx = ctx)
+  tm2 <- multimod:::.mx_param_wildcard(prep(lk[1:2], -1), c("region", "year"),
+                                       env, nm = "pX", ctx = ctx)
   expect_equal(tm2$coef, c(5, 7, -1, -1))
 
   # two different values for the same wildcard key are ambiguous
   amb <- data.table::data.table(region = c(NA, NA), year = c("2030", "2030"),
                                 value = c(1, 2))
-  expect_error(multimod:::.mx_param_wildcard(amb, c("region", "year"), env, 0,
-                                             "pX", ctx), "ambiguous")
+  expect_error(prep(amb, 0), "ambiguous")
 })
 
 test_that("a tuple index list parses without the separator's whitespace", {

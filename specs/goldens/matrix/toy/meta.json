@@ -1,0 +1,8 @@
+{
+  "nrow": 9,
+  "ncol": 13,
+  "nnz": 29,
+  "maximum": false,
+  "objective_symbol": "vCost",
+  "optimum": 198000
+}

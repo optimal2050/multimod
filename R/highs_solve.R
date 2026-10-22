@@ -97,6 +97,10 @@ model_to_lp <- function(model, col_index = NULL, row_index = NULL,
   n_zeroed <- c(rhs = tiny(rhs), col_lo = tiny(col_index$lo),
                 col_up = tiny(col_index$up))
   rhs[abs(rhs) < ztol] <- 0
+  # the row index carries the right-hand side it was built for; a shallow
+  # rewrap keeps a caller-supplied table untouched
+  row_index <- data.table::setDT(as.list(row_index))
+  data.table::set(row_index, j = "rhs", value = rhs)
   sense <- row_index$sense
   row_lo <- ifelse(sense == "<=", -Inf, rhs)
   row_up <- ifelse(sense == ">=",  Inf, rhs)

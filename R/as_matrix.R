@@ -68,20 +68,59 @@
   setdiff(names(dt), value_col)
 }
 
-#' Coerce join-key columns to character in place
-#'
-#' Index members must join on a single canonical type: `year` arrives as
-#' integer from some stores and character from others, and data.table refuses
-#' to join across the two.
+# --- integer coding of index members ----------------------------------------
+#
+# Every join of the evaluator runs on integer codes. One dictionary per build
+# maps each distinct member label (as a string) to a code; the mapping is a
+# bijection, so a join on codes gives exactly the rows a join on labels would.
+# Members arrive as character or integer (`year`) from different stores; both
+# are coded through their character form, which is the canonical type the
+# label join used before.
+
 #' @keywords internal
 #' @noRd
-.mx_chr_keys <- function(dt, cols) {
-  for (cl in cols) {
-    if (cl %in% names(dt) && !is.character(dt[[cl]])) {
-      data.table::set(dt, j = cl, value = as.character(dt[[cl]]))
-    }
+.mx_new_codes <- function() {
+  e <- new.env(parent = emptyenv())
+  e$levels <- character()
+  e
+}
+
+#' Code member labels, extending the dictionary with labels not seen yet
+#' @return Integer codes; `NA` for `NA` labels.
+#' @keywords internal
+#' @noRd
+.mx_code <- function(ctx, x) {
+  if (is.integer(x) && isTRUE(attr(x, "mx_coded"))) return(x)
+  if (!is.character(x)) x <- as.character(x)
+  lv <- ctx$codes$levels
+  out <- data.table::chmatch(x, lv)
+  miss <- is.na(out) & !is.na(x)
+  if (any(miss)) {
+    lv <- c(lv, unique(x[miss]))
+    ctx$codes$levels <- lv
+    out[miss] <- data.table::chmatch(x[miss], lv)
   }
-  dt
+  out
+}
+
+#' Labels behind codes
+#' @keywords internal
+#' @noRd
+.mx_decode <- function(ctx, code) ctx$codes$levels[code]
+
+#' A shallow rewrap of a table with the given columns coded
+#'
+#' The input's column vectors are shared, never written; the coded columns
+#' replace them in the rewrap only, under `new` names.
+#' @keywords internal
+#' @noRd
+.mx_code_cols <- function(ctx, dt, cols, new = cols) {
+  out <- data.table::setDT(as.list(dt))
+  for (k in seq_along(cols)) {
+    data.table::set(out, j = cols[k], value = .mx_code(ctx, out[[cols[k]]]))
+  }
+  if (!identical(cols, new)) data.table::setnames(out, cols, new)
+  out
 }
 
 #' Empty term frame
@@ -161,10 +200,11 @@
     stop("as_matrix: index '", raw, "' is used as a value but is not bound ",
          "here.")
   }
-  v <- suppressWarnings(as.numeric(as.character(env[[nm]])))
+  lab <- .mx_decode(ctx, env[[nm]])
+  v <- suppressWarnings(as.numeric(lab))
   if (anyNA(v)) {
     stop("as_matrix: index '", nm, "' is used as a number, but member(s) ",
-         paste(utils::head(unique(env[[nm]][is.na(v)]), 3), collapse = ", "),
+         paste(utils::head(unique(lab[is.na(v)]), 3), collapse = ", "),
          " are not numeric labels.")
   }
   data.table::data.table(.k = env$.k, j = NA_integer_, coef = v)
@@ -246,44 +286,22 @@
   # a lag or lead points at a different member; resolve it before the join
   env <- .mx_shift_env(node, env, ctx)
   if (!nrow(env)) return(.mx_no_terms())
-  dat <- ctx$param_cache[[nm]]
-  if (is.null(dat)) {
-    dat <- get_data(ctx$model, nm, type = "parameter")
-    dat <- if (is.null(dat)) data.table::data.table() else data.table::as.data.table(dat)
-    # An infinite stored value means "no restriction here": every energyRt
-    # backend drops the row and lets the default apply, rather than emitting an
-    # infinite coefficient - write_pyomo.R:493, write_jump.R:287,
-    # write_glpk.R:237, write_gams.R:513 all spell `value != Inf`. Reproducing
-    # their numbers means reproducing that filter; keeping the rows instead
-    # produced 26,280 -Inf coefficients on IB_2050 and HiGHS refused the matrix.
-    if ("value" %in% names(dat) && nrow(dat)) {
-      ok <- is.finite(dat$value)
-      if (!all(ok)) dat <- dat[ok]
-    }
-    ctx$param_cache[[nm]] <- dat
-  }
-  defv <- ctx$model$parameters[[nm]]$defVal
-  defv <- if (is.null(defv) || !is.numeric(defv)) 0 else as.numeric(defv)[1]
-  # ... and the same writers map an infinite DEFAULT to 0 (`if (def == Inf)
-  # def <- 0`). Surprising as a modelling choice, but it is what generated every
-  # reference solution this backend is checked against.
-  if (!is.finite(defv)) defv <- 0
+  pp <- .mx_prep_param(nm, ctx)
 
   ref <- .mx_ref_names(.mx_ref_dims(node), env, ctx)
 
   # scalar parameter
   if (!length(ref)) {
-    v <- if (nrow(dat) && "value" %in% names(dat)) as.numeric(dat$value[1]) else defv
+    v <- if (!is.null(pp$first)) pp$first else pp$defv
     return(.mx_const(env, v))
   }
 
-  if (!nrow(dat) || !"value" %in% names(dat)) {
-    return(.mx_const(env, defv))     # nothing stored: every tuple is the default
+  if (is.null(pp$first)) {
+    return(.mx_const(env, pp$defv))  # nothing stored: every tuple is the default
   }
 
-  cols <- .mx_storage_cols(dat)
-  if (length(cols) != length(ref)) {
-    stop("as_matrix: parameter '", nm, "' is stored with ", length(cols),
+  if (length(pp$cols) != length(ref)) {
+    stop("as_matrix: parameter '", nm, "' is stored with ", length(pp$cols),
          " index column(s) but is referenced with ", length(ref), ".")
   }
   miss <- setdiff(ref, names(env))
@@ -292,108 +310,185 @@
          paste(miss, collapse = ", "), ".")
   }
 
-  lk <- data.table::copy(data.table::as.data.table(dat))
-  data.table::setnames(lk, cols, ref)
-  lk <- lk[, c(ref, "value"), with = FALSE]
-
-  .mx_chr_keys(lk, ref)
-
-  # A wildcard (NA) index means "every member of this dimension" - energyRt
-  # writes them when interpolating with fold = TRUE. Joining on an NA key would
-  # match nothing and silently substitute the default, so wildcard rows are
-  # looked up on their explicit dimensions only, most explicit first: an
-  # explicit value wins over a wildcard one, as when the rows are expanded.
-  wild <- vapply(ref, function(k) anyNA(lk[[k]]), logical(1))
-  if (any(wild)) {
-    return(.mx_param_wildcard(lk, ref, env, defv, nm, ctx))
-  }
-
-  # A repeated index tuple would multiply rows on the join. Repeats that all
-  # carry the same value are harmless and get collapsed; repeats carrying
-  # DIFFERENT values are ambiguous - there is no defensible way to pick one, so
-  # say so rather than silently taking whichever data.table returns first.
-  if (anyDuplicated(lk, by = ref)) {
-    nd <- lk[, .(n = length(unique(value))), by = ref]
-    bad <- nd[n > 1L]
-    if (nrow(bad)) {
-      ex <- paste(unlist(bad[1L, ref, with = FALSE]), collapse = ", ")
-      pol <- ctx$on_duplicate
-      if (is.null(pol) || identical(pol, "error")) {
-        stop("as_matrix: parameter '", nm, "' has ", nrow(bad),
-             " index tuple(s) stored with more than one distinct value",
-             " (e.g. ", ex, ").
-  The lookup is ambiguous. Fix the data, or",
-             " pass on_duplicate = \"last\" to take the last value, which is",
-             " what GAMS and Pyomo do silently.")
-      }
-      # Report once per parameter: this discards data, and doing it quietly is
-      # how an arbitrary choice among many candidates becomes invisible.
-      if (is.null(ctx$dup_warned[[nm]])) {
-        ctx$dup_warned[[nm]] <- TRUE
-        message("as_matrix: parameter '", nm, "' - ", nrow(bad),
-                " index tuple(s) had multiple distinct values; keeping the ",
-                pol, " (e.g. ", ex, ").")
-      }
-    }
-    lk <- if (identical(ctx$on_duplicate, "first")) {
-      unique(lk, by = ref, fromLast = FALSE)
-    } else {
-      unique(lk, by = ref, fromLast = TRUE)   # GAMS/Pyomo semantics
-    }
+  if (!is.null(pp$wild)) {
+    return(.mx_param_wildcard(pp, ref, env, nm, ctx))
   }
 
   # a tuple may legitimately be absent -> it takes the parameter default,
   # NOT zero (energyRt stores sparsely, e.g. only the 'lo' rows of a bound)
-  out <- lk[env, on = ref]
+  out <- pp$lk[env, on = stats::setNames(ref, pp$keys)]
   coef <- out$value
-  coef[is.na(coef)] <- defv
+  coef[is.na(coef)] <- pp$defv
   data.table::data.table(.k = env$.k, j = NA_integer_, coef = as.numeric(coef))
 }
 
-#' Look up a parameter whose index columns carry wildcards (NA)
+#' A parameter's lookup table, prepared once per build
 #'
-#' Rows are grouped by which columns are explicit; groups are tried from the
-#' most explicit to the least, each joined on its explicit columns only, and a
-#' tuple keeps the first value found. Within a group, repeated keys follow the
-#' parameter's duplicate policy, as in the plain lookup.
+#' Codes the index columns, applies the duplicate policy and keys the table,
+#' so that every reference joins a ready table instead of copying and
+#' de-duplicating the data again. Columns are `.c1..cN` plus `value`.
+#' @return A list: `defv` (the default), `first` (the first stored value, or
+#'   `NULL` when nothing is stored), `cols` (storage columns), `keys`
+#'   (`.c1..cN`), `lk` (the keyed table; `NULL` for a wildcard parameter) and
+#'   `wild` (the prepared wildcard patterns, else `NULL`).
 #' @keywords internal
 #' @noRd
-.mx_param_wildcard <- function(lk, ref, env, defv, nm, ctx) {
-  pat <- do.call(paste0, lapply(ref, function(k) ifelse(is.na(lk[[k]]), "0", "1")))
+.mx_prep_param <- function(nm, ctx) {
+  pp <- ctx$param_cache[[nm]]
+  if (!is.null(pp)) return(pp)
+  dat <- get_data(ctx$model, nm, type = "parameter")
+  dat <- if (is.null(dat)) data.table::data.table() else data.table::as.data.table(dat)
+  # An infinite stored value means "no restriction here": every energyRt
+  # backend drops the row and lets the default apply, rather than emitting an
+  # infinite coefficient - write_pyomo.R:493, write_jump.R:287,
+  # write_glpk.R:237, write_gams.R:513 all spell `value != Inf`. Reproducing
+  # their numbers means reproducing that filter; keeping the rows instead
+  # produced 26,280 -Inf coefficients on IB_2050 and HiGHS refused the matrix.
+  if ("value" %in% names(dat) && nrow(dat)) {
+    ok <- is.finite(dat$value)
+    if (!all(ok)) dat <- dat[ok]
+  }
+  defv <- ctx$model$parameters[[nm]]$defVal
+  defv <- if (is.null(defv) || !is.numeric(defv)) 0 else as.numeric(defv)[1]
+  # ... and the same writers map an infinite DEFAULT to 0 (`if (def == Inf)
+  # def <- 0`). Surprising as a modelling choice, but it is what generated every
+  # reference solution this backend is checked against.
+  if (!is.finite(defv)) defv <- 0
+
+  pp <- list(defv = defv, first = NULL, cols = character(), keys = character(),
+             lk = NULL, wild = NULL)
+  if (nrow(dat) && "value" %in% names(dat)) {
+    pp$first <- as.numeric(dat$value[1])
+    cols <- .mx_storage_cols(dat)
+    pp$cols <- cols
+    if (length(cols)) {
+      keys <- paste0(".c", seq_along(cols))
+      lk <- .mx_code_cols(ctx, dat, cols, keys)[, c(keys, "value"), with = FALSE]
+      data.table::set(lk, j = "value", value = as.numeric(lk$value))
+      pp$keys <- keys
+      # A wildcard (NA) index means "every member of this dimension" - energyRt
+      # writes them when interpolating with fold = TRUE. Joining on an NA key
+      # would match nothing and silently substitute the default, so wildcard
+      # rows are looked up on their explicit dimensions only, most explicit
+      # first: an explicit value wins over a wildcard one, as when the rows
+      # are expanded.
+      wild <- vapply(keys, function(k) anyNA(lk[[k]]), logical(1))
+      if (any(wild)) {
+        pp$wild <- .mx_prep_wildcard(lk, keys, nm, ctx)
+      } else {
+        lk <- .mx_dedup_param(lk, keys, nm, ctx)
+        data.table::setkeyv(lk, keys)
+        pp$lk <- lk
+      }
+    }
+  }
+  ctx$param_cache[[nm]] <- pp
+  pp
+}
+
+#' Collapse repeated index tuples of a parameter under the duplicate policy
+#'
+#' A repeated index tuple would multiply rows on the join. Repeats that all
+#' carry the same value are harmless and get collapsed; repeats carrying
+#' DIFFERENT values are ambiguous - there is no defensible way to pick one, so
+#' say so rather than silently taking whichever data.table returns first.
+#' @keywords internal
+#' @noRd
+.mx_dedup_param <- function(lk, keys, nm, ctx, what = "index tuple(s)") {
+  if (!anyDuplicated(lk, by = keys)) return(lk)
+  nd <- lk[, .(n = length(unique(value))), by = keys]
+  bad <- nd[n > 1L]
+  if (nrow(bad)) {
+    ex <- paste(.mx_decode(ctx, unlist(bad[1L, keys, with = FALSE])), collapse = ", ")
+    pol <- ctx$on_duplicate
+    if (is.null(pol) || identical(pol, "error")) {
+      stop("as_matrix: parameter '", nm, "' has ", nrow(bad),
+           " index tuple(s) stored with more than one distinct value",
+           " (e.g. ", ex, ").
+  The lookup is ambiguous. Fix the data, or",
+           " pass on_duplicate = \"last\" to take the last value, which is",
+           " what GAMS and Pyomo do silently.")
+    }
+    # Report once per parameter: this discards data, and doing it quietly is
+    # how an arbitrary choice among many candidates becomes invisible.
+    if (is.null(ctx$dup_warned[[nm]])) {
+      ctx$dup_warned[[nm]] <- TRUE
+      message("as_matrix: parameter '", nm, "' - ", nrow(bad),
+              " index tuple(s) had multiple distinct values; keeping the ",
+              pol, " (e.g. ", ex, ").")
+    }
+  }
+  if (identical(ctx$on_duplicate, "first")) {
+    unique(lk, by = keys, fromLast = FALSE)
+  } else {
+    unique(lk, by = keys, fromLast = TRUE)   # GAMS/Pyomo semantics
+  }
+}
+
+#' Prepare the explicit-column groups of a wildcard parameter
+#'
+#' Rows are grouped by which columns are explicit; the groups are ordered from
+#' the most explicit to the least. Within a group, repeated keys follow the
+#' parameter's duplicate policy, as in the plain lookup.
+#' @return A list of groups: `pos` (positions of the explicit columns),
+#'   `keys` (their `.c*` names), `sub` (the keyed table) or, for the
+#'   all-wildcard group, `value`.
+#' @keywords internal
+#' @noRd
+.mx_prep_wildcard <- function(lk, keys, nm, ctx) {
+  pat <- do.call(paste0, lapply(keys, function(k) ifelse(is.na(lk[[k]]), "0", "1")))
   pats <- unique(pat)
   nexp <- vapply(strsplit(pats, ""), function(x) sum(x == "1"), integer(1))
   pats <- pats[order(-nexp)]
-  coef <- rep(NA_real_, nrow(env))
-  for (pt in pats) {
-    todo <- which(is.na(coef))
-    if (!length(todo)) break
-    keys <- ref[strsplit(pt, "")[[1]] == "1"]
-    sub <- lk[pat == pt, c(keys, "value"), with = FALSE]
-    if (!length(keys)) {
+  lapply(pats, function(pt) {
+    pos <- which(strsplit(pt, "")[[1]] == "1")
+    kp <- keys[pos]
+    sub <- lk[pat == pt, c(kp, "value"), with = FALSE]
+    if (!length(pos)) {
       v <- if (identical(ctx$on_duplicate, "first")) sub$value[1] else sub$value[nrow(sub)]
       if (length(unique(sub$value)) > 1L &&
           (is.null(ctx$on_duplicate) || identical(ctx$on_duplicate, "error"))) {
         stop("as_matrix: parameter '", nm, "' has more than one distinct ",
              "all-wildcard value; the lookup is ambiguous.")
       }
-      coef[todo] <- v
-      next
+      return(list(pos = pos, keys = character(), value = v))
     }
-    if (anyDuplicated(sub, by = keys)) {
-      nd <- sub[, list(n = length(unique(value))), by = keys]
+    if (anyDuplicated(sub, by = kp)) {
+      nd <- sub[, list(n = length(unique(value))), by = kp]
       if (any(nd$n > 1L) &&
           (is.null(ctx$on_duplicate) || identical(ctx$on_duplicate, "error"))) {
         stop("as_matrix: parameter '", nm, "' has wildcard rows with more ",
              "than one distinct value for the same explicit index tuple; the ",
              "lookup is ambiguous.")
       }
-      sub <- unique(sub, by = keys,
+      sub <- unique(sub, by = kp,
                     fromLast = !identical(ctx$on_duplicate, "first"))
     }
-    hit <- sub[env[todo, keys, with = FALSE], on = keys]$value
+    data.table::setkeyv(sub, kp)
+    list(pos = pos, keys = kp, sub = sub)
+  })
+}
+
+#' Look up a parameter whose index columns carry wildcards (NA)
+#'
+#' The prepared groups are tried from the most explicit to the least, each
+#' joined on its explicit columns only, and a tuple keeps the first value
+#' found.
+#' @keywords internal
+#' @noRd
+.mx_param_wildcard <- function(pp, ref, env, nm, ctx) {
+  coef <- rep(NA_real_, nrow(env))
+  for (g in pp$wild) {
+    todo <- which(is.na(coef))
+    if (!length(todo)) break
+    if (!length(g$keys)) {
+      coef[todo] <- g$value
+      next
+    }
+    hit <- g$sub[env[todo], on = stats::setNames(ref[g$pos], g$keys)]$value
     coef[todo] <- hit
   }
-  coef[is.na(coef)] <- defv
+  coef[is.na(coef)] <- pp$defv
   data.table::data.table(.k = env$.k, j = NA_integer_, coef = as.numeric(coef))
 }
 
@@ -406,7 +501,7 @@
   if (!nrow(env)) return(.mx_no_terms())
   ci <- ctx$col_cache[[nm]]
   if (is.null(ci)) {
-    ci <- ctx$col_index[ctx$col_index$symbol == nm]
+    ci <- .mx_col_coded(ctx)[symbol == nm]
     ctx$col_cache[[nm]] <- ci
   }
   if (!nrow(ci)) {
@@ -431,11 +526,23 @@
          paste(miss, collapse = ", "), ".")
   }
 
-  lk <- ci[, c("j", idx), with = FALSE]
-  data.table::setnames(lk, idx, ref)
-  out <- lk[env, on = ref, nomatch = NULL]   # no column there -> no term
+  # no column there -> no term
+  out <- ci[env, on = stats::setNames(ref, idx), nomatch = NULL]
   if (!nrow(out)) return(.mx_no_terms())
   data.table::data.table(.k = out$.k, j = out$j, coef = 1)
+}
+
+#' The column index with its members coded, once per build
+#' @keywords internal
+#' @noRd
+.mx_col_coded <- function(ctx) {
+  cc <- ctx$col_coded
+  if (!is.null(cc)) return(cc)
+  ci <- ctx$col_index
+  idx <- grep("^i[0-9]+$", names(ci), value = TRUE)
+  cc <- .mx_code_cols(ctx, ci[, c("j", "symbol", idx), with = FALSE], idx)
+  ctx$col_coded <- cc
+  cc
 }
 
 #' @keywords internal
@@ -583,10 +690,10 @@
     if (!inherits(e, "shift")) next
     nm <- .mx_env_name(ctx, out, as.character(e$symbol)[1])
     if (!nm %in% names(out)) next        # unbound; the caller reports it
-    members <- as.character(.mx_set_members(ctx, .mx_base_set(ctx$model, nm)))
+    members <- .mx_set_members(ctx, .mx_base_set(ctx$model, nm))
     if (!length(members)) return(out[0])
 
-    pos <- match(as.character(out[[nm]]), members)
+    pos <- match(out[[nm]], members)
     tgt <- pos + as.integer(e$offset)
     if (isTRUE(e$circular)) {
       tgt <- ((tgt - 1L) %% length(members)) + 1L
@@ -680,11 +787,11 @@
   if (!set_name %in% names(env)) {
     stop("as_matrix: val(", set_name, ") refers to an unbound index.")
   }
-  v <- suppressWarnings(as.numeric(as.character(env[[set_name]])))
+  lab <- .mx_decode(ctx, env[[set_name]])
+  v <- suppressWarnings(as.numeric(lab))
   if (anyNA(v)) {
     stop("as_matrix: val(", set_name, ") - member(s) ",
-         paste(utils::head(unique(env[[set_name]][is.na(v)]), 3),
-               collapse = ", "),
+         paste(utils::head(unique(lab[is.na(v)]), 3), collapse = ", "),
          " are not numeric labels.")
   }
   data.table::data.table(.k = env$.k, j = NA_integer_, coef = v)
@@ -723,7 +830,7 @@
     stop("as_matrix: ord(", set_name, ") refers to an unbound index.")
   }
   members <- .mx_set_members(ctx, .mx_base_set(ctx$model, set_name))
-  pos <- match(as.character(env[[set_name]]), members)
+  pos <- match(env[[set_name]], members)
   if (anyNA(pos)) {
     stop("as_matrix: ord(", set_name, ") - some bound members are not in the set.")
   }
@@ -777,7 +884,9 @@
   iters <- .mx_index_names(idx)
   if (!length(iters)) return(NULL)
 
-  cur <- data.table::copy(env)
+  # A shallow rewrap: the column vectors are shared with `env` and never
+  # written to; renaming and adding columns touch this table only.
+  cur <- data.table::setDT(as.list(env))
   # An enclosing sum already left its own `.outer` here. Nesting must not stack
   # them: each level maps only from its own `.k` to its parent, so drop the
   # grandparent marker before claiming the name. Leaving it produced two columns
@@ -891,11 +1000,19 @@
   if (!length(newc)) return(NULL)            # binds nothing new - leave as a filter
   if (!all(newc %in% iters)) return(NULL)    # would bind a non-iterator index
 
-  lk <- data.table::copy(dat)
+  merge(cur, .mx_map_named(dat, ref), by = shared, allow.cartesian = TRUE)
+}
+
+#' A mapping's prepared table under the reference's index names
+#'
+#' A shallow rewrap of the cached table, renamed; the column vectors are
+#' shared and never written to.
+#' @keywords internal
+#' @noRd
+.mx_map_named <- function(dat, ref) {
+  lk <- data.table::setDT(as.list(dat))
   data.table::setnames(lk, names(lk), ref)
-  .mx_chr_keys(lk, ref)
-  lk <- unique(lk, by = ref)
-  merge(cur, lk, by = shared, allow.cartesian = TRUE)
+  lk
 }
 
 #' Mapping gates that zero a sum's whole body
@@ -941,11 +1058,10 @@
   }
   if (!nrow(dat)) return(cur[0])
   if (length(names(dat)) != length(ref)) return(NULL)
-  lk <- data.table::copy(dat)
-  data.table::setnames(lk, names(lk), ref)
-  .mx_chr_keys(lk, ref)
-  lk <- unique(lk[, ref, with = FALSE], by = ref)
-  lk[cur, on = ref, nomatch = NULL]
+  # the prepared table is unique over all its columns, so each row of `cur`
+  # matches at most once: `which` gives the match per row, in `cur`'s order
+  hit <- dat[cur, on = stats::setNames(ref, names(dat)), which = TRUE]
+  cur[!is.na(hit)]
 }
 
 #' Plan an index-binding join: its lookup table and exact output row count
@@ -961,10 +1077,7 @@
   shared <- intersect(ref, names(cur))
   newc <- setdiff(ref, names(cur))
   if (!length(shared) || !length(newc) || !all(newc %in% iters)) return(NULL)
-  lk <- data.table::copy(dat)
-  data.table::setnames(lk, names(lk), ref)
-  .mx_chr_keys(lk, ref)
-  lk <- unique(lk, by = ref)
+  lk <- .mx_map_named(dat, ref)
   a <- cur[, .N, by = shared]
   b <- lk[, .N, by = shared]
   m <- b[a, on = shared, nomatch = NULL]
@@ -1124,15 +1237,16 @@
          call. = FALSE)
   }
 
-  env <- data.table::data.table(.k = seq_len(nrow(blk)))
-  idx <- paste0("i", seq_along(dims))
-  for (n in seq_along(dims)) env[[dims[n]]] <- blk[[idx[n]]]
-
   ctx <- new.env(parent = emptyenv())
   ctx$model <- model
+  ctx$codes <- .mx_new_codes()
   ctx$param_cache <- list()
   ctx$map_cache <- list()
   ctx$set_cache <- list()
+
+  env <- data.table::data.table(.k = seq_len(nrow(blk)))
+  idx <- paste0("i", seq_along(dims))
+  for (n in seq_along(dims)) env[[dims[n]]] <- .mx_code(ctx, blk[[idx[n]]])
 
   keep <- .mx_condition(eq$domain, env, ctx)
   if (!is.logical(keep) || length(keep) != nrow(blk)) {
@@ -1185,12 +1299,15 @@
   .mx_unsupported(node, "a condition")
 }
 
-#' Tuple table of a mapping, cached, with the two failure modes kept apart
+#' Tuple table of a mapping, prepared once, with the two failure modes kept apart
 #'
 #' A mapping the model never declared is a model error and must say so. A
 #' declared mapping holding no tuples is legitimate - it means the gated
 #' expression is empty - and returns a zero-row table. Keep the two apart:
 #' conflating them turns a missing map into "no map constrains this index".
+#'
+#' The table comes back with its members coded, its tuples unique and its
+#' columns named `.c1..cN`; callers join on positions.
 #' @keywords internal
 #' @noRd
 .mx_map_data <- function(nm, ctx) {
@@ -1203,6 +1320,11 @@
   }
   dat <- get_data(ctx$model, nm, type = "mapping")
   dat <- if (is.null(dat)) data.table::data.table() else data.table::as.data.table(dat)
+  if (length(names(dat))) {
+    keys <- paste0(".c", seq_along(names(dat)))
+    dat <- unique(.mx_code_cols(ctx, dat, names(dat), keys), by = keys)
+    data.table::setkeyv(dat, keys)
+  }
   ctx$map_cache[[nm]] <- dat
   dat
 }
@@ -1227,13 +1349,8 @@
          paste(miss, collapse = ", "), ".")
   }
 
-  lk <- data.table::copy(dat)
-  data.table::setnames(lk, cols, ref)
-  .mx_chr_keys(lk, ref)
-  lk <- unique(lk[, ref, with = FALSE], by = ref)
-  data.table::set(lk, j = ".mx_hit", value = TRUE)
-  res <- lk[env, on = ref]
-  !is.na(res$.mx_hit)
+  # unique over all columns, so each env row matches at most once
+  !is.na(dat[env, on = stats::setNames(ref, cols), which = TRUE])
 }
 
 #' Evaluate a purely numeric sub-expression to one value per env row
@@ -1261,21 +1378,22 @@
   name
 }
 
-#' Members of a set, cached
+#' Members of a set as codes, in member order, cached
 #' @keywords internal
 #' @noRd
 .mx_set_members <- function(ctx, set_name) {
   hit <- ctx$set_cache[[set_name]]
   if (!is.null(hit)) return(hit)
   s <- ctx$model$sets[[set_name]]
-  mem <- if (is.null(s)) character() else as.character(extract_set_members(s))
+  mem <- if (is.null(s)) integer() else
+    .mx_code(ctx, as.character(extract_set_members(s)))
   ctx$set_cache[[set_name]] <- mem
   mem
 }
 
 # --- equation assembly ------------------------------------------------------
 
-utils::globalVariables(c(".k", ".outer", ".mx_hit", "coef", "j", "v", "seq_len"))
+utils::globalVariables(c(".k", ".outer", "coef", "j", "v", "seq_len", "symbol"))
 
 #' Environment of bound indices for one equation
 #'
@@ -1376,6 +1494,7 @@ build_triplets <- function(model, col_index = NULL, row_index = NULL,
 
   ctx <- new.env(parent = emptyenv())
   ctx$model <- model
+  ctx$codes <- .mx_new_codes()
   ctx$col_index <- col_index
   ctx$col_cache <- list()
   ctx$param_cache <- list()
@@ -1384,8 +1503,15 @@ build_triplets <- function(model, col_index = NULL, row_index = NULL,
   ctx$on_duplicate <- on_duplicate
   ctx$dup_warned <- list()
 
-  todo <- if (is.null(equations)) unique(row_index$symbol) else
-    intersect(equations, unique(row_index$symbol))
+  # The row index with its members coded, and each equation's row range: the
+  # rows of one equation are contiguous, so a range replaces a scan of the
+  # symbol column per equation.
+  idx <- grep("^i[0-9]+$", names(row_index), value = TRUE)
+  rows_coded <- .mx_code_cols(ctx, row_index[, c("i", "symbol", idx), with = FALSE], idx)
+  ranges <- rows_coded[, list(from = .I[1L], to = .I[.N]), by = "symbol"]
+
+  todo <- if (is.null(equations)) ranges$symbol else
+    intersect(equations, ranges$symbol)
 
   tri <- vector("list", length(todo))
   rhs <- vector("list", length(todo))
@@ -1394,7 +1520,8 @@ build_triplets <- function(model, col_index = NULL, row_index = NULL,
     nm <- todo[n]
     eq <- model$equations[[nm]]
     if (is.null(eq)) next
-    rows <- row_index[row_index$symbol == nm]
+    rg <- ranges[symbol == nm]
+    rows <- rows_coded[rg$from:rg$to]
 
     t0 <- Sys.time()
     nr <- nrow(rows)
