@@ -12,6 +12,46 @@ mm_block_run <- function(ex, plan, rows) {
   .Call(`_multimod_mm_block_run`, ex, plan, rows)
 }
 
+mm_sink_open <- function(dir, buckets, nrow, ncol) {
+  .Call(`_multimod_mm_sink_open`, dir, buckets, nrow, ncol)
+}
+
+mm_sink_write <- function(sink, i, j, x) {
+  invisible(.Call(`_multimod_mm_sink_write`, sink, i, j, x))
+}
+
+mm_block_run_sink <- function(ex, plan, rows, sink) {
+  .Call(`_multimod_mm_block_run_sink`, ex, plan, rows, sink)
+}
+
+mm_sink_map <- function(sink, ired, jred, ref, coef, tol) {
+  invisible(.Call(`_multimod_mm_sink_map`, sink, ired, jred, ref, coef, tol))
+}
+
+mm_scan_open <- function(nrow, ncol, track) {
+  .Call(`_multimod_mm_scan_open`, nrow, ncol, track)
+}
+
+mm_scan_add <- function(scan, i, j, x) {
+  invisible(.Call(`_multimod_mm_scan_add`, scan, i, j, x))
+}
+
+mm_block_run_scan <- function(ex, plan, rows, scan) {
+  .Call(`_multimod_mm_block_run_scan`, ex, plan, rows, scan)
+}
+
+mm_scan_close <- function(scan) {
+  .Call(`_multimod_mm_scan_close`, scan)
+}
+
+mm_sink_close <- function(sink) {
+  .Call(`_multimod_mm_sink_close`, sink)
+}
+
+mm_mps_write <- function(file, sink, row_lo, row_up, col_lo, col_up, obj, maximum) {
+  .Call(`_multimod_mm_mps_write`, file, sink, row_lo, row_up, col_lo, col_up, obj, maximum)
+}
+
 mm_exec_block <- function(plan, tables) {
   .Call(`_multimod_mm_exec_block`, plan, tables)
 }

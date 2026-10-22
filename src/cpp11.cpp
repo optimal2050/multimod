@@ -27,6 +27,79 @@ extern "C" SEXP _multimod_mm_block_run(SEXP ex, SEXP plan, SEXP rows) {
   END_CPP11
 }
 // mm_core.cpp
+sexp mm_sink_open(std::string dir, int buckets, double nrow, double ncol);
+extern "C" SEXP _multimod_mm_sink_open(SEXP dir, SEXP buckets, SEXP nrow, SEXP ncol) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(mm_sink_open(cpp11::as_cpp<cpp11::decay_t<std::string>>(dir), cpp11::as_cpp<cpp11::decay_t<int>>(buckets), cpp11::as_cpp<cpp11::decay_t<double>>(nrow), cpp11::as_cpp<cpp11::decay_t<double>>(ncol)));
+  END_CPP11
+}
+// mm_core.cpp
+void mm_sink_write(sexp sink, integers i, integers j, doubles x);
+extern "C" SEXP _multimod_mm_sink_write(SEXP sink, SEXP i, SEXP j, SEXP x) {
+  BEGIN_CPP11
+    mm_sink_write(cpp11::as_cpp<cpp11::decay_t<sexp>>(sink), cpp11::as_cpp<cpp11::decay_t<integers>>(i), cpp11::as_cpp<cpp11::decay_t<integers>>(j), cpp11::as_cpp<cpp11::decay_t<doubles>>(x));
+    return R_NilValue;
+  END_CPP11
+}
+// mm_core.cpp
+list mm_block_run_sink(sexp ex, list plan, list rows, sexp sink);
+extern "C" SEXP _multimod_mm_block_run_sink(SEXP ex, SEXP plan, SEXP rows, SEXP sink) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(mm_block_run_sink(cpp11::as_cpp<cpp11::decay_t<sexp>>(ex), cpp11::as_cpp<cpp11::decay_t<list>>(plan), cpp11::as_cpp<cpp11::decay_t<list>>(rows), cpp11::as_cpp<cpp11::decay_t<sexp>>(sink)));
+  END_CPP11
+}
+// mm_core.cpp
+void mm_sink_map(sexp sink, integers ired, integers jred, integers ref, doubles coef, double tol);
+extern "C" SEXP _multimod_mm_sink_map(SEXP sink, SEXP ired, SEXP jred, SEXP ref, SEXP coef, SEXP tol) {
+  BEGIN_CPP11
+    mm_sink_map(cpp11::as_cpp<cpp11::decay_t<sexp>>(sink), cpp11::as_cpp<cpp11::decay_t<integers>>(ired), cpp11::as_cpp<cpp11::decay_t<integers>>(jred), cpp11::as_cpp<cpp11::decay_t<integers>>(ref), cpp11::as_cpp<cpp11::decay_t<doubles>>(coef), cpp11::as_cpp<cpp11::decay_t<double>>(tol));
+    return R_NilValue;
+  END_CPP11
+}
+// mm_core.cpp
+sexp mm_scan_open(double nrow, double ncol, int track);
+extern "C" SEXP _multimod_mm_scan_open(SEXP nrow, SEXP ncol, SEXP track) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(mm_scan_open(cpp11::as_cpp<cpp11::decay_t<double>>(nrow), cpp11::as_cpp<cpp11::decay_t<double>>(ncol), cpp11::as_cpp<cpp11::decay_t<int>>(track)));
+  END_CPP11
+}
+// mm_core.cpp
+void mm_scan_add(sexp scan, integers i, integers j, doubles x);
+extern "C" SEXP _multimod_mm_scan_add(SEXP scan, SEXP i, SEXP j, SEXP x) {
+  BEGIN_CPP11
+    mm_scan_add(cpp11::as_cpp<cpp11::decay_t<sexp>>(scan), cpp11::as_cpp<cpp11::decay_t<integers>>(i), cpp11::as_cpp<cpp11::decay_t<integers>>(j), cpp11::as_cpp<cpp11::decay_t<doubles>>(x));
+    return R_NilValue;
+  END_CPP11
+}
+// mm_core.cpp
+list mm_block_run_scan(sexp ex, list plan, list rows, sexp scan);
+extern "C" SEXP _multimod_mm_block_run_scan(SEXP ex, SEXP plan, SEXP rows, SEXP scan) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(mm_block_run_scan(cpp11::as_cpp<cpp11::decay_t<sexp>>(ex), cpp11::as_cpp<cpp11::decay_t<list>>(plan), cpp11::as_cpp<cpp11::decay_t<list>>(rows), cpp11::as_cpp<cpp11::decay_t<sexp>>(scan)));
+  END_CPP11
+}
+// mm_core.cpp
+list mm_scan_close(sexp scan);
+extern "C" SEXP _multimod_mm_scan_close(SEXP scan) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(mm_scan_close(cpp11::as_cpp<cpp11::decay_t<sexp>>(scan)));
+  END_CPP11
+}
+// mm_core.cpp
+list mm_sink_close(sexp sink);
+extern "C" SEXP _multimod_mm_sink_close(SEXP sink) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(mm_sink_close(cpp11::as_cpp<cpp11::decay_t<sexp>>(sink)));
+  END_CPP11
+}
+// mm_core.cpp
+double mm_mps_write(std::string file, sexp sink, doubles row_lo, doubles row_up, doubles col_lo, doubles col_up, doubles obj, bool maximum);
+extern "C" SEXP _multimod_mm_mps_write(SEXP file, SEXP sink, SEXP row_lo, SEXP row_up, SEXP col_lo, SEXP col_up, SEXP obj, SEXP maximum) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(mm_mps_write(cpp11::as_cpp<cpp11::decay_t<std::string>>(file), cpp11::as_cpp<cpp11::decay_t<sexp>>(sink), cpp11::as_cpp<cpp11::decay_t<doubles>>(row_lo), cpp11::as_cpp<cpp11::decay_t<doubles>>(row_up), cpp11::as_cpp<cpp11::decay_t<doubles>>(col_lo), cpp11::as_cpp<cpp11::decay_t<doubles>>(col_up), cpp11::as_cpp<cpp11::decay_t<doubles>>(obj), cpp11::as_cpp<cpp11::decay_t<bool>>(maximum)));
+  END_CPP11
+}
+// mm_core.cpp
 list mm_exec_block(list plan, list tables);
 extern "C" SEXP _multimod_mm_exec_block(SEXP plan, SEXP tables) {
   BEGIN_CPP11
@@ -36,10 +109,20 @@ extern "C" SEXP _multimod_mm_exec_block(SEXP plan, SEXP tables) {
 
 extern "C" {
 static const R_CallMethodDef CallEntries[] = {
-    {"_multimod_mm_block_add",  (DL_FUNC) &_multimod_mm_block_add,  2},
-    {"_multimod_mm_block_open", (DL_FUNC) &_multimod_mm_block_open, 2},
-    {"_multimod_mm_block_run",  (DL_FUNC) &_multimod_mm_block_run,  3},
-    {"_multimod_mm_exec_block", (DL_FUNC) &_multimod_mm_exec_block, 2},
+    {"_multimod_mm_block_add",      (DL_FUNC) &_multimod_mm_block_add,      2},
+    {"_multimod_mm_block_open",     (DL_FUNC) &_multimod_mm_block_open,     2},
+    {"_multimod_mm_block_run",      (DL_FUNC) &_multimod_mm_block_run,      3},
+    {"_multimod_mm_block_run_scan", (DL_FUNC) &_multimod_mm_block_run_scan, 4},
+    {"_multimod_mm_block_run_sink", (DL_FUNC) &_multimod_mm_block_run_sink, 4},
+    {"_multimod_mm_exec_block",     (DL_FUNC) &_multimod_mm_exec_block,     2},
+    {"_multimod_mm_mps_write",      (DL_FUNC) &_multimod_mm_mps_write,      8},
+    {"_multimod_mm_scan_add",       (DL_FUNC) &_multimod_mm_scan_add,       4},
+    {"_multimod_mm_scan_close",     (DL_FUNC) &_multimod_mm_scan_close,     1},
+    {"_multimod_mm_scan_open",      (DL_FUNC) &_multimod_mm_scan_open,      3},
+    {"_multimod_mm_sink_close",     (DL_FUNC) &_multimod_mm_sink_close,     1},
+    {"_multimod_mm_sink_map",       (DL_FUNC) &_multimod_mm_sink_map,       6},
+    {"_multimod_mm_sink_open",      (DL_FUNC) &_multimod_mm_sink_open,      4},
+    {"_multimod_mm_sink_write",     (DL_FUNC) &_multimod_mm_sink_write,     4},
     {NULL, NULL, 0}
 };
 }

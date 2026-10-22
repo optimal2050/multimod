@@ -1,0 +1,252 @@
+#include "multimod/mps.h"
+
+#include <algorithm>
+#include <charconv>
+#include <cmath>
+#include <cstring>
+#include <limits>
+#include <stdexcept>
+#include <sys/stat.h>
+
+#ifdef _WIN32
+#include <direct.h>
+#define MM_MKDIR(p) _mkdir(p)
+#else
+#define MM_MKDIR(p) mkdir(p, 0755)
+#endif
+
+namespace multimod {
+
+namespace {
+
+void ensure_dir(const std::string& dir) {
+  struct stat st;
+  if (stat(dir.c_str(), &st) == 0) return;
+  if (MM_MKDIR(dir.c_str()) != 0) throw std::runtime_error("cannot create directory " + dir);
+}
+
+// shortest round-trip decimal of a double
+void fmt_num(double v, std::string& out) {
+  char buf[64];
+  auto r = std::to_chars(buf, buf + sizeof(buf), v);
+  out.append(buf, r.ptr);
+}
+
+bool is_inf(double v) { return std::isinf(v); }
+
+}  // namespace
+
+Sink::Sink(std::string dir, int buckets, int64_t nrow, int64_t ncol)
+    : dir_(std::move(dir)), buckets_(std::max(1, buckets)), nrow_(nrow), ncol_(ncol) {
+  ensure_dir(dir_);
+  per_ = (ncol_ + buckets_ - 1) / buckets_;
+  if (per_ < 1) per_ = 1;
+  files_.assign(buckets_, nullptr);
+  buf_.resize(buckets_);
+  cap_ = 262144;   // entries per bucket buffer: 4 MB
+  for (int b = 0; b < buckets_; ++b) {
+    files_[b] = std::fopen(bucket_path(b).c_str(), "wb");
+    if (!files_[b]) throw std::runtime_error("cannot open bucket file " + bucket_path(b));
+    buf_[b].reserve(cap_);
+  }
+  counts_.assign(static_cast<size_t>(nrow_), 0);
+}
+
+Sink::~Sink() {
+  for (FILE* f : files_) if (f) std::fclose(f);
+}
+
+std::string Sink::bucket_path(int b) const {
+  return dir_ + "/b" + std::to_string(b) + ".bin";
+}
+
+void Sink::flush(int b) {
+  if (buf_[b].empty()) return;
+  size_t n = buf_[b].size();
+  if (std::fwrite(buf_[b].data(), sizeof(Entry), n, files_[b]) != n) {
+    throw std::runtime_error("write failed on " + bucket_path(b));
+  }
+  buf_[b].clear();
+}
+
+void Sink::push(int32_t r, int32_t c, double x) {
+  if (r < 0 || r >= nrow_ || c < 0 || c >= ncol_) throw std::runtime_error("entry outside the LP dimensions");
+  int b = static_cast<int>(c / per_);
+  buf_[b].push_back(Entry{r, c, x});
+  counts_[r]++;
+  nnz_++;
+  if (buf_[b].size() >= cap_) flush(b);
+}
+
+void Sink::set_map(const int* ired, const int* jred, const int* ref, const double* coef,
+                   int64_t nrow_full, int64_t ncol_full, double tol) {
+  mapped_ = true;
+  ired_ = ired; jred_ = jred; ref_ = ref; coef_ = coef;
+  nrow_full_ = nrow_full; ncol_full_ = ncol_full; tol_ = tol;
+}
+
+void Sink::write(const int* i, const int* j, const double* x, int64_t n) {
+  if (closed_) throw std::runtime_error("the sink is closed");
+  if (!mapped_) {
+    for (int64_t k = 0; k < n; ++k) push(i[k] - 1, j[k] - 1, x[k]);
+    return;
+  }
+  // substitute, then sum what lands on the same (row, column) of one row
+  std::vector<Entry> e;
+  e.reserve(static_cast<size_t>(n));
+  for (int64_t k = 0; k < n; ++k) {
+    int32_t r = i[k], c = j[k];
+    if (r < 1 || r > nrow_full_ || c < 1 || c > ncol_full_) throw std::runtime_error("entry outside the LP dimensions");
+    if (ired_[r - 1] == 0) continue;                 // an eliminated row
+    double v = x[k];
+    if (jred_[c - 1] == 0) {                         // an eliminated column
+      v *= coef_[c - 1];
+      c = ref_[c - 1];
+      if (c < 1 || jred_[c - 1] == 0) throw std::runtime_error("substitution refers to an eliminated column");
+    }
+    e.push_back(Entry{r, c, v});
+  }
+  std::sort(e.begin(), e.end(), [](const Entry& a, const Entry& b) {
+    return a.row < b.row || (a.row == b.row && a.col < b.col);
+  });
+  size_t k = 0;
+  while (k < e.size()) {
+    size_t m = k + 1;
+    double v = e[k].x;
+    while (m < e.size() && e[m].row == e[k].row && e[m].col == e[k].col) { v += e[m].x; ++m; }
+    if (std::fabs(v) > tol_) push(ired_[e[k].row - 1] - 1, jred_[e[k].col - 1] - 1, v);
+    k = m;
+  }
+}
+
+void Sink::close() {
+  if (closed_) return;
+  for (int b = 0; b < buckets_; ++b) {
+    flush(b);
+    std::fclose(files_[b]);
+    files_[b] = nullptr;
+  }
+  closed_ = true;
+}
+
+std::vector<Entry> Sink::read_bucket(int b) const {
+  std::vector<Entry> v;
+  FILE* f = std::fopen(bucket_path(b).c_str(), "rb");
+  if (!f) throw std::runtime_error("cannot read bucket file " + bucket_path(b));
+  std::fseek(f, 0, SEEK_END);
+  long sz = std::ftell(f);
+  std::fseek(f, 0, SEEK_SET);
+  v.resize(static_cast<size_t>(sz) / sizeof(Entry));
+  if (!v.empty() && std::fread(v.data(), sizeof(Entry), v.size(), f) != v.size()) {
+    std::fclose(f);
+    throw std::runtime_error("short read on " + bucket_path(b));
+  }
+  std::fclose(f);
+  std::sort(v.begin(), v.end(), [](const Entry& a, const Entry& c) {
+    return a.col < c.col || (a.col == c.col && a.row < c.row);
+  });
+  return v;
+}
+
+int64_t write_mps(const std::string& file, const Sink& sink, const LpBounds& lp, const std::string& name) {
+  if (!sink.closed()) throw std::runtime_error("close the sink before writing the MPS");
+  FILE* out = std::fopen(file.c_str(), "wb");
+  if (!out) throw std::runtime_error("cannot open " + file + " for writing");
+  std::string s;
+  s.reserve(1 << 24);
+  auto emit = [&]() {
+    if (s.size() < (1u << 23)) return;
+    std::fwrite(s.data(), 1, s.size(), out);
+    s.clear();
+  };
+  int64_t nrow = sink.nrow(), ncol = sink.ncol();
+
+  s += "NAME        " + name + "\n";
+  if (lp.maximum) s += "OBJSENSE\n    MAX\n";
+
+  // rows: the type from the bounds; a ranged row carries its width in RANGES
+  s += "ROWS\n N  Obj\n";
+  std::vector<char> rtype(nrow);
+  std::vector<int64_t> ranged;
+  for (int64_t r = 0; r < nrow; ++r) {
+    double lo = lp.row_lo[r], up = lp.row_up[r];
+    char t;
+    if (is_inf(lo) && is_inf(up)) {
+      throw std::runtime_error("row " + std::to_string(r + 1) + " is free on both sides; MPS cannot keep it positional");
+    } else if (lo == up) t = 'E';
+    else if (is_inf(lo)) t = 'L';
+    else if (is_inf(up)) t = 'G';
+    else { t = 'G'; ranged.push_back(r); }
+    rtype[r] = t;
+    s += ' '; s += t; s += "  r"; s += std::to_string(r); s += '\n';
+    emit();
+  }
+
+  // columns: objective entry, then the matrix entries in row order; a column
+  // without any entry is kept with an explicit zero objective
+  s += "COLUMNS\n";
+  int64_t written = 0;
+  for (int b = 0; b < sink.buckets(); ++b) {
+    std::vector<Entry> e = sink.read_bucket(b);
+    int64_t c0 = static_cast<int64_t>(b) * sink.cols_per_bucket();
+    int64_t c1 = std::min(ncol, c0 + sink.cols_per_bucket());
+    size_t k = 0;
+    for (int64_t c = c0; c < c1; ++c) {
+      std::string cname = "c" + std::to_string(c);
+      bool any = false;
+      if (lp.obj[c] != 0.0) {
+        s += "    "; s += cname; s += "  Obj  "; fmt_num(lp.obj[c], s); s += '\n';
+        any = true;
+      }
+      while (k < e.size() && e[k].col == c) {
+        s += "    "; s += cname; s += "  r"; s += std::to_string(e[k].row); s += "  ";
+        fmt_num(e[k].x, s); s += '\n';
+        ++k; ++written; any = true;
+        emit();
+      }
+      if (!any) { s += "    "; s += cname; s += "  Obj  0\n"; }
+      emit();
+    }
+    if (k != e.size()) throw std::runtime_error("bucket " + std::to_string(b) + " holds entries outside its column range");
+  }
+
+  s += "RHS\n";
+  for (int64_t r = 0; r < nrow; ++r) {
+    double v = rtype[r] == 'L' ? lp.row_up[r] : lp.row_lo[r];
+    if (v != 0.0) { s += "    RHS  r"; s += std::to_string(r); s += "  "; fmt_num(v, s); s += '\n'; emit(); }
+  }
+  if (!ranged.empty()) {
+    s += "RANGES\n";
+    for (int64_t r : ranged) {
+      s += "    RNG  r"; s += std::to_string(r); s += "  "; fmt_num(lp.row_up[r] - lp.row_lo[r], s); s += '\n';
+      emit();
+    }
+  }
+
+  // bounds: the MPS default is [0, +inf); everything else is stated
+  s += "BOUNDS\n";
+  for (int64_t c = 0; c < ncol; ++c) {
+    double lo = lp.col_lo[c], up = lp.col_up[c];
+    std::string cn = "c" + std::to_string(c);
+    if (lo == 0.0 && is_inf(up) && up > 0) continue;
+    if (is_inf(lo) && is_inf(up)) { s += " FR BND  " + cn + "\n"; emit(); continue; }
+    if (lo == up) { s += " FX BND  " + cn + "  "; fmt_num(lo, s); s += '\n'; emit(); continue; }
+    if (is_inf(lo)) {
+      s += " MI BND  " + cn + "\n";
+      s += " UP BND  " + cn + "  "; fmt_num(up, s); s += '\n';
+      emit(); continue;
+    }
+    // a finite lower bound is stated whenever it is not the default, and
+    // before a negative upper bound, which some readers would otherwise read
+    // as implying a lower bound of -infinity
+    if (lo != 0.0 || up < 0.0) { s += " LO BND  " + cn + "  "; fmt_num(lo, s); s += '\n'; }
+    if (!is_inf(up)) { s += " UP BND  " + cn + "  "; fmt_num(up, s); s += '\n'; }
+    emit();
+  }
+  s += "ENDATA\n";
+  std::fwrite(s.data(), 1, s.size(), out);
+  std::fclose(out);
+  return written;
+}
+
+}  // namespace multimod

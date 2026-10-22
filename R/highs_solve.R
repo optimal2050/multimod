@@ -147,7 +147,14 @@ model_to_lp <- function(model, col_index = NULL, row_index = NULL,
 .check_empty_rows <- function(lp, on_empty_row) {
   if (identical(on_empty_row, "ignore") || !nrow(lp$row_index)) return(invisible())
   empty <- setdiff(seq_len(nrow(lp$A)), unique(lp$A@i + 1L))
-  if (!length(empty)) return(invisible())
+  .report_empty_rows(empty, lp$row_index, on_empty_row)
+}
+
+#' @keywords internal
+#' @noRd
+.report_empty_rows <- function(empty, row_index, on_empty_row) {
+  if (identical(on_empty_row, "ignore") || !length(empty)) return(invisible())
+  lp <- list(row_index = row_index)
 
   syms <- unique(lp$row_index$symbol[empty])
   user <- grep("^eqCns", syms, value = TRUE)
@@ -320,6 +327,15 @@ solve_highs <- function(model, lp = NULL, attach = TRUE, control = list(),
 #'   [lp_presolve()] before writing. [read_mps_solution()] restores them.
 #'   Defaults to `getOption("multimod.presolve", FALSE)`.
 #' @param verbose Logical; report progress.
+#' @param stream Logical; build the matrix block by block and write the file
+#'   without holding the matrix in memory. The entries are spooled to bucket
+#'   files in `<file>.parts/` by column range and merged into the file at the
+#'   end; the file is equivalent to the one HiGHS writes. With `presolve =
+#'   TRUE` the blocks are built twice, a scan pass that finds the doubleton
+#'   rows and an emit pass that applies the substitution. `lp` cannot be
+#'   given with `stream = TRUE`.
+#' @param buckets Integer; with `stream = TRUE`, the number of bucket files
+#'   (one is read back into memory at a time).
 #'
 #' @return Invisibly, a list of the paths written.
 #' @export
@@ -333,12 +349,19 @@ solve_highs <- function(model, lp = NULL, attach = TRUE, control = list(),
 #' }
 write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
                       format = c("parquet", "ipc", "csv"), verbose = FALSE,
-                      presolve = getOption("multimod.presolve", FALSE)) {
+                      presolve = getOption("multimod.presolve", FALSE),
+                      stream = FALSE, buckets = 64L) {
+  format <- match.arg(format)
+  if (isTRUE(stream)) {
+    if (!is.null(lp)) stop("write_mps(stream = TRUE) builds the matrix itself; `lp` cannot be given.")
+    return(.mx_stream_mps(model, file, index_dir = index_dir, format = format,
+                          buckets = buckets, presolve = isTRUE(presolve),
+                          verbose = verbose))
+  }
   if (!requireNamespace("highs", quietly = TRUE)) {
     stop("write_mps() needs the 'highs' package. Install it with ",
          "install.packages(\"highs\").")
   }
-  format <- match.arg(format)
   if (is.null(lp)) lp <- model_to_lp(model, verbose = verbose)
   if (isTRUE(presolve)) lp <- lp_presolve(lp, verbose = verbose)
   t0 <- Sys.time()
@@ -354,9 +377,36 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
   )
   highs::highs_write_model(hm, file)
 
-  base <- tools::file_path_sans_ext(basename(file))
+  paths <- .write_index_tables(lp$col_index, lp$row_index, lp$eliminated,
+                               index_dir, tools::file_path_sans_ext(basename(file)), format)
+
+  if (verbose) {
+    message(format(Sys.time(), "[%H:%M:%S] "), "wrote MPS ", file, " (",
+            nrow(lp$row_index), " rows x ", nrow(lp$col_index),
+            " cols) plus index tables in ", index_dir, sprintf(", %.0f s",
+            as.numeric(difftime(Sys.time(), t0, units = "secs"))))
+  }
+  invisible(list(mps = file, col_index = paths$col_index, row_index = paths$row_index))
+}
+
+#' Write the index tables beside an MPS file
+#' @keywords internal
+#' @noRd
+.write_index_tables <- function(col_index, row_index, eliminated, index_dir, base, format) {
   col_path <- file.path(index_dir, paste0(base, "_col_index"))
   row_path <- file.path(index_dir, paste0(base, "_row_index"))
+  # a presolve that eliminated nothing leaves a plain LP: the bundle is
+  # written without reduced positions, since an empty table is not stored
+  # and the decoder reads `jred` as a promise of one
+  if (!is.null(eliminated) && nrow(eliminated) == 0L) {
+    eliminated <- NULL
+    drop <- function(x, col) {
+      if (col %in% names(x)) { x <- data.table::setDT(as.list(x)); data.table::set(x, j = col, value = NULL) }
+      x
+    }
+    col_index <- drop(col_index, "jred")
+    row_index <- drop(row_index, "ired")
+  }
   # The decoder maps back by POSITION and by the i* columns; the readable
   # `name` column (present only with index_names = TRUE) is dead weight in
   # the bundle and the dominant string allocation — drop it. The shallow
@@ -365,27 +415,145 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
     keep <- setdiff(names(x), "name")
     data.table::setDF(x[, keep, with = FALSE])
   }
-  .save_dataframe(.index_df(lp$col_index), col_path, format = format)
-  .save_dataframe(.index_df(lp$row_index), row_path, format = format)
+  .save_dataframe(.index_df(col_index), col_path, format = format)
+  .save_dataframe(.index_df(row_index), row_path, format = format)
   # the decoder expands eliminated columns from this table; a stale one from an
   # earlier run with elimination must not survive a run without it
   elim_path <- file.path(index_dir, paste0(base, "_eliminated"))
   unlink(paste0(elim_path, c("", ".parquet", ".arrow", ".feather", ".ipc", ".csv")))
-  if (!is.null(lp$eliminated)) {
-    .save_dataframe(data.table::setDF(data.table::copy(lp$eliminated)),
+  if (!is.null(eliminated)) {
+    .save_dataframe(data.table::setDF(data.table::copy(eliminated)),
                     elim_path, format = format)
   }
   # dim_names rides along inside parquet/feather but is lost by CSV, so write it
   # explicitly too - otherwise a csv bundle cannot be mapped back to symbols
-  .write_dim_names(attr(lp$col_index, "dim_names"), index_dir, base)
+  .write_dim_names(attr(col_index, "dim_names"), index_dir, base)
+  list(col_index = col_path, row_index = row_path)
+}
 
+#' Build the matrix and write it as MPS without holding it in memory
+#'
+#' The coefficient blocks are spooled to bucket files by column range as
+#' they are built, then merged into the COLUMNS section one bucket at a
+#' time; the right-hand side, bounds and index tables come from the index
+#' tables and the per-row constants. Peak memory is one block and the index
+#' tables. The file is equivalent to the one [write_mps()] writes through
+#' HiGHS: positional names, every column present.
+#'
+#' With `presolve = TRUE` the blocks are built twice: a scan pass collects
+#' the entry counts and the doubleton rows, `.mx_presolve_map()` composes
+#' the substitution, and the emit pass writes the reduced LP with the
+#' substitution applied as the entries pass through the sink. The index
+#' tables gain `jred` / `ired` and the `eliminated` table is written, as
+#' after [lp_presolve()], so [read_mps_solution()] restores the full
+#' solution unchanged. Rows the substitution empties are kept (as `0 = 0`
+#' rows), where [lp_presolve()] drops them.
+#' @keywords internal
+#' @noRd
+.mx_stream_mps <- function(model, file, index_dir = dirname(file),
+                           format = "parquet", buckets = 64L, presolve = FALSE,
+                           verbose = FALSE,
+                           on_duplicate = c("error", "last", "first"),
+                           on_empty_row = c("user_constraints", "all", "warn", "ignore"),
+                           chunk_rows = 1000000L) {
+  on_duplicate <- match.arg(on_duplicate)
+  on_empty_row <- match.arg(on_empty_row)
+  t0 <- Sys.time()
+  if (verbose) message(format(t0, "[%H:%M:%S] "), "building matrix (streamed)")
+  model <- .mx_materialise_formulas(model, verbose = verbose)
+  col_index <- build_col_index(model, verbose = verbose, names = FALSE)
+  row_index <- build_row_index(model, verbose = verbose, names = FALSE)
+  nrow_lp <- nrow(row_index)
+  ncol_lp <- nrow(col_index)
+  ztol <- as.numeric(getOption("multimod.zero_tol", 1e-12))
+
+  dir.create(dirname(file), recursive = TRUE, showWarnings = FALSE)
+  dir.create(index_dir, recursive = TRUE, showWarnings = FALSE)
+  parts <- paste0(file, ".parts")
+  unlink(parts, recursive = TRUE)
+  on.exit(unlink(parts, recursive = TRUE), add = TRUE)
+
+  build <- function(target) {
+    build_triplets(model, col_index = col_index, row_index = row_index,
+                   on_duplicate = on_duplicate, verbose = verbose,
+                   chunk_rows = chunk_rows, sink = target)
+  }
+  rhs_of <- function(tr) {
+    rhs <- rep(0, nrow_lp)
+    if (nrow(tr$rhs)) rhs[tr$rhs$i] <- tr$rhs$rhs
+    rhs[abs(rhs) < ztol] <- 0
+    rhs
+  }
+  sense <- row_index$sense
+  col_lo <- .zero_small(col_index$lo, ztol)
+  col_up <- .zero_small(col_index$up, ztol)
+  obj_spec <- .lp_objective(model, col_index)
+  obj <- obj_spec$obj
+  eliminated <- NULL
+  map <- NULL
+
+  if (isTRUE(presolve)) {
+    # scan pass: counts and doubleton rows
+    if (verbose) message(format(Sys.time(), "[%H:%M:%S] "), "presolve scan pass")
+    track <- as.integer(getOption("multimod.presolve_track", 4L))
+    scan <- structure(mm_scan_open(nrow_lp, ncol_lp, track), class = "mm_scan")
+    tr <- build(scan)
+    sc <- mm_scan_close(scan)
+    rhs <- rhs_of(tr)
+    .report_empty_rows(which(sc$row_counts == 0L), row_index, on_empty_row)
+    vt <- if ("vtype" %in% names(col_index)) col_index[["vtype"]] else NULL
+    map <- .mx_presolve_map(sc, sense, rhs, col_lo, col_up, vt, tol = ztol, verbose = verbose)
+    eliminated <- map$eliminated
+    # the objective of an eliminated column moves to its reference
+    e <- which(map$jred == 0L & obj != 0)
+    if (length(e)) {
+      obj[map$ref[e]] <- obj[map$ref[e]] + obj[e] * map$coef[e]
+      obj[e] <- 0
+    }
+    keep_r <- map$ired > 0L
+    keep_c <- map$jred > 0L
+    sink <- mm_sink_open(parts, as.integer(buckets), sum(keep_r), sum(keep_c))
+    mm_sink_map(sink, map$ired, map$jred, map$ref, map$coef, ztol)
+    if (verbose) message(format(Sys.time(), "[%H:%M:%S] "), "presolve emit pass")
+    tr <- build(sink)
+    closed <- mm_sink_close(sink)
+    row_lo <- ifelse(sense == "<=", -Inf, rhs)[keep_r]
+    row_up <- ifelse(sense == ">=",  Inf, rhs)[keep_r]
+    col_lo <- map$col_lo[keep_c]
+    col_up <- map$col_up[keep_c]
+    obj <- obj[keep_c]
+    nrow_out <- sum(keep_r); ncol_out <- sum(keep_c)
+  } else {
+    sink <- mm_sink_open(parts, as.integer(buckets), nrow_lp, ncol_lp)
+    tr <- build(sink)
+    closed <- mm_sink_close(sink)
+    rhs <- rhs_of(tr)
+    .report_empty_rows(which(closed$row_counts == 0L), row_index, on_empty_row)
+    row_lo <- ifelse(sense == "<=", -Inf, rhs)
+    row_up <- ifelse(sense == ">=",  Inf, rhs)
+    nrow_out <- nrow_lp; ncol_out <- ncol_lp
+  }
+  row_index <- data.table::setDT(as.list(row_index))
+  data.table::set(row_index, j = "rhs", value = rhs)
+  if (!is.null(map)) {
+    col_index <- data.table::setDT(as.list(col_index))
+    data.table::set(col_index, j = "jred", value = ifelse(map$jred == 0L, NA_integer_, map$jred))
+    data.table::set(row_index, j = "ired", value = ifelse(map$ired == 0L, NA_integer_, map$ired))
+  }
+
+  if (verbose) message(format(Sys.time(), "[%H:%M:%S] "), "writing MPS ", file)
+  nnz <- mm_mps_write(file, sink, row_lo, row_up, col_lo, col_up, obj,
+                      isTRUE(obj_spec$maximum))
+  paths <- .write_index_tables(col_index, row_index, eliminated, index_dir,
+                               tools::file_path_sans_ext(basename(file)), format)
   if (verbose) {
     message(format(Sys.time(), "[%H:%M:%S] "), "wrote MPS ", file, " (",
-            nrow(lp$row_index), " rows x ", nrow(lp$col_index),
-            " cols) plus index tables in ", index_dir, sprintf(", %.0f s",
-            as.numeric(difftime(Sys.time(), t0, units = "secs"))))
+            nrow_out, " rows x ", ncol_out, " cols, ", nnz, " nonzeros",
+            if (!is.null(eliminated)) sprintf(", %d columns eliminated", nrow(eliminated)) else "",
+            ") plus index tables in ", index_dir,
+            sprintf(", %.0f s", as.numeric(difftime(Sys.time(), t0, units = "secs"))))
   }
-  invisible(list(mps = file, col_index = col_path, row_index = row_path))
+  invisible(list(mps = file, col_index = paths$col_index, row_index = paths$row_index))
 }
 
 #' Solve a written MPS file locally and emit a HiGHS solution file

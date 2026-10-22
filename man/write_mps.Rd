@@ -11,7 +11,9 @@ write_mps(
   lp = NULL,
   format = c("parquet", "ipc", "csv"),
   verbose = FALSE,
-  presolve = getOption("multimod.presolve", FALSE)
+  presolve = getOption("multimod.presolve", FALSE),
+  stream = FALSE,
+  buckets = 64L
 )
 }
 \arguments{
@@ -32,6 +34,16 @@ of \code{file}.}
 \item{presolve}{Logical; eliminate proportional columns with
 \code{\link[=lp_presolve]{lp_presolve()}} before writing. \code{\link[=read_mps_solution]{read_mps_solution()}} restores them.
 Defaults to \code{getOption("multimod.presolve", FALSE)}.}
+
+\item{stream}{Logical; build the matrix block by block and write the file
+without holding the matrix in memory. The entries are spooled to bucket
+files in \verb{<file>.parts/} by column range and merged into the file at the
+end; the file is equivalent to the one HiGHS writes. With \code{presolve = TRUE} the blocks are built twice, a scan pass that finds the doubleton
+rows and an emit pass that applies the substitution. \code{lp} cannot be
+given with \code{stream = TRUE}.}
+
+\item{buckets}{Integer; with \code{stream = TRUE}, the number of bucket files
+(one is read back into memory at a time).}
 }
 \value{
 Invisibly, a list of the paths written.

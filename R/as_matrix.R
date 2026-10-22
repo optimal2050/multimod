@@ -1534,13 +1534,17 @@ NULL
 #'   allocates tens of gigabytes in one piece. The aggregated per-chunk
 #'   triplets concatenate without renumbering (`.k` carries the global row id).
 #'
+#' @param sink Internal: an open streaming sink (see [write_mps()] with
+#'   `stream = TRUE`). The matrix entries are written to it as each chunk is
+#'   built and `triplets` comes back empty; `rhs` is returned as usual.
+#'
 #' @return A list with `triplets` (`data.table(i, j, coef)`, aggregated), `rhs`
 #'   (`data.table(i, rhs)`), and `row_index` / `col_index` as used.
 #' @export
 build_triplets <- function(model, col_index = NULL, row_index = NULL,
                            equations = NULL,
                            on_duplicate = c("error", "last", "first"),
-                           verbose = FALSE, chunk_rows = 1000000L) {
+                           verbose = FALSE, chunk_rows = 1000000L, sink = NULL) {
   on_duplicate <- match.arg(on_duplicate)
   stopifnot(inherits(model, "multimod") || inherits(model, "mm_model"))
   stopifnot(is.numeric(chunk_rows), length(chunk_rows) == 1, chunk_rows >= 1)
@@ -1598,7 +1602,7 @@ build_triplets <- function(model, col_index = NULL, row_index = NULL,
       sl <- if (n_chunks == 1L) rows else
         rows[(((ck - 1L) * chunk_rows) + 1L):min(ck * chunk_rows, nr)]
       if (!is.null(lowered)) {
-        blk <- .mx_exec_block(lowered, sl, ctx)
+        blk <- .mx_exec_block(lowered, sl, ctx, sink)
         mats[[ck]] <- blk$mat
         csts[[ck]] <- blk$cst
         st <- ctx$native_stats[[nm]]
@@ -1626,6 +1630,11 @@ build_triplets <- function(model, col_index = NULL, row_index = NULL,
         mat <- data.table::data.table(i = integer(), j = integer(),
                                       coef = numeric())
         cst <- data.table::data.table(i = integer(), rhs = numeric())
+      }
+      if (!is.null(sink)) {
+        if (inherits(sink, "mm_scan")) mm_scan_add(sink, mat$i, mat$j, mat$coef) else
+          mm_sink_write(sink, mat$i, mat$j, mat$coef)
+        mat <- mat[0]
       }
       mats[[ck]] <- mat
       csts[[ck]] <- cst
