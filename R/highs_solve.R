@@ -409,11 +409,23 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
   }
   # The decoder maps back by POSITION and by the i* columns; the readable
   # `name` column (present only with index_names = TRUE) is dead weight in
-  # the bundle and the dominant string allocation — drop it. The shallow
-  # column subset avoids as.data.frame()'s deep copy of the whole table.
+  # the bundle and the dominant string allocation — drop it. The rewrap
+  # shares the columns: as.data.frame() and `[` would copy the whole table.
+  # A table coded with a dictionary is written with its labels: the code
+  # columns become factors over the dictionary, which parquet and feather
+  # store dictionary-encoded and CSV as the labels.
   .index_df <- function(x) {
     keep <- setdiff(names(x), "name")
-    data.table::setDF(x[, keep, with = FALSE])
+    df <- data.table::setDT(as.list(x)[keep])
+    codes <- attr(x, "codes")
+    if (.mx_is_codes(codes)) {
+      for (cl in grep("^i[0-9]+$", keep, value = TRUE)) {
+        # the codes are the factor's integer codes; no re-matching
+        data.table::set(df, j = cl, value = structure(df[[cl]], levels = codes$levels,
+                                                     class = "factor"))
+      }
+    }
+    data.table::setDF(df)
   }
   .save_dataframe(.index_df(col_index), col_path, format = format)
   .save_dataframe(.index_df(row_index), row_path, format = format)
@@ -461,8 +473,11 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
   t0 <- Sys.time()
   if (verbose) message(format(t0, "[%H:%M:%S] "), "building matrix (streamed)")
   model <- .mx_materialise_formulas(model, verbose = verbose)
-  col_index <- build_col_index(model, verbose = verbose, names = FALSE)
-  row_index <- build_row_index(model, verbose = verbose, names = FALSE)
+  # both index tables coded with the build's dictionary: the members are
+  # never held as strings, and the build joins the codes as they are
+  col_index <- build_col_index(model, verbose = verbose, names = FALSE, codes = TRUE)
+  row_index <- build_row_index(model, verbose = verbose, names = FALSE,
+                               codes = attr(col_index, "codes"))
   nrow_lp <- nrow(row_index)
   ncol_lp <- nrow(col_index)
   ztol <- as.numeric(getOption("multimod.zero_tol", 1e-12))
@@ -496,13 +511,14 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
     # scan pass: counts and doubleton rows
     if (verbose) message(format(Sys.time(), "[%H:%M:%S] "), "presolve scan pass")
     track <- as.integer(getOption("multimod.presolve_track", 4L))
-    scan <- structure(mm_scan_open(nrow_lp, ncol_lp, track), class = "mm_scan")
+    # only an equality row can be substituted away: the others just count
+    scan <- structure(mm_scan_open(nrow_lp, ncol_lp, track, sense == "==", .mx_threads()),
+                      class = "mm_scan")
     tr <- build(scan)
-    sc <- mm_scan_close(scan)
     rhs <- rhs_of(tr)
-    .report_empty_rows(which(sc$row_counts == 0L), row_index, on_empty_row)
+    .report_empty_rows(which(mm_scan_counts(scan)$row_counts == 0L), row_index, on_empty_row)
     vt <- if ("vtype" %in% names(col_index)) col_index[["vtype"]] else NULL
-    map <- .mx_presolve_map(sc, sense, rhs, col_lo, col_up, vt, tol = ztol, verbose = verbose)
+    map <- .mx_presolve_map(scan, sense, rhs, col_lo, col_up, vt, tol = ztol, verbose = verbose)
     eliminated <- map$eliminated
     # the objective of an eliminated column moves to its reference
     e <- which(map$jred == 0L & obj != 0)

@@ -201,9 +201,41 @@ lp_presolve <- function(lp, steps = "doubletons", max_pass = 50L,
 .mx_presolve_map <- function(scan, sense, rhs, col_lo, col_up, vtype = NULL,
                              max_pass = 50L, tol = 1e-12, verbose = FALSE) {
   ncol <- length(col_lo)
+  int <- .mx_int_cols(vtype, ncol)
+  cand <- sense == "==" & rhs == 0
+  m <- mm_presolve_map(scan, cand, int, as.numeric(col_lo), as.numeric(col_up),
+                       as.integer(max_pass), as.numeric(tol), .mx_threads(), isTRUE(verbose))
+  if (m$crossing > 0) {
+    warning("presolve: ", m$crossing, " column(s) have crossing bounds after ",
+            "substitution; the LP is infeasible.", call. = FALSE)
+  }
+  list(eliminated = data.table::data.table(col = m$col, ref = m$ref, coef = m$coef, pass = m$pass),
+       jred = m$jred, ired = m$ired, ref = m$final_ref, coef = m$final_coef,
+       col_lo = m$col_lo, col_up = m$col_up, nnz = m$nnz)
+}
+
+#' Which columns are integer, from the index table's `vtype`
+#' @keywords internal
+#' @noRd
+.mx_int_cols <- function(vtype, ncol) {
+  if (is.null(vtype)) return(rep(FALSE, ncol))
+  # a handful of distinct values over millions of columns
+  u <- unique(vtype)
+  (tolower(as.character(u)) %in% c("integer", "binary", "int", "bin", "i", "b"))[match(vtype, u)]
+}
+
+#' The substitution composed in R, from a closed scan
+#'
+#' The reference implementation of the rules the native `mm_presolve_map()`
+#' follows, kept for the tests that compare the two. `scan` is the list
+#' `mm_scan_close()` returns.
+#' @keywords internal
+#' @noRd
+.mx_presolve_map_r <- function(scan, sense, rhs, col_lo, col_up, vtype = NULL,
+                               max_pass = 50L, tol = 1e-12, verbose = FALSE) {
+  ncol <- length(col_lo)
   nrow <- length(sense)
-  int <- if (is.null(vtype)) rep(FALSE, ncol) else
-    tolower(as.character(vtype)) %in% c("integer", "binary", "int", "bin", "i", "b")
+  int <- .mx_int_cols(vtype, ncol)
   nnz <- as.numeric(scan$col_counts)
   clo <- col_lo; cup <- col_up
   # the tracked rows' entries; only equality rows with a zero right-hand side

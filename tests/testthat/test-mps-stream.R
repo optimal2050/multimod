@@ -88,3 +88,29 @@ test_that("a streamed file solves to the known optimum", {
   r <- solve_mps(f)
   expect_equal(r$objective, 198000, tolerance = 1e-9)
 })
+
+test_that("a streamed parquet bundle decodes to the same members as a classic one", {
+  skip_if_not_installed("highs")
+  skip_if_not_installed("arrow")
+  model <- example_models$toy
+  dir <- tempfile("mps-")
+  dir.create(dir)
+  a <- file.path(dir, "a.mps")
+  b <- file.path(dir, "b.mps")
+  write_mps(model, a, format = "parquet")
+  write_mps(model, b, format = "parquet", stream = TRUE)
+  # the streamed table stores the members dictionary-encoded
+  cb <- arrow::read_parquet(file.path(dir, "b_col_index.parquet"), mmap = FALSE)
+  expect_true(is.factor(cb$i1))
+  ca <- arrow::read_parquet(file.path(dir, "a_col_index.parquet"), mmap = FALSE)
+  expect_identical(as.character(cb$i1), as.character(ca$i1))
+  # the decoded solution is the same, member for member
+  r <- solve_mps(b)
+  sa <- read_mps_solution(r$sol_file, index_dir = dir, base = "a", format = "parquet")
+  sb <- read_mps_solution(r$sol_file, index_dir = dir, base = "b", format = "parquet")
+  da <- file.path(dir, "out_a"); db <- file.path(dir, "out_b")
+  write_solution(sa, da, format = "csv"); write_solution(sb, db, format = "csv")
+  for (f in list.files(da)) {
+    expect_equal(read.csv(file.path(db, f)), read.csv(file.path(da, f)), info = f)
+  }
+})

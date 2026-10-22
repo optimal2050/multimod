@@ -103,24 +103,27 @@
 #' decoder maps back by position and by the `i*` columns).
 #' @keywords internal
 #' @noRd
-.symbol_block <- function(tuples, symbol, names = TRUE) {
+.symbol_block <- function(tuples, symbol, names = TRUE, codes = NULL) {
   # Shallow rewrap: share the mapping's column vectors instead of deep-copying
   # the table. Every later change either replaces a column pointer (`set()` on
   # a converted or new column) or renames THIS table's own names vector, so
   # the model's stored mapping is never mutated.
   dims <- data.table::copy(names(tuples))
   blk <- data.table::setDT(as.list(tuples))
-  # Canonicalise index members to character. Sets like `year` arrive as integer
-  # from some sources and character from others; joining an integer key against
-  # a character one is an error, and padding short symbols with NA_character_
-  # would coerce inconsistently anyway.
-  for (cl in dims) {
-    if (!is.character(blk[[cl]])) {
-      data.table::set(blk, j = cl, value = as.character(blk[[cl]]))
-    }
-  }
   if (names) {
     nm <- do.call(paste, c(list(symbol), as.list(blk), list(sep = ".")))
+  }
+  # Canonicalise index members: integer codes of the build's dictionary when
+  # one is given, character labels otherwise. Sets like `year` arrive as
+  # integer from some sources and character from others; joining an integer
+  # key against a character one is an error, and padding short symbols with
+  # NA_character_ would coerce inconsistently anyway.
+  for (cl in dims) {
+    if (!is.null(codes)) {
+      data.table::set(blk, j = cl, value = .mx_code_in(codes, blk[[cl]]))
+    } else if (!is.character(blk[[cl]])) {
+      data.table::set(blk, j = cl, value = as.character(blk[[cl]]))
+    }
   }
   data.table::setnames(blk, dims, paste0("i", seq_along(dims)))
   data.table::set(blk, j = "symbol", value = symbol)
@@ -132,7 +135,7 @@
 #' Stack per-symbol blocks into one index table
 #' @keywords internal
 #' @noRd
-.stack_index <- function(pieces, key_col, extra_cols) {
+.stack_index <- function(pieces, key_col, extra_cols, codes = NULL) {
   pieces <- pieces[!vapply(pieces, is.null, TRUE)]
   if (!length(pieces)) {
     stop("No symbols contributed any ", key_col,
@@ -144,8 +147,9 @@
   out <- data.table::rbindlist(pieces, use.names = TRUE, fill = TRUE)
   idx <- paste0("i", seq_len(max(arity, 1L)))
   for (cl in setdiff(idx, names(out))) {
-    data.table::set(out, j = cl, value = NA_character_)
+    data.table::set(out, j = cl, value = if (is.null(codes)) NA_character_ else NA_integer_)
   }
+  if (!is.null(codes)) data.table::setattr(out, "codes", codes)
   data.table::set(out, j = key_col, value = seq_len(nrow(out)))
   # `name` is absent when the blocks were built with names = FALSE
   data.table::setcolorder(out, intersect(
@@ -164,6 +168,12 @@
 #' @param names Logical; add the readable `name` column (`symbol.i1.i2...`).
 #'   `FALSE` skips it — on large models the names dominate index-building
 #'   memory, and the MPS/solution path never reads them.
+#' @param codes `FALSE` (the default) stores the index members as character
+#'   labels. `TRUE` stores them as integer codes of a dictionary made for this
+#'   table and attached to it as the `codes` attribute; passing that attribute
+#'   to another call codes the other table with the same dictionary. The
+#'   streaming writer builds both tables this way, so that the members are
+#'   never held as strings; the files it writes carry the labels.
 #'
 #' @return A `data.table` with columns `j` (1-based column index), `symbol`,
 #'   `name` (`symbol.i1.i2...`, when `names = TRUE`), `i1`..`iN` (index
@@ -174,10 +184,11 @@
 #' @examples
 #' cols <- build_col_index(example_models$toy)
 #' table(cols$symbol)
-build_col_index <- function(model, verbose = FALSE, names = TRUE) {
+build_col_index <- function(model, verbose = FALSE, names = TRUE, codes = FALSE) {
   stopifnot(inherits(model, "multimod") || inherits(model, "mm_model"))
   vars <- model$variables
   if (!length(vars)) stop("Model has no variables.")
+  codes <- .index_codes(codes)
 
   dim_names <- list()
   pieces <- vector("list", length(vars))
@@ -198,7 +209,7 @@ build_col_index <- function(model, verbose = FALSE, names = TRUE) {
           next
         }
         real <- attr(tp, "mm_dim_names")
-        blk <- .symbol_block(tp, nm, names = names)
+        blk <- .symbol_block(tp, nm, names = names, codes = codes)
         data.table::setattr(blk, "dim_names", real)
       }
     } else {
@@ -207,7 +218,7 @@ build_col_index <- function(model, verbose = FALSE, names = TRUE) {
         if (verbose) message(sprintf("  %-30s %8d  (empty map %s)", nm, 0L, dn))
         next
       }
-      blk <- .symbol_block(tp, nm, names = names)
+      blk <- .symbol_block(tp, nm, names = names, codes = codes)
     }
     dim_names[[nm]] <- attr(blk, "dim_names")
 
@@ -228,9 +239,20 @@ build_col_index <- function(model, verbose = FALSE, names = TRUE) {
     if (verbose) message(sprintf("  %-30s %8d", nm, nrow(blk)))
   }
 
-  out <- .stack_index(pieces, "j", c("lo", "up", "vtype"))
+  out <- .stack_index(pieces, "j", c("lo", "up", "vtype"), codes)
   data.table::setattr(out, "dim_names", dim_names)
   out
+}
+
+#' The dictionary argument of the index builders, resolved
+#' @keywords internal
+#' @noRd
+.index_codes <- function(codes) {
+  if (isFALSE(codes) || is.null(codes)) return(NULL)
+  if (isTRUE(codes)) return(.mx_new_codes())
+  if (.mx_is_codes(codes)) return(codes)
+  stop("codes must be FALSE, TRUE or the `codes` attribute of an index table.",
+       call. = FALSE)
 }
 
 #' Build the LP row index
@@ -248,6 +270,9 @@ build_col_index <- function(model, verbose = FALSE, names = TRUE) {
 #'
 #' @param names Logical; add the readable `name` column — see
 #'   [build_col_index()].
+#' @param codes Store the index members as integer codes of a dictionary —
+#'   see [build_col_index()]. The row index of an LP is coded with the
+#'   dictionary of its column index.
 #'
 #' @return A `data.table` with columns `i` (1-based row index), `symbol`,
 #'   `name` (when `names = TRUE`), `i1`..`iN`, `sense` (`"=="`, `"<="`,
@@ -256,10 +281,11 @@ build_col_index <- function(model, verbose = FALSE, names = TRUE) {
 #' @examples
 #' rows <- build_row_index(example_models$toy)
 #' table(rows$symbol)
-build_row_index <- function(model, verbose = FALSE, names = TRUE) {
+build_row_index <- function(model, verbose = FALSE, names = TRUE, codes = FALSE) {
   stopifnot(inherits(model, "multimod") || inherits(model, "mm_model"))
   eqs <- model$equations
   if (!length(eqs)) stop("Model has no equations.")
+  codes <- .index_codes(codes)
 
   dim_names <- list()
   pieces <- vector("list", length(eqs))
@@ -278,13 +304,13 @@ build_row_index <- function(model, verbose = FALSE, names = TRUE) {
           next
         }
         real <- attr(tp, "mm_dim_names")
-        blk <- .symbol_block(tp, nm, names = names)
+        blk <- .symbol_block(tp, nm, names = names, codes = codes)
         data.table::setattr(blk, "dim_names", real)
       }
       # A domain that is an expression rather than a mapping filters the index
       # set (MathProg's `{r in R: test}`); keep the rows that satisfy it.
       if (!is.null(e$domain)) {
-        keep <- .mx_filter_rows(e, blk, model)
+        keep <- .mx_filter_rows(e, blk, model, codes)
         n_in <- nrow(blk)
         blk <- blk[keep]
         data.table::setattr(blk, "dim_names", attr(tp, "mm_dim_names"))
@@ -300,7 +326,7 @@ build_row_index <- function(model, verbose = FALSE, names = TRUE) {
         if (verbose) message(sprintf("  %-30s %8d  (empty map %s)", nm, 0L, dn))
         next
       }
-      blk <- .symbol_block(tp, nm, names = names)
+      blk <- .symbol_block(tp, nm, names = names, codes = codes)
     }
     dim_names[[nm]] <- attr(blk, "dim_names")
 
@@ -314,7 +340,7 @@ build_row_index <- function(model, verbose = FALSE, names = TRUE) {
     if (verbose) message(sprintf("  %-30s %8d  %s", nm, nrow(blk), rel))
   }
 
-  out <- .stack_index(pieces, "i", c("sense", "rhs"))
+  out <- .stack_index(pieces, "i", c("sense", "rhs"), codes)
   data.table::setattr(out, "dim_names", dim_names)
   out
 }

@@ -28,8 +28,16 @@ mm_sink_map <- function(sink, ired, jred, ref, coef, tol) {
   invisible(.Call(`_multimod_mm_sink_map`, sink, ired, jred, ref, coef, tol))
 }
 
-mm_scan_open <- function(nrow, ncol, track) {
-  .Call(`_multimod_mm_scan_open`, nrow, ncol, track)
+mm_scan_open <- function(nrow, ncol, track, candidate, threads) {
+  .Call(`_multimod_mm_scan_open`, nrow, ncol, track, candidate, threads)
+}
+
+mm_scan_counts <- function(scan) {
+  .Call(`_multimod_mm_scan_counts`, scan)
+}
+
+mm_presolve_map <- function(scan, candidate, is_int, col_lo, col_up, max_pass, tol, threads, verbose) {
+  .Call(`_multimod_mm_presolve_map`, scan, candidate, is_int, col_lo, col_up, max_pass, tol, threads, verbose)
 }
 
 mm_scan_add <- function(scan, i, j, x) {

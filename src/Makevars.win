@@ -1,3 +1,3 @@
 CXX_STD = CXX17
 PKG_CPPFLAGS = -I./core/include
-OBJECTS = core/src/block.o core/src/mps.o core/src/scan.o cpp11.o mm_core.o
+OBJECTS = core/src/block.o core/src/mps.o core/src/scan.o core/src/presolve.o cpp11.o mm_core.o

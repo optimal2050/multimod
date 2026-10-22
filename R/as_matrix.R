@@ -89,19 +89,30 @@
 #' @return Integer codes; `NA` for `NA` labels.
 #' @keywords internal
 #' @noRd
-.mx_code <- function(ctx, x) {
+.mx_code <- function(ctx, x) .mx_code_in(ctx$codes, x)
+
+#' Code member labels into a given dictionary
+#' @param codes A dictionary from `.mx_new_codes()`.
+#' @keywords internal
+#' @noRd
+.mx_code_in <- function(codes, x) {
   if (is.integer(x) && isTRUE(attr(x, "mx_coded"))) return(x)
   if (!is.character(x)) x <- as.character(x)
-  lv <- ctx$codes$levels
+  lv <- codes$levels
   out <- data.table::chmatch(x, lv)
   miss <- is.na(out) & !is.na(x)
   if (any(miss)) {
     lv <- c(lv, unique(x[miss]))
-    ctx$codes$levels <- lv
+    codes$levels <- lv
     out[miss] <- data.table::chmatch(x[miss], lv)
   }
   out
 }
+
+#' Is this a build dictionary?
+#' @keywords internal
+#' @noRd
+.mx_is_codes <- function(x) is.environment(x) && is.character(x$levels)
 
 #' Labels behind codes
 #' @keywords internal
@@ -121,6 +132,28 @@
   }
   if (!identical(cols, new)) data.table::setnames(out, cols, new)
   out
+}
+
+#' The index columns of an index table as codes of the build's dictionary
+#'
+#' An index table built with the build's own dictionary (`codes =` on
+#' [build_col_index()]) is taken as it is, columns shared; one with labels is
+#' coded into the dictionary. A table coded with another dictionary is
+#' refused: its codes would not mean the same members.
+#' @param keep The non-index columns to carry.
+#' @keywords internal
+#' @noRd
+.mx_index_coded <- function(ctx, x, keep) {
+  idx <- grep("^i[0-9]+$", names(x), value = TRUE)
+  own <- attr(x, "codes")
+  if (.mx_is_codes(own)) {
+    if (!identical(own, ctx$codes)) {
+      stop("as_matrix: the index table is coded with a different dictionary ",
+           "than this build's.", call. = FALSE)
+    }
+    return(data.table::setDT(as.list(x)[c(keep, idx)]))
+  }
+  .mx_code_cols(ctx, data.table::setDT(as.list(x)[c(keep, idx)]), idx)
 }
 
 # --- operation trace (development aid) --------------------------------------
@@ -588,9 +621,7 @@
 .mx_col_coded <- function(ctx) {
   cc <- ctx$col_coded
   if (!is.null(cc)) return(cc)
-  ci <- ctx$col_index
-  idx <- grep("^i[0-9]+$", names(ci), value = TRUE)
-  cc <- .mx_code_cols(ctx, ci[, c("j", "symbol", idx), with = FALSE], idx)
+  cc <- .mx_index_coded(ctx, ctx$col_index, c("j", "symbol"))
   ctx$col_coded <- cc
   cc
 }
@@ -1275,10 +1306,12 @@
 #' @param eq The equation, carrying `$domain` and `$dims_index_aliases`.
 #' @param blk Index block with `i1..iN` columns and a `dim_names` attribute.
 #' @param model The model, for parameter and set data.
+#' @param codes The dictionary `blk` is coded with, or `NULL` when it holds
+#'   labels.
 #' @return Logical vector over the rows of `blk`.
 #' @keywords internal
 #' @noRd
-.mx_filter_rows <- function(eq, blk, model) {
+.mx_filter_rows <- function(eq, blk, model, codes = NULL) {
   dims <- .mx_eq_dims(eq)
   if (!length(dims)) {
     dims <- attr(blk, "dim_names")
@@ -1293,14 +1326,16 @@
 
   ctx <- new.env(parent = emptyenv())
   ctx$model <- model
-  ctx$codes <- .mx_new_codes()
+  ctx$codes <- if (.mx_is_codes(codes)) codes else .mx_new_codes()
   ctx$param_cache <- list()
   ctx$map_cache <- list()
   ctx$set_cache <- list()
 
   env <- data.table::data.table(.k = seq_len(nrow(blk)))
   idx <- paste0("i", seq_along(dims))
-  for (n in seq_along(dims)) env[[dims[n]]] <- .mx_code(ctx, blk[[idx[n]]])
+  for (n in seq_along(dims)) {
+    env[[dims[n]]] <- if (.mx_is_codes(codes)) blk[[idx[n]]] else .mx_code(ctx, blk[[idx[n]]])
+  }
 
   keep <- .mx_condition(eq$domain, env, ctx)
   if (!is.logical(keep) || length(keep) != nrow(blk)) {
@@ -1554,7 +1589,14 @@ build_triplets <- function(model, col_index = NULL, row_index = NULL,
 
   ctx <- new.env(parent = emptyenv())
   ctx$model <- model
-  ctx$codes <- .mx_new_codes()
+  # index tables built with a dictionary (`codes =`) bring it; both must
+  # share it, as the column codes are joined against the row codes
+  own <- attr(row_index, "codes")
+  if (.mx_is_codes(own) && !identical(attr(col_index, "codes"), own)) {
+    stop("build_triplets: the row and column index tables are coded with ",
+         "different dictionaries.", call. = FALSE)
+  }
+  ctx$codes <- if (.mx_is_codes(own)) own else .mx_new_codes()
   ctx$col_index <- col_index
   ctx$col_cache <- list()
   ctx$param_cache <- list()
@@ -1567,8 +1609,7 @@ build_triplets <- function(model, col_index = NULL, row_index = NULL,
   # The row index with its members coded, and each equation's row range: the
   # rows of one equation are contiguous, so a range replaces a scan of the
   # symbol column per equation.
-  idx <- grep("^i[0-9]+$", names(row_index), value = TRUE)
-  rows_coded <- .mx_code_cols(ctx, row_index[, c("i", "symbol", idx), with = FALSE], idx)
+  rows_coded <- .mx_index_coded(ctx, row_index, c("i", "symbol"))
   ranges <- rows_coded[, list(from = .I[1L], to = .I[.N]), by = "symbol"]
 
   todo <- if (is.null(equations)) ranges$symbol else

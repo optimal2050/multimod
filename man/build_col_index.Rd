@@ -4,7 +4,7 @@
 \alias{build_col_index}
 \title{Build the LP column index}
 \usage{
-build_col_index(model, verbose = FALSE, names = TRUE)
+build_col_index(model, verbose = FALSE, names = TRUE, codes = FALSE)
 }
 \arguments{
 \item{model}{A multimod model with data attached.}
@@ -14,6 +14,13 @@ build_col_index(model, verbose = FALSE, names = TRUE)
 \item{names}{Logical; add the readable \code{name} column (\code{symbol.i1.i2...}).
 \code{FALSE} skips it — on large models the names dominate index-building
 memory, and the MPS/solution path never reads them.}
+
+\item{codes}{\code{FALSE} (the default) stores the index members as character
+labels. \code{TRUE} stores them as integer codes of a dictionary made for this
+table and attached to it as the \code{codes} attribute; passing that attribute
+to another call codes the other table with the same dictionary. The
+streaming writer builds both tables this way, so that the members are
+never held as strings; the files it writes carry the labels.}
 }
 \value{
 A \code{data.table} with columns \code{j} (1-based column index), \code{symbol},

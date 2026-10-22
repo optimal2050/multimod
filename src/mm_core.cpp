@@ -12,6 +12,7 @@
 #include <cpp11/strings.hpp>
 
 #include <cstring>
+#include <functional>
 #include <map>
 #include <memory>
 #include <string>
@@ -19,6 +20,7 @@
 
 #include "multimod/block.h"
 #include "multimod/mps.h"
+#include "multimod/presolve.h"
 #include "multimod/scan.h"
 
 using namespace cpp11;
@@ -296,10 +298,64 @@ void mm_sink_map(sexp sink, integers ired, integers jred, integers ref, doubles 
 
 // --- scan pass of the presolve --------------------------------------------
 
+std::vector<uint8_t> mask_of(sexp x) {
+  std::vector<uint8_t> out;
+  if (x == R_NilValue) return out;
+  if (TYPEOF(x) != LGLSXP) stop("a logical vector was expected");
+  R_xlen_t n = Rf_xlength(x);
+  const int* l = LOGICAL(x);
+  out.resize(static_cast<size_t>(n));
+  for (R_xlen_t k = 0; k < n; ++k) out[k] = (l[k] == TRUE) ? 1 : 0;
+  return out;
+}
+
+// `candidate`: a logical over the rows, the rows whose entries are tracked
+// (NULL: all); the others only count
 [[cpp11::register]]
-sexp mm_scan_open(double nrow, double ncol, int track) {
-  external_pointer<multimod::Scan> ptr(new multimod::Scan(static_cast<int64_t>(nrow), static_cast<int64_t>(ncol), track));
-  return sexp(static_cast<SEXP>(ptr));
+sexp mm_scan_open(double nrow, double ncol, int track, sexp candidate, int threads) {
+  try {
+    external_pointer<multimod::Scan> ptr(new multimod::Scan(static_cast<int64_t>(nrow), static_cast<int64_t>(ncol), track,
+                                                            mask_of(candidate), threads));
+    return sexp(static_cast<SEXP>(ptr));
+  } catch (const std::exception& e) {
+    stop("scan: %s", e.what());
+  }
+}
+
+[[cpp11::register]]
+list mm_scan_counts(sexp scan) {
+  external_pointer<multimod::Scan> p(scan);
+  return writable::list({
+    "row_counts"_nm = int_vector(std::vector<int>(p->row_counts().begin(), p->row_counts().end())),
+    "col_counts"_nm = int_vector(std::vector<int>(p->col_counts().begin(), p->col_counts().end()))});
+}
+
+// The doubleton substitution composed from the scan; the tracked entries are
+// consumed. `candidate`: the rows that may be dropped; `is_int`: the columns
+// that may not be eliminated (each a logical, or NULL).
+[[cpp11::register]]
+list mm_presolve_map(sexp scan, sexp candidate, sexp is_int, doubles col_lo, doubles col_up, int max_pass,
+                     double tol, int threads, bool verbose) {
+  external_pointer<multimod::Scan> p(scan);
+  if (col_lo.size() != p->ncol() || col_up.size() != p->ncol()) stop("column bounds do not match the column count");
+  multimod::PresolveMap m;
+  std::function<void(const std::string&)> log;
+  if (verbose) log = [](const std::string& s) { message(s.c_str()); };
+  try {
+    m = multimod::presolve_map(*p, mask_of(candidate), mask_of(is_int), REAL(col_lo), REAL(col_up), max_pass, tol, threads, log);
+  } catch (const std::exception& e) {
+    stop("presolve: %s", e.what());
+  }
+  std::vector<double> nnz(m.nnz.begin(), m.nnz.end());
+  return writable::list({
+    "col"_nm = int_vector(m.el_col), "ref"_nm = int_vector(m.el_ref), "coef"_nm = dbl_vector(m.el_coef),
+    "pass"_nm = int_vector(m.el_pass),
+    "jred"_nm = int_vector(m.jred), "ired"_nm = int_vector(m.ired),
+    "final_ref"_nm = int_vector(m.ref), "final_coef"_nm = dbl_vector(m.coef),
+    "col_lo"_nm = dbl_vector(m.col_lo), "col_up"_nm = dbl_vector(m.col_up),
+    "nnz"_nm = dbl_vector(nnz),
+    "crossing"_nm = as_sexp(static_cast<double>(m.crossing)),
+    "passes"_nm = as_sexp(m.passes)});
 }
 
 [[cpp11::register]]
