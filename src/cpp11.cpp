@@ -57,10 +57,24 @@ extern "C" SEXP _multimod_mm_sink_map(SEXP sink, SEXP ired, SEXP jred, SEXP ref,
   END_CPP11
 }
 // mm_core.cpp
-sexp mm_scan_open(double nrow, double ncol, int track);
-extern "C" SEXP _multimod_mm_scan_open(SEXP nrow, SEXP ncol, SEXP track) {
+sexp mm_scan_open(double nrow, double ncol, int track, sexp candidate, int threads);
+extern "C" SEXP _multimod_mm_scan_open(SEXP nrow, SEXP ncol, SEXP track, SEXP candidate, SEXP threads) {
   BEGIN_CPP11
-    return cpp11::as_sexp(mm_scan_open(cpp11::as_cpp<cpp11::decay_t<double>>(nrow), cpp11::as_cpp<cpp11::decay_t<double>>(ncol), cpp11::as_cpp<cpp11::decay_t<int>>(track)));
+    return cpp11::as_sexp(mm_scan_open(cpp11::as_cpp<cpp11::decay_t<double>>(nrow), cpp11::as_cpp<cpp11::decay_t<double>>(ncol), cpp11::as_cpp<cpp11::decay_t<int>>(track), cpp11::as_cpp<cpp11::decay_t<sexp>>(candidate), cpp11::as_cpp<cpp11::decay_t<int>>(threads)));
+  END_CPP11
+}
+// mm_core.cpp
+list mm_scan_counts(sexp scan);
+extern "C" SEXP _multimod_mm_scan_counts(SEXP scan) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(mm_scan_counts(cpp11::as_cpp<cpp11::decay_t<sexp>>(scan)));
+  END_CPP11
+}
+// mm_core.cpp
+list mm_presolve_map(sexp scan, sexp candidate, sexp is_int, doubles col_lo, doubles col_up, int max_pass, double tol, int threads, bool verbose);
+extern "C" SEXP _multimod_mm_presolve_map(SEXP scan, SEXP candidate, SEXP is_int, SEXP col_lo, SEXP col_up, SEXP max_pass, SEXP tol, SEXP threads, SEXP verbose) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(mm_presolve_map(cpp11::as_cpp<cpp11::decay_t<sexp>>(scan), cpp11::as_cpp<cpp11::decay_t<sexp>>(candidate), cpp11::as_cpp<cpp11::decay_t<sexp>>(is_int), cpp11::as_cpp<cpp11::decay_t<doubles>>(col_lo), cpp11::as_cpp<cpp11::decay_t<doubles>>(col_up), cpp11::as_cpp<cpp11::decay_t<int>>(max_pass), cpp11::as_cpp<cpp11::decay_t<double>>(tol), cpp11::as_cpp<cpp11::decay_t<int>>(threads), cpp11::as_cpp<cpp11::decay_t<bool>>(verbose)));
   END_CPP11
 }
 // mm_core.cpp
@@ -116,9 +130,11 @@ static const R_CallMethodDef CallEntries[] = {
     {"_multimod_mm_block_run_sink", (DL_FUNC) &_multimod_mm_block_run_sink, 4},
     {"_multimod_mm_exec_block",     (DL_FUNC) &_multimod_mm_exec_block,     2},
     {"_multimod_mm_mps_write",      (DL_FUNC) &_multimod_mm_mps_write,      8},
+    {"_multimod_mm_presolve_map",   (DL_FUNC) &_multimod_mm_presolve_map,   9},
     {"_multimod_mm_scan_add",       (DL_FUNC) &_multimod_mm_scan_add,       4},
     {"_multimod_mm_scan_close",     (DL_FUNC) &_multimod_mm_scan_close,     1},
-    {"_multimod_mm_scan_open",      (DL_FUNC) &_multimod_mm_scan_open,      3},
+    {"_multimod_mm_scan_counts",    (DL_FUNC) &_multimod_mm_scan_counts,    1},
+    {"_multimod_mm_scan_open",      (DL_FUNC) &_multimod_mm_scan_open,      5},
     {"_multimod_mm_sink_close",     (DL_FUNC) &_multimod_mm_sink_close,     1},
     {"_multimod_mm_sink_map",       (DL_FUNC) &_multimod_mm_sink_map,       6},
     {"_multimod_mm_sink_open",      (DL_FUNC) &_multimod_mm_sink_open,      4},

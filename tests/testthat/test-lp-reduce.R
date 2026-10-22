@@ -63,3 +63,35 @@ test_that("the fixture solves to the same optimum through an eliminated MPS", {
   write_mps(m, file.path(d, "model.mps"), lp = lp, presolve = FALSE)
   expect_false(file.exists(file.path(d, "model_eliminated.parquet")))
 })
+
+test_that("the native presolve map equals the R reference", {
+  ns <- asNamespace("multimod")
+  model <- example_models$energyRt$multimod
+  lp <- model_to_lp(model)
+  A <- lp$A
+  ri <- A@i + 1L
+  cj <- rep.int(seq_len(ncol(A)), diff(A@p))
+  sense <- lp$row_index$sense
+  rhs <- lp$row_index$rhs
+  ref <- as.data.frame(lp_presolve(lp)$eliminated)
+  ord <- function(d) d[order(d$pass, d$col), c("col", "ref", "coef", "pass")]
+  for (track in c(2L, 4L, 8L)) {
+    scan <- ns$mm_scan_open(nrow(A), ncol(A), track, sense == "==", 2L)
+    ns$mm_scan_add(scan, ri, cj, A@x)
+    closed <- ns$mm_scan_close(scan)
+    mr <- ns$.mx_presolve_map_r(closed, sense, rhs, lp$col_lo, lp$col_up, lp$col_index$vtype)
+    mn <- ns$.mx_presolve_map(scan, sense, rhs, lp$col_lo, lp$col_up, lp$col_index$vtype)
+    expect_equal(unname(as.list(ord(as.data.frame(mn$eliminated)))),
+                 unname(as.list(ord(as.data.frame(mr$eliminated)))), info = track)
+    expect_identical(mn$jred, mr$jred)
+    expect_identical(mn$ired, mr$ired)
+    expect_identical(mn$ref, mr$ref)
+    expect_equal(mn$coef, mr$coef)
+    expect_equal(mn$col_lo, mr$col_lo)
+    expect_equal(mn$col_up, mr$col_up)
+    expect_equal(mn$nnz, mr$nnz)
+    if (track >= 4L) {
+      expect_equal(unname(as.list(ord(as.data.frame(mn$eliminated)))), unname(as.list(ord(ref))))
+    }
+  }
+})

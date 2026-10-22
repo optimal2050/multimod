@@ -21,6 +21,14 @@
 * `specs/goldens/matrix/` holds the LP of the two example models as plain
   tables; `tests/testthat/test-matrix-goldens.R` checks the assembly against
   them coefficient for coefficient.
+* `build_col_index()` and `build_row_index()` gain `codes =`: the index
+  members are stored as integer codes of one dictionary instead of labels.
+  The streaming writer builds its tables this way, so no member is held as
+  a string during the build; the parquet and feather index tables it writes
+  store the members dictionary-encoded, and `read_mps_solution()` reads
+  both encodings.
+* The substitution of the streamed presolve is composed in compiled code,
+  from the equality rows only.
 
 # multimod 0.5.0
 

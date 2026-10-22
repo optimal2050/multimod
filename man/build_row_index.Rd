@@ -4,7 +4,7 @@
 \alias{build_row_index}
 \title{Build the LP row index}
 \usage{
-build_row_index(model, verbose = FALSE, names = TRUE)
+build_row_index(model, verbose = FALSE, names = TRUE, codes = FALSE)
 }
 \arguments{
 \item{model}{A multimod model with data attached.}
@@ -13,6 +13,10 @@ build_row_index(model, verbose = FALSE, names = TRUE)
 
 \item{names}{Logical; add the readable \code{name} column — see
 \code{\link[=build_col_index]{build_col_index()}}.}
+
+\item{codes}{Store the index members as integer codes of a dictionary —
+see \code{\link[=build_col_index]{build_col_index()}}. The row index of an LP is coded with the
+dictionary of its column index.}
 }
 \value{
 A \code{data.table} with columns \code{i} (1-based row index), \code{symbol},

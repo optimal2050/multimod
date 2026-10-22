@@ -489,6 +489,9 @@ read_mps_solution <- function(sol, index_dir = NULL, col_index = NULL,
   idx <- paste0("i", seq_along(dn))
   out <- as.data.frame(blk[, idx, with = FALSE])
   names(out) <- dn
+  # a bundle written by the streaming writer stores the members
+  # dictionary-encoded, which arrive as factors
+  for (cl in dn) if (is.factor(out[[cl]])) out[[cl]] <- as.character(out[[cl]])
   # energyRt stores year-like indices as integers
   for (cl in intersect(c("year", "yearp", "yeare", "yearn", "year2"), dn)) {
     out[[cl]] <- suppressWarnings(as.integer(out[[cl]]))

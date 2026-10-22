@@ -122,3 +122,31 @@ test_that("dim_names records the original set names per symbol", {
   expect_equal(dn$vTechAct, c("tech", "region", "year", "timeslice"))
   expect_false(any(grepl("^i[0-9]+$", unlist(dn))))
 })
+
+test_that("index tables coded with a dictionary hold the same members", {
+  model <- example_models$toy
+  ca <- build_col_index(model, names = FALSE)
+  cb <- build_col_index(model, names = FALSE, codes = TRUE)
+  codes <- attr(cb, "codes")
+  expect_true(is.environment(codes))
+  expect_true(is.integer(cb$i1))
+  idx <- grep("^i[0-9]+$", names(ca), value = TRUE)
+  for (cl in idx) expect_identical(codes$levels[cb[[cl]]], ca[[cl]])
+  expect_identical(attr(cb, "dim_names"), attr(ca, "dim_names"))
+  # the row index shares the dictionary
+  rb <- build_row_index(model, names = FALSE, codes = codes)
+  ra <- build_row_index(model, names = FALSE)
+  expect_identical(attr(rb, "codes"), codes)
+  for (cl in grep("^i[0-9]+$", names(ra), value = TRUE)) {
+    expect_identical(codes$levels[rb[[cl]]], ra[[cl]])
+  }
+  # and the build takes the coded tables as they are
+  ta <- build_triplets(model, col_index = ca, row_index = ra)
+  tb <- build_triplets(model, col_index = cb, row_index = rb)
+  expect_equal(tb$triplets, ta$triplets)
+  expect_equal(tb$rhs, ta$rhs)
+  # tables coded with different dictionaries are refused
+  cc <- build_col_index(model, names = FALSE, codes = TRUE)
+  expect_error(build_triplets(model, col_index = cc, row_index = rb), "different dictionaries")
+  expect_error(build_col_index(model, codes = "yes"), "codes must be")
+})
