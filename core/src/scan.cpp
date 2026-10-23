@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <utility>
 
+#include "multimod/mps.h"
 #include "multimod/parallel.h"
 
 namespace multimod {
@@ -18,6 +19,7 @@ Scan::Scan(int64_t nrow, int64_t ncol, int track, std::vector<uint8_t> candidate
 
 void Scan::add(const int* i, const int* j, const double* x, int64_t n) {
   if (n == 0) return;
+  if (sink_) sink_->write(i, j, x, n);
   int32_t rmin = i[0], rmax = i[0];
   for (int64_t k = 0; k < n; ++k) {
     if (i[k] < 1 || i[k] > nrow_ || j[k] < 1 || j[k] > ncol_) throw std::runtime_error("entry outside the LP dimensions");

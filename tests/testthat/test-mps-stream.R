@@ -114,3 +114,13 @@ test_that("a streamed parquet bundle decodes to the same members as a classic on
     expect_equal(read.csv(file.path(db, f)), read.csv(file.path(da, f)), info = f)
   }
 })
+
+test_that("a sliced expansion gives the same file", {
+  skip_if_not_installed("highs")
+  # a slice budget of a few rows forces every expansion through the slicer
+  withr::with_options(list(multimod.slice_rows = 50), {
+    expect_same_mps(example_models$toy, "native")
+    expect_same_mps(example_models$energyRt$multimod, "native")
+    expect_same_presolve(example_models$energyRt$multimod, "native")
+  })
+})

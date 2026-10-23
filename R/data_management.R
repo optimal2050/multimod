@@ -135,9 +135,10 @@ load_arrow_data <- function(path, format = NULL, collect = TRUE) {
   
   if (collect) {
     df <- dplyr::collect(ds)
-    # Convert to data.table if available
+    # the collected tibble is this call's own: converted in place, as
+    # as.data.table() would copy every column
     if (requireNamespace("data.table", quietly = TRUE)) {
-      return(data.table::as.data.table(df))
+      return(data.table::setDT(df)[])
     }
     return(as.data.frame(df))
   }

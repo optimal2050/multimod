@@ -455,10 +455,11 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
 #' tables. The file is equivalent to the one [write_mps()] writes through
 #' HiGHS: positional names, every column present.
 #'
-#' With `presolve = TRUE` the blocks are built twice: a scan pass collects
-#' the entry counts and the doubleton rows, `.mx_presolve_map()` composes
-#' the substitution, and the emit pass writes the reduced LP with the
-#' substitution applied as the entries pass through the sink. The index
+#' With `presolve = TRUE` the entries are spooled raw while a scan collects
+#' the entry counts and the doubleton rows; `.mx_presolve_map()` composes
+#' the substitution, and the sink applies it to the spooled entries bucket
+#' by bucket before the file is written (one build, one pass over the
+#' spool). The index
 #' tables gain `jred` / `ired` and the `eliminated` table is written, as
 #' after [lp_presolve()], so [read_mps_solution()] restores the full
 #' solution unchanged. Rows the substitution empties are kept (as `0 = 0`
@@ -511,17 +512,24 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
   map <- NULL
 
   if (isTRUE(presolve)) {
-    # scan pass: counts and doubleton rows
-    if (verbose) message(format(Sys.time(), "[%H:%M:%S] "), "presolve scan pass")
+    # one build: the entries are spooled raw to the sink while the scan
+    # collects the counts and the doubleton rows; the substitution is then
+    # applied to the spooled entries bucket by bucket
+    if (verbose) message(format(Sys.time(), "[%H:%M:%S] "), "building matrix (streamed), scanning for the presolve")
     track <- as.integer(getOption("multimod.presolve_track", 4L))
+    sink <- mm_sink_open(parts, as.integer(buckets), nrow_lp, ncol_lp)
     # only an equality row can be substituted away: the others just count
     scan <- structure(mm_scan_open(nrow_lp, ncol_lp, track, sense == "==", .mx_threads()),
                       class = "mm_scan")
+    mm_scan_attach(scan, sink)
     tr <- build(scan)
+    mm_sink_close(sink)
     rhs <- rhs_of(tr)
     .report_empty_rows(which(mm_scan_counts(scan)$row_counts == 0L), row_index, on_empty_row)
     vt <- if ("vtype" %in% names(col_index)) col_index[["vtype"]] else NULL
+    if (verbose) message(format(Sys.time(), "[%H:%M:%S] "), "composing the substitution")
     map <- .mx_presolve_map(scan, sense, rhs, col_lo, col_up, vt, tol = ztol, verbose = verbose)
+    rm(scan)
     eliminated <- map$eliminated
     # the objective of an eliminated column moves to its reference
     e <- which(map$jred == 0L & obj != 0)
@@ -531,11 +539,8 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
     }
     keep_r <- map$ired > 0L
     keep_c <- map$jred > 0L
-    sink <- mm_sink_open(parts, as.integer(buckets), sum(keep_r), sum(keep_c))
-    mm_sink_map(sink, map$ired, map$jred, map$ref, map$coef, ztol)
-    if (verbose) message(format(Sys.time(), "[%H:%M:%S] "), "presolve emit pass")
-    tr <- build(sink)
-    closed <- mm_sink_close(sink)
+    if (verbose) message(format(Sys.time(), "[%H:%M:%S] "), "applying the substitution to the spooled entries")
+    mm_sink_remap(sink, map$ired, map$jred, map$ref, map$coef, ztol)
     row_lo <- ifelse(sense == "<=", -Inf, rhs)[keep_r]
     row_up <- ifelse(sense == ">=",  Inf, rhs)[keep_r]
     col_lo <- map$col_lo[keep_c]

@@ -136,18 +136,15 @@ void Executor::gate(Env& env, const Step& s) {
   keep_mask(env, keep);
 }
 
-void Executor::expand(Env& env, const Step& s) {
+std::vector<int64_t> Executor::expand_count(const Env& env, const Step& s) {
   const Table& t = table(s.table);
   int64_t n = env.n;
-  // pass 1: matches per row; pass 2: fill at prefix-sum offsets
   std::vector<int64_t> count(n + 1, 0);
-  const KeyIndex* ix = nullptr;
-  KeyCols pc;
   if (s.on.empty()) {
     for (int64_t r = 0; r < n; ++r) count[r + 1] = t.n;
   } else {
-    ix = &index(s.table, table_side(s.on));
-    pc = probe_cols(env, s.on);
+    const KeyIndex* ix = &index(s.table, table_side(s.on));
+    KeyCols pc = probe_cols(env, s.on);
     parallel_for(n, threads_, [&](int64_t b, int64_t e, int) {
       for (int64_t r = b; r < e; ++r) {
         int64_t c = 0;
@@ -157,6 +154,33 @@ void Executor::expand(Env& env, const Step& s) {
     });
   }
   for (int64_t r = 0; r < n; ++r) count[r + 1] += count[r];
+  return count;
+}
+
+Env Executor::slice(const Env& env, int64_t b, int64_t e) {
+  Env out;
+  out.n = e - b;
+  out.k.assign(env.k.begin() + b, env.k.begin() + e);
+  out.coef.assign(env.coef.begin() + b, env.coef.begin() + e);
+  out.names = env.names;
+  out.cols.reserve(env.cols.size());
+  for (const auto& col : env.cols) out.cols.emplace_back(col.begin() + b, col.begin() + e);
+  out.has_j = env.has_j;
+  if (env.has_j) out.j.assign(env.j.begin() + b, env.j.begin() + e);
+  if (!env.origin.empty()) out.origin.assign(env.origin.begin() + b, env.origin.begin() + e);
+  return out;
+}
+
+// fill at the prefix-sum offsets of `count`
+void Executor::expand_fill(Env& env, const Step& s, const std::vector<int64_t>& count) {
+  const Table& t = table(s.table);
+  int64_t n = env.n;
+  const KeyIndex* ix = nullptr;
+  KeyCols pc;
+  if (!s.on.empty()) {
+    ix = &index(s.table, table_side(s.on));
+    pc = probe_cols(env, s.on);
+  }
   int64_t m = count[n];
   std::vector<int64_t> src(m), hit(m);
   parallel_for(n, threads_, [&](int64_t b, int64_t e, int) {
@@ -357,7 +381,7 @@ void Executor::var(Env& env, const Step& s) {
 void Executor::step(Env& env, const Step& s) {
   switch (s.op) {
     case StepOp::Gate:   { Timer t(stats_, "gate");   gate(env, s); break; }
-    case StepOp::Expand: { Timer t(stats_, "expand"); expand(env, s); break; }
+    case StepOp::Expand: { Timer t(stats_, "expand"); expand_fill(env, s, expand_count(env, s)); break; }
     case StepOp::Filter: { Timer t(stats_, "filter"); filter(env, s); break; }
     case StepOp::Factor: { Timer t(stats_, "factor"); factor(env, s); break; }
     case StepOp::Var:    { Timer t(stats_, "var");    var(env, s); break; }
@@ -454,15 +478,59 @@ Triplets Executor::run(const Plan& plan) {
   return out;
 }
 
+void Executor::deliver(const Env& env, Acc& acc) const {
+  if (env.n == 0) return;
+  if (env.has_j) {
+    acc.ai.insert(acc.ai.end(), env.k.begin(), env.k.end());
+    acc.aj.insert(acc.aj.end(), env.j.begin(), env.j.end());
+    acc.ac.insert(acc.ac.end(), env.coef.begin(), env.coef.end());
+  } else {
+    acc.ci.insert(acc.ci.end(), env.k.begin(), env.k.end());
+    acc.cc.insert(acc.cc.end(), env.coef.begin(), env.coef.end());
+  }
+}
+
+// The steps of a term from `from` on. An expansion whose output would exceed
+// the slice budget is run in slices of its input rows, each slice carried
+// through the remaining steps on its own: a term that sums over a large set
+// never holds the whole expansion.
+void Executor::run_steps(Env& env, const Term& term, size_t from, Acc& acc) {
+  for (size_t si = from; si < term.steps.size(); ++si) {
+    if (env.n == 0) return;
+    const Step& s = term.steps[si];
+    if (s.op != StepOp::Expand) { step(env, s); continue; }
+    std::vector<int64_t> count;
+    { Timer t(stats_, "expand"); count = expand_count(env, s); }
+    int64_t m = count[env.n];
+    if (m <= slice_rows_ || env.n <= 1) {
+      Timer t(stats_, "expand");
+      expand_fill(env, s, count);
+      continue;
+    }
+    int64_t b = 0;
+    while (b < env.n) {
+      // the longest run of rows within the budget, at least one row
+      int64_t e = b + 1;
+      while (e < env.n && count[e + 1] - count[b] <= slice_rows_) ++e;
+      Env sub = slice(env, b, e);
+      std::vector<int64_t> subcount(count.begin() + b, count.begin() + e + 1);
+      for (auto& c : subcount) c -= count[b];
+      { Timer t(stats_, "expand"); expand_fill(sub, s, subcount); }
+      run_steps(sub, term, si + 1, acc);
+      b = e;
+    }
+    return;
+  }
+  deliver(env, acc);
+}
+
 Triplets Executor::run_terms(const Plan& plan) {
   const Table& rows = table(plan.rows);
   auto kc = rows.icols.find("k");
   if (kc == rows.icols.end()) throw std::runtime_error("row table has no k column");
   if (rows.n == 0) return Triplets();
 
-  std::vector<int> ai, aj; std::vector<double> ac;   // matrix entries
-  std::vector<int> ci; std::vector<double> cc;       // constant terms
-
+  Acc acc;
   for (const Term& term : plan.terms) {
     Env env;
     env.n = rows.n;
@@ -474,29 +542,17 @@ Triplets Executor::run_terms(const Plan& plan) {
       env.names.push_back(name);
       env.cols.emplace_back(ic->second, ic->second + rows.n);
     }
-    for (const Step& s : term.steps) {
-      if (env.n == 0) break;
-      step(env, s);
-    }
-    if (env.n == 0) continue;
-    if (env.has_j) {
-      ai.insert(ai.end(), env.k.begin(), env.k.end());
-      aj.insert(aj.end(), env.j.begin(), env.j.end());
-      ac.insert(ac.end(), env.coef.begin(), env.coef.end());
-    } else {
-      ci.insert(ci.end(), env.k.begin(), env.k.end());
-      cc.insert(cc.end(), env.coef.begin(), env.coef.end());
-    }
+    run_steps(env, term, 0, acc);
   }
 
   Triplets out;
   Timer tg(stats_, "groupsum");
   // sum per (row, column); exact zeros are dropped, as the R engine does
-  if (!ai.empty()) group_sum(ai, aj, ac, out.i, out.j, out.coef, true);
-  if (!ci.empty()) {
+  if (!acc.ai.empty()) group_sum(acc.ai, acc.aj, acc.ac, out.i, out.j, out.coef, true);
+  if (!acc.ci.empty()) {
     std::vector<int> none, nb;
     std::vector<double> sums;
-    group_sum(ci, none, cc, out.rhs_i, nb, sums, false);
+    group_sum(acc.ci, none, acc.cc, out.rhs_i, nb, sums, false);
     out.rhs.resize(sums.size());
     for (size_t k = 0; k < sums.size(); ++k) out.rhs[k] = -sums[k];   // constants move to the right-hand side
   }

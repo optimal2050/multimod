@@ -6,10 +6,10 @@
 #include <R_ext/Visibility.h>
 
 // mm_core.cpp
-sexp mm_block_open(list tables, int threads);
-extern "C" SEXP _multimod_mm_block_open(SEXP tables, SEXP threads) {
+sexp mm_block_open(list tables, int threads, double slice_rows);
+extern "C" SEXP _multimod_mm_block_open(SEXP tables, SEXP threads, SEXP slice_rows) {
   BEGIN_CPP11
-    return cpp11::as_sexp(mm_block_open(cpp11::as_cpp<cpp11::decay_t<list>>(tables), cpp11::as_cpp<cpp11::decay_t<int>>(threads)));
+    return cpp11::as_sexp(mm_block_open(cpp11::as_cpp<cpp11::decay_t<list>>(tables), cpp11::as_cpp<cpp11::decay_t<int>>(threads), cpp11::as_cpp<cpp11::decay_t<double>>(slice_rows)));
   END_CPP11
 }
 // mm_core.cpp
@@ -61,6 +61,22 @@ sexp mm_scan_open(double nrow, double ncol, int track, sexp candidate, int threa
 extern "C" SEXP _multimod_mm_scan_open(SEXP nrow, SEXP ncol, SEXP track, SEXP candidate, SEXP threads) {
   BEGIN_CPP11
     return cpp11::as_sexp(mm_scan_open(cpp11::as_cpp<cpp11::decay_t<double>>(nrow), cpp11::as_cpp<cpp11::decay_t<double>>(ncol), cpp11::as_cpp<cpp11::decay_t<int>>(track), cpp11::as_cpp<cpp11::decay_t<sexp>>(candidate), cpp11::as_cpp<cpp11::decay_t<int>>(threads)));
+  END_CPP11
+}
+// mm_core.cpp
+void mm_scan_attach(sexp scan, sexp sink);
+extern "C" SEXP _multimod_mm_scan_attach(SEXP scan, SEXP sink) {
+  BEGIN_CPP11
+    mm_scan_attach(cpp11::as_cpp<cpp11::decay_t<sexp>>(scan), cpp11::as_cpp<cpp11::decay_t<sexp>>(sink));
+    return R_NilValue;
+  END_CPP11
+}
+// mm_core.cpp
+void mm_sink_remap(sexp sink, integers ired, integers jred, integers ref, doubles coef, double tol);
+extern "C" SEXP _multimod_mm_sink_remap(SEXP sink, SEXP ired, SEXP jred, SEXP ref, SEXP coef, SEXP tol) {
+  BEGIN_CPP11
+    mm_sink_remap(cpp11::as_cpp<cpp11::decay_t<sexp>>(sink), cpp11::as_cpp<cpp11::decay_t<integers>>(ired), cpp11::as_cpp<cpp11::decay_t<integers>>(jred), cpp11::as_cpp<cpp11::decay_t<integers>>(ref), cpp11::as_cpp<cpp11::decay_t<doubles>>(coef), cpp11::as_cpp<cpp11::decay_t<double>>(tol));
+    return R_NilValue;
   END_CPP11
 }
 // mm_core.cpp
@@ -124,7 +140,7 @@ extern "C" SEXP _multimod_mm_exec_block(SEXP plan, SEXP tables) {
 extern "C" {
 static const R_CallMethodDef CallEntries[] = {
     {"_multimod_mm_block_add",      (DL_FUNC) &_multimod_mm_block_add,      2},
-    {"_multimod_mm_block_open",     (DL_FUNC) &_multimod_mm_block_open,     2},
+    {"_multimod_mm_block_open",     (DL_FUNC) &_multimod_mm_block_open,     3},
     {"_multimod_mm_block_run",      (DL_FUNC) &_multimod_mm_block_run,      3},
     {"_multimod_mm_block_run_scan", (DL_FUNC) &_multimod_mm_block_run_scan, 4},
     {"_multimod_mm_block_run_sink", (DL_FUNC) &_multimod_mm_block_run_sink, 4},
@@ -132,12 +148,14 @@ static const R_CallMethodDef CallEntries[] = {
     {"_multimod_mm_mps_write",      (DL_FUNC) &_multimod_mm_mps_write,      8},
     {"_multimod_mm_presolve_map",   (DL_FUNC) &_multimod_mm_presolve_map,   9},
     {"_multimod_mm_scan_add",       (DL_FUNC) &_multimod_mm_scan_add,       4},
+    {"_multimod_mm_scan_attach",    (DL_FUNC) &_multimod_mm_scan_attach,    2},
     {"_multimod_mm_scan_close",     (DL_FUNC) &_multimod_mm_scan_close,     1},
     {"_multimod_mm_scan_counts",    (DL_FUNC) &_multimod_mm_scan_counts,    1},
     {"_multimod_mm_scan_open",      (DL_FUNC) &_multimod_mm_scan_open,      5},
     {"_multimod_mm_sink_close",     (DL_FUNC) &_multimod_mm_sink_close,     1},
     {"_multimod_mm_sink_map",       (DL_FUNC) &_multimod_mm_sink_map,       6},
     {"_multimod_mm_sink_open",      (DL_FUNC) &_multimod_mm_sink_open,      4},
+    {"_multimod_mm_sink_remap",     (DL_FUNC) &_multimod_mm_sink_remap,     6},
     {"_multimod_mm_sink_write",     (DL_FUNC) &_multimod_mm_sink_write,     4},
     {NULL, NULL, 0}
 };
