@@ -719,7 +719,8 @@
 #' @noRd
 .mx_materialise_formulas <- function(model, verbose = FALSE) {
   has_fml <- function(p) !is.null(p$formula)
-  no_data <- function(p) is.null(p$data) || NROW(p$data) == 0L
+  # a table on disk or behind a reference counts as data
+  no_data <- function(p) (is.null(p$data) || NROW(p$data) == 0L) && !.claims_external_data(p)
   pend <- vapply(model$parameters, function(p) has_fml(p) && no_data(p),
                  logical(1))
   if (!any(pend)) return(model)

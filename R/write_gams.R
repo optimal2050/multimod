@@ -12,6 +12,7 @@
 #' gms <- write_gams(example_models$toy)
 #' cat(head(gms, 25), sep = "\n")
 write_gams <- function(model, file = NULL, format_expr = TRUE, ...) {
+  if (inherits(model, "mm_model") || inherits(model, "multimod")) model <- load_model_data(model)
   UseMethod("write_gams")
 }
 

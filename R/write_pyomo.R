@@ -62,6 +62,7 @@ write_pyomo_internal <- function(model, model_dir = NULL, solver_dir = "pyomo",
                                  data_mode = c("external", "embedded"),
                                  split = FALSE, export_vars = FALSE, export_data = FALSE,
                                  export_mps = FALSE, ...) {
+  if (inherits(model, "mm_model") || inherits(model, "multimod")) model <- load_model_data(model)
   data_mode <- match.arg(data_mode)
 
   if (!is.null(list(...)$file)) {

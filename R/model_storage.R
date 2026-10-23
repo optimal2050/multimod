@@ -547,8 +547,15 @@ update_parameter <- function(model, name, data, folded_data = NULL, auto_save = 
     stop("Parameter data must be a data.frame")
   }
 
-  # Update data
+  # Update data; the table given replaces any reference the symbol carried
+  .data_memo_drop(.data_memo_key(model$parameters[[name]],
+                                 get_data_path(model$parameters[[name]], model$base_path)))
+  .data_memo_drop(paste0("path:", file.path(model$storage$path %||% "", "parameters", name, "data")))
   model$parameters[[name]]$data <- data
+  model$parameters[[name]]$misc$ref <- NULL
+  model$parameters[[name]]$misc$path <- NULL
+  model$parameters[[name]]$misc$onDisk <- NULL
+  model$parameters[[name]]$misc$inMemory <- TRUE
 
   # Update folded_data if provided
   if (!is.null(folded_data)) {
@@ -637,8 +644,15 @@ update_mapping <- function(model, name, data, auto_save = FALSE) {
     stop("Mapping data must be a data.frame")
   }
 
-  # Update data
+  # Update data; the table given replaces any reference the symbol carried
+  .data_memo_drop(.data_memo_key(model$mappings[[name]],
+                                 get_data_path(model$mappings[[name]], model$base_path)))
+  .data_memo_drop(paste0("path:", file.path(model$storage$path %||% "", "mappings", name, "data")))
   model$mappings[[name]]$data <- data
+  model$mappings[[name]]$misc$ref <- NULL
+  model$mappings[[name]]$misc$path <- NULL
+  model$mappings[[name]]$misc$onDisk <- NULL
+  model$mappings[[name]]$misc$inMemory <- TRUE
 
   # Mark as modified
   if (is.null(model$storage$modified)) {
@@ -806,22 +820,21 @@ get_data <- function(model, name, type = c("parameter", "mapping", "set", "varia
       return(param$data)
     }
 
-    # Try to load from disk
+    # From the workspace, through the session memo (`model` is a local copy:
+    # a table assigned into it would not outlive this call)
     if (!is.null(model$storage$path)) {
       param_file <- file.path(model$storage$path, "parameters", name, "data")
-      data <- .load_dataframe(param_file, model$storage$format)
-      if (!is.null(data)) {
-        # Cache in model
-        model$parameters[[name]]$data <- data
-        return(data)
-      }
+      data <- .data_memo_read(paste0("path:", param_file),
+                              function() .load_dataframe(param_file, model$storage$format))
+      if (!is.null(data)) return(data)
     }
 
     # The per-object reference, which the model$storage path above does not
     # know about. get_lazy_data() resolves misc$path/onDisk properly.
     if (.claims_external_data(param)) {
-      d <- tryCatch(get_lazy_data(param, base_path = model$base_path),
-                    error = function(e) NULL)
+      key <- .data_memo_key(param, get_data_path(param, model$base_path))
+      d <- .data_memo_read(key, function() tryCatch(get_lazy_data(param, base_path = model$base_path),
+                                                    error = function(e) NULL))
       if (!is.null(d) && NROW(d) > 0) return(d)
       if (.recorded_empty(param)) return(.empty_like(param))
       .no_data_for(param, name, "Parameter")
@@ -844,21 +857,18 @@ get_data <- function(model, name, type = c("parameter", "mapping", "set", "varia
       return(mapping$data)
     }
 
-    # Try to load from disk
     if (!is.null(model$storage$path)) {
       mapping_file <- file.path(model$storage$path, "mappings", name, "data")
-      data <- .load_dataframe(mapping_file, model$storage$format)
-      if (!is.null(data)) {
-        # Cache in model
-        model$mappings[[name]]$data <- data
-        return(data)
-      }
+      data <- .data_memo_read(paste0("path:", mapping_file),
+                              function() .load_dataframe(mapping_file, model$storage$format))
+      if (!is.null(data)) return(data)
     }
 
     # Same per-object reference the parameter branch honours above.
     if (.claims_external_data(mapping)) {
-      d <- tryCatch(get_lazy_data(mapping, base_path = model$base_path),
-                    error = function(e) NULL)
+      key <- .data_memo_key(mapping, get_data_path(mapping, model$base_path))
+      d <- .data_memo_read(key, function() tryCatch(get_lazy_data(mapping, base_path = model$base_path),
+                                                    error = function(e) NULL))
       if (!is.null(d) && NROW(d) > 0) return(d)
       if (.recorded_empty(mapping)) return(.empty_like(mapping))
       .no_data_for(mapping, name, "Mapping")

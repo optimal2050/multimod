@@ -19,6 +19,7 @@
 #' @return A list with `sets` and `params`, each a named list of data frames.
 #' @keywords internal
 gams_gdx_tables <- function(model, use_folded = FALSE) {
+  model <- load_model_data(model)
   empty_frame <- function(cols, value = FALSE) {
     if (length(cols) == 0 && !value) return(NULL)
     df <- as.data.frame(
