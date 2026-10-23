@@ -45,6 +45,13 @@
   gain nothing. The index tables of `write_mps()` use the same level;
   `read_mps_solution()` reads a bundle of another format when that is what
   the directory holds.
+* The index tables of a streamed bundle store the members as integer codes
+  of one dictionary, written beside them as `<base>_codes.csv` (CSV bundles
+  keep the labels); they read back in a fraction of the time. The decode
+  holds no copy of the index tables, takes each variable's rows from the
+  runs of the symbol column instead of a scan per variable, and parses the
+  solution's values in C. `read_cuopt_solution()` reads a gzipped file
+  through a block-wise decompression instead of through lines in R.
 
 # multimod 0.5.0
 

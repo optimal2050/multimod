@@ -412,19 +412,26 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
   # `name` column (present only with index_names = TRUE) is dead weight in
   # the bundle and the dominant string allocation — drop it. The rewrap
   # shares the columns: as.data.frame() and `[` would copy the whole table.
-  # A table coded with a dictionary is written with its labels: the code
-  # columns become factors over the dictionary, which parquet and feather
-  # store dictionary-encoded and CSV as the labels.
+  # A table coded with a dictionary keeps its integer codes in the Arrow
+  # formats, with the dictionary in `<base>_codes.csv`: plain integers read
+  # back in a fraction of the time dictionary columns take. CSV gets the
+  # labels.
+  codes <- attr(col_index, "codes")
   .index_df <- function(x) {
     keep <- setdiff(names(x), "name")
     df <- data.table::setDT(as.list(x)[keep])
-    codes <- attr(x, "codes")
-    if (.mx_is_codes(codes)) {
+    if (.mx_is_codes(codes) && format == "csv") {
       for (cl in grep("^i[0-9]+$", keep, value = TRUE)) {
         # the codes are the factor's integer codes; no re-matching
         data.table::set(df, j = cl, value = structure(df[[cl]], levels = codes$levels,
                                                      class = "factor"))
       }
+    }
+    # the symbol and type columns take a few values over millions of rows:
+    # dictionary-encoded they read back as factors in seconds, where strings
+    # would be materialised one by one
+    for (cl in intersect(c("symbol", "vtype", "sense"), keep)) {
+      if (is.character(df[[cl]])) data.table::set(df, j = cl, value = factor(df[[cl]]))
     }
     data.table::setDF(df)
   }
@@ -443,6 +450,9 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
   # dim_names rides along inside parquet/feather but is lost by CSV, so write it
   # explicitly too - otherwise a csv bundle cannot be mapped back to symbols
   .write_dim_names(attr(col_index, "dim_names"), index_dir, base)
+  codes_path <- file.path(index_dir, paste0(base, "_codes.csv"))
+  unlink(codes_path)
+  if (.mx_is_codes(codes) && format != "csv") .write_codes(codes$levels, codes_path)
   list(col_index = col_path, row_index = row_path)
 }
 

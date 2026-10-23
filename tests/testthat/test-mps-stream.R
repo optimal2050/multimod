@@ -99,11 +99,12 @@ test_that("a streamed parquet bundle decodes to the same members as a classic on
   b <- file.path(dir, "b.mps")
   write_mps(model, a, format = "parquet")
   write_mps(model, b, format = "parquet", stream = TRUE)
-  # the streamed table stores the members dictionary-encoded
+  # the streamed table stores the members as integer codes, the dictionary beside it
   cb <- arrow::read_parquet(file.path(dir, "b_col_index.parquet"), mmap = FALSE)
-  expect_true(is.factor(cb$i1))
+  expect_true(is.integer(cb$i1))
+  lv <- read.csv(file.path(dir, "b_codes.csv"), stringsAsFactors = FALSE)$label
   ca <- arrow::read_parquet(file.path(dir, "a_col_index.parquet"), mmap = FALSE)
-  expect_identical(as.character(cb$i1), as.character(ca$i1))
+  expect_identical(lv[cb$i1], as.character(ca$i1))
   # the decoded solution is the same, member for member
   r <- solve_mps(b)
   sa <- read_mps_solution(r$sol_file, index_dir = dir, base = "a", format = "parquet")

@@ -192,16 +192,17 @@ read_cuopt_solution <- function(file, require_optimal = TRUE) {
   }
 
   if (n_hdr >= length(top)) stop("cuOpt solution file has no values: ", file)
-  body <- if (grepl("\\.gz$", file, ignore.case = TRUE)) {
-    data.table::fread(text = readLines(file, warn = FALSE)[-seq_len(n_hdr)],
-                      header = FALSE, fill = TRUE, sep = " ",
-                      colClasses = "character", blank.lines.skip = TRUE,
-                      showProgress = FALSE)
-  } else {
-    data.table::fread(file, skip = n_hdr, header = FALSE, fill = TRUE,
-                      sep = " ", colClasses = "character", blank.lines.skip = TRUE,
-                      showProgress = FALSE)
+  plain <- file
+  if (grepl("\\.gz$", file, ignore.case = TRUE)) {
+    # decompressed to a temporary file in blocks, then read like the plain
+    # one: lines through R would hold the whole text twice
+    plain <- tempfile(fileext = ".sol")
+    on.exit(unlink(plain), add = TRUE)
+    .gunzip_to(file, plain)
   }
+  body <- data.table::fread(plain, skip = n_hdr, header = FALSE, fill = TRUE,
+                            sep = " ", colClasses = list(character = 1L),
+                            blank.lines.skip = TRUE, showProgress = FALSE)
   body <- body[!startsWith(body[[1]], "#")]
   if (!nrow(body)) stop("cuOpt solution file has no values: ", file)
   nm <- body[[1]]
@@ -219,6 +220,22 @@ read_cuopt_solution <- function(file, require_optimal = TRUE) {
        columns = data.table::data.table(name = nm, primal = vl,
                                         dual = NA_real_),
        rows = NULL)
+}
+
+#' Decompress a gzip file to another file, in blocks
+#' @keywords internal
+#' @noRd
+.gunzip_to <- function(from, to, block = 64L * 2^20) {
+  inp <- gzfile(from, "rb")
+  on.exit(close(inp), add = TRUE)
+  out <- file(to, "wb")
+  on.exit(close(out), add = TRUE)
+  repeat {
+    chunk <- readBin(inp, "raw", n = block)
+    if (!length(chunk)) break
+    writeBin(chunk, out)
+  }
+  invisible(to)
 }
 
 #' One `# <key>: <value>` header line
@@ -316,13 +333,23 @@ read_mps_solution <- function(sol, index_dir = NULL, col_index = NULL,
     row_index <- idx$row_index
   }
 
-  ci <- data.table::as.data.table(col_index)
-  ri <- data.table::as.data.table(row_index)
+  # The tables are rewrapped with their columns shared: a copy of each
+  # would be the largest allocation of the decode. The index columns are
+  # carried through, as the per-variable reshape needs i1..iN to rebuild
+  # dimension-named results; the value columns are added to the rewraps.
   elim <- attr(col_index, "eliminated")
-
-  # Carry the index columns through: the per-variable reshape needs i1..iN to
-  # rebuild dimension-named results.
-  primal <- data.table::copy(ci)
+  # as.list() keeps a table's own attributes, and Arrow would serialise
+  # every attribute of a table it writes: the rewraps carry none
+  bare <- function(x) {
+    out <- data.table::setDT(as.list(x))
+    for (a in setdiff(names(attributes(out)), c("names", "row.names", "class", ".internal.selfref"))) {
+      data.table::setattr(out, a, NULL)
+    }
+    out
+  }
+  ci <- bare(col_index)
+  ri <- bare(row_index)
+  primal <- bare(ci)
   if ("jred" %in% names(ci)) {
     # a reduced LP (lp_presolve()): the solution covers the kept
     # columns; the eliminated ones are rebuilt from their references
@@ -335,9 +362,6 @@ read_mps_solution <- function(sol, index_dir = NULL, col_index = NULL,
       .place_by_position(sol$columns$name, sol$columns$dual, n_red, "c",
                          "column"), jred, elim, fill_eliminated = FALSE))
     data.table::set(primal, j = "jred", value = NULL)
-    # the table is large and would be copied into every file written from
-    # `primal` (Arrow keeps R attributes as metadata)
-    data.table::setattr(primal, "eliminated", NULL)
   } else {
     data.table::set(primal, j = "value",
                     value = .place_by_position(sol$columns$name,
@@ -348,7 +372,7 @@ read_mps_solution <- function(sol, index_dir = NULL, col_index = NULL,
                                                sol$columns$dual,
                                                nrow(ci), "c", "column"))
   }
-  dual <- data.table::copy(ri)
+  dual <- bare(ri)
   ired <- if ("ired" %in% names(ri)) ri$ired else NULL
   if (!is.null(ired)) data.table::set(dual, j = "ired", value = NULL)
   n_rows <- if (is.null(ired)) nrow(ri) else sum(!is.na(ired))
@@ -370,6 +394,8 @@ read_mps_solution <- function(sol, index_dir = NULL, col_index = NULL,
     data.table::set(dual, j = "marginal", value = rmg)
   }
   data.table::setattr(primal, "dim_names", attr(col_index, "dim_names"))
+  data.table::setattr(primal, "codes", attr(col_index, "codes"))
+  data.table::setattr(dual, "codes", attr(row_index, "codes"))
 
   list(objective = sol$objective, status = sol$status,
        primal = primal, dual = dual,
@@ -464,6 +490,25 @@ read_mps_solution <- function(sol, index_dir = NULL, col_index = NULL,
   if (is.null(ci) || is.null(ri)) {
     stop("Index tables not found for base '", base, "' in ", index_dir)
   }
+  ci <- data.table::setDT(ci)
+  ri <- data.table::setDT(ri)
+  # the symbol, type and sense columns are stored dictionary-encoded and
+  # come back as factors: as character they are what the index tables hold
+  # in memory (cheap: the levels are the only strings)
+  for (cl in intersect(c("symbol", "vtype"), names(ci))) {
+    if (is.factor(ci[[cl]])) data.table::set(ci, j = cl, value = as.character(ci[[cl]]))
+  }
+  for (cl in intersect(c("symbol", "sense"), names(ri))) {
+    if (is.factor(ri[[cl]])) data.table::set(ri, j = cl, value = as.character(ri[[cl]]))
+  }
+  # a bundle of the streaming writer holds the members as integer codes,
+  # with the dictionary beside it; the codes are carried through the
+  # decode and turned into labels per variable
+  lv <- .read_codes(index_dir, base)
+  if (!is.null(lv)) {
+    data.table::setattr(ci, "codes", lv)
+    data.table::setattr(ri, "codes", lv)
+  }
   dn <- .read_dim_names(index_dir, base)
   if (!is.null(dn)) data.table::setattr(ci, "dim_names", dn)
   el_path <- file.path(index_dir, paste0(base, "_eliminated"))
@@ -486,11 +531,12 @@ read_mps_solution <- function(sol, index_dir = NULL, col_index = NULL,
 #' produce identically-shaped results.
 #' @keywords internal
 #' @noRd
-.solution_by_variable <- function(tbl, sym, dim_names, nonzero_only = FALSE) {
+.solution_by_variable <- function(tbl, sym, dim_names, nonzero_only = FALSE, rows = NULL) {
   # Compute the mask outside `[`: data.table evaluates the i-expression in the
   # table's scope, so a bare argument sharing a column's name (`symbol`) would
-  # resolve to the column and match every row.
-  keep <- which(tbl[["symbol"]] == sym)
+  # resolve to the column and match every row. `rows` (from .symbol_rows())
+  # spares the scan of the whole table per variable.
+  keep <- if (is.null(rows)) which(tbl[["symbol"]] == sym) else rows
   blk <- tbl[keep]
   if (nonzero_only) blk <- blk[which(blk[["value"]] != 0)]
   if (!nrow(blk)) return(NULL)
@@ -501,15 +547,46 @@ read_mps_solution <- function(sol, index_dir = NULL, col_index = NULL,
   idx <- paste0("i", seq_along(dn))
   out <- as.data.frame(blk[, idx, with = FALSE])
   names(out) <- dn
-  # a bundle written by the streaming writer stores the members
-  # dictionary-encoded, which arrive as factors
-  for (cl in dn) if (is.factor(out[[cl]])) out[[cl]] <- as.character(out[[cl]])
+  # a bundle of the streaming writer carries the members as codes of the
+  # dictionary in the `codes` attribute (or as factors, from a CSV bundle)
+  lv <- attr(tbl, "codes")
+  for (cl in dn) {
+    if (is.factor(out[[cl]])) out[[cl]] <- as.character(out[[cl]])
+    else if (!is.null(lv) && is.integer(out[[cl]])) out[[cl]] <- lv[out[[cl]]]
+  }
   # energyRt stores year-like indices as integers
   for (cl in intersect(c("year", "yearp", "yeare", "yearn", "year2"), dn)) {
     out[[cl]] <- suppressWarnings(as.integer(out[[cl]]))
   }
   out$value <- as.numeric(blk$value)
   out
+}
+
+#' The rows of each symbol, from the runs of the symbol column
+#'
+#' A symbol's rows are contiguous in an index table built per symbol, so
+#' one pass over the runs gives every symbol's rows without a scan of the
+#' table per symbol; a symbol in several runs gets them concatenated.
+#' @return A named list of integer row vectors, in order of first appearance.
+#' @keywords internal
+#' @noRd
+.symbol_rows <- function(symbol) {
+  n <- length(symbol)
+  if (!n) return(list())
+  # a factor's runs are found on its codes, without materialising labels
+  if (is.factor(symbol)) {
+    r <- rle(as.integer(symbol))
+    r$values <- levels(symbol)[r$values]
+  } else {
+    r <- rle(as.character(symbol))
+  }
+  ends <- cumsum(r$lengths)
+  starts <- ends - r$lengths + 1L
+  runs <- split(seq_along(r$values), factor(r$values, levels = unique(r$values)))
+  lapply(runs, function(k) {
+    if (length(k) == 1L) seq.int(starts[k], ends[k]) else
+      unlist(lapply(k, function(i) seq.int(starts[i], ends[i])), use.names = FALSE)
+  })
 }
 
 #' Write a solution as one table per variable
@@ -558,14 +635,15 @@ write_solution <- function(solution, dir,
   }
   dir.create(dir, recursive = TRUE, showWarnings = FALSE)
 
-  syms <- unique(primal$symbol)
+  rows_of <- .symbol_rows(primal$symbol)
+  syms <- names(rows_of)
   if (!is.null(variables)) syms <- intersect(syms, variables)
 
   written <- character()
   kept <- character()
   for (nm in syms) {
     df <- .solution_by_variable(primal, nm, dim_names,
-                                nonzero_only = nonzero_only)
+                                nonzero_only = nonzero_only, rows = rows_of[[nm]])
     if (is.null(df)) next                      # all zero: omitted
     p <- switch(
       format,
@@ -639,17 +717,20 @@ write_energyrt_output <- function(solution, dir,
 #' @noRd
 .write_raw_data_set <- function(primal, dim_names, dir) {
   members <- list()
+  lv <- attr(primal, "codes")
+  rows_of <- .symbol_rows(primal[["symbol"]])
   for (sym in names(dim_names)) {
     dn <- dim_names[[sym]]
     if (is.null(dn) || !length(dn)) next
-    rows <- which(primal[["symbol"]] == sym)
-    if (!length(rows)) next
+    rows <- rows_of[[sym]]
+    if (is.null(rows) || !length(rows)) next
     for (k in seq_along(dn)) {
       col <- paste0("i", k)
       if (!col %in% names(primal)) next
       v <- unique(primal[[col]][rows])
       v <- v[!is.na(v)]
       if (!length(v)) next
+      if (!is.null(lv) && is.integer(v)) v <- lv[v]
       members[[dn[k]]] <- unique(c(members[[dn[k]]], as.character(v)))
     }
   }
@@ -710,6 +791,23 @@ write_energyrt_output <- function(solution, dir,
   f <- file.path(dir, paste0(base, "_dim_names.csv"))
   utils::write.csv(rows, f, row.names = FALSE)
   invisible(f)
+}
+
+#' The member dictionary of a coded bundle: one label per code, in order
+#' @keywords internal
+#' @noRd
+.write_codes <- function(levels, path) {
+  utils::write.csv(data.frame(code = seq_along(levels), label = levels, stringsAsFactors = FALSE),
+                   path, row.names = FALSE)
+  invisible(path)
+}
+
+.read_codes <- function(dir, base) {
+  f <- file.path(dir, paste0(base, "_codes.csv"))
+  if (!file.exists(f)) return(NULL)
+  d <- utils::read.csv(f, stringsAsFactors = FALSE, colClasses = c("integer", "character"))
+  if (!nrow(d) || !identical(d$code, seq_len(nrow(d)))) stop("The member dictionary ", f, " is not in code order.")
+  d$label
 }
 
 #' Read the dim-name sidecar back into a named list

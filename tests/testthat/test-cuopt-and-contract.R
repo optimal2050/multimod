@@ -175,3 +175,13 @@ test_that("a non-optimal solution is not logged as solved", {
   expect_true(any(grepl('"solution status",0', lg, fixed = TRUE)))
   expect_false(any(grepl('"solution status",1', lg, fixed = TRUE)))
 })
+
+test_that("read_cuopt_solution reads a gzipped file through a block-wise decompression", {
+  f <- tempfile(fileext = ".sol")
+  fake_cuopt(f, c(0, 1.5, 42), objective = 36880.2354212843493)
+  gz <- paste0(f, ".gz")
+  con <- gzfile(gz, "wb"); writeLines(readLines(f), con); close(con)
+  a <- read_cuopt_solution(f)
+  b <- read_cuopt_solution(gz)
+  expect_equal(b, a)
+})
