@@ -8,6 +8,14 @@ mm_block_add <- function(ex, tables) {
   .Call(`_multimod_mm_block_add`, ex, tables)
 }
 
+mm_block_cache <- function(ex) {
+  .Call(`_multimod_mm_block_cache`, ex)
+}
+
+mm_block_trim <- function(ex, bytes) {
+  invisible(.Call(`_multimod_mm_block_trim`, ex, bytes))
+}
+
 mm_block_run <- function(ex, plan, rows) {
   .Call(`_multimod_mm_block_run`, ex, plan, rows)
 }
@@ -36,16 +44,24 @@ mm_scan_attach <- function(scan, sink) {
   invisible(.Call(`_multimod_mm_scan_attach`, scan, sink))
 }
 
-mm_sink_remap <- function(sink, ired, jred, ref, coef, tol, col_nnz) {
-  invisible(.Call(`_multimod_mm_sink_remap`, sink, ired, jred, ref, coef, tol, col_nnz))
+mm_presolve_map <- function(scan, candidate, is_int, col_lo, col_up, max_pass, tol, threads, verbose) {
+  .Call(`_multimod_mm_presolve_map`, scan, candidate, is_int, col_lo, col_up, max_pass, tol, threads, verbose)
+}
+
+mm_map_positions <- function(map, what) {
+  .Call(`_multimod_mm_map_positions`, map, what)
+}
+
+mm_map_vectors <- function(map) {
+  .Call(`_multimod_mm_map_vectors`, map)
+}
+
+mm_sink_remap <- function(sink, map, tol) {
+  invisible(.Call(`_multimod_mm_sink_remap`, sink, map, tol))
 }
 
 mm_scan_counts <- function(scan) {
   .Call(`_multimod_mm_scan_counts`, scan)
-}
-
-mm_presolve_map <- function(scan, candidate, is_int, col_lo, col_up, max_pass, tol, threads, verbose) {
-  .Call(`_multimod_mm_presolve_map`, scan, candidate, is_int, col_lo, col_up, max_pass, tol, threads, verbose)
 }
 
 mm_scan_add <- function(scan, i, j, x) {
@@ -64,8 +80,8 @@ mm_sink_close <- function(sink) {
   .Call(`_multimod_mm_sink_close`, sink)
 }
 
-mm_mps_write <- function(file, sink, row_lo, row_up, col_lo, col_up, obj, maximum) {
-  .Call(`_multimod_mm_mps_write`, file, sink, row_lo, row_up, col_lo, col_up, obj, maximum)
+mm_mps_write <- function(file, sink, map, sense, rhs, obj_j, obj_x, col_lo, col_up, maximum, tol) {
+  .Call(`_multimod_mm_mps_write`, file, sink, map, sense, rhs, obj_j, obj_x, col_lo, col_up, maximum, tol)
 }
 
 mm_exec_block <- function(plan, tables) {

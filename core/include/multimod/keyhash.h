@@ -12,6 +12,7 @@
 #pragma once
 #include <climits>
 #include <cstdint>
+#include <stdexcept>
 #include <vector>
 
 namespace multimod {
@@ -47,9 +48,14 @@ struct KeyIndex {
   KeyCols cols;
   int64_t n = 0;
   bool na_matches = false;
-  std::vector<int64_t> slot;   // first row of a chain, or -1
-  std::vector<int64_t> next;   // next row with the same key, or -1
+  // rows are at most 2^31 - 1 (R's vectors), so chains and slots are 32-bit
+  std::vector<int32_t> slot;   // first row of a chain, or -1
+  std::vector<int32_t> next;   // next row with the same key, or -1
   uint64_t mask = 0;
+
+  size_t bytes() const {
+    return slot.size() * sizeof(int32_t) + next.size() * sizeof(int32_t) + key.size() * sizeof(uint64_t);
+  }
 
   // packed mode: per-column bit widths and the packed key of every row
   bool packed = false;
@@ -89,8 +95,9 @@ struct KeyIndex {
       shift[k] = bits; lim[k] = 1ULL << w; bits += w;
       if (bits > 63) packed = false;
     }
+    if (nrow > INT32_MAX) throw std::runtime_error("a table of more than 2^31 - 1 rows cannot be indexed");
     uint64_t cap = 16;
-    while (cap < static_cast<uint64_t>(nrow) * 2) cap <<= 1;
+    while (cap * 2 < static_cast<uint64_t>(nrow) * 3) cap <<= 1;   // load factor at most 2/3
     mask = cap - 1;
     slot.assign(cap, -1);
     next.assign(static_cast<size_t>(nrow), -1);
@@ -101,9 +108,9 @@ struct KeyIndex {
         if (key[r] == NOKEY) continue;
         uint64_t p = mix64(key[r]) & mask;
         for (;;) {
-          int64_t s = slot[p];
-          if (s < 0) { slot[p] = r; break; }
-          if (key[s] == key[r]) { next[r] = s; slot[p] = r; break; }
+          int32_t s = slot[p];
+          if (s < 0) { slot[p] = static_cast<int32_t>(r); break; }
+          if (key[s] == key[r]) { next[r] = s; slot[p] = static_cast<int32_t>(r); break; }
           p = (p + 1) & mask;
         }
       }
@@ -114,9 +121,9 @@ struct KeyIndex {
       if (!na_matches && row_has_na(cols, r)) continue;
       uint64_t p = hash_row(cols, r) & mask;
       for (;;) {
-        int64_t s = slot[p];
-        if (s < 0) { slot[p] = r; break; }
-        if (rows_equal(cols, s, cols, r)) { next[r] = s; slot[p] = r; break; }
+        int32_t s = slot[p];
+        if (s < 0) { slot[p] = static_cast<int32_t>(r); break; }
+        if (rows_equal(cols, s, cols, r)) { next[r] = s; slot[p] = static_cast<int32_t>(r); break; }
         p = (p + 1) & mask;
       }
     }

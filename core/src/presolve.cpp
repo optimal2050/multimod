@@ -42,34 +42,49 @@ PresolveMap presolve_map(Scan& scan, const std::vector<uint8_t>& candidate, cons
   std::vector<double>& cup = M.col_up;
   std::vector<int64_t>& nnz = M.nnz;
 
-  // the tracked entries of the candidate rows, each row a record over a
-  // contiguous run of entries in ascending column order
-  std::vector<int32_t> srow, scol;
-  std::vector<double> sx;
-  scan.release(srow, scol, sx);
-  if (scol.size() > static_cast<size_t>(std::numeric_limits<uint32_t>::max())) throw std::runtime_error("too many tracked entries");
-  std::vector<uint32_t> rstart;
-  std::vector<int32_t> rid;
-  std::vector<int8_t> rlen;
+  // The tracked entries of the candidate rows, each row a record over a
+  // contiguous run of entries in ascending column order. The scan's blocks
+  // are counted first, so the arrays are allocated once at their final
+  // size, then copied block by block, each block freed as it is consumed.
+  int64_t n_entries = 0, n_rows = 0;
+  for (size_t b = 0; b < scan.blocks(); ++b) {
+    const std::vector<int32_t>& br = scan.block_row(b);
+    for (size_t k = 0, ne = br.size(); k < ne;) {
+      int32_t r = br[k];
+      size_t e = k;
+      while (e < ne && br[e] == r) ++e;
+      if (candidate.empty() || candidate[r - 1]) { n_entries += static_cast<int64_t>(e - k); ++n_rows; }
+      k = e;
+    }
+  }
+  if (n_entries > static_cast<int64_t>(std::numeric_limits<uint32_t>::max())) throw std::runtime_error("too many tracked entries");
+  std::vector<int32_t> scol(static_cast<size_t>(n_entries));
+  std::vector<double> sx(static_cast<size_t>(n_entries));
+  std::vector<uint32_t> rstart; rstart.reserve(static_cast<size_t>(n_rows));
+  std::vector<int32_t> rid; rid.reserve(static_cast<size_t>(n_rows));
+  std::vector<int8_t> rlen; rlen.reserve(static_cast<size_t>(n_rows));
   size_t w = 0;
   bool sorted = true;
-  for (size_t k = 0, ne = srow.size(); k < ne;) {
-    int32_t r = srow[k];
-    size_t e = k;
-    while (e < ne && srow[e] == r) ++e;
-    if (candidate.empty() || candidate[r - 1]) {
-      if (e - k > 127) throw std::runtime_error("a tracked row has more than 127 entries");
-      if (!rid.empty() && rid.back() > r) sorted = false;
-      rstart.push_back(static_cast<uint32_t>(w));
-      rid.push_back(r);
-      rlen.push_back(static_cast<int8_t>(e - k));
-      for (size_t p = k; p < e; ++p, ++w) { scol[w] = scol[p]; sx[w] = sx[p]; }
+  for (size_t b = 0; b < scan.blocks(); ++b) {
+    const std::vector<int32_t>& br = scan.block_row(b);
+    const std::vector<int32_t>& bc = scan.block_col(b);
+    const std::vector<double>& bx = scan.block_x(b);
+    for (size_t k = 0, ne = br.size(); k < ne;) {
+      int32_t r = br[k];
+      size_t e = k;
+      while (e < ne && br[e] == r) ++e;
+      if (candidate.empty() || candidate[r - 1]) {
+        if (e - k > 127) throw std::runtime_error("a tracked row has more than 127 entries");
+        if (!rid.empty() && rid.back() > r) sorted = false;
+        rstart.push_back(static_cast<uint32_t>(w));
+        rid.push_back(r);
+        rlen.push_back(static_cast<int8_t>(e - k));
+        for (size_t p = k; p < e; ++p, ++w) { scol[w] = bc[p]; sx[w] = bx[p]; }
+      }
+      k = e;
     }
-    k = e;
+    scan.drop_block(b);
   }
-  std::vector<int32_t>().swap(srow);
-  scol.resize(w); sx.resize(w);
-  scol.shrink_to_fit(); sx.shrink_to_fit();
   const size_t nr = rid.size();
   if (!sorted) {
     // the chunks did not arrive in row order: order the records, the

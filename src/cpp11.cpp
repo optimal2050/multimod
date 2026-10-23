@@ -20,6 +20,21 @@ extern "C" SEXP _multimod_mm_block_add(SEXP ex, SEXP tables) {
   END_CPP11
 }
 // mm_core.cpp
+double mm_block_cache(sexp ex);
+extern "C" SEXP _multimod_mm_block_cache(SEXP ex) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(mm_block_cache(cpp11::as_cpp<cpp11::decay_t<sexp>>(ex)));
+  END_CPP11
+}
+// mm_core.cpp
+void mm_block_trim(sexp ex, double bytes);
+extern "C" SEXP _multimod_mm_block_trim(SEXP ex, SEXP bytes) {
+  BEGIN_CPP11
+    mm_block_trim(cpp11::as_cpp<cpp11::decay_t<sexp>>(ex), cpp11::as_cpp<cpp11::decay_t<double>>(bytes));
+    return R_NilValue;
+  END_CPP11
+}
+// mm_core.cpp
 list mm_block_run(sexp ex, list plan, list rows);
 extern "C" SEXP _multimod_mm_block_run(SEXP ex, SEXP plan, SEXP rows) {
   BEGIN_CPP11
@@ -72,10 +87,31 @@ extern "C" SEXP _multimod_mm_scan_attach(SEXP scan, SEXP sink) {
   END_CPP11
 }
 // mm_core.cpp
-void mm_sink_remap(sexp sink, integers ired, integers jred, integers ref, doubles coef, double tol, sexp col_nnz);
-extern "C" SEXP _multimod_mm_sink_remap(SEXP sink, SEXP ired, SEXP jred, SEXP ref, SEXP coef, SEXP tol, SEXP col_nnz) {
+list mm_presolve_map(sexp scan, sexp candidate, sexp is_int, doubles col_lo, doubles col_up, int max_pass, double tol, int threads, bool verbose);
+extern "C" SEXP _multimod_mm_presolve_map(SEXP scan, SEXP candidate, SEXP is_int, SEXP col_lo, SEXP col_up, SEXP max_pass, SEXP tol, SEXP threads, SEXP verbose) {
   BEGIN_CPP11
-    mm_sink_remap(cpp11::as_cpp<cpp11::decay_t<sexp>>(sink), cpp11::as_cpp<cpp11::decay_t<integers>>(ired), cpp11::as_cpp<cpp11::decay_t<integers>>(jred), cpp11::as_cpp<cpp11::decay_t<integers>>(ref), cpp11::as_cpp<cpp11::decay_t<doubles>>(coef), cpp11::as_cpp<cpp11::decay_t<double>>(tol), cpp11::as_cpp<cpp11::decay_t<sexp>>(col_nnz));
+    return cpp11::as_sexp(mm_presolve_map(cpp11::as_cpp<cpp11::decay_t<sexp>>(scan), cpp11::as_cpp<cpp11::decay_t<sexp>>(candidate), cpp11::as_cpp<cpp11::decay_t<sexp>>(is_int), cpp11::as_cpp<cpp11::decay_t<doubles>>(col_lo), cpp11::as_cpp<cpp11::decay_t<doubles>>(col_up), cpp11::as_cpp<cpp11::decay_t<int>>(max_pass), cpp11::as_cpp<cpp11::decay_t<double>>(tol), cpp11::as_cpp<cpp11::decay_t<int>>(threads), cpp11::as_cpp<cpp11::decay_t<bool>>(verbose)));
+  END_CPP11
+}
+// mm_core.cpp
+sexp mm_map_positions(sexp map, std::string what);
+extern "C" SEXP _multimod_mm_map_positions(SEXP map, SEXP what) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(mm_map_positions(cpp11::as_cpp<cpp11::decay_t<sexp>>(map), cpp11::as_cpp<cpp11::decay_t<std::string>>(what)));
+  END_CPP11
+}
+// mm_core.cpp
+list mm_map_vectors(sexp map);
+extern "C" SEXP _multimod_mm_map_vectors(SEXP map) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(mm_map_vectors(cpp11::as_cpp<cpp11::decay_t<sexp>>(map)));
+  END_CPP11
+}
+// mm_core.cpp
+void mm_sink_remap(sexp sink, sexp map, double tol);
+extern "C" SEXP _multimod_mm_sink_remap(SEXP sink, SEXP map, SEXP tol) {
+  BEGIN_CPP11
+    mm_sink_remap(cpp11::as_cpp<cpp11::decay_t<sexp>>(sink), cpp11::as_cpp<cpp11::decay_t<sexp>>(map), cpp11::as_cpp<cpp11::decay_t<double>>(tol));
     return R_NilValue;
   END_CPP11
 }
@@ -84,13 +120,6 @@ list mm_scan_counts(sexp scan);
 extern "C" SEXP _multimod_mm_scan_counts(SEXP scan) {
   BEGIN_CPP11
     return cpp11::as_sexp(mm_scan_counts(cpp11::as_cpp<cpp11::decay_t<sexp>>(scan)));
-  END_CPP11
-}
-// mm_core.cpp
-list mm_presolve_map(sexp scan, sexp candidate, sexp is_int, doubles col_lo, doubles col_up, int max_pass, double tol, int threads, bool verbose);
-extern "C" SEXP _multimod_mm_presolve_map(SEXP scan, SEXP candidate, SEXP is_int, SEXP col_lo, SEXP col_up, SEXP max_pass, SEXP tol, SEXP threads, SEXP verbose) {
-  BEGIN_CPP11
-    return cpp11::as_sexp(mm_presolve_map(cpp11::as_cpp<cpp11::decay_t<sexp>>(scan), cpp11::as_cpp<cpp11::decay_t<sexp>>(candidate), cpp11::as_cpp<cpp11::decay_t<sexp>>(is_int), cpp11::as_cpp<cpp11::decay_t<doubles>>(col_lo), cpp11::as_cpp<cpp11::decay_t<doubles>>(col_up), cpp11::as_cpp<cpp11::decay_t<int>>(max_pass), cpp11::as_cpp<cpp11::decay_t<double>>(tol), cpp11::as_cpp<cpp11::decay_t<int>>(threads), cpp11::as_cpp<cpp11::decay_t<bool>>(verbose)));
   END_CPP11
 }
 // mm_core.cpp
@@ -123,10 +152,10 @@ extern "C" SEXP _multimod_mm_sink_close(SEXP sink) {
   END_CPP11
 }
 // mm_core.cpp
-double mm_mps_write(std::string file, sexp sink, doubles row_lo, doubles row_up, doubles col_lo, doubles col_up, doubles obj, bool maximum);
-extern "C" SEXP _multimod_mm_mps_write(SEXP file, SEXP sink, SEXP row_lo, SEXP row_up, SEXP col_lo, SEXP col_up, SEXP obj, SEXP maximum) {
+double mm_mps_write(std::string file, sexp sink, sexp map, integers sense, doubles rhs, integers obj_j, doubles obj_x, doubles col_lo, doubles col_up, bool maximum, double tol);
+extern "C" SEXP _multimod_mm_mps_write(SEXP file, SEXP sink, SEXP map, SEXP sense, SEXP rhs, SEXP obj_j, SEXP obj_x, SEXP col_lo, SEXP col_up, SEXP maximum, SEXP tol) {
   BEGIN_CPP11
-    return cpp11::as_sexp(mm_mps_write(cpp11::as_cpp<cpp11::decay_t<std::string>>(file), cpp11::as_cpp<cpp11::decay_t<sexp>>(sink), cpp11::as_cpp<cpp11::decay_t<doubles>>(row_lo), cpp11::as_cpp<cpp11::decay_t<doubles>>(row_up), cpp11::as_cpp<cpp11::decay_t<doubles>>(col_lo), cpp11::as_cpp<cpp11::decay_t<doubles>>(col_up), cpp11::as_cpp<cpp11::decay_t<doubles>>(obj), cpp11::as_cpp<cpp11::decay_t<bool>>(maximum)));
+    return cpp11::as_sexp(mm_mps_write(cpp11::as_cpp<cpp11::decay_t<std::string>>(file), cpp11::as_cpp<cpp11::decay_t<sexp>>(sink), cpp11::as_cpp<cpp11::decay_t<sexp>>(map), cpp11::as_cpp<cpp11::decay_t<integers>>(sense), cpp11::as_cpp<cpp11::decay_t<doubles>>(rhs), cpp11::as_cpp<cpp11::decay_t<integers>>(obj_j), cpp11::as_cpp<cpp11::decay_t<doubles>>(obj_x), cpp11::as_cpp<cpp11::decay_t<doubles>>(col_lo), cpp11::as_cpp<cpp11::decay_t<doubles>>(col_up), cpp11::as_cpp<cpp11::decay_t<bool>>(maximum), cpp11::as_cpp<cpp11::decay_t<double>>(tol)));
   END_CPP11
 }
 // mm_core.cpp
@@ -139,24 +168,28 @@ extern "C" SEXP _multimod_mm_exec_block(SEXP plan, SEXP tables) {
 
 extern "C" {
 static const R_CallMethodDef CallEntries[] = {
-    {"_multimod_mm_block_add",      (DL_FUNC) &_multimod_mm_block_add,      2},
-    {"_multimod_mm_block_open",     (DL_FUNC) &_multimod_mm_block_open,     3},
-    {"_multimod_mm_block_run",      (DL_FUNC) &_multimod_mm_block_run,      3},
-    {"_multimod_mm_block_run_scan", (DL_FUNC) &_multimod_mm_block_run_scan, 4},
-    {"_multimod_mm_block_run_sink", (DL_FUNC) &_multimod_mm_block_run_sink, 4},
-    {"_multimod_mm_exec_block",     (DL_FUNC) &_multimod_mm_exec_block,     2},
-    {"_multimod_mm_mps_write",      (DL_FUNC) &_multimod_mm_mps_write,      8},
-    {"_multimod_mm_presolve_map",   (DL_FUNC) &_multimod_mm_presolve_map,   9},
-    {"_multimod_mm_scan_add",       (DL_FUNC) &_multimod_mm_scan_add,       4},
-    {"_multimod_mm_scan_attach",    (DL_FUNC) &_multimod_mm_scan_attach,    2},
-    {"_multimod_mm_scan_close",     (DL_FUNC) &_multimod_mm_scan_close,     1},
-    {"_multimod_mm_scan_counts",    (DL_FUNC) &_multimod_mm_scan_counts,    1},
-    {"_multimod_mm_scan_open",      (DL_FUNC) &_multimod_mm_scan_open,      5},
-    {"_multimod_mm_sink_close",     (DL_FUNC) &_multimod_mm_sink_close,     1},
-    {"_multimod_mm_sink_map",       (DL_FUNC) &_multimod_mm_sink_map,       6},
-    {"_multimod_mm_sink_open",      (DL_FUNC) &_multimod_mm_sink_open,      4},
-    {"_multimod_mm_sink_remap",     (DL_FUNC) &_multimod_mm_sink_remap,     7},
-    {"_multimod_mm_sink_write",     (DL_FUNC) &_multimod_mm_sink_write,     4},
+    {"_multimod_mm_block_add",      (DL_FUNC) &_multimod_mm_block_add,       2},
+    {"_multimod_mm_block_cache",    (DL_FUNC) &_multimod_mm_block_cache,     1},
+    {"_multimod_mm_block_open",     (DL_FUNC) &_multimod_mm_block_open,      3},
+    {"_multimod_mm_block_run",      (DL_FUNC) &_multimod_mm_block_run,       3},
+    {"_multimod_mm_block_run_scan", (DL_FUNC) &_multimod_mm_block_run_scan,  4},
+    {"_multimod_mm_block_run_sink", (DL_FUNC) &_multimod_mm_block_run_sink,  4},
+    {"_multimod_mm_block_trim",     (DL_FUNC) &_multimod_mm_block_trim,      2},
+    {"_multimod_mm_exec_block",     (DL_FUNC) &_multimod_mm_exec_block,      2},
+    {"_multimod_mm_map_positions",  (DL_FUNC) &_multimod_mm_map_positions,   2},
+    {"_multimod_mm_map_vectors",    (DL_FUNC) &_multimod_mm_map_vectors,     1},
+    {"_multimod_mm_mps_write",      (DL_FUNC) &_multimod_mm_mps_write,      11},
+    {"_multimod_mm_presolve_map",   (DL_FUNC) &_multimod_mm_presolve_map,    9},
+    {"_multimod_mm_scan_add",       (DL_FUNC) &_multimod_mm_scan_add,        4},
+    {"_multimod_mm_scan_attach",    (DL_FUNC) &_multimod_mm_scan_attach,     2},
+    {"_multimod_mm_scan_close",     (DL_FUNC) &_multimod_mm_scan_close,      1},
+    {"_multimod_mm_scan_counts",    (DL_FUNC) &_multimod_mm_scan_counts,     1},
+    {"_multimod_mm_scan_open",      (DL_FUNC) &_multimod_mm_scan_open,       5},
+    {"_multimod_mm_sink_close",     (DL_FUNC) &_multimod_mm_sink_close,      1},
+    {"_multimod_mm_sink_map",       (DL_FUNC) &_multimod_mm_sink_map,        6},
+    {"_multimod_mm_sink_open",      (DL_FUNC) &_multimod_mm_sink_open,       4},
+    {"_multimod_mm_sink_remap",     (DL_FUNC) &_multimod_mm_sink_remap,      3},
+    {"_multimod_mm_sink_write",     (DL_FUNC) &_multimod_mm_sink_write,      4},
     {NULL, NULL, 0}
 };
 }

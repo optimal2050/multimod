@@ -26,13 +26,19 @@ class Scan {
   int track() const { return track_; }
   const std::vector<int32_t>& row_counts() const { return rowc_; }
   const std::vector<int32_t>& col_counts() const { return colc_; }
-  // tracked rows' entries, 1-based, each row's entries contiguous and in
-  // ascending column order
-  const std::vector<int32_t>& s_row() const { return srow_; }
-  const std::vector<int32_t>& s_col() const { return scol_; }
-  const std::vector<double>& s_x() const { return sx_; }
-  // hand the tracked entries over (the scan keeps the counts)
-  void release(std::vector<int32_t>& row, std::vector<int32_t>& col, std::vector<double>& x);
+  // The tracked rows' entries, 1-based, each row's entries contiguous and in
+  // ascending column order, kept in blocks of fixed size so that no block
+  // is ever regrown; a row never spans two blocks.
+  size_t blocks() const { return srow_.size(); }
+  const std::vector<int32_t>& block_row(size_t k) const { return srow_[k]; }
+  const std::vector<int32_t>& block_col(size_t k) const { return scol_[k]; }
+  const std::vector<double>& block_x(size_t k) const { return sx_[k]; }
+  void drop_block(size_t k);
+  int64_t n_tracked() const;
+  // the tracked entries concatenated (diagnostics and tests)
+  std::vector<int32_t> s_row() const;
+  std::vector<int32_t> s_col() const;
+  std::vector<double> s_x() const;
 
  private:
   int64_t nrow_, ncol_;
@@ -41,8 +47,9 @@ class Scan {
   std::vector<uint8_t> cand_;
   Sink* sink_ = nullptr;
   std::vector<int32_t> rowc_, colc_;
-  std::vector<int32_t> srow_, scol_;
-  std::vector<double> sx_;
+  std::vector<std::vector<int32_t>> srow_, scol_;
+  std::vector<std::vector<double>> sx_;
+  static constexpr int64_t kBlock = 1 << 22;   // entries per block
 };
 
 }  // namespace multimod

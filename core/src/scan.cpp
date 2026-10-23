@@ -40,16 +40,27 @@ void Scan::add(const int* i, const int* j, const double* x, int64_t n) {
   }
   int64_t kept = off[span];
   if (kept == 0) return;
-  size_t base = srow_.size();
-  srow_.resize(base + kept);
-  scol_.resize(base + kept);
-  sx_.resize(base + kept);
+  // the chunk's kept entries go into the current block when they fit, else
+  // into a new one (sized for the chunk when a chunk exceeds a block)
+  if (srow_.empty() || static_cast<int64_t>(srow_.back().capacity() - srow_.back().size()) < kept) {
+    int64_t cap = std::max<int64_t>(kBlock, kept);
+    srow_.emplace_back(); srow_.back().reserve(static_cast<size_t>(cap));
+    scol_.emplace_back(); scol_.back().reserve(static_cast<size_t>(cap));
+    sx_.emplace_back(); sx_.back().reserve(static_cast<size_t>(cap));
+  }
+  std::vector<int32_t>& br = srow_.back();
+  std::vector<int32_t>& bc = scol_.back();
+  std::vector<double>& bx = sx_.back();
+  size_t base = br.size();
+  br.resize(base + kept);
+  bc.resize(base + kept);
+  bx.resize(base + kept);
   std::vector<int64_t> cursor(off.begin(), off.end() - 1);
   for (int64_t k = 0; k < n; ++k) {
     int64_t r = i[k] - rmin;
     if (local[r] == 0) continue;
     size_t p = base + static_cast<size_t>(cursor[r]++);
-    srow_[p] = i[k]; scol_[p] = j[k]; sx_[p] = x[k];
+    br[p] = i[k]; bc[p] = j[k]; bx[p] = x[k];
   }
   parallel_for(span, threads_, [&](int64_t b, int64_t e, int) {
     for (int64_t r = b; r < e; ++r) {
@@ -57,23 +68,44 @@ void Scan::add(const int* i, const int* j, const double* x, int64_t n) {
       if (z - a < 2) continue;
       // insertion sort of at most `track` entries by column
       for (int64_t p = a + 1; p < z; ++p) {
-        int32_t c = scol_[base + p]; double v = sx_[base + p];
+        int32_t c = bc[base + p]; double v = bx[base + p];
         int64_t q = p;
-        while (q > a && scol_[base + q - 1] > c) {
-          scol_[base + q] = scol_[base + q - 1]; sx_[base + q] = sx_[base + q - 1];
+        while (q > a && bc[base + q - 1] > c) {
+          bc[base + q] = bc[base + q - 1]; bx[base + q] = bx[base + q - 1];
           --q;
         }
-        scol_[base + q] = c; sx_[base + q] = v;
+        bc[base + q] = c; bx[base + q] = v;
       }
     }
   });
 }
 
-void Scan::release(std::vector<int32_t>& row, std::vector<int32_t>& col, std::vector<double>& x) {
-  row.swap(srow_); col.swap(scol_); x.swap(sx_);
-  std::vector<int32_t>().swap(srow_);
-  std::vector<int32_t>().swap(scol_);
-  std::vector<double>().swap(sx_);
+void Scan::drop_block(size_t k) {
+  std::vector<int32_t>().swap(srow_[k]);
+  std::vector<int32_t>().swap(scol_[k]);
+  std::vector<double>().swap(sx_[k]);
+}
+
+int64_t Scan::n_tracked() const {
+  int64_t n = 0;
+  for (const auto& b : srow_) n += static_cast<int64_t>(b.size());
+  return n;
+}
+
+std::vector<int32_t> Scan::s_row() const {
+  std::vector<int32_t> v;
+  for (const auto& b : srow_) v.insert(v.end(), b.begin(), b.end());
+  return v;
+}
+std::vector<int32_t> Scan::s_col() const {
+  std::vector<int32_t> v;
+  for (const auto& b : scol_) v.insert(v.end(), b.begin(), b.end());
+  return v;
+}
+std::vector<double> Scan::s_x() const {
+  std::vector<double> v;
+  for (const auto& b : sx_) v.insert(v.end(), b.begin(), b.end());
+  return v;
 }
 
 }  // namespace multimod

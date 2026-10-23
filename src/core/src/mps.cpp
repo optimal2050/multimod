@@ -245,8 +245,45 @@ std::vector<Entry> Sink::read_bucket(int b) const {
   return v;
 }
 
-int64_t write_mps(const std::string& file, const Sink& sink, const LpBounds& lp, const std::string& name) {
+void Sink::remap(const PresolveMap& map, double tol) {
+  int64_t nr = 0, nc = 0;
+  for (int32_t v : map.ired) if (v > 0) ++nr;
+  std::vector<int64_t> nnz;
+  nnz.reserve(map.jred.size());
+  for (size_t c = 0; c < map.jred.size(); ++c) if (map.jred[c] > 0) { ++nc; nnz.push_back(map.nnz[c]); }
+  remap(map.ired.data(), map.jred.data(), map.ref.data(), map.coef.data(), nr, nc, tol, nnz.data());
+}
+
+int64_t write_mps(const std::string& file, const Sink& sink, const LpInput& lp, const std::string& name) {
   if (!sink.closed()) throw std::runtime_error("close the sink before writing the MPS");
+  const PresolveMap* map = lp.map;
+  int64_t nrow = sink.nrow(), ncol = sink.ncol();
+  if (map) {
+    if (static_cast<int64_t>(map->ired.size()) != lp.nrow_full || static_cast<int64_t>(map->jred.size()) != lp.ncol_full)
+      throw std::runtime_error("the map does not match the LP dimensions");
+  } else if (nrow != lp.nrow_full || ncol != lp.ncol_full) {
+    throw std::runtime_error("the LP dimensions do not match the sink's");
+  }
+  auto small = [&](double v) { return std::fabs(v) < lp.tol ? 0.0 : v; };
+  // the full column behind each reduced column, and the reduced objective
+  // (an eliminated column's entry moves to its reference, scaled)
+  std::vector<int32_t> full_of(static_cast<size_t>(ncol));
+  if (map) {
+    for (int64_t c = 0; c < lp.ncol_full; ++c) if (map->jred[c] > 0) full_of[map->jred[c] - 1] = static_cast<int32_t>(c);
+  } else {
+    for (int64_t c = 0; c < ncol; ++c) full_of[c] = static_cast<int32_t>(c);
+  }
+  std::vector<double> obj(static_cast<size_t>(ncol), 0.0);
+  for (int64_t k = 0; k < lp.obj_n; ++k) {
+    int64_t c = lp.obj_j[k] - 1;
+    double v = lp.obj_x[k];
+    if (c < 0 || c >= lp.ncol_full) throw std::runtime_error("objective column outside the LP");
+    if (map && map->jred[c] == 0) { v *= map->coef[c]; c = map->ref[c] - 1; }
+    int64_t cr = map ? map->jred[c] - 1 : c;
+    if (cr < 0) throw std::runtime_error("objective refers to an eliminated column");
+    obj[cr] += v;
+  }
+
   FILE* out = std::fopen(file.c_str(), "wb");
   if (!out) throw std::runtime_error("cannot open " + file + " for writing");
   std::string s;
@@ -256,27 +293,29 @@ int64_t write_mps(const std::string& file, const Sink& sink, const LpBounds& lp,
     std::fwrite(s.data(), 1, s.size(), out);
     s.clear();
   };
-  int64_t nrow = sink.nrow(), ncol = sink.ncol();
 
   s += "NAME        " + name + "\n";
   if (lp.maximum) s += "OBJSENSE\n    MAX\n";
 
-  // rows: the type from the bounds; a ranged row carries its width in RANGES
+  // rows: the type from the sense; a ranged row carries its width in RANGES
   s += "ROWS\n N  Obj\n";
-  std::vector<char> rtype(nrow);
-  std::vector<int64_t> ranged;
-  for (int64_t r = 0; r < nrow; ++r) {
-    double lo = lp.row_lo[r], up = lp.row_up[r];
-    char t;
-    if (is_inf(lo) && is_inf(up)) {
-      throw std::runtime_error("row " + std::to_string(r + 1) + " is free on both sides; MPS cannot keep it positional");
-    } else if (lo == up) t = 'E';
-    else if (is_inf(lo)) t = 'L';
-    else if (is_inf(up)) t = 'G';
-    else { t = 'G'; ranged.push_back(r); }
-    rtype[r] = t;
-    s += ' '; s += t; s += "  r"; s += std::to_string(r); s += '\n';
-    emit();
+  std::vector<char> rtype(static_cast<size_t>(nrow));
+  {
+    int64_t r = 0;
+    for (int64_t rf = 0; rf < lp.nrow_full; ++rf) {
+      if (map && map->ired[rf] == 0) continue;
+      char t;
+      switch (lp.sense[rf]) {
+        case 0: t = 'E'; break;
+        case 1: t = 'L'; break;
+        case 2: t = 'G'; break;
+        default: throw std::runtime_error("row " + std::to_string(rf + 1) + " has an unknown sense");
+      }
+      rtype[r] = t;
+      s += ' '; s += t; s += "  r"; s += std::to_string(r); s += '\n';
+      ++r;
+      emit();
+    }
   }
 
   // columns: objective entry, then the matrix entries in row order; a column
@@ -291,8 +330,8 @@ int64_t write_mps(const std::string& file, const Sink& sink, const LpBounds& lp,
     for (int64_t c = c0; c < c1; ++c) {
       std::string cname = "c" + std::to_string(c);
       bool any = false;
-      if (lp.obj[c] != 0.0) {
-        s += "    "; s += cname; s += "  Obj  "; fmt_num(lp.obj[c], s); s += '\n';
+      if (obj[c] != 0.0) {
+        s += "    "; s += cname; s += "  Obj  "; fmt_num(obj[c], s); s += '\n';
         any = true;
       }
       while (k < e.size() && e[k].col == c) {
@@ -308,22 +347,25 @@ int64_t write_mps(const std::string& file, const Sink& sink, const LpBounds& lp,
   }
 
   s += "RHS\n";
-  for (int64_t r = 0; r < nrow; ++r) {
-    double v = rtype[r] == 'L' ? lp.row_up[r] : lp.row_lo[r];
-    if (v != 0.0) { s += "    RHS  r"; s += std::to_string(r); s += "  "; fmt_num(v, s); s += '\n'; emit(); }
-  }
-  if (!ranged.empty()) {
-    s += "RANGES\n";
-    for (int64_t r : ranged) {
-      s += "    RNG  r"; s += std::to_string(r); s += "  "; fmt_num(lp.row_up[r] - lp.row_lo[r], s); s += '\n';
-      emit();
+  {
+    int64_t r = 0;
+    for (int64_t rf = 0; rf < lp.nrow_full; ++rf) {
+      if (map && map->ired[rf] == 0) continue;
+      double v = small(lp.rhs[rf]);
+      if (v != 0.0) { s += "    RHS  r"; s += std::to_string(r); s += "  "; fmt_num(v, s); s += '\n'; emit(); }
+      ++r;
     }
   }
+  // no ranged rows: every row is an equality or one-sided
 
   // bounds: the MPS default is [0, +inf); everything else is stated
   s += "BOUNDS\n";
   for (int64_t c = 0; c < ncol; ++c) {
-    double lo = lp.col_lo[c], up = lp.col_up[c];
+    int64_t cf = full_of[c];
+    double lo = map ? map->col_lo[cf] : lp.col_lo[cf];
+    double up = map ? map->col_up[cf] : lp.col_up[cf];
+    if (std::isfinite(lo)) lo = small(lo);
+    if (std::isfinite(up)) up = small(up);
     std::string cn = "c" + std::to_string(c);
     if (lo == 0.0 && is_inf(up) && up > 0) continue;
     if (is_inf(lo) && is_inf(up)) { s += " FR BND  " + cn + "\n"; emit(); continue; }

@@ -199,7 +199,7 @@ lp_presolve <- function(lp, steps = "doubletons", max_pass = 50L,
 #' @keywords internal
 #' @noRd
 .mx_presolve_map <- function(scan, sense, rhs, col_lo, col_up, vtype = NULL,
-                             max_pass = 50L, tol = 1e-12, verbose = FALSE) {
+                             max_pass = 50L, tol = 1e-12, verbose = FALSE, full = FALSE) {
   ncol <- length(col_lo)
   int <- .mx_int_cols(vtype, ncol)
   cand <- sense == "==" & rhs == 0
@@ -209,9 +209,13 @@ lp_presolve <- function(lp, steps = "doubletons", max_pass = 50L,
     warning("presolve: ", m$crossing, " column(s) have crossing bounds after ",
             "substitution; the LP is infeasible.", call. = FALSE)
   }
-  list(eliminated = data.table::data.table(col = m$col, ref = m$ref, coef = m$coef, pass = m$pass),
-       jred = m$jred, ired = m$ired, ref = m$final_ref, coef = m$final_coef,
-       col_lo = m$col_lo, col_up = m$col_up, nnz = m$nnz)
+  out <- list(map = m$map,
+              eliminated = data.table::data.table(col = m$col, ref = m$ref, coef = m$coef, pass = m$pass),
+              passes = m$passes)
+  # the map's full-index vectors are left in the core; `full = TRUE` brings
+  # them over for a comparison
+  if (isTRUE(full)) out <- c(out, mm_map_vectors(m$map))
+  out
 }
 
 #' Which columns are integer, from the index table's `vtype`
