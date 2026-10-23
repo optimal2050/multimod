@@ -29,6 +29,12 @@
   both encodings.
 * The substitution of the streamed presolve is composed in compiled code,
   from the equality rows only.
+* `save_model()` writes parquet by default, at zstd level 3 (was CSV, and
+  zstd level 15 for the Arrow formats): on model data parquet is an order
+  of magnitude smaller than Arrow IPC at the same speed, and levels above 3
+  gain nothing. The index tables of `write_mps()` use the same level;
+  `read_mps_solution()` reads a bundle of another format when that is what
+  the directory holds.
 
 # multimod 0.5.0
 

@@ -21,9 +21,12 @@
 #'
 #' @section Storage Formats:
 #' \itemize{
-#'   \item \strong{csv} - Universal, human-readable (default)
-#'   \item \strong{ipc} - Arrow IPC/Feather (.arrow extension), fastest, compression: zstd level 15 (recommended)
-#'   \item \strong{parquet} - Popular Arrow format (but may have compatibility issues)
+#'   \item \strong{parquet} - default; zstd level 3. The smallest for model
+#'     data (set members and mappings are dictionary-encoded before
+#'     compression) and read by every Arrow implementation
+#'   \item \strong{ipc} - Arrow IPC/Feather (.arrow extension); faster to
+#'     read, several times larger on categorical data
+#'   \item \strong{csv} - Universal, human-readable
 #' }
 #'
 #' @name model_workspace
@@ -166,9 +169,12 @@ NULL
 #'
 #' @param model A multimod model object
 #' @param path Path to save the model files
-#' @param format Character. Data format: "csv" (default), "ipc" (Arrow IPC/Feather), or "parquet"
-#' @param compression Compression method to use
-#' @param compression_level Compression level (1-9)
+#' @param format Character. Data format: "parquet" (default), "ipc" (Arrow
+#'   IPC/Feather), or "csv"
+#' @param compression Compression method to use (`"zstd"`)
+#' @param compression_level Compression level; zstd 1-22, default 3. Levels
+#'   up to 12 give the same size on model data; 15 is a third smaller on
+#'   sorted tables at several times the time
 #' @param overwrite Logical; if TRUE, overwrite existing files
 #' @param keep_in_memory Logical; if TRUE, keep data in memory after saving
 #' @param save_structure Logical; if TRUE, save model structure separately
@@ -200,7 +206,7 @@ NULL
 #' m <- example_models$energyRt$multimod
 #' ws <- file.path(tempdir(), "energyRt_ws")
 #'
-#' # Save with the default CSV format
+#' # Save with the default parquet format
 #' m <- save_model(m, ws, verbose = FALSE)
 #'
 #' # Save and drop the data from memory; get_data() reloads it from disk
@@ -209,9 +215,9 @@ NULL
 save_model <- function(
     model,
     path,
-    format = c("csv", "ipc", "parquet"),
+    format = c("parquet", "ipc", "csv"),
     compression = "zstd",
-    compression_level = 15,
+    compression_level = 3,
     overwrite = TRUE,
     keep_in_memory = TRUE,
     save_structure = TRUE,
@@ -576,7 +582,7 @@ update_parameter <- function(model, name, data, folded_data = NULL, auto_save = 
       path = file.path(param_dir, "data"),
       format = format,
       compression = "zstd",
-      compression_level = 15,
+      compression_level = 3,
       verbose = FALSE
     )
 
@@ -591,7 +597,7 @@ update_parameter <- function(model, name, data, folded_data = NULL, auto_save = 
         path = file.path(folded_dir, "data"),
         format = format,
         compression = "zstd",
-        compression_level = 15,
+        compression_level = 3,
         verbose = FALSE
       )
     }
@@ -660,7 +666,7 @@ update_mapping <- function(model, name, data, auto_save = FALSE) {
       path = file.path(mapping_dir, "data"),
       format = format,
       compression = "zstd",
-      compression_level = 15,
+      compression_level = 3,
       verbose = FALSE
     )
 
@@ -912,7 +918,7 @@ get_data <- function(model, name, type = c("parameter", "mapping", "set", "varia
     path,
     format,
     compression = "zstd",
-    compression_level = 15,
+    compression_level = 3,
     verbose = FALSE,
     label = NULL
 ) {

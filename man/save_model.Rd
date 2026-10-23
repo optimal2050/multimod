@@ -7,9 +7,9 @@
 save_model(
   model,
   path,
-  format = c("csv", "ipc", "parquet"),
+  format = c("parquet", "ipc", "csv"),
   compression = "zstd",
-  compression_level = 15,
+  compression_level = 3,
   overwrite = TRUE,
   keep_in_memory = TRUE,
   save_structure = TRUE,
@@ -21,11 +21,14 @@ save_model(
 
 \item{path}{Path to save the model files}
 
-\item{format}{Character. Data format: "csv" (default), "ipc" (Arrow IPC/Feather), or "parquet"}
+\item{format}{Character. Data format: "parquet" (default), "ipc" (Arrow
+IPC/Feather), or "csv"}
 
-\item{compression}{Compression method to use}
+\item{compression}{Compression method to use (\code{"zstd"})}
 
-\item{compression_level}{Compression level (1-9)}
+\item{compression_level}{Compression level; zstd 1-22, default 3. Levels
+up to 12 give the same size on model data; 15 is a third smaller on
+sorted tables at several times the time}
 
 \item{overwrite}{Logical; if TRUE, overwrite existing files}
 
@@ -64,7 +67,7 @@ The solvers write their generated code and output under
 m <- example_models$energyRt$multimod
 ws <- file.path(tempdir(), "energyRt_ws")
 
-# Save with the default CSV format
+# Save with the default parquet format
 m <- save_model(m, ws, verbose = FALSE)
 
 # Save and drop the data from memory; get_data() reloads it from disk

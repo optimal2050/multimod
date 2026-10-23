@@ -27,7 +27,8 @@ of \code{file}.}
 \item{lp}{Optional pre-built LP from \code{\link[=model_to_lp]{model_to_lp()}}.}
 
 \item{format}{Storage format for the index tables, passed to the package's
-\code{.save_dataframe()}: \code{"parquet"} (default), \code{"ipc"} or \code{"csv"}.}
+\code{.save_dataframe()}: \code{"parquet"} (default; zstd level 3), \code{"ipc"} or
+\code{"csv"}.}
 
 \item{verbose}{Logical; report progress.}
 

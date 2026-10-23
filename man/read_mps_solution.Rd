@@ -27,7 +27,9 @@ written by \code{\link[=write_mps]{write_mps()}}. Ignored when both index tables
 \item{base}{Basename used when the index files were written; inferred from
 the directory when there is exactly one candidate.}
 
-\item{format}{Storage format of the index tables.}
+\item{format}{Storage format of the index tables: \code{"parquet"} (default),
+\code{"ipc"} or \code{"csv"}. When no table of that format is found, the one
+format present in \code{index_dir} is read.}
 
 \item{solver}{Which solver wrote \code{sol}; \code{"auto"} sniffs the file.}
 
