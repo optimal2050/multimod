@@ -711,6 +711,7 @@ write_jump_internal <- function(model, file = NULL, model_dir = NULL, solver_dir
                                  export_data = FALSE, export_vars = FALSE,
                                  export_lp = FALSE, export_mps = FALSE,
                                  use_haskey = TRUE, data_mode = c("external", "embedded"), ...) {
+  if (inherits(model, "mm_model") || inherits(model, "multimod")) model <- load_model_data(model)
   
   data_mode <- match.arg(data_mode)  # Create environment to track shift dictionaries needed
   shifts_needed <- new.env(parent = emptyenv())

@@ -560,6 +560,7 @@ fold_model <- function(model,
   
   stopifnot(inherits(model, "multimod") || inherits(model, "mm_model"))
   stopifnot("fold_spec parameter is required. Use create_fold_spec() to generate it." = !missing(fold_spec))
+  model <- load_model_data(model)
   
   # Determine if progress should be enabled
   use_progress <- FALSE

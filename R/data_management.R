@@ -91,6 +91,15 @@ detect_arrow_format <- function(path) {
     if (any(grepl("\\.csv$", files))) return("csv")
   }
   
+  # A directory holding the parts directly (a version of a dataset store)
+  if (dir.exists(path)) {
+    files <- list.files(path)
+    if (any(grepl("[.]parquet$", files))) return("parquet")
+    if (any(grepl("[.]feather$", files))) return("feather")
+    if (any(grepl("[.]arrow$", files))) return("ipc")
+    if (any(grepl("[.]csv$", files))) return("csv")
+  }
+
   # Check path itself
   if (grepl("\\.parquet$", path)) return("parquet")
   if (grepl("\\.feather$", path)) return("feather")

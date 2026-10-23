@@ -200,6 +200,7 @@ trim_model <- function(model, strategy = "unused", verbose = TRUE, .progress = "
 #' @return Model with `$trimmed = TRUE` on empty elements
 #' @keywords internal
 mark_empty_data <- function(model, verbose = FALSE) {
+  model <- load_model_data(model)
   n_trimmed <- 0
 
   # A subset declaration registers ONE symbol on both sides, and only one

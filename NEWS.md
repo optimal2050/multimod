@@ -45,6 +45,16 @@
   gain nothing. The index tables of `write_mps()` use the same level;
   `read_mps_solution()` reads a bundle of another format when that is what
   the directory holds.
+* `load_arrow_data()` reads a directory holding the parts of a table
+  directly, as a version of a dataset store does.
+* `get_data()` keeps the tables it reads from disk in a session memo keyed
+  by the table's content hash or path, within
+  `options(multimod.data_cache_gb = 8)`; a mapping several symbols share
+  is read once per session. `clear_data_cache()` and `data_cache_info()`
+  manage it. `load_model_data()` brings a model's tables into memory
+  through it; the GAMS, JuMP and Pyomo writers, `fold_model()` and
+  `mark_empty_data()` call it, so a model whose tables are references on
+  disk renders the same as one holding them.
 * The index tables of a streamed bundle store the members as integer codes
   of one dictionary, written beside them as `<base>_codes.csv` (CSV bundles
   keep the labels); they read back in a fraction of the time. The decode
