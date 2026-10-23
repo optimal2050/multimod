@@ -36,8 +36,8 @@ mm_scan_attach <- function(scan, sink) {
   invisible(.Call(`_multimod_mm_scan_attach`, scan, sink))
 }
 
-mm_sink_remap <- function(sink, ired, jred, ref, coef, tol) {
-  invisible(.Call(`_multimod_mm_sink_remap`, sink, ired, jred, ref, coef, tol))
+mm_sink_remap <- function(sink, ired, jred, ref, coef, tol, col_nnz) {
+  invisible(.Call(`_multimod_mm_sink_remap`, sink, ired, jred, ref, coef, tol, col_nnz))
 }
 
 mm_scan_counts <- function(scan) {

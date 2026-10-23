@@ -540,7 +540,8 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
     keep_r <- map$ired > 0L
     keep_c <- map$jred > 0L
     if (verbose) message(format(Sys.time(), "[%H:%M:%S] "), "applying the substitution to the spooled entries")
-    mm_sink_remap(sink, map$ired, map$jred, map$ref, map$coef, ztol)
+    # the buckets of the reduced LP are cut at equal entry counts
+    mm_sink_remap(sink, map$ired, map$jred, map$ref, map$coef, ztol, map$nnz)
     row_lo <- ifelse(sense == "<=", -Inf, rhs)[keep_r]
     row_up <- ifelse(sense == ">=",  Inf, rhs)[keep_r]
     col_lo <- map$col_lo[keep_c]

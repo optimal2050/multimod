@@ -72,10 +72,10 @@ extern "C" SEXP _multimod_mm_scan_attach(SEXP scan, SEXP sink) {
   END_CPP11
 }
 // mm_core.cpp
-void mm_sink_remap(sexp sink, integers ired, integers jred, integers ref, doubles coef, double tol);
-extern "C" SEXP _multimod_mm_sink_remap(SEXP sink, SEXP ired, SEXP jred, SEXP ref, SEXP coef, SEXP tol) {
+void mm_sink_remap(sexp sink, integers ired, integers jred, integers ref, doubles coef, double tol, sexp col_nnz);
+extern "C" SEXP _multimod_mm_sink_remap(SEXP sink, SEXP ired, SEXP jred, SEXP ref, SEXP coef, SEXP tol, SEXP col_nnz) {
   BEGIN_CPP11
-    mm_sink_remap(cpp11::as_cpp<cpp11::decay_t<sexp>>(sink), cpp11::as_cpp<cpp11::decay_t<integers>>(ired), cpp11::as_cpp<cpp11::decay_t<integers>>(jred), cpp11::as_cpp<cpp11::decay_t<integers>>(ref), cpp11::as_cpp<cpp11::decay_t<doubles>>(coef), cpp11::as_cpp<cpp11::decay_t<double>>(tol));
+    mm_sink_remap(cpp11::as_cpp<cpp11::decay_t<sexp>>(sink), cpp11::as_cpp<cpp11::decay_t<integers>>(ired), cpp11::as_cpp<cpp11::decay_t<integers>>(jred), cpp11::as_cpp<cpp11::decay_t<integers>>(ref), cpp11::as_cpp<cpp11::decay_t<doubles>>(coef), cpp11::as_cpp<cpp11::decay_t<double>>(tol), cpp11::as_cpp<cpp11::decay_t<sexp>>(col_nnz));
     return R_NilValue;
   END_CPP11
 }
@@ -155,7 +155,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_multimod_mm_sink_close",     (DL_FUNC) &_multimod_mm_sink_close,     1},
     {"_multimod_mm_sink_map",       (DL_FUNC) &_multimod_mm_sink_map,       6},
     {"_multimod_mm_sink_open",      (DL_FUNC) &_multimod_mm_sink_open,      4},
-    {"_multimod_mm_sink_remap",     (DL_FUNC) &_multimod_mm_sink_remap,     6},
+    {"_multimod_mm_sink_remap",     (DL_FUNC) &_multimod_mm_sink_remap,     7},
     {"_multimod_mm_sink_write",     (DL_FUNC) &_multimod_mm_sink_write,     4},
     {NULL, NULL, 0}
 };

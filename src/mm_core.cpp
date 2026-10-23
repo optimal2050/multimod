@@ -330,16 +330,25 @@ void mm_scan_attach(sexp scan, sexp sink) {
   p->attach(s.get());
 }
 
+// `col_nnz`: the entry count of every full-index column after the
+// substitution (NULL: buckets of equal column count)
 [[cpp11::register]]
-void mm_sink_remap(sexp sink, integers ired, integers jred, integers ref, doubles coef, double tol) {
+void mm_sink_remap(sexp sink, integers ired, integers jred, integers ref, doubles coef, double tol, sexp col_nnz) {
   external_pointer<multimod::Sink> p(sink);
   if (ref.size() != jred.size() || coef.size() != jred.size()) stop("ref and coef must match jred");
   if (ired.size() != p->nrow() || jred.size() != p->ncol()) stop("the map does not match the sink's dimensions");
   int64_t nr = 0, nc = 0;
   for (R_xlen_t k = 0; k < ired.size(); ++k) if (INTEGER(ired)[k] > 0) ++nr;
   for (R_xlen_t k = 0; k < jred.size(); ++k) if (INTEGER(jred)[k] > 0) ++nc;
+  std::vector<int64_t> nnz;
+  if (col_nnz != R_NilValue) {
+    doubles cn(col_nnz);
+    if (cn.size() != jred.size()) stop("col_nnz must match jred");
+    nnz.reserve(static_cast<size_t>(nc));
+    for (R_xlen_t k = 0; k < jred.size(); ++k) if (INTEGER(jred)[k] > 0) nnz.push_back(static_cast<int64_t>(REAL(cn)[k]));
+  }
   try {
-    p->remap(INTEGER(ired), INTEGER(jred), INTEGER(ref), REAL(coef), nr, nc, tol);
+    p->remap(INTEGER(ired), INTEGER(jred), INTEGER(ref), REAL(coef), nr, nc, tol, nnz.empty() ? nullptr : nnz.data());
   } catch (const std::exception& e) {
     stop("sink: %s", e.what());
   }
