@@ -38,14 +38,20 @@ class Sink {
   // column. The sink then holds the reduced LP, its dimensions the reduced
   // ones, and read_bucket() sums what lands on one (row, column), dropping
   // a sum within `tol` of zero.
+  // `col_nnz`, when given, holds the entry count of each reduced column
+  // (ncol_red values): the new buckets are then cut at equal entry counts
+  // rather than equal column counts, so that no bucket is much larger than
+  // the others however the entries are distributed over the columns.
   void remap(const int* ired, const int* jred, const int* ref, const double* coef,
-             int64_t nrow_red, int64_t ncol_red, double tol);
+             int64_t nrow_red, int64_t ncol_red, double tol, const int64_t* col_nnz = nullptr);
   bool closed() const { return closed_; }
   int buckets() const { return buckets_; }
   int64_t nrow() const { return nrow_; }
   int64_t ncol() const { return ncol_; }
   int64_t nnz() const { return nnz_; }
-  int64_t cols_per_bucket() const { return per_; }
+  // the column range [begin, end) of a bucket
+  int64_t bucket_begin(int b) const { return bounds_[b]; }
+  int64_t bucket_end(int b) const { return bounds_[b + 1]; }
   const std::vector<int32_t>& row_counts() const { return counts_; }
   std::string bucket_path(int b) const;
   // read one bucket back, sorted by (col, row), duplicates merged after remap()
@@ -56,7 +62,10 @@ class Sink {
   void flush(int b);
   std::string dir_;
   int buckets_;
-  int64_t nrow_, ncol_, per_;
+  int64_t nrow_, ncol_;
+  std::vector<int64_t> bounds_;   // bucket b holds columns [bounds_[b], bounds_[b + 1])
+  int bucket_of(int64_t c) const;
+  void uniform_bounds();
   std::vector<FILE*> files_;
   std::vector<std::vector<Entry>> buf_;
   size_t cap_;

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <charconv>
+#include <filesystem>
 #include <cmath>
 #include <cstring>
 #include <limits>
@@ -39,11 +40,25 @@ bool is_inf(double v) { return std::isinf(v); }
 Sink::Sink(std::string dir, int buckets, int64_t nrow, int64_t ncol)
     : dir_(std::move(dir)), buckets_(std::max(1, buckets)), nrow_(nrow), ncol_(ncol) {
   ensure_dir(dir_);
-  per_ = (ncol_ + buckets_ - 1) / buckets_;
-  if (per_ < 1) per_ = 1;
+  uniform_bounds();
   cap_ = 262144;   // entries per bucket buffer: 4 MB
   open_files();
   counts_.assign(static_cast<size_t>(nrow_), 0);
+}
+
+void Sink::uniform_bounds() {
+  int64_t per = (ncol_ + buckets_ - 1) / buckets_;
+  if (per < 1) per = 1;
+  bounds_.assign(buckets_ + 1, ncol_);
+  for (int b = 0; b <= buckets_; ++b) bounds_[b] = std::min<int64_t>(ncol_, static_cast<int64_t>(b) * per);
+}
+
+int Sink::bucket_of(int64_t c) const {
+  // the last boundary not above c
+  int b = static_cast<int>(std::upper_bound(bounds_.begin(), bounds_.end(), c) - bounds_.begin()) - 1;
+  if (b < 0) b = 0;
+  if (b >= buckets_) b = buckets_ - 1;
+  return b;
 }
 
 void Sink::open_files() {
@@ -57,7 +72,7 @@ void Sink::open_files() {
 }
 
 void Sink::remap(const int* ired, const int* jred, const int* ref, const double* coef,
-                 int64_t nrow_red, int64_t ncol_red, double tol) {
+                 int64_t nrow_red, int64_t ncol_red, double tol, const int64_t* col_nnz) {
   if (!closed_) throw std::runtime_error("close the sink before remapping it");
   if (mapped_ || merge_) throw std::runtime_error("the sink is already mapped");
   int64_t nrow_full = nrow_, ncol_full = ncol_;
@@ -70,8 +85,23 @@ void Sink::remap(const int* ired, const int* jred, const int* ref, const double*
   }
   int old_buckets = buckets_;
   nrow_ = nrow_red; ncol_ = ncol_red;
-  per_ = (ncol_ + buckets_ - 1) / buckets_;
-  if (per_ < 1) per_ = 1;
+  if (col_nnz) {
+    // cut at equal entry counts: a boundary moves on once the bucket holds
+    // its share, so a bucket holds at least one column
+    int64_t total = 0;
+    for (int64_t c = 0; c < ncol_; ++c) total += col_nnz[c];
+    int64_t share = total / buckets_ + 1;
+    bounds_.assign(buckets_ + 1, ncol_);
+    bounds_[0] = 0;
+    int b = 1;
+    int64_t acc = 0;
+    for (int64_t c = 0; c < ncol_ && b < buckets_; ++c) {
+      acc += col_nnz[c];
+      if (acc >= share) { bounds_[b++] = c + 1; acc = 0; }
+    }
+  } else {
+    uniform_bounds();
+  }
   counts_.assign(static_cast<size_t>(nrow_), 0);
   nnz_ = 0;
   closed_ = false;
@@ -80,10 +110,8 @@ void Sink::remap(const int* ired, const int* jred, const int* ref, const double*
   for (int b = 0; b < old_buckets; ++b) {
     FILE* f = std::fopen(raw[b].c_str(), "rb");
     if (!f) throw std::runtime_error("cannot read " + raw[b]);
-    std::fseek(f, 0, SEEK_END);
-    long sz = std::ftell(f);
-    std::fseek(f, 0, SEEK_SET);
-    v.resize(static_cast<size_t>(sz) / sizeof(Entry));
+    // the size from the file system: ftell() is 32-bit on some platforms
+    v.resize(static_cast<size_t>(std::filesystem::file_size(raw[b]) / sizeof(Entry)));
     if (!v.empty() && std::fread(v.data(), sizeof(Entry), v.size(), f) != v.size()) {
       std::fclose(f);
       throw std::runtime_error("short read on " + raw[b]);
@@ -127,7 +155,7 @@ void Sink::flush(int b) {
 
 void Sink::push(int32_t r, int32_t c, double x) {
   if (r < 0 || r >= nrow_ || c < 0 || c >= ncol_) throw std::runtime_error("entry outside the LP dimensions");
-  int b = static_cast<int>(c / per_);
+  int b = bucket_of(c);
   buf_[b].push_back(Entry{r, c, x});
   counts_[r]++;
   nnz_++;
@@ -189,10 +217,7 @@ std::vector<Entry> Sink::read_bucket_raw(int b) const {
   std::vector<Entry> v;
   FILE* f = std::fopen(bucket_path(b).c_str(), "rb");
   if (!f) throw std::runtime_error("cannot read bucket file " + bucket_path(b));
-  std::fseek(f, 0, SEEK_END);
-  long sz = std::ftell(f);
-  std::fseek(f, 0, SEEK_SET);
-  v.resize(static_cast<size_t>(sz) / sizeof(Entry));
+  v.resize(static_cast<size_t>(std::filesystem::file_size(bucket_path(b)) / sizeof(Entry)));
   if (!v.empty() && std::fread(v.data(), sizeof(Entry), v.size(), f) != v.size()) {
     std::fclose(f);
     throw std::runtime_error("short read on " + bucket_path(b));
@@ -260,8 +285,8 @@ int64_t write_mps(const std::string& file, const Sink& sink, const LpBounds& lp,
   int64_t written = 0;
   for (int b = 0; b < sink.buckets(); ++b) {
     std::vector<Entry> e = sink.read_bucket(b);
-    int64_t c0 = static_cast<int64_t>(b) * sink.cols_per_bucket();
-    int64_t c1 = std::min(ncol, c0 + sink.cols_per_bucket());
+    int64_t c0 = sink.bucket_begin(b);
+    int64_t c1 = sink.bucket_end(b);
     size_t k = 0;
     for (int64_t c = c0; c < c1; ++c) {
       std::string cname = "c" + std::to_string(c);
