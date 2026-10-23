@@ -120,6 +120,10 @@ class Executor {
   bool add_table(const std::string& name, Table t);
   bool has_table(const std::string& name) const { return tables_.count(name) != 0; }
   Triplets run(const Plan& plan);
+  // the hash indexes kept between runs: their size, and trimming to a
+  // budget by dropping the least recently used
+  size_t cache_bytes() const;
+  void trim_cache(size_t limit);
 
  private:
   // the entries a plan's terms produce, before the per-(row, column) sum
@@ -153,7 +157,9 @@ class Executor {
   std::map<std::string, Table> tables_;
   int threads_ = 1;
   int64_t slice_rows_ = 16000000;
-  std::map<std::string, std::unique_ptr<KeyIndex>> index_cache_;
+  struct Cached { std::unique_ptr<KeyIndex> index; uint64_t last_use = 0; };
+  std::map<std::string, Cached> index_cache_;
+  uint64_t use_clock_ = 0;
   std::map<std::string, double> stats_;
 };
 

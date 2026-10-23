@@ -89,7 +89,7 @@ const KeyIndex& Executor::index(const std::string& tname, const std::vector<std:
   std::string key = tname;
   for (const auto& c : cols) { key += '\x1f'; key += c; }
   auto it = index_cache_.find(key);
-  if (it != index_cache_.end()) return *it->second;
+  if (it != index_cache_.end()) { it->second.last_use = ++use_clock_; return *it->second.index; }
   Timer tm(stats_, "index");
   const Table& t = table(tname);
   KeyCols kc;
@@ -101,8 +101,28 @@ const KeyIndex& Executor::index(const std::string& tname, const std::vector<std:
   auto ix = std::make_unique<KeyIndex>();
   ix->build(kc, t.n);
   const KeyIndex& ref = *ix;
-  index_cache_[key] = std::move(ix);
+  Cached& c = index_cache_[key];
+  c.index = std::move(ix);
+  c.last_use = ++use_clock_;
   return ref;
+}
+
+size_t Executor::cache_bytes() const {
+  size_t b = 0;
+  for (const auto& kv : index_cache_) b += kv.second.index->bytes();
+  return b;
+}
+
+void Executor::trim_cache(size_t limit) {
+  size_t b = cache_bytes();
+  while (b > limit && !index_cache_.empty()) {
+    auto victim = index_cache_.begin();
+    for (auto it = index_cache_.begin(); it != index_cache_.end(); ++it) {
+      if (it->second.last_use < victim->second.last_use) victim = it;
+    }
+    b -= victim->second.index->bytes();
+    index_cache_.erase(victim);
+  }
 }
 
 KeyCols Executor::probe_cols(const Env& env, const OnPairs& on) const {

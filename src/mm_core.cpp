@@ -231,6 +231,20 @@ strings mm_block_add(sexp ex, list tables) {
 }
 
 // Run a plan over one chunk of rows on an open executor.
+// size of the executor's index cache, in bytes
+[[cpp11::register]]
+double mm_block_cache(sexp ex) {
+  external_pointer<multimod::Executor> p(ex);
+  return static_cast<double>(p->cache_bytes());
+}
+
+// drop least recently used indexes until the cache is within `bytes`
+[[cpp11::register]]
+void mm_block_trim(sexp ex, double bytes) {
+  external_pointer<multimod::Executor> p(ex);
+  p->trim_cache(bytes < 0 ? 0 : static_cast<size_t>(bytes));
+}
+
 [[cpp11::register]]
 list mm_block_run(sexp ex, list plan, list rows) {
   external_pointer<multimod::Executor> p(ex);
@@ -330,25 +344,68 @@ void mm_scan_attach(sexp scan, sexp sink) {
   p->attach(s.get());
 }
 
-// `col_nnz`: the entry count of every full-index column after the
-// substitution (NULL: buckets of equal column count)
+// The doubleton substitution composed from the scan; the tracked entries are
+// consumed. `candidate`: the rows that may be dropped; `is_int`: the columns
+// that may not be eliminated (each a logical, or NULL). The map stays in the
+// core (external pointer); the eliminated table comes back as vectors.
 [[cpp11::register]]
-void mm_sink_remap(sexp sink, integers ired, integers jred, integers ref, doubles coef, double tol, sexp col_nnz) {
-  external_pointer<multimod::Sink> p(sink);
-  if (ref.size() != jred.size() || coef.size() != jred.size()) stop("ref and coef must match jred");
-  if (ired.size() != p->nrow() || jred.size() != p->ncol()) stop("the map does not match the sink's dimensions");
-  int64_t nr = 0, nc = 0;
-  for (R_xlen_t k = 0; k < ired.size(); ++k) if (INTEGER(ired)[k] > 0) ++nr;
-  for (R_xlen_t k = 0; k < jred.size(); ++k) if (INTEGER(jred)[k] > 0) ++nc;
-  std::vector<int64_t> nnz;
-  if (col_nnz != R_NilValue) {
-    doubles cn(col_nnz);
-    if (cn.size() != jred.size()) stop("col_nnz must match jred");
-    nnz.reserve(static_cast<size_t>(nc));
-    for (R_xlen_t k = 0; k < jred.size(); ++k) if (INTEGER(jred)[k] > 0) nnz.push_back(static_cast<int64_t>(REAL(cn)[k]));
-  }
+list mm_presolve_map(sexp scan, sexp candidate, sexp is_int, doubles col_lo, doubles col_up, int max_pass,
+                     double tol, int threads, bool verbose) {
+  external_pointer<multimod::Scan> p(scan);
+  if (col_lo.size() != p->ncol() || col_up.size() != p->ncol()) stop("column bounds do not match the column count");
+  std::unique_ptr<multimod::PresolveMap> m(new multimod::PresolveMap());
+  std::function<void(const std::string&)> log;
+  if (verbose) log = [](const std::string& s) { message(s.c_str()); };
   try {
-    p->remap(INTEGER(ired), INTEGER(jred), INTEGER(ref), REAL(coef), nr, nc, tol, nnz.empty() ? nullptr : nnz.data());
+    *m = multimod::presolve_map(*p, mask_of(candidate), mask_of(is_int), REAL(col_lo), REAL(col_up), max_pass, tol, threads, log);
+  } catch (const std::exception& e) {
+    stop("presolve: %s", e.what());
+  }
+  sexp col = int_vector(m->el_col), ref = int_vector(m->el_ref), coef = dbl_vector(m->el_coef), pass = int_vector(m->el_pass);
+  std::vector<int32_t>().swap(m->el_col); std::vector<int32_t>().swap(m->el_ref);
+  std::vector<double>().swap(m->el_coef); std::vector<int32_t>().swap(m->el_pass);
+  double crossing = static_cast<double>(m->crossing);
+  int passes = m->passes;
+  external_pointer<multimod::PresolveMap> ptr(m.release());
+  return writable::list({
+    "map"_nm = sexp(static_cast<SEXP>(ptr)),
+    "col"_nm = col, "ref"_nm = ref, "coef"_nm = coef, "pass"_nm = pass,
+    "crossing"_nm = as_sexp(crossing), "passes"_nm = as_sexp(passes)});
+}
+
+// the reduced position of every column ("col") or row ("row"), NA when
+// eliminated: the index tables' jred / ired columns
+[[cpp11::register]]
+sexp mm_map_positions(sexp map, std::string what) {
+  external_pointer<multimod::PresolveMap> m(map);
+  const std::vector<int32_t>& v = what == "col" ? m->jred : m->ired;
+  sexp out = safe[Rf_allocVector](INTSXP, static_cast<R_xlen_t>(v.size()));
+  int* o = INTEGER(out);
+  for (size_t k = 0; k < v.size(); ++k) o[k] = v[k] > 0 ? v[k] : NA_INTEGER;
+  return out;
+}
+
+// the map's full vectors (diagnostics and tests)
+[[cpp11::register]]
+list mm_map_vectors(sexp map) {
+  external_pointer<multimod::PresolveMap> m(map);
+  std::vector<double> nnz(m->nnz.begin(), m->nnz.end());
+  return writable::list({
+    "jred"_nm = int_vector(m->jred), "ired"_nm = int_vector(m->ired),
+    "ref"_nm = int_vector(m->ref), "coef"_nm = dbl_vector(m->coef),
+    "col_lo"_nm = dbl_vector(m->col_lo), "col_up"_nm = dbl_vector(m->col_up),
+    "nnz"_nm = dbl_vector(nnz)});
+}
+
+// apply a composed map to the spooled entries
+[[cpp11::register]]
+void mm_sink_remap(sexp sink, sexp map, double tol) {
+  external_pointer<multimod::Sink> p(sink);
+  external_pointer<multimod::PresolveMap> m(map);
+  if (static_cast<int64_t>(m->ired.size()) != p->nrow() || static_cast<int64_t>(m->jred.size()) != p->ncol())
+    stop("the map does not match the sink's dimensions");
+  try {
+    p->remap(*m, tol);
   } catch (const std::exception& e) {
     stop("sink: %s", e.what());
   }
@@ -360,34 +417,6 @@ list mm_scan_counts(sexp scan) {
   return writable::list({
     "row_counts"_nm = int_vector(std::vector<int>(p->row_counts().begin(), p->row_counts().end())),
     "col_counts"_nm = int_vector(std::vector<int>(p->col_counts().begin(), p->col_counts().end()))});
-}
-
-// The doubleton substitution composed from the scan; the tracked entries are
-// consumed. `candidate`: the rows that may be dropped; `is_int`: the columns
-// that may not be eliminated (each a logical, or NULL).
-[[cpp11::register]]
-list mm_presolve_map(sexp scan, sexp candidate, sexp is_int, doubles col_lo, doubles col_up, int max_pass,
-                     double tol, int threads, bool verbose) {
-  external_pointer<multimod::Scan> p(scan);
-  if (col_lo.size() != p->ncol() || col_up.size() != p->ncol()) stop("column bounds do not match the column count");
-  multimod::PresolveMap m;
-  std::function<void(const std::string&)> log;
-  if (verbose) log = [](const std::string& s) { message(s.c_str()); };
-  try {
-    m = multimod::presolve_map(*p, mask_of(candidate), mask_of(is_int), REAL(col_lo), REAL(col_up), max_pass, tol, threads, log);
-  } catch (const std::exception& e) {
-    stop("presolve: %s", e.what());
-  }
-  std::vector<double> nnz(m.nnz.begin(), m.nnz.end());
-  return writable::list({
-    "col"_nm = int_vector(m.el_col), "ref"_nm = int_vector(m.el_ref), "coef"_nm = dbl_vector(m.el_coef),
-    "pass"_nm = int_vector(m.el_pass),
-    "jred"_nm = int_vector(m.jred), "ired"_nm = int_vector(m.ired),
-    "final_ref"_nm = int_vector(m.ref), "final_coef"_nm = dbl_vector(m.coef),
-    "col_lo"_nm = dbl_vector(m.col_lo), "col_up"_nm = dbl_vector(m.col_up),
-    "nnz"_nm = dbl_vector(nnz),
-    "crossing"_nm = as_sexp(static_cast<double>(m.crossing)),
-    "passes"_nm = as_sexp(m.passes)});
 }
 
 [[cpp11::register]]
@@ -427,8 +456,8 @@ list mm_scan_close(sexp scan) {
   return writable::list({
     "row_counts"_nm = int_vector(std::vector<int>(p->row_counts().begin(), p->row_counts().end())),
     "col_counts"_nm = int_vector(std::vector<int>(p->col_counts().begin(), p->col_counts().end())),
-    "row"_nm = int_vector(std::vector<int>(p->s_row().begin(), p->s_row().end())),
-    "col"_nm = int_vector(std::vector<int>(p->s_col().begin(), p->s_col().end())),
+    "row"_nm = int_vector(p->s_row()),
+    "col"_nm = int_vector(p->s_col()),
     "x"_nm = dbl_vector(p->s_x())});
 }
 
@@ -444,13 +473,26 @@ list mm_sink_close(sexp sink) {
                          "row_counts"_nm = int_vector(std::vector<int>(p->row_counts().begin(), p->row_counts().end()))});
 }
 
+// `sense`: 0 '==', 1 '<=', 2 '>=' per full row; `rhs` per full row; the
+// objective sparse (1-based full columns); column bounds per full column;
+// `map` an external pointer or NULL
 [[cpp11::register]]
-double mm_mps_write(std::string file, sexp sink, doubles row_lo, doubles row_up,
-                    doubles col_lo, doubles col_up, doubles obj, bool maximum) {
+double mm_mps_write(std::string file, sexp sink, sexp map, integers sense, doubles rhs,
+                    integers obj_j, doubles obj_x, doubles col_lo, doubles col_up,
+                    bool maximum, double tol) {
   external_pointer<multimod::Sink> p(sink);
-  if (row_lo.size() != p->nrow() || row_up.size() != p->nrow()) stop("row bounds do not match the sink's rows");
-  if (col_lo.size() != p->ncol() || col_up.size() != p->ncol() || obj.size() != p->ncol()) stop("column vectors do not match the sink's columns");
-  multimod::LpBounds lp{REAL(row_lo), REAL(row_up), REAL(col_lo), REAL(col_up), REAL(obj), maximum};
+  if (rhs.size() != sense.size()) stop("sense and rhs differ in length");
+  if (col_lo.size() != col_up.size()) stop("column bounds differ in length");
+  if (obj_j.size() != obj_x.size()) stop("objective positions and values differ in length");
+  std::vector<int8_t> sc(static_cast<size_t>(sense.size()));
+  for (R_xlen_t k = 0; k < sense.size(); ++k) sc[k] = static_cast<int8_t>(INTEGER(sense)[k]);
+  multimod::LpInput lp{sc.data(), REAL(rhs), REAL(col_lo), REAL(col_up),
+                       INTEGER(obj_j), REAL(obj_x), static_cast<int64_t>(obj_j.size()),
+                       maximum, tol, static_cast<int64_t>(sense.size()), static_cast<int64_t>(col_lo.size()), nullptr};
+  if (map != R_NilValue) {
+    external_pointer<multimod::PresolveMap> m(map);
+    lp.map = m.get();
+  }
   try {
     return static_cast<double>(multimod::write_mps(file, *p, lp));
   } catch (const std::exception& e) {

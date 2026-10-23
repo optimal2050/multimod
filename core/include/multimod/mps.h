@@ -8,6 +8,8 @@
 #include <string>
 #include <vector>
 
+#include "multimod/presolve.h"
+
 namespace multimod {
 
 struct Entry {
@@ -44,6 +46,9 @@ class Sink {
   // the others however the entries are distributed over the columns.
   void remap(const int* ired, const int* jred, const int* ref, const double* coef,
              int64_t nrow_red, int64_t ncol_red, double tol, const int64_t* col_nnz = nullptr);
+  // the same, from a composed map: the reduced dimensions and the entry
+  // counts of the reduced columns come from it
+  void remap(const PresolveMap& map, double tol);
   bool closed() const { return closed_; }
   int buckets() const { return buckets_; }
   int64_t nrow() const { return nrow_; }
@@ -83,17 +88,25 @@ class Sink {
   void open_files();
 };
 
-struct LpBounds {
-  const double* row_lo; const double* row_up;
-  const double* col_lo; const double* col_up;
-  const double* obj;
+// The LP around the matrix, in full-index terms: one entry per row and
+// column of the model as built. With a map, the writer reduces them itself:
+// dropped rows are skipped, eliminated columns' objective entries move to
+// their references, and the column bounds are the map's tightened ones.
+struct LpInput {
+  const int8_t* sense;            // per row: 0 '==', 1 '<=', 2 '>='
+  const double* rhs;              // per row
+  const double* col_lo; const double* col_up;   // per column (ignored with a map)
+  const int* obj_j; const double* obj_x; int64_t obj_n;   // the objective, sparse, 1-based
   bool maximum;
+  double tol;                     // |value| below it is written as 0
+  int64_t nrow_full, ncol_full;
+  const PresolveMap* map;         // nullptr: no reduction
 };
 
 // Write the LP whose entries the sink holds as a free-format MPS file with
 // positional names c<j> and r<i>, every column present. Returns the number
 // of matrix entries written.
-int64_t write_mps(const std::string& file, const Sink& sink, const LpBounds& lp,
+int64_t write_mps(const std::string& file, const Sink& sink, const LpInput& lp,
                   const std::string& name = "model");
 
 }  // namespace multimod

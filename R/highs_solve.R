@@ -212,7 +212,7 @@ model_to_lp <- function(model, col_index = NULL, row_index = NULL,
   obj <- numeric(nrow(col_index))
   obj[jj] <- 1
   sense <- if (is.null(o$sense)) "minimize" else tolower(o$sense[1])
-  list(obj = obj, maximum = sense %in% c("max", "maximize", "maximise"),
+  list(obj = obj, j = jj, maximum = sense %in% c("max", "maximize", "maximise"),
        symbol = vname)
 }
 
@@ -503,11 +503,18 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
     rhs[abs(rhs) < ztol] <- 0
     rhs
   }
-  sense <- row_index$sense
-  col_lo <- .zero_small(col_index$lo, ztol)
-  col_up <- .zero_small(col_index$up, ztol)
+  # Everything the writer needs stays at full-index length and is passed
+  # as it is: the sense as a small code, the right-hand side, the objective
+  # sparse, the column bounds straight from the index table. The writer
+  # applies the zero tolerance and, with a map, the reduction itself.
+  sense_code <- match(row_index$sense, c("==", "<=", ">=")) - 1L
+  if (anyNA(sense_code)) {
+    stop("write_mps: unknown relation(s): ",
+         paste(unique(row_index$sense[is.na(sense_code)]), collapse = ", "), call. = FALSE)
+  }
   obj_spec <- .lp_objective(model, col_index)
-  obj <- obj_spec$obj
+  obj_j <- as.integer(obj_spec$j)
+  obj_x <- rep(1, length(obj_j))
   eliminated <- NULL
   map <- NULL
 
@@ -519,56 +526,49 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
     track <- as.integer(getOption("multimod.presolve_track", 4L))
     sink <- mm_sink_open(parts, as.integer(buckets), nrow_lp, ncol_lp)
     # only an equality row can be substituted away: the others just count
-    scan <- structure(mm_scan_open(nrow_lp, ncol_lp, track, sense == "==", .mx_threads()),
+    scan <- structure(mm_scan_open(nrow_lp, ncol_lp, track, sense_code == 0L, .mx_threads()),
                       class = "mm_scan")
     mm_scan_attach(scan, sink)
     tr <- build(scan)
     mm_sink_close(sink)
     rhs <- rhs_of(tr)
+    rm(tr); gc(FALSE)
     .report_empty_rows(which(mm_scan_counts(scan)$row_counts == 0L), row_index, on_empty_row)
     vt <- if ("vtype" %in% names(col_index)) col_index[["vtype"]] else NULL
     if (verbose) message(format(Sys.time(), "[%H:%M:%S] "), "composing the substitution")
-    map <- .mx_presolve_map(scan, sense, rhs, col_lo, col_up, vt, tol = ztol, verbose = verbose)
-    rm(scan)
-    eliminated <- map$eliminated
-    # the objective of an eliminated column moves to its reference
-    e <- which(map$jred == 0L & obj != 0)
-    if (length(e)) {
-      obj[map$ref[e]] <- obj[map$ref[e]] + obj[e] * map$coef[e]
-      obj[e] <- 0
-    }
-    keep_r <- map$ired > 0L
-    keep_c <- map$jred > 0L
+    pm <- .mx_presolve_map(scan, row_index$sense, rhs, col_index$lo, col_index$up, vt,
+                           tol = ztol, verbose = verbose)
+    rm(scan); gc(FALSE)
+    map <- pm$map
+    eliminated <- pm$eliminated
+    rm(pm)
     if (verbose) message(format(Sys.time(), "[%H:%M:%S] "), "applying the substitution to the spooled entries")
     # the buckets of the reduced LP are cut at equal entry counts
-    mm_sink_remap(sink, map$ired, map$jred, map$ref, map$coef, ztol, map$nnz)
-    row_lo <- ifelse(sense == "<=", -Inf, rhs)[keep_r]
-    row_up <- ifelse(sense == ">=",  Inf, rhs)[keep_r]
-    col_lo <- map$col_lo[keep_c]
-    col_up <- map$col_up[keep_c]
-    obj <- obj[keep_c]
-    nrow_out <- sum(keep_r); ncol_out <- sum(keep_c)
+    mm_sink_remap(sink, map, ztol)
+    nrow_out <- sum(!is.na(mm_map_positions(map, "row")))
+    ncol_out <- sum(!is.na(mm_map_positions(map, "col")))
   } else {
     sink <- mm_sink_open(parts, as.integer(buckets), nrow_lp, ncol_lp)
     tr <- build(sink)
     closed <- mm_sink_close(sink)
     rhs <- rhs_of(tr)
+    rm(tr); gc(FALSE)
     .report_empty_rows(which(closed$row_counts == 0L), row_index, on_empty_row)
-    row_lo <- ifelse(sense == "<=", -Inf, rhs)
-    row_up <- ifelse(sense == ">=",  Inf, rhs)
     nrow_out <- nrow_lp; ncol_out <- ncol_lp
   }
   row_index <- data.table::setDT(as.list(row_index))
   data.table::set(row_index, j = "rhs", value = rhs)
   if (!is.null(map)) {
     col_index <- data.table::setDT(as.list(col_index))
-    data.table::set(col_index, j = "jred", value = ifelse(map$jred == 0L, NA_integer_, map$jred))
-    data.table::set(row_index, j = "ired", value = ifelse(map$ired == 0L, NA_integer_, map$ired))
+    data.table::set(col_index, j = "jred", value = mm_map_positions(map, "col"))
+    data.table::set(row_index, j = "ired", value = mm_map_positions(map, "row"))
   }
 
   if (verbose) message(format(Sys.time(), "[%H:%M:%S] "), "writing MPS ", file)
-  nnz <- mm_mps_write(file, sink, row_lo, row_up, col_lo, col_up, obj,
-                      isTRUE(obj_spec$maximum))
+  nnz <- mm_mps_write(file, sink, map, sense_code, rhs, obj_j, obj_x,
+                      as.numeric(col_index$lo), as.numeric(col_index$up),
+                      isTRUE(obj_spec$maximum), ztol)
+  rm(sink, map); gc(FALSE)
   paths <- .write_index_tables(col_index, row_index, eliminated, index_dir,
                                tools::file_path_sans_ext(basename(file)), format)
   if (verbose) {

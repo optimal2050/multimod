@@ -80,7 +80,7 @@ test_that("the native presolve map equals the R reference", {
     ns$mm_scan_add(scan, ri, cj, A@x)
     closed <- ns$mm_scan_close(scan)
     mr <- ns$.mx_presolve_map_r(closed, sense, rhs, lp$col_lo, lp$col_up, lp$col_index$vtype)
-    mn <- ns$.mx_presolve_map(scan, sense, rhs, lp$col_lo, lp$col_up, lp$col_index$vtype)
+    mn <- ns$.mx_presolve_map(scan, sense, rhs, lp$col_lo, lp$col_up, lp$col_index$vtype, full = TRUE)
     expect_equal(unname(as.list(ord(as.data.frame(mn$eliminated)))),
                  unname(as.list(ord(as.data.frame(mr$eliminated)))), info = track)
     expect_identical(mn$jred, mr$jred)

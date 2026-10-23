@@ -504,6 +504,14 @@
 
 # threads of the native executor: `options(multimod.threads = )`, default the
 # machine's cores
+#' The executor's index cache budget in bytes (Inf: keep every index)
+#' @keywords internal
+#' @noRd
+.mx_cache_limit <- function() {
+  g <- suppressWarnings(as.numeric(getOption("multimod.cache_gb", Inf)))
+  if (is.na(g) || g < 0) Inf else g * 2^30
+}
+
 #' Rows an expansion may produce before the executor runs it in slices
 #' @keywords internal
 #' @noRd

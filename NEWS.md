@@ -21,6 +21,13 @@
 * The native executor runs a term's expansion in slices when it would
   exceed `options(multimod.slice_rows = 16e6)` rows, so an equation that
   sums over a large set no longer holds the whole expansion at once.
+* The streamed route holds less: the substitution map stays in compiled
+  code and the writer takes the model's rows and columns as they are, the
+  scan keeps its entries in fixed blocks, the hash indexes are a third
+  smaller, and the build collects its intermediates as it goes.
+  `options(multimod.cache_gb = )` caps the executor's index cache, dropping
+  the least recently used indexes (rebuilt when needed again) for a lower
+  peak at some cost in time.
 * `specs/goldens/matrix/` holds the LP of the two example models as plain
   tables; `tests/testthat/test-matrix-goldens.R` checks the assembly against
   them coefficient for coefficient.

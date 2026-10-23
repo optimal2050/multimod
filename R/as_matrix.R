@@ -1623,6 +1623,8 @@ build_triplets <- function(model, col_index = NULL, row_index = NULL,
   native <- list()
   ctx$lower_why <- list()
   ctx$native_stats <- list()
+  cache_limit <- .mx_cache_limit()
+  gc_rows <- 0L
 
   for (n in seq_along(todo)) {
     nm <- todo[n]
@@ -1630,18 +1632,18 @@ build_triplets <- function(model, col_index = NULL, row_index = NULL,
     if (is.null(eq)) next
     ctx$trace_eq <- nm
     rg <- ranges[symbol == nm]
-    rows <- rows_coded[rg$from:rg$to]
     lowered <- if (identical(engine, "native")) .mx_lower_equation(eq, ctx) else NULL
     native[[nm]] <- !is.null(lowered)
 
     t0 <- Sys.time()
-    nr <- nrow(rows)
+    nr <- rg$to - rg$from + 1L
     n_chunks <- max(1L, as.integer(ceiling(nr / chunk_rows)))
     mats <- vector("list", n_chunks)
     csts <- vector("list", n_chunks)
     for (ck in seq_len(n_chunks)) {
-      sl <- if (n_chunks == 1L) rows else
-        rows[(((ck - 1L) * chunk_rows) + 1L):min(ck * chunk_rows, nr)]
+      # each chunk sliced straight from the coded row table: no copy of the
+      # equation's rows as a whole
+      sl <- rows_coded[(rg$from + (ck - 1L) * chunk_rows):min(rg$from + ck * chunk_rows - 1L, rg$to)]
       if (!is.null(lowered)) {
         blk <- .mx_exec_block(lowered, sl, ctx, sink)
         mats[[ck]] <- blk$mat
@@ -1684,6 +1686,15 @@ build_triplets <- function(model, col_index = NULL, row_index = NULL,
       data.table::rbindlist(mats, use.names = TRUE)
     rhs[[n]] <- if (n_chunks == 1L) csts[[1L]] else
       data.table::rbindlist(csts, use.names = TRUE)
+    # the chunk tables and intermediates of the equations done so far are
+    # collected once they amount to a few million rows of work, which keeps
+    # the heap near the live data instead of growing between R's own
+    # collections; with a cache budget, the executor's least recently used
+    # indexes go too
+    rm(mats, csts)
+    gc_rows <- gc_rows + nr
+    if (gc_rows > 2000000L) { gc(FALSE); gc_rows <- 0L }
+    if (is.finite(cache_limit) && !is.null(ctx$ex)) mm_block_trim(ctx$ex, cache_limit)
     if (verbose) {
       message(sprintf("  %-30s rows=%-7d nnz=%-8d %.1fs", nm, nr,
                       nrow(tri[[n]]),
@@ -1691,6 +1702,9 @@ build_triplets <- function(model, col_index = NULL, row_index = NULL,
     }
   }
 
+  if (verbose && !is.null(ctx$ex)) {
+    message(sprintf("  executor index cache: %.2f GB", mm_block_cache(ctx$ex) / 2^30))
+  }
   out <- list(
     triplets  = data.table::rbindlist(tri, use.names = TRUE),
     rhs       = data.table::rbindlist(rhs, use.names = TRUE),
