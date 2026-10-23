@@ -41,15 +41,71 @@ Sink::Sink(std::string dir, int buckets, int64_t nrow, int64_t ncol)
   ensure_dir(dir_);
   per_ = (ncol_ + buckets_ - 1) / buckets_;
   if (per_ < 1) per_ = 1;
-  files_.assign(buckets_, nullptr);
-  buf_.resize(buckets_);
   cap_ = 262144;   // entries per bucket buffer: 4 MB
+  open_files();
+  counts_.assign(static_cast<size_t>(nrow_), 0);
+}
+
+void Sink::open_files() {
+  files_.assign(buckets_, nullptr);
+  buf_.assign(buckets_, {});
   for (int b = 0; b < buckets_; ++b) {
     files_[b] = std::fopen(bucket_path(b).c_str(), "wb");
     if (!files_[b]) throw std::runtime_error("cannot open bucket file " + bucket_path(b));
     buf_[b].reserve(cap_);
   }
+}
+
+void Sink::remap(const int* ired, const int* jred, const int* ref, const double* coef,
+                 int64_t nrow_red, int64_t ncol_red, double tol) {
+  if (!closed_) throw std::runtime_error("close the sink before remapping it");
+  if (mapped_ || merge_) throw std::runtime_error("the sink is already mapped");
+  int64_t nrow_full = nrow_, ncol_full = ncol_;
+  // the raw buckets move aside; the reduced LP is spooled into fresh ones
+  std::vector<std::string> raw(buckets_);
+  for (int b = 0; b < buckets_; ++b) {
+    raw[b] = bucket_path(b) + ".raw";
+    std::remove(raw[b].c_str());
+    if (std::rename(bucket_path(b).c_str(), raw[b].c_str()) != 0) throw std::runtime_error("cannot rename " + bucket_path(b));
+  }
+  int old_buckets = buckets_;
+  nrow_ = nrow_red; ncol_ = ncol_red;
+  per_ = (ncol_ + buckets_ - 1) / buckets_;
+  if (per_ < 1) per_ = 1;
   counts_.assign(static_cast<size_t>(nrow_), 0);
+  nnz_ = 0;
+  closed_ = false;
+  open_files();
+  std::vector<Entry> v;
+  for (int b = 0; b < old_buckets; ++b) {
+    FILE* f = std::fopen(raw[b].c_str(), "rb");
+    if (!f) throw std::runtime_error("cannot read " + raw[b]);
+    std::fseek(f, 0, SEEK_END);
+    long sz = std::ftell(f);
+    std::fseek(f, 0, SEEK_SET);
+    v.resize(static_cast<size_t>(sz) / sizeof(Entry));
+    if (!v.empty() && std::fread(v.data(), sizeof(Entry), v.size(), f) != v.size()) {
+      std::fclose(f);
+      throw std::runtime_error("short read on " + raw[b]);
+    }
+    std::fclose(f);
+    std::remove(raw[b].c_str());
+    for (const Entry& e : v) {
+      if (e.row < 0 || e.row >= nrow_full || e.col < 0 || e.col >= ncol_full) throw std::runtime_error("entry outside the LP dimensions");
+      if (ired[e.row] == 0) continue;                 // an eliminated row
+      int32_t c = e.col;
+      double x = e.x;
+      if (jred[c] == 0) {                             // an eliminated column
+        x *= coef[c];
+        c = ref[c] - 1;
+        if (c < 0 || jred[c] == 0) throw std::runtime_error("substitution refers to an eliminated column");
+      }
+      push(ired[e.row] - 1, jred[c] - 1, x);
+    }
+  }
+  close();
+  merge_ = true;
+  tol_ = tol;
 }
 
 Sink::~Sink() {
@@ -129,7 +185,7 @@ void Sink::close() {
   closed_ = true;
 }
 
-std::vector<Entry> Sink::read_bucket(int b) const {
+std::vector<Entry> Sink::read_bucket_raw(int b) const {
   std::vector<Entry> v;
   FILE* f = std::fopen(bucket_path(b).c_str(), "rb");
   if (!f) throw std::runtime_error("cannot read bucket file " + bucket_path(b));
@@ -142,9 +198,25 @@ std::vector<Entry> Sink::read_bucket(int b) const {
     throw std::runtime_error("short read on " + bucket_path(b));
   }
   std::fclose(f);
+  return v;
+}
+
+std::vector<Entry> Sink::read_bucket(int b) const {
+  std::vector<Entry> v = read_bucket_raw(b);
   std::sort(v.begin(), v.end(), [](const Entry& a, const Entry& c) {
     return a.col < c.col || (a.col == c.col && a.row < c.row);
   });
+  if (!merge_ || v.empty()) return v;
+  // entries of one (row, column) summed; a sum within the tolerance dropped
+  size_t w = 0;
+  for (size_t k = 0; k < v.size();) {
+    size_t m = k + 1;
+    double x = v[k].x;
+    while (m < v.size() && v[m].col == v[k].col && v[m].row == v[k].row) { x += v[m].x; ++m; }
+    if (std::fabs(x) > tol_) { v[w] = v[k]; v[w].x = x; ++w; }
+    k = m;
+  }
+  v.resize(w);
   return v;
 }
 

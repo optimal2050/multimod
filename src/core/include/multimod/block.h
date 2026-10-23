@@ -109,8 +109,12 @@ struct Env {
 // the row table is replaced per chunk with set_table().
 class Executor {
  public:
-  explicit Executor(std::map<std::string, Table> tables, int threads = 1)
-      : tables_(std::move(tables)), threads_(threads < 1 ? 1 : threads) {}
+  // `slice_rows`: an expansion whose output would exceed this many rows is
+  // run in slices of its input rows, each slice carried through the rest of
+  // the term, so that the environment of a term never exceeds the budget
+  explicit Executor(std::map<std::string, Table> tables, int threads = 1, int64_t slice_rows = 16000000)
+      : tables_(std::move(tables)), threads_(threads < 1 ? 1 : threads),
+        slice_rows_(slice_rows < 1 ? 1 : slice_rows) {}
   void set_table(const std::string& name, Table t);
   // register a table once; a name already present is kept as it is
   bool add_table(const std::string& name, Table t);
@@ -118,7 +122,14 @@ class Executor {
   Triplets run(const Plan& plan);
 
  private:
+  // the entries a plan's terms produce, before the per-(row, column) sum
+  struct Acc {
+    std::vector<int> ai, aj; std::vector<double> ac;   // matrix entries
+    std::vector<int> ci; std::vector<double> cc;       // constant terms
+  };
   Triplets run_terms(const Plan& plan);
+  void run_steps(Env& env, const Term& term, size_t from, Acc& acc);
+  void deliver(const Env& env, Acc& acc) const;
   void keep_mask(Env& env, const std::vector<char>& keep);
   void group_sum(const std::vector<int>& a, const std::vector<int>& b, const std::vector<double>& w,
                  std::vector<int>& oa, std::vector<int>& ob, std::vector<double>& os, bool drop_zero);
@@ -127,7 +138,11 @@ class Executor {
   KeyCols probe_cols(const Env& env, const OnPairs& on) const;
 
   void gate(Env& env, const Step& s);
-  void expand(Env& env, const Step& s);
+  // matches per row of `env` in the step's table, as prefix sums (n + 1)
+  std::vector<int64_t> expand_count(const Env& env, const Step& s);
+  void expand_fill(Env& env, const Step& s, const std::vector<int64_t>& count);
+  // rows [b, e) of `env` as an environment of their own
+  static Env slice(const Env& env, int64_t b, int64_t e);
   void filter(Env& env, const Step& s);
   void factor(Env& env, const Step& s);
   void var(Env& env, const Step& s);
@@ -137,6 +152,7 @@ class Executor {
 
   std::map<std::string, Table> tables_;
   int threads_ = 1;
+  int64_t slice_rows_ = 16000000;
   std::map<std::string, std::unique_ptr<KeyIndex>> index_cache_;
   std::map<std::string, double> stats_;
 };

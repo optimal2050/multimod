@@ -32,6 +32,14 @@ class Sink {
   void set_map(const int* ired, const int* jred, const int* ref, const double* coef,
                int64_t nrow_full, int64_t ncol_full, double tol);
   void close();
+  // Apply a substitution to a closed, unmapped sink: the spooled entries are
+  // read bucket by bucket, dropped rows skipped, eliminated columns moved to
+  // `coef[c]` times `ref[c]` (see set_map), and re-spooled by reduced
+  // column. The sink then holds the reduced LP, its dimensions the reduced
+  // ones, and read_bucket() sums what lands on one (row, column), dropping
+  // a sum within `tol` of zero.
+  void remap(const int* ired, const int* jred, const int* ref, const double* coef,
+             int64_t nrow_red, int64_t ncol_red, double tol);
   bool closed() const { return closed_; }
   int buckets() const { return buckets_; }
   int64_t nrow() const { return nrow_; }
@@ -40,8 +48,9 @@ class Sink {
   int64_t cols_per_bucket() const { return per_; }
   const std::vector<int32_t>& row_counts() const { return counts_; }
   std::string bucket_path(int b) const;
-  // read one bucket back, sorted by (col, row)
+  // read one bucket back, sorted by (col, row), duplicates merged after remap()
   std::vector<Entry> read_bucket(int b) const;
+  std::vector<Entry> read_bucket_raw(int b) const;
 
  private:
   void flush(int b);
@@ -60,7 +69,9 @@ class Sink {
   const int* ref_ = nullptr; const double* coef_ = nullptr;
   int64_t nrow_full_ = 0, ncol_full_ = 0;
   double tol_ = 0.0;
+  bool merge_ = false;
   void push(int32_t r, int32_t c, double x);
+  void open_files();
 };
 
 struct LpBounds {

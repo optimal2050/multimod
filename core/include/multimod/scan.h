@@ -9,11 +9,16 @@
 
 namespace multimod {
 
+class Sink;
+
 class Scan {
  public:
   // `candidate`, when given, marks the rows worth tracking (1-based index
   // minus one); the others only count. Typically the equality rows.
   Scan(int64_t nrow, int64_t ncol, int track, std::vector<uint8_t> candidate = {}, int threads = 1);
+  // every entry added is also written to `sink` (the raw LP, to be remapped
+  // once the substitution is known); the sink must outlive the scan's use
+  void attach(Sink* sink) { sink_ = sink; }
   // 1-based ids; the entries of a chunk of complete rows
   void add(const int* i, const int* j, const double* x, int64_t n);
   int64_t nrow() const { return nrow_; }
@@ -34,6 +39,7 @@ class Scan {
   int track_;
   int threads_;
   std::vector<uint8_t> cand_;
+  Sink* sink_ = nullptr;
   std::vector<int32_t> rowc_, colc_;
   std::vector<int32_t> srow_, scol_;
   std::vector<double> sx_;

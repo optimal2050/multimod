@@ -465,7 +465,7 @@
   rt <- list(k = rows$i)
   for (n in seq_along(dims)) rt[[dims[n]]] <- rows[[paste0("i", n)]]
   ex <- if (!is.null(ctx)) .mx_executor(ctx, lowered$tables) else
-    mm_block_open(lowered$tables, .mx_threads())
+    mm_block_open(lowered$tables, .mx_threads(), .mx_slice_rows())
   if (!is.null(sink)) {
     # the entries go straight to the sink (or the scan); only the constants
     # come back
@@ -491,7 +491,7 @@
 #' @noRd
 .mx_executor <- function(ctx, tables) {
   if (is.null(ctx$ex)) {
-    ctx$ex <- mm_block_open(list(), .mx_threads())
+    ctx$ex <- mm_block_open(list(), .mx_threads(), .mx_slice_rows())
     ctx$ex_keep <- list()
   }
   new <- setdiff(names(tables), names(ctx$ex_keep))
@@ -504,6 +504,14 @@
 
 # threads of the native executor: `options(multimod.threads = )`, default the
 # machine's cores
+#' Rows an expansion may produce before the executor runs it in slices
+#' @keywords internal
+#' @noRd
+.mx_slice_rows <- function() {
+  n <- suppressWarnings(as.numeric(getOption("multimod.slice_rows", 16e6)))
+  if (is.na(n) || n < 1) 16e6 else n
+}
+
 .mx_threads <- function() {
   n <- getOption("multimod.threads", NULL)
   if (is.null(n)) n <- tryCatch(parallel::detectCores(logical = TRUE), error = function(e) 1L)

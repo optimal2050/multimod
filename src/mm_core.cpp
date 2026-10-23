@@ -202,7 +202,7 @@ list result_of(const multimod::Triplets& out) {
 // the tables are read in place: the caller keeps them alive while the
 // executor is used.
 [[cpp11::register]]
-sexp mm_block_open(list tables, int threads) {
+sexp mm_block_open(list tables, int threads, double slice_rows) {
   std::map<std::string, multimod::Table> tbl;
   if (tables.size() > 0) {
     strings tnames(tables.names());
@@ -211,7 +211,7 @@ sexp mm_block_open(list tables, int threads) {
       tbl[nm] = table_of(list(tables[t]), nm);
     }
   }
-  external_pointer<multimod::Executor> ptr(new multimod::Executor(std::move(tbl), threads));
+  external_pointer<multimod::Executor> ptr(new multimod::Executor(std::move(tbl), threads, static_cast<int64_t>(slice_rows)));
   return sexp(static_cast<SEXP>(ptr));
 }
 
@@ -322,6 +322,29 @@ sexp mm_scan_open(double nrow, double ncol, int track, sexp candidate, int threa
   }
 }
 
+// the scan writes every entry through to the sink as well
+[[cpp11::register]]
+void mm_scan_attach(sexp scan, sexp sink) {
+  external_pointer<multimod::Scan> p(scan);
+  external_pointer<multimod::Sink> s(sink);
+  p->attach(s.get());
+}
+
+[[cpp11::register]]
+void mm_sink_remap(sexp sink, integers ired, integers jred, integers ref, doubles coef, double tol) {
+  external_pointer<multimod::Sink> p(sink);
+  if (ref.size() != jred.size() || coef.size() != jred.size()) stop("ref and coef must match jred");
+  if (ired.size() != p->nrow() || jred.size() != p->ncol()) stop("the map does not match the sink's dimensions");
+  int64_t nr = 0, nc = 0;
+  for (R_xlen_t k = 0; k < ired.size(); ++k) if (INTEGER(ired)[k] > 0) ++nr;
+  for (R_xlen_t k = 0; k < jred.size(); ++k) if (INTEGER(jred)[k] > 0) ++nc;
+  try {
+    p->remap(INTEGER(ired), INTEGER(jred), INTEGER(ref), REAL(coef), nr, nc, tol);
+  } catch (const std::exception& e) {
+    stop("sink: %s", e.what());
+  }
+}
+
 [[cpp11::register]]
 list mm_scan_counts(sexp scan) {
   external_pointer<multimod::Scan> p(scan);
@@ -429,7 +452,7 @@ double mm_mps_write(std::string file, sexp sink, doubles row_lo, doubles row_up,
 // One-shot form: open, run, discard.
 [[cpp11::register]]
 list mm_exec_block(list plan, list tables) {
-  sexp ex = mm_block_open(tables, 1);
+  sexp ex = mm_block_open(tables, 1, 16000000);
   list rows(tables["rows"]);
   return mm_block_run(ex, plan, rows);
 }
