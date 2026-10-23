@@ -322,7 +322,8 @@ solve_highs <- function(model, lp = NULL, attach = TRUE, control = list(),
 #'   of `file`.
 #' @param lp Optional pre-built LP from [model_to_lp()].
 #' @param format Storage format for the index tables, passed to the package's
-#'   `.save_dataframe()`: `"parquet"` (default), `"ipc"` or `"csv"`.
+#'   `.save_dataframe()`: `"parquet"` (default; zstd level 3), `"ipc"` or
+#'   `"csv"`.
 #' @param presolve Logical; eliminate proportional columns with
 #'   [lp_presolve()] before writing. [read_mps_solution()] restores them.
 #'   Defaults to `getOption("multimod.presolve", FALSE)`.
@@ -427,8 +428,10 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
     }
     data.table::setDF(df)
   }
-  .save_dataframe(.index_df(col_index), col_path, format = format)
-  .save_dataframe(.index_df(row_index), row_path, format = format)
+  # zstd level 3: levels up to 12 give the same size; 15 and above spend
+  # tens of seconds per million rows on the sorted member columns
+  .save_dataframe(.index_df(col_index), col_path, format = format, compression_level = 3)
+  .save_dataframe(.index_df(row_index), row_path, format = format, compression_level = 3)
   # the decoder expands eliminated columns from this table; a stale one from an
   # earlier run with elimination must not survive a run without it
   elim_path <- file.path(index_dir, paste0(base, "_eliminated"))

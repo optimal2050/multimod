@@ -31,9 +31,12 @@ Functions for creating, managing, saving, and loading multimod model workspaces 
 \section{Storage Formats}{
 
 \itemize{
-\item \strong{csv} - Universal, human-readable (default)
-\item \strong{ipc} - Arrow IPC/Feather (.arrow extension), fastest, compression: zstd level 15 (recommended)
-\item \strong{parquet} - Popular Arrow format (but may have compatibility issues)
+\item \strong{parquet} - default; zstd level 3. The smallest for model
+data (set members and mappings are dictionary-encoded before
+compression) and read by every Arrow implementation
+\item \strong{ipc} - Arrow IPC/Feather (.arrow extension); faster to
+read, several times larger on categorical data
+\item \strong{csv} - Universal, human-readable
 }
 }
 

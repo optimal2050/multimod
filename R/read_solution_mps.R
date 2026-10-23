@@ -279,7 +279,9 @@ read_solver_solution <- function(file, solver = c("auto", "highs", "cuopt"),
 #' @param col_index,row_index Index tables, if already in memory.
 #' @param base Basename used when the index files were written; inferred from
 #'   the directory when there is exactly one candidate.
-#' @param format Storage format of the index tables.
+#' @param format Storage format of the index tables: `"parquet"` (default),
+#'   `"ipc"` or `"csv"`. When no table of that format is found, the one
+#'   format present in `index_dir` is read.
 #' @param solver Which solver wrote `sol`; `"auto"` sniffs the file.
 #' @param require_optimal Passed to the reader.
 #'
@@ -447,7 +449,17 @@ read_mps_solution <- function(sol, index_dir = NULL, col_index = NULL,
     }
     base <- cand
   }
-  ci <- .load_dataframe(file.path(index_dir, paste0(base, "_col_index")), format)
+  col_path <- file.path(index_dir, paste0(base, "_col_index"))
+  ci <- .load_dataframe(col_path, format)
+  if (is.null(ci)) {
+    # a bundle written in another format: read the one that is there
+    ext <- c(ipc = ".arrow", parquet = ".parquet", csv = ".csv")
+    have <- names(ext)[file.exists(paste0(col_path, ext))]
+    if (length(have) == 1L) {
+      format <- have
+      ci <- .load_dataframe(col_path, format)
+    }
+  }
   ri <- .load_dataframe(file.path(index_dir, paste0(base, "_row_index")), format)
   if (is.null(ci) || is.null(ri)) {
     stop("Index tables not found for base '", base, "' in ", index_dir)
