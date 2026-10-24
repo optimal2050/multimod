@@ -33,7 +33,7 @@ gams_gdx_tables <- function(model, use_folded = FALSE) {
   # the members, so each is taken from the side that has them. Writing the
   # empty side instead leaves a gate that never fires.
   map_side_has_data <- function(nm) {
-    d <- model$mappings[[nm]]$data
+    d <- .mapping_data(model, nm)
     !is.null(d) && nrow(d) > 0
   }
 
@@ -53,7 +53,7 @@ gams_gdx_tables <- function(model, use_folded = FALSE) {
   # are carried above.
   for (nm in names(model$mappings %||% list())) {
     if (nm %in% names(sets)) next
-    d <- model$mappings[[nm]]$data
+    d <- .mapping_data(model, nm)
     if (is.null(d) || nrow(d) == 0) {
       df <- empty_frame(get_dim_names(model$mappings[[nm]]$dims))
       if (!is.null(df)) sets[[nm]] <- df

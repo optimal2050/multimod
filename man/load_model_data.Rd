@@ -4,12 +4,15 @@
 \alias{load_model_data}
 \title{Bring a model's tables into memory}
 \usage{
-load_model_data(model, symbols = NULL)
+load_model_data(model, symbols = NULL, rules = TRUE)
 }
 \arguments{
 \item{model}{A multimod model.}
 
 \item{symbols}{Names of the symbols to load; \code{NULL} for all.}
+
+\item{rules}{Enumerate rule mappings (\code{\link[=mapping_rule]{mapping_rule()}}) as tables too;
+\code{FALSE} leaves them as rules.}
 }
 \value{
 The model with the tables attached.

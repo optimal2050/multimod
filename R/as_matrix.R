@@ -1408,6 +1408,19 @@
          " model.\n  A gating map that does not exist cannot be treated as",
          " unconstrained - the sum would expand densely over every member.")
   }
+  mp <- ctx$model$mappings[[nm]]
+  if (!is.null(mp$rule) && is.null(mp$data)) {
+    # a rule: its coded enumeration, shared with the index builders through
+    # the build dictionary; already unique
+    dat <- data.table::setDT(as.list(rule_tuples_coded(ctx$model, mp$rule, ctx$codes)))
+    if (length(names(dat))) {
+      keys <- paste0(".c", seq_along(names(dat)))
+      data.table::setnames(dat, keys)
+      data.table::setkeyv(dat, keys)
+    }
+    ctx$map_cache[[nm]] <- dat
+    return(dat)
+  }
   dat <- get_data(ctx$model, nm, type = "mapping")
   dat <- if (is.null(dat)) data.table::data.table() else data.table::as.data.table(dat)
   if (length(names(dat))) {

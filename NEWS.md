@@ -18,6 +18,13 @@
   spool before the file is written; the substitution is the one
   `lp_presolve()` makes, and the bundle decodes with `read_mps_solution()`
   unchanged.
+* A mapping can be defined by a rule instead of a table: `mapping_rule()`
+  names the tables whose natural join, gated and projected, gives the
+  tuples, and `new_mapping(rule = )` carries it. `get_data()`,
+  `load_model_data()` and the writers enumerate the tuples on demand
+  (`materialise_rule()`); the matrix route enumerates them once per build
+  in integer codes; `save_model()` writes the rule as `rule.json` beside
+  the mapping and `trim_model()` never trims one.
 * The native executor reads parameters with wildcard (`NA`) index values,
   as a folded table from energyRt carries them, so an equation using one
   no longer falls back to the R engine.
