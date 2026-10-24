@@ -89,4 +89,26 @@ test_that("the Julia script reads, sets options, solves and writes", {
   expect_true(any(grepl('Highs_setBoolOptionValue(h, "run_crossover", 0)', j, fixed = TRUE)))
   expect_true(any(grepl('Highs_setIntOptionValue(h, "threads", 4)', j, fixed = TRUE)))
   expect_true(any(grepl("^println\\(\"MMJULIA ", j)))
+  # the status is HiGHS' numeric code: functions beyond the C API's core differ
+  # between HiGHS.jl versions
+  expect_true("st = HiGHS.Highs_getModelStatus(h)" %in% j)
+  expect_identical(multimod:::.highs_model_status("7"), "Optimal")
+  expect_identical(multimod:::.highs_model_status(13), "Time limit reached")
+  expect_identical(multimod:::.highs_model_status("99"), "status 99")
+})
+
+test_that("Julia solves the toy model to the HiGHS objective", {
+  skip_on_cran()
+  probe <- withr::local_tempfile(fileext = ".jl", lines = "using HiGHS")
+  ok <- tryCatch(suppressWarnings(system2(get_multimod_julia(), shQuote(probe),
+                                          stdout = FALSE, stderr = FALSE)) == 0,
+                 error = function(e) FALSE)
+  if (!isTRUE(ok)) skip("Julia with HiGHS.jl not available")
+  d <- withr::local_tempdir()
+  f <- file.path(d, "model.mps")
+  write_mps(example_models$toy, f, index_dir = d)
+  h <- solve_mps(f, sol_file = file.path(d, "h.sol"))
+  j <- solve_mps(f, sol_file = file.path(d, "j.sol"), solver = "julia_highs")
+  expect_identical(j$status_message, "Optimal")
+  expect_equal(j$objective, h$objective, tolerance = 1e-8)
 })
