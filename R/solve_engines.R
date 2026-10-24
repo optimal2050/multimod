@@ -159,9 +159,23 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
     "HiGHS.Highs_run(h)",
     "t1 = time()",
     "HiGHS.Highs_writeSolution(h, ARGS[2])",
-    "st = HiGHS.Highs_modelStatusToString(h, HiGHS.Highs_getModelStatus(h))",
+    "st = HiGHS.Highs_getModelStatus(h)",
     "println(\"MMJULIA status=\", st, \" objective=\", HiGHS.Highs_getObjectiveValue(h), \" seconds=\", round(t1 - t0, digits = 1))",
     "HiGHS.Highs_destroy(h)")
+}
+
+# HiGHS' model status codes (HighsModelStatus), as Highs_getModelStatus returns them.
+.highs_model_status <- function(code) {
+  lab <- c("0" = "Not Set", "1" = "Load error", "2" = "Model error",
+           "3" = "Presolve error", "4" = "Solve error", "5" = "Postsolve error",
+           "6" = "Empty", "7" = "Optimal", "8" = "Infeasible",
+           "9" = "Primal infeasible or unbounded", "10" = "Unbounded",
+           "11" = "Bound on objective reached", "12" = "Target for objective reached",
+           "13" = "Time limit reached", "14" = "Iteration limit reached",
+           "15" = "Unknown", "16" = "Solution limit reached", "17" = "Interrupted",
+           "18" = "Memory limit reached")
+  out <- unname(lab[as.character(code)])
+  ifelse(is.na(out), paste("status", code), out)
 }
 
 .solve_mps_julia <- function(file, sol_file, control, require_optimal, verbose) {
@@ -178,7 +192,7 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
          paste(utils::tail(out, 15), collapse = "\n"))
   }
   line <- utils::tail(grep("^MMJULIA ", out, value = TRUE), 1)
-  msg <- if (length(line)) sub(".*status=(.*) objective=.*", "\\1", line) else NA_character_
+  msg <- if (length(line)) .highs_model_status(sub(".*status=(\\S+) objective=.*", "\\1", line)) else NA_character_
   obj <- if (length(line)) suppressWarnings(as.numeric(sub(".*objective=(\\S+).*", "\\1", line))) else NA_real_
   if (require_optimal && !isTRUE(grepl("optimal", msg, ignore.case = TRUE))) {
     stop("HiGHS (Julia) finished with status '", msg, "', not optimal.")
