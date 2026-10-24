@@ -1,5 +1,10 @@
 # multimod (development version)
 
+* `solve_mps()` takes `solver` (`"highs"`, `"julia_highs"`, `"cuopt"`) and
+  `where` (`"local"`, `"wsl"`, `"remote"`); the defaults keep the in-process
+  HiGHS solve. cuOpt runs on this machine, inside WSL on a local GPU, or on a
+  rented GPU through the 'mmcloud' package (Suggests), which returns the
+  solution compressed; `control` carries each solver's options.
 * The matrix route joins index members as integer codes of one dictionary
   per build, and prepares each parameter and mapping lookup once instead of
   per chunk. The assembled LP is identical; a 4.4M-row model builds about
