@@ -356,6 +356,8 @@ save_model <- function(
       mapping_dir <- file.path(mappings_dir, mapping_name)
       dir.create(mapping_dir, showWarnings = FALSE)
 
+      if (!is.null(mapping$rule)) .rule_write(mapping$rule, file.path(mapping_dir, "rule.json"))
+
       # Save data if exists
       if (!is.null(mapping$data) && nrow(mapping$data) > 0) {
         .save_dataframe(
@@ -495,6 +497,11 @@ load_model <- function(
 
           if (!is.null(data) && !is.null(model$mappings[[mapping_name]])) {
             model$mappings[[mapping_name]]$data <- data
+          }
+          rule_file <- file.path(mapping_dir, "rule.json")
+          if (file.exists(rule_file) && !is.null(model$mappings[[mapping_name]]) &&
+              is.null(model$mappings[[mapping_name]]$rule)) {
+            model$mappings[[mapping_name]]$rule <- .rule_read(rule_file)
           }
         }
       }
@@ -855,6 +862,17 @@ get_data <- function(model, name, type = c("parameter", "mapping", "set", "varia
     # Check if data is in memory
     if (!is.null(mapping$data) && nrow(mapping$data) > 0) {
       return(mapping$data)
+    }
+
+    # A rule: enumerated on demand; memoised when it reads nothing from the
+    # model (a leaf taken from the model may differ between two models with
+    # the same rule)
+    if (!is.null(mapping$rule)) {
+      r <- mapping$rule
+      if (!length(setdiff(.rule_leaves(r), names(r$tables)))) {
+        return(.data_memo_read(paste0("rule:", r$hash), function() materialise_rule(model, r)))
+      }
+      return(materialise_rule(model, r))
     }
 
     if (!is.null(model$storage$path)) {

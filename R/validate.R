@@ -270,7 +270,7 @@ validate.mm_mapping <- function(x, context = NULL, stop_on_error = TRUE, recursi
   field_check <- check_named_fields(
     x,
     required_fields = c("name", "dims"),
-    optional_fields = c("desc", "active_dims", "data"),
+    optional_fields = c("desc", "active_dims", "data", "rule", "misc"),
     context = context,
     detailed_report = detailed_report
   )
@@ -280,6 +280,23 @@ validate.mm_mapping <- function(x, context = NULL, stop_on_error = TRUE, recursi
   name_value <- x[["name"]]
   if (is.null(name_value) || !is.character(name_value) || length(name_value) != 1 || !nzchar(name_value)) {
     errors <- c(errors, "Mapping must have a single non-empty name")
+  }
+
+  rule_value <- x[["rule"]]
+  if (!is.null(rule_value)) {
+    if (!inherits(rule_value, "mm_rule")) {
+      errors <- c(errors, "Mapping rule must come from mapping_rule()")
+    } else {
+      dn <- tryCatch(get_dim_names(x[["dims"]]), error = function(e) character())
+      if (!identical(as.character(rule_value$cols), as.character(dn))) {
+        errors <- c(errors, sprintf("Mapping rule cols (%s) must equal the dimension names (%s)",
+                                    paste(rule_value$cols, collapse = ", "), paste(dn, collapse = ", ")))
+      }
+      bad <- setdiff(rule_value$cols, unique(unlist(lapply(rule_value$tables, names))))
+      if (length(bad) && !length(setdiff(.rule_leaves(rule_value), names(rule_value$tables)))) {
+        errors <- c(errors, sprintf("Mapping rule cols not in any embedded table: %s", paste(bad, collapse = ", ")))
+      }
+    }
   }
 
   desc_value <- x[["desc"]]

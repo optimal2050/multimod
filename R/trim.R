@@ -200,7 +200,7 @@ trim_model <- function(model, strategy = "unused", verbose = TRUE, .progress = "
 #' @return Model with `$trimmed = TRUE` on empty elements
 #' @keywords internal
 mark_empty_data <- function(model, verbose = FALSE) {
-  model <- load_model_data(model)
+  model <- load_model_data(model, rules = FALSE)
   n_trimmed <- 0
 
   # A subset declaration registers ONE symbol on both sides, and only one
@@ -211,6 +211,7 @@ mark_empty_data <- function(model, verbose = FALSE) {
   dual <- dual_registered_symbols(model)
   dual_has_data <- function(nm) {
     s <- model$sets[[nm]]$data
+    if (!is.null(model$mappings[[nm]]$rule)) return(TRUE)
     m <- model$mappings[[nm]]$data
     (!is.null(s) && length(s) > 0) || (!is.null(m) && nrow(m) > 0)
   }
@@ -246,6 +247,7 @@ mark_empty_data <- function(model, verbose = FALSE) {
   if (!is.null(model$mappings) && length(model$mappings) > 0) {
     for (mapping_name in names(model$mappings)) {
       mapping_obj <- model$mappings[[mapping_name]]
+      if (!is.null(mapping_obj$rule)) next     # a rule is enumerated on demand, never trimmed
       if (is.null(mapping_obj$data) || nrow(mapping_obj$data) == 0) {
         if (mapping_name %in% dual && dual_has_data(mapping_name)) next
         model$mappings[[mapping_name]]$trimmed <- TRUE

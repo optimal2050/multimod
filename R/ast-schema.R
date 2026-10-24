@@ -88,6 +88,7 @@
       dims        = .f("node"),
       active_dims = .f("node"),
       data        = .f("table"),
+      rule        = .f("any"),           # an mm_rule: tuples by joins (R/mapping_rules.R)
       defVal      = .f("number"),
       auto_fold   = .f("logical"),
       misc        = .f("any")

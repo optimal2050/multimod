@@ -131,17 +131,21 @@ data_cache_info <- function() {
 #'
 #' @param model A multimod model.
 #' @param symbols Names of the symbols to load; `NULL` for all.
+#' @param rules Enumerate rule mappings ([mapping_rule()]) as tables too;
+#'   `FALSE` leaves them as rules.
 #' @return The model with the tables attached.
 #' @export
 #' @examples
 #' m <- load_model_data(example_models$toy)
-load_model_data <- function(model, symbols = NULL) {
+load_model_data <- function(model, symbols = NULL, rules = TRUE) {
   fill <- function(objs, type) {
     for (nm in names(objs)) {
       if (!is.null(symbols) && !nm %in% symbols) next
       obj <- objs[[nm]]
       if (!is.null(obj$data) && NROW(obj$data) > 0) next
-      if (is.null(model$storage$path) && !.claims_external_data(obj)) next
+      has_rule <- type == "mapping" && !is.null(obj$rule)
+      if (has_rule && !rules) next
+      if (!has_rule && is.null(model$storage$path) && !.claims_external_data(obj)) next
       d <- get_data(model, nm, type = type)
       if (is.data.frame(d)) objs[[nm]]$data <- d
     }

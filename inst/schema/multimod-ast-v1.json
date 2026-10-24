@@ -104,6 +104,7 @@
         "data": {
           "$ref": "#/$defs/table"
         },
+        "rule": [],
         "defVal": {
           "type": "number"
         },
@@ -552,6 +553,9 @@
         },
         "offset": {
           "type": "integer"
+        },
+        "circular": {
+          "type": "boolean"
         }
       },
       "required": [

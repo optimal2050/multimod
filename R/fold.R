@@ -925,7 +925,7 @@ analyze_dimension_redundancy <- function(param, dim_to_test, model,
         mapping_name <- validation_mapping
         
         if (mapping_name %in% names(model$mappings)) {
-          timeframe_mapping <- model$mappings[[mapping_name]]$data
+          timeframe_mapping <- .mapping_data(model, mapping_name)
           
           # The entity is whichever column of the mapping is not the folded
           # dimension. Derived rather than looked up in a table, so mImpTimeslice,

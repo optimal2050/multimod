@@ -39,6 +39,8 @@ new_set <- function(name, desc = NULL, subset_of = NULL,
 #' @param auto_fold logical, whether to automatically fold dimensions
 #' @param symbols optional named list of known symbols (sets, aliases) used to
 #'   resolve dimension names in [ast_dims()]
+#' @param rule an [mapping_rule()] defining the tuples by joins of other
+#'   tables, instead of `data`; its `cols` default to the dimension names
 #' @return An object of class `mapping`
 #' @export
 #' @examples
@@ -56,7 +58,8 @@ new_mapping <- function(name,
                                  active_dims = NULL,
                                  data = NULL,
                                  auto_fold = FALSE,
-                                 symbols = NULL) {
+                                 symbols = NULL,
+                                 rule = NULL) {
   stopifnot(is.character(name), length(name) == 1)
   obj <- structure(
     list(
@@ -68,6 +71,13 @@ new_mapping <- function(name,
     ),
     class = c("mm_mapping", "multimod", "ast")
   )
+  if (!is.null(rule)) {
+    if (!inherits(rule, "mm_rule")) stop("new_mapping: `rule` must come from mapping_rule()", call. = FALSE)
+    if (is.null(rule$cols)) {
+      rule <- mapping_rule(rule$of, rule$gate, rule$minus, rule$tables, cols = get_dim_names(obj$dims))
+    }
+    obj$rule <- rule
+  }
 
   .check_node(obj)
   validate(obj, context = sprintf("mapping '%s'", name))

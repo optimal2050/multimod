@@ -12,7 +12,8 @@ new_mapping(
   active_dims = NULL,
   data = NULL,
   auto_fold = FALSE,
-  symbols = NULL
+  symbols = NULL,
+  rule = NULL
 )
 }
 \arguments{
@@ -33,6 +34,9 @@ new_mapping(
 
 \item{symbols}{optional named list of known symbols (sets, aliases) used to
 resolve dimension names in \code{\link[=ast_dims]{ast_dims()}}}
+
+\item{rule}{an \code{\link[=mapping_rule]{mapping_rule()}} defining the tuples by joins of other
+tables, instead of \code{data}; its \code{cols} default to the dimension names}
 }
 \value{
 An object of class \code{mapping}

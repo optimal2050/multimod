@@ -663,6 +663,7 @@ write_jump.model_structure <- function(model, file = NULL, model_dir = NULL, sol
     for (mapping_name in names(model$mappings)) {
       mapping_obj <- model$mappings[[mapping_name]]
       if (isTRUE(mapping_obj$trimmed)) next
+      if (is.null(mapping_obj$data)) mapping_obj$data <- .mapping_data(model, mapping_name)
       literal <- tryCatch(as_jump(mapping_obj, context = "data", model = model), error = function(e) "Set([])")
       desc <- .inline_desc(mapping_obj$desc, mapping_name)
       lines <- c(lines, sprintf("%s = %s%s", mapping_name, literal, desc))

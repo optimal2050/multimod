@@ -37,9 +37,15 @@
 #' LP - which is different from having no domain at all (a scalar).
 #' @keywords internal
 #' @noRd
-.domain_tuples <- function(model, domain_name) {
-  if (is.null(model$mappings[[domain_name]])) {
+.domain_tuples <- function(model, domain_name, codes = NULL) {
+  mp <- model$mappings[[domain_name]]
+  if (is.null(mp)) {
     stop("Domain mapping '", domain_name, "' is not defined in the model.")
+  }
+  # a rule enumerated straight into the build's codes; the enumeration is
+  # cached on the dictionary, so the row index and the equations reuse it
+  if (!is.null(mp$rule) && is.null(mp$data) && .mx_is_codes(codes)) {
+    return(rule_tuples_coded(model, mp$rule, codes))
   }
   d <- get_data(model, domain_name, type = "mapping")
   if (is.null(d)) return(data.table::data.table())
@@ -213,7 +219,7 @@ build_col_index <- function(model, verbose = FALSE, names = TRUE, codes = FALSE)
         data.table::setattr(blk, "dim_names", real)
       }
     } else {
-      tp <- .domain_tuples(model, dn)
+      tp <- .domain_tuples(model, dn, codes)
       if (!nrow(tp)) {                            # empty map -> no columns at all
         if (verbose) message(sprintf("  %-30s %8d  (empty map %s)", nm, 0L, dn))
         next
@@ -321,7 +327,7 @@ build_row_index <- function(model, verbose = FALSE, names = TRUE, codes = FALSE)
         if (!nrow(blk)) next
       }
     } else {
-      tp <- .domain_tuples(model, dn)
+      tp <- .domain_tuples(model, dn, codes)
       if (!nrow(tp)) {                            # empty map -> no rows at all
         if (verbose) message(sprintf("  %-30s %8d  (empty map %s)", nm, 0L, dn))
         next
