@@ -125,3 +125,32 @@ test_that("a sliced expansion gives the same file", {
     expect_same_presolve(example_models$energyRt$multimod, "native")
   })
 })
+
+# a parameter folded over its last index: the group's first value stands
+# for every member (what energyRt's fold = TRUE writes as NA)
+fold_last <- function(model, name) {
+  d <- data.table::as.data.table(model$parameters[[name]]$data)
+  keys <- setdiff(names(d), "value")
+  f <- d[, list(value = value[1L]), by = c(keys[-length(keys)])]
+  f[[keys[length(keys)]]] <- NA_character_
+  data.table::setcolorder(f, c(keys, "value"))
+  model$parameters[[name]]$data <- as.data.frame(f)
+  model
+}
+
+test_that("a wildcard parameter lowers natively and gives the R engine's matrix", {
+  for (m in list(example_models$toy, example_models$energyRt$multimod)) {
+    cand <- names(m$parameters)[vapply(m$parameters, function(p) {
+      is.data.frame(p$data) && NROW(p$data) > 1L && ncol(p$data) >= 3L && "value" %in% names(p$data)
+    }, logical(1))]
+    skip_if(!length(cand))
+    mf <- fold_last(m, cand[1])
+    rep <- multimod:::.mx_engine_report(mf)
+    expect_true(all(rep$same), info = cand[1])
+    # no equation fell back to the R engine for the folded parameter
+    expect_false(any(grepl("wild", unlist(rep$why), fixed = TRUE)), info = cand[1])
+    a <- model_to_lp(mf)
+    b <- withr::with_options(list(multimod.engine = "native"), model_to_lp(mf))
+    expect_equal(b$A, a$A)
+  }
+})

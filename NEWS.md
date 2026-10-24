@@ -18,6 +18,9 @@
   spool before the file is written; the substitution is the one
   `lp_presolve()` makes, and the bundle decodes with `read_mps_solution()`
   unchanged.
+* The native executor reads parameters with wildcard (`NA`) index values,
+  as a folded table from energyRt carries them, so an equation using one
+  no longer falls back to the R engine.
 * The native executor runs a term's expansion in slices when it would
   exceed `options(multimod.slice_rows = 16e6)` rows, so an equation that
   sums over a large set no longer holds the whole expansion at once.

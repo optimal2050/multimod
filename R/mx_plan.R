@@ -79,6 +79,33 @@
   id
 }
 
+#' A parameter with wildcard (NA) index values, as a chain of conditions
+#'
+#' The prepared groups (`.mx_prep_wildcard()`, most explicit first) become
+#' nested `when` nodes: a tuple found in a group's table takes that group's
+#' value, else the next group is tried; the all-wildcard group, when
+#' present, is the innermost constant, the parameter's default otherwise.
+#' The same rule the R engine applies in `.mx_param_wildcard()`.
+#' @keywords internal
+#' @noRd
+.mx_num_wildcard <- function(nm, pp, ref, L) {
+  expr <- list(kind = "const", value = pp$defv)
+  for (g in rev(pp$wild)) {
+    if (!length(g$keys)) {
+      expr <- list(kind = "const", value = g$value)
+      next
+    }
+    id <- paste0("p:", nm, "#", paste(g$pos, collapse = ""))
+    if (is.null(L$tables[[id]])) L$tables[[id]] <- as.list(g$sub)[c(g$keys, "value")]
+    on <- stats::setNames(g$keys, ref[g$pos])
+    expr <- list(kind = "when",
+                 cond = list(kind = "member", table = id, on = on),
+                 a = list(kind = "param", table = id, on = on, column = "value", default = pp$defv),
+                 b = expr)
+  }
+  expr
+}
+
 .mx_plan_map <- function(nm, dat, L) {
   id <- paste0("m:", nm)
   if (is.null(L$tables[[id]])) L$tables[[id]] <- as.list(dat)
@@ -115,7 +142,8 @@
       return(list(kind = "const", value = if (!is.null(pp$first)) pp$first else pp$defv))
     }
     if (is.null(pp$first)) return(list(kind = "const", value = pp$defv))
-    if (length(pp$cols) != length(ref) || !all(ref %in% bound) || !is.null(pp$wild)) return(NULL)
+    if (length(pp$cols) != length(ref) || !all(ref %in% bound)) return(NULL)
+    if (!is.null(pp$wild)) return(.mx_num_wildcard(node$name, pp, ref, L))
     return(list(kind = "param", table = .mx_plan_param(node$name, pp, L),
                 on = stats::setNames(pp$keys, ref), column = "value", default = pp$defv))
   }
