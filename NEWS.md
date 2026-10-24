@@ -25,6 +25,10 @@
   (`materialise_rule()`); the matrix route enumerates them once per build
   in integer codes; `save_model()` writes the rule as `rule.json` beside
   the mapping and `trim_model()` never trims one.
+* `lp_bounds()` propagates the row and column bounds of an LP to a fixed
+  point and returns the implied interval of every variable (`lo_impl`,
+  `up_impl` on the column index), with an optional objective cut from a
+  known feasible value.
 * The native executor reads parameters with wildcard (`NA`) index values,
   as a folded table from energyRt carries them, so an equation using one
   no longer falls back to the R engine.
