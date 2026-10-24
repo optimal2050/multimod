@@ -44,7 +44,7 @@
   }
   # a rule enumerated straight into the build's codes; the enumeration is
   # cached on the dictionary, so the row index and the equations reuse it
-  if (!is.null(mp$rule) && is.null(mp$data) && .mx_is_codes(codes)) {
+  if (!is.null(mp$rule) && !NROW(mp$data) && .mx_is_codes(codes)) {
     return(rule_tuples_coded(model, mp$rule, codes))
   }
   d <- get_data(model, domain_name, type = "mapping")

@@ -1409,7 +1409,7 @@
          " unconstrained - the sum would expand densely over every member.")
   }
   mp <- ctx$model$mappings[[nm]]
-  if (!is.null(mp$rule) && is.null(mp$data)) {
+  if (!is.null(mp$rule) && !NROW(mp$data)) {
     # a rule: its coded enumeration, shared with the index builders through
     # the build dictionary; already unique
     dat <- data.table::setDT(as.list(rule_tuples_coded(ctx$model, mp$rule, ctx$codes)))

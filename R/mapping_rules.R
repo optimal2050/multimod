@@ -86,7 +86,7 @@ print.mm_rule <- function(x, ...) {
   t <- rule$tables[[nm]]
   if (!is.null(t)) return(data.table::as.data.table(t))
   if (!is.null(model$mappings[[nm]])) {
-    if (!is.null(model$mappings[[nm]]$rule) && is.null(model$mappings[[nm]]$data)) {
+    if (!is.null(model$mappings[[nm]]$rule) && !NROW(model$mappings[[nm]]$data)) {
       # a rule of a rule: its own enumeration
       d <- materialise_rule(model, model$mappings[[nm]]$rule)
     } else {
@@ -233,7 +233,7 @@ rule_tuples_coded <- function(model, rule, codes) {
 .mapping_data <- function(model, name) {
   m <- model$mappings[[name]]
   if (is.null(m)) return(NULL)
-  if (!is.null(m$data)) return(m$data)
+  if (NROW(m$data) > 0 || is.null(m$rule)) return(m$data)
   get_data(model, name, type = "mapping")
 }
 
