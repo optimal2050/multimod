@@ -98,6 +98,13 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
   if (length(control)) {
     for (nm in names(control)) highs::hi_solver_set_option(s, nm, control[[nm]])
   }
+  # HiGHS writes its own solution file at the end of the run, with the names
+  # the MPS carries: a matrix written with names by another writer is then
+  # decoded by name
+  if (file.exists(sol_file)) file.remove(sol_file)
+  highs::hi_solver_set_option(s, "solution_file", normalizePath(sol_file, winslash = "/", mustWork = FALSE))
+  highs::hi_solver_set_option(s, "write_solution_to_file", TRUE)
+  highs::hi_solver_set_option(s, "write_solution_style", 0L)
   highs::hi_solver_run(s)
 
   msg <- highs::hi_solver_status_message(s)
@@ -110,9 +117,18 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
   objective <- sum(highs::hi_solver_get_lp_costs(s) * sol$col_value)
   n <- length(sol$col_value)
   m <- length(sol$row_value)
+  if (file.exists(sol_file) && file.size(sol_file) > 0) {
+    if (verbose) {
+      message("solved ", basename(file), ": ", msg, ", objective ",
+              format(objective, digits = 10), " -> ", sol_file)
+    }
+    return(list(status_message = msg, objective = objective, sol_file = sol_file,
+                run_time = highs::hi_solver_get_run_time(s)))
+  }
 
-  # Raw-style solution file (the format read_highs_solution() parses); dual
-  # sections are written only when the solver reports valid duals.
+  # A HiGHS that does not write the file itself: a raw-style solution file
+  # (the format read_highs_solution() parses) with positional names, as
+  # write_mps() emits them; dual sections only when the duals are valid.
   con <- file(sol_file, "wb")   # binary: LF endings, byte-stable across OSes
   wr <- function(...) writeLines(c(...), con, sep = "\n")
   wr("Model status", msg, "")
@@ -319,7 +335,9 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
                  collapse = " ")
   c("set -e",
     "nvidia-smi || true",
-    paste("for i in 1 2 3 4 5; do",
+    # an image with cuOpt installed (inst/images/cuopt) skips the install
+    paste("command -v cuopt_cli > /dev/null ||",
+          "for i in 1 2 3 4 5; do",
           "pip install -q --no-cache-dir --retries 10 --timeout 120 cuopt-cu12 && break;",
           "echo \"pip install attempt $i failed\"; sleep 15; done"),
     "(nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits -l 1 > /tmp/vram.log 2>/dev/null &) || true",

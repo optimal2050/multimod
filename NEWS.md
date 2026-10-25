@@ -5,6 +5,17 @@
   HiGHS solve. cuOpt runs on this machine, inside WSL on a local GPU, or on a
   rented GPU through the 'mmcloud' package (Suggests), which returns the
   solution compressed; `control` carries each solver's options.
+* `read_mps_solution()` decodes a matrix written with names by another writer:
+  index tables with a `name` column place each value by its label instead of
+  its position. `solve_mps()` with HiGHS in the session lets HiGHS write the
+  solution file, which keeps the names the MPS carries.
+* The remote cuOpt worker skips its install when the image already carries
+  `cuopt_cli`.
+* `write_mps(stream = TRUE, substitute = )` substitutes definition equations
+  while the matrix is built: an equality whose domain is the index set of one
+  of its variables produces no rows, the variable no columns there, and every
+  other reference to it is replaced by the definition. `read_mps_solution()`
+  rebuilds the variable. Defaults to `getOption("multimod.substitute")`.
 * The matrix route joins index members as integer codes of one dictionary
   per build, and prepares each parameter and mapping lookup once instead of
   per chunk. The assembled LP is identical; a 4.4M-row model builds about

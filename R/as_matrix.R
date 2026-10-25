@@ -1586,6 +1586,12 @@ NULL
 #' @param sink Internal: an open streaming sink (see [write_mps()] with
 #'   `stream = TRUE`). The matrix entries are written to it as each chunk is
 #'   built and `triplets` comes back empty; `rhs` is returned as usual.
+#' @param substitute Internal: definition equations substituted at build
+#'   time, as prepared for the streaming writer (see [write_mps()]). The
+#'   index tables must have been built without their rows and columns; the
+#'   equations that refer to a substituted variable are lowered for the
+#'   native executor, and the build's context is returned in the `ctx`
+#'   attribute.
 #'
 #' @return A list with `triplets` (`data.table(i, j, coef)`, aggregated), `rhs`
 #'   (`data.table(i, rhs)`), and `row_index` / `col_index` as used.
@@ -1593,7 +1599,8 @@ NULL
 build_triplets <- function(model, col_index = NULL, row_index = NULL,
                            equations = NULL,
                            on_duplicate = c("error", "last", "first"),
-                           verbose = FALSE, chunk_rows = 1000000L, sink = NULL) {
+                           verbose = FALSE, chunk_rows = 1000000L, sink = NULL,
+                           substitute = NULL) {
   on_duplicate <- match.arg(on_duplicate)
   stopifnot(inherits(model, "multimod") || inherits(model, "mm_model"))
   stopifnot(is.numeric(chunk_rows), length(chunk_rows) == 1, chunk_rows >= 1)
@@ -1619,6 +1626,8 @@ build_triplets <- function(model, col_index = NULL, row_index = NULL,
   ctx$on_duplicate <- on_duplicate
   ctx$dup_warned <- list()
   ctx$trace <- .mx_trace_open(getOption("multimod.mx_trace"))
+  ctx$subst <- substitute
+  ctx$subst_def <- list()
 
   # The row index with its members coded, and each equation's row range: the
   # rows of one equation are contiguous, so a range replaces a scan of the
@@ -1646,7 +1655,16 @@ build_triplets <- function(model, col_index = NULL, row_index = NULL,
     if (is.null(eq)) next
     ctx$trace_eq <- nm
     rg <- ranges[symbol == nm]
-    lowered <- if (identical(engine, "native")) .mx_lower_equation(eq, ctx) else NULL
+    # an equation referring to a substituted variable has no column lookup
+    # for it on the definition's domain: only the lowering substitutes it
+    subst_ref <- length(ctx$subst) &&
+      any(vapply(c(.mx_ast_vars(eq$lhs), .mx_ast_vars(eq$rhs)),
+                 function(v) v$name %in% names(ctx$subst), logical(1)))
+    lowered <- if (identical(engine, "native") || subst_ref) .mx_lower_equation(eq, ctx) else NULL
+    if (subst_ref && is.null(lowered)) {
+      stop("build_triplets: '", nm, "' refers to a substituted variable but is not covered ",
+           "by the native lowering (", ctx$lower_why[[nm]] %||% "unknown", ").", call. = FALSE)
+    }
     native[[nm]] <- !is.null(lowered)
 
     t0 <- Sys.time()
@@ -1728,5 +1746,6 @@ build_triplets <- function(model, col_index = NULL, row_index = NULL,
   attr(out, "native") <- native
   attr(out, "lower_why") <- ctx$lower_why
   attr(out, "native_stats") <- ctx$native_stats
+  if (length(ctx$subst)) attr(out, "ctx") <- ctx
   out
 }

@@ -337,6 +337,14 @@ solve_highs <- function(model, lp = NULL, attach = TRUE, control = list(),
 #'   given with `stream = TRUE`.
 #' @param buckets Integer; with `stream = TRUE`, the number of bucket files
 #'   (one is read back into memory at a time).
+#' @param substitute Character vector of definition equations to substitute
+#'   while the matrix is built (`stream = TRUE` only). A definition is an
+#'   equality whose domain is the index set of one of its variables, linear
+#'   in the others: its rows are not written, the variable has no columns on
+#'   its domain, and every other reference to it there is replaced by the
+#'   definition. The definitions are written beside the index tables
+#'   (`<base>_subst/`) and [read_mps_solution()] rebuilds the variable from
+#'   them. Defaults to `getOption("multimod.substitute")`.
 #'
 #' @return Invisibly, a list of the paths written.
 #' @export
@@ -351,14 +359,16 @@ solve_highs <- function(model, lp = NULL, attach = TRUE, control = list(),
 write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
                       format = c("parquet", "ipc", "csv"), verbose = FALSE,
                       presolve = getOption("multimod.presolve", FALSE),
-                      stream = FALSE, buckets = 64L) {
+                      stream = FALSE, buckets = 64L,
+                      substitute = getOption("multimod.substitute")) {
   format <- match.arg(format)
   if (isTRUE(stream)) {
     if (!is.null(lp)) stop("write_mps(stream = TRUE) builds the matrix itself; `lp` cannot be given.")
     return(.mx_stream_mps(model, file, index_dir = index_dir, format = format,
                           buckets = buckets, presolve = isTRUE(presolve),
-                          verbose = verbose))
+                          verbose = verbose, substitute = substitute))
   }
+  if (length(substitute)) stop("write_mps(): `substitute` needs `stream = TRUE`.", call. = FALSE)
   if (!requireNamespace("highs", quietly = TRUE)) {
     stop("write_mps() needs the 'highs' package. Install it with ",
          "install.packages(\"highs\").")
@@ -393,7 +403,11 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
 #' Write the index tables beside an MPS file
 #' @keywords internal
 #' @noRd
-.write_index_tables <- function(col_index, row_index, eliminated, index_dir, base, format) {
+.write_index_tables <- function(col_index, row_index, eliminated, index_dir, base, format,
+                                keep_subst = FALSE) {
+  # the decoder rebuilds substituted variables from this directory; a stale
+  # one from an earlier run must not survive a run without substitution
+  if (!keep_subst) unlink(file.path(index_dir, paste0(base, "_subst")), recursive = TRUE)
   col_path <- file.path(index_dir, paste0(base, "_col_index"))
   row_path <- file.path(index_dir, paste0(base, "_row_index"))
   # a presolve that eliminated nothing leaves a plain LP: the bundle is
@@ -481,7 +495,7 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
                            verbose = FALSE,
                            on_duplicate = c("error", "last", "first"),
                            on_empty_row = c("user_constraints", "all", "warn", "ignore"),
-                           chunk_rows = 1000000L) {
+                           chunk_rows = 1000000L, substitute = NULL) {
   on_duplicate <- match.arg(on_duplicate)
   on_empty_row <- match.arg(on_empty_row)
   t0 <- Sys.time()
@@ -489,9 +503,15 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
   model <- .mx_materialise_formulas(model, verbose = verbose)
   # both index tables coded with the build's dictionary: the members are
   # never held as strings, and the build joins the codes as they are
-  col_index <- build_col_index(model, verbose = verbose, names = FALSE, codes = TRUE)
-  row_index <- build_row_index(model, verbose = verbose, names = FALSE,
-                               codes = attr(col_index, "codes"))
+  codes <- .index_codes(TRUE)
+  subst <- .mx_subst_prepare(model, unique(as.character(substitute)), codes)
+  col_index <- build_col_index(model, verbose = verbose, names = FALSE, codes = codes,
+                               exclude = lapply(subst, function(s) s$keys))
+  row_index <- build_row_index(model, verbose = verbose, names = FALSE, codes = codes,
+                               skip = vapply(subst, function(s) s$eq, character(1)))
+  base <- tools::file_path_sans_ext(basename(file))
+  subst_dir <- file.path(index_dir, paste0(base, "_subst"))
+  unlink(subst_dir, recursive = TRUE)
   nrow_lp <- nrow(row_index)
   ncol_lp <- nrow(col_index)
   ztol <- as.numeric(getOption("multimod.zero_tol", 1e-12))
@@ -505,7 +525,14 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
   build <- function(target) {
     build_triplets(model, col_index = col_index, row_index = row_index,
                    on_duplicate = on_duplicate, verbose = verbose,
-                   chunk_rows = chunk_rows, sink = target)
+                   chunk_rows = chunk_rows, sink = target, substitute = subst)
+  }
+  # the definitions evaluated over their domains, for the decode
+  export <- function(tr) {
+    if (!length(subst)) return(invisible())
+    if (verbose) message(format(Sys.time(), "[%H:%M:%S] "), "writing the substituted definitions")
+    .mx_subst_export(attr(tr, "ctx"), as.numeric(col_index$lo), subst_dir, format, ztol,
+                     verbose = verbose)
   }
   rhs_of <- function(tr) {
     rhs <- rep(0, nrow_lp)
@@ -541,6 +568,7 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
     mm_scan_attach(scan, sink)
     tr <- build(scan)
     mm_sink_close(sink)
+    export(tr)
     rhs <- rhs_of(tr)
     rm(tr); gc(FALSE)
     .report_empty_rows(which(mm_scan_counts(scan)$row_counts == 0L), row_index, on_empty_row)
@@ -561,6 +589,7 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
     sink <- mm_sink_open(parts, as.integer(buckets), nrow_lp, ncol_lp)
     tr <- build(sink)
     closed <- mm_sink_close(sink)
+    export(tr)
     rhs <- rhs_of(tr)
     rm(tr); gc(FALSE)
     .report_empty_rows(which(closed$row_counts == 0L), row_index, on_empty_row)
@@ -580,7 +609,7 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
                       isTRUE(obj_spec$maximum), ztol)
   rm(sink, map); gc(FALSE)
   paths <- .write_index_tables(col_index, row_index, eliminated, index_dir,
-                               tools::file_path_sans_ext(basename(file)), format)
+                               base, format, keep_subst = length(subst) > 0)
   if (verbose) {
     message(format(Sys.time(), "[%H:%M:%S] "), "wrote MPS ", file, " (",
             nrow_out, " rows x ", ncol_out, " cols, ", nnz, " nonzeros",

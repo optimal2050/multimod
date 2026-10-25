@@ -350,7 +350,16 @@ read_mps_solution <- function(sol, index_dir = NULL, col_index = NULL,
   ci <- bare(col_index)
   ri <- bare(row_index)
   primal <- bare(ci)
-  if ("jred" %in% names(ci)) {
+  if ("name" %in% names(ci)) {
+    # a matrix written with names (another writer's labels): the index
+    # carries each column's label, and values are placed by name
+    data.table::set(primal, j = "value",
+                    value = .place_by_name(ci$name, sol$columns$name,
+                                           sol$columns$primal, "column"))
+    data.table::set(primal, j = "reduced_cost",
+                    value = .place_by_name(ci$name, sol$columns$name,
+                                           sol$columns$dual, "column"))
+  } else if ("jred" %in% names(ci)) {
     # a reduced LP (lp_presolve()): the solution covers the kept
     # columns; the eliminated ones are rebuilt from their references
     jred <- ci$jred
@@ -372,6 +381,8 @@ read_mps_solution <- function(sol, index_dir = NULL, col_index = NULL,
                                                sol$columns$dual,
                                                nrow(ci), "c", "column"))
   }
+  sb <- attr(col_index, "subst")
+  if (!is.null(sb)) primal <- .mx_subst_decode(primal, sb$dir, sb$format)
   dual <- bare(ri)
   ired <- if ("ired" %in% names(ri)) ri$ired else NULL
   if (!is.null(ired)) data.table::set(dual, j = "ired", value = NULL)
@@ -381,6 +392,11 @@ read_mps_solution <- function(sol, index_dir = NULL, col_index = NULL,
     # the solver, not a damaged file, so the rows carry NA rather than erroring.
     data.table::set(dual, j = "value", value = NA_real_)
     data.table::set(dual, j = "marginal", value = NA_real_)
+  } else if ("name" %in% names(ri)) {
+    data.table::set(dual, j = "value",
+                    value = .place_by_name(ri$name, sol$rows$name, sol$rows$primal, "row"))
+    data.table::set(dual, j = "marginal",
+                    value = .place_by_name(ri$name, sol$rows$name, sol$rows$dual, "row"))
   } else {
     rv <- .place_by_position(sol$rows$name, sol$rows$primal, n_rows, "r", "row")
     rmg <- .place_by_position(sol$rows$name, sol$rows$dual, n_rows, "r", "row")
@@ -439,6 +455,31 @@ read_mps_solution <- function(sol, index_dir = NULL, col_index = NULL,
   out <- rep(NA_real_, n_index)
   out[pos + 1L] <- values
   out
+}
+
+#' Place values into index order by name
+#'
+#' For a matrix written with names by another writer, whose index carries each
+#' label. Every index entry must appear in the solution exactly once; solution
+#' entries without one (a writer's own helper column, such as Pyomo's constant
+#' term) are not results and are left out.
+#' @keywords internal
+#' @noRd
+.place_by_name <- function(index_names, sol_names, values, what) {
+  if (is.null(sol_names) || !length(sol_names)) return(rep(NA_real_, length(index_names)))
+  if (anyDuplicated(sol_names)) {
+    stop("Solution ", what, " '", sol_names[anyDuplicated(sol_names)],
+         "' appears more than once; the file does not describe one value per ",
+         what, ".")
+  }
+  m <- match(index_names, sol_names)
+  miss <- which(is.na(m))
+  if (length(miss)) {
+    stop(length(miss), " ", what, "(s) of the index are not in the solution, ",
+         "e.g. '", index_names[miss[1]], "'.\n",
+         "  The solution does not correspond to the index tables.")
+  }
+  values[m]
 }
 
 #' Verify the positional names line up with the index, rather than assuming it
@@ -519,6 +560,11 @@ read_mps_solution <- function(sol, index_dir = NULL, col_index = NULL,
   }
   if (!is.null(el)) {
     data.table::setattr(ci, "eliminated", data.table::as.data.table(el))
+  }
+  # variables substituted at build time are rebuilt from their definitions
+  sd <- file.path(index_dir, paste0(base, "_subst"))
+  if (file.exists(file.path(sd, "manifest.csv"))) {
+    data.table::setattr(ci, "subst", list(dir = sd, format = format))
   }
   list(col_index = ci, row_index = ri)
 }
