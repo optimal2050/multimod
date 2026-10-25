@@ -4,7 +4,13 @@
 \alias{build_row_index}
 \title{Build the LP row index}
 \usage{
-build_row_index(model, verbose = FALSE, names = TRUE, codes = FALSE)
+build_row_index(
+  model,
+  verbose = FALSE,
+  names = TRUE,
+  codes = FALSE,
+  skip = NULL
+)
 }
 \arguments{
 \item{model}{A multimod model with data attached.}
@@ -17,6 +23,9 @@ build_row_index(model, verbose = FALSE, names = TRUE, codes = FALSE)
 \item{codes}{Store the index members as integer codes of a dictionary —
 see \code{\link[=build_col_index]{build_col_index()}}. The row index of an LP is coded with the
 dictionary of its column index.}
+
+\item{skip}{Internal: names of equations that get no rows (definitions
+substituted at build time).}
 }
 \value{
 A \code{data.table} with columns \code{i} (1-based row index), \code{symbol},

@@ -65,6 +65,8 @@
     dn <- .domain_name(eq$domain)
     if (is.na(dn)) stop("substitute: '", en, "' has no domain mapping.", call. = FALSE)
     dims <- .mx_eq_dims(eq)
+    tp <- .domain_tuples(model, dn, codes)
+    if (!nrow(tp)) next                     # no rows: nothing to substitute
     vars <- c(.mx_ast_vars(eq$lhs), .mx_ast_vars(eq$rhs))
     vn <- vapply(vars, function(v) v$name, character(1))
     once <- names(which(table(vn) == 1L))
@@ -87,7 +89,6 @@
            "a lower bound of 0 or none and no upper bound.", call. = FALSE)
     }
     pos <- match(.mx_bound_names(.mx_ref_dims(v), dims, ctx0), dims)
-    tp <- .domain_tuples(model, dn, codes)
     cols <- as.list(tp)[pos]
     for (k in seq_along(cols)) cols[[k]] <- .mx_code_in(codes, cols[[k]])
     keys <- data.table::setDT(stats::setNames(cols, paste0("i", seq_along(pos))))

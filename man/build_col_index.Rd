@@ -4,7 +4,13 @@
 \alias{build_col_index}
 \title{Build the LP column index}
 \usage{
-build_col_index(model, verbose = FALSE, names = TRUE, codes = FALSE)
+build_col_index(
+  model,
+  verbose = FALSE,
+  names = TRUE,
+  codes = FALSE,
+  exclude = NULL
+)
 }
 \arguments{
 \item{model}{A multimod model with data attached.}
@@ -21,6 +27,11 @@ table and attached to it as the \code{codes} attribute; passing that attribute
 to another call codes the other table with the same dictionary. The
 streaming writer builds both tables this way, so that the members are
 never held as strings; the files it writes carry the labels.}
+
+\item{exclude}{Internal: a named list (by variable) of coded tuple tables
+(\code{i1..iN}) whose columns are left out, as a build-time substitution
+removes them. Each tuple must be a column of its variable. Needs a
+dictionary (\code{codes}).}
 }
 \value{
 A \code{data.table} with columns \code{j} (1-based column index), \code{symbol},

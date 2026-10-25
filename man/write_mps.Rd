@@ -13,7 +13,8 @@ write_mps(
   verbose = FALSE,
   presolve = getOption("multimod.presolve", FALSE),
   stream = FALSE,
-  buckets = 64L
+  buckets = 64L,
+  substitute = getOption("multimod.substitute")
 )
 }
 \arguments{
@@ -45,6 +46,15 @@ given with \code{stream = TRUE}.}
 
 \item{buckets}{Integer; with \code{stream = TRUE}, the number of bucket files
 (one is read back into memory at a time).}
+
+\item{substitute}{Character vector of definition equations to substitute
+while the matrix is built (\code{stream = TRUE} only). A definition is an
+equality whose domain is the index set of one of its variables, linear
+in the others: its rows are not written, the variable has no columns on
+its domain, and every other reference to it there is replaced by the
+definition. The definitions are written beside the index tables
+(\verb{<base>_subst/}) and \code{\link[=read_mps_solution]{read_mps_solution()}} rebuilds the variable from
+them. Defaults to \code{getOption("multimod.substitute")}.}
 }
 \value{
 Invisibly, a list of the paths written.
