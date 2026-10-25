@@ -301,6 +301,10 @@ read_solver_solution <- function(file, solver = c("auto", "highs", "cuopt"),
 #'   format present in `index_dir` is read.
 #' @param solver Which solver wrote `sol`; `"auto"` sniffs the file.
 #' @param require_optimal Passed to the reader.
+#' @param substituted For a matrix written with `write_mps(substitute = )`:
+#'   `"expand"` rebuilds the substituted variables into `primal`; `"defer"`
+#'   leaves them out and [write_solution()] builds each from the bundle when
+#'   it writes it, so a large variable is never held with the others.
 #'
 #' @return A list with `objective`, `status`, `primal` (`j`, symbol, name,
 #'   value) and `dual` (`i`, symbol, name, value, marginal) - the same shape
@@ -320,9 +324,11 @@ read_mps_solution <- function(sol, index_dir = NULL, col_index = NULL,
                               row_index = NULL, base = NULL,
                               format = c("parquet", "ipc", "csv"),
                               solver = c("auto", "highs", "cuopt"),
-                              require_optimal = TRUE) {
+                              require_optimal = TRUE,
+                              substituted = c("expand", "defer")) {
   format <- match.arg(format)
   solver <- match.arg(solver)
+  substituted <- match.arg(substituted)
   if (is.character(sol)) sol <- read_solver_solution(sol, solver, require_optimal)
   if (is.null(col_index) || is.null(row_index)) {
     if (is.null(index_dir)) {
@@ -382,7 +388,7 @@ read_mps_solution <- function(sol, index_dir = NULL, col_index = NULL,
                                                nrow(ci), "c", "column"))
   }
   sb <- attr(col_index, "subst")
-  if (!is.null(sb)) primal <- .mx_subst_decode(primal, sb$dir, sb$format)
+  if (!is.null(sb) && substituted == "expand") primal <- .mx_subst_decode(primal, sb$dir, sb$format)
   dual <- bare(ri)
   ired <- if ("ired" %in% names(ri)) ri$ired else NULL
   if (!is.null(ired)) data.table::set(dual, j = "ired", value = NULL)
@@ -411,6 +417,7 @@ read_mps_solution <- function(sol, index_dir = NULL, col_index = NULL,
   }
   data.table::setattr(primal, "dim_names", attr(col_index, "dim_names"))
   data.table::setattr(primal, "codes", attr(col_index, "codes"))
+  if (!is.null(sb) && substituted == "defer") data.table::setattr(primal, "subst", sb)
   data.table::setattr(dual, "codes", attr(row_index, "codes"))
 
   list(objective = sol$objective, status = sol$status,
@@ -682,14 +689,32 @@ write_solution <- function(solution, dir,
   dir.create(dir, recursive = TRUE, showWarnings = FALSE)
 
   rows_of <- .symbol_rows(primal$symbol)
-  syms <- names(rows_of)
+  # variables substituted at build time and not rebuilt into `primal` are
+  # built from the bundle, one at a time
+  sb <- attr(primal, "subst")
+  deferred <- if (is.null(sb)) character() else .mx_subst_vars(sb$dir)
+  syms <- union(names(rows_of), deferred)
   if (!is.null(variables)) syms <- intersect(syms, variables)
 
   written <- character()
   kept <- character()
+  members <- list()
   for (nm in syms) {
-    df <- .solution_by_variable(primal, nm, dim_names,
-                                nonzero_only = nonzero_only, rows = rows_of[[nm]])
+    df <- if (!is.null(rows_of[[nm]])) {
+      .solution_by_variable(primal, nm, dim_names,
+                            nonzero_only = nonzero_only, rows = rows_of[[nm]])
+    }
+    if (nm %in% deferred) {
+      sub <- .mx_subst_frame(nm, sb, primal$value, dim_names[[nm]], attr(primal, "codes"),
+                             nonzero_only)
+      if (!is.null(sub)) {
+        for (cl in dim_names[[nm]]) {
+          members[[cl]] <- unique(c(members[[cl]], as.character(unique(sub[[cl]]))))
+        }
+      }
+      df <- if (is.null(df)) sub else if (is.null(sub)) df else rbind(df, sub)
+      rm(sub)
+    }
     if (is.null(df)) next                      # all zero: omitted
     p <- switch(
       format,
@@ -714,6 +739,7 @@ write_solution <- function(solution, dir,
   }
   attr(written, "variables") <- kept
   attr(written, "dim_names") <- dim_names
+  attr(written, "members") <- members
   invisible(written)
 }
 
@@ -747,7 +773,7 @@ write_energyrt_output <- function(solution, dir,
   vl <- file.path(dir, "variable_list.csv")
   writeLines(c("value", kept), vl)
 
-  meta <- c(.write_raw_data_set(solution$primal, dim_names, dir),
+  meta <- c(.write_raw_data_set(solution$primal, dim_names, dir, attr(written, "members")),
             .write_solution_log(solution, dir))
   invisible(c(vl, as.character(written), meta))
 }
@@ -761,8 +787,8 @@ write_energyrt_output <- function(solution, dir,
 #' reference.
 #' @keywords internal
 #' @noRd
-.write_raw_data_set <- function(primal, dim_names, dir) {
-  members <- list()
+.write_raw_data_set <- function(primal, dim_names, dir, extra = list()) {
+  members <- extra
   lv <- attr(primal, "codes")
   rows_of <- .symbol_rows(primal[["symbol"]])
   for (sym in names(dim_names)) {

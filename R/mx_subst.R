@@ -290,36 +290,80 @@
 #' @keywords internal
 #' @noRd
 .mx_subst_decode <- function(primal, dir, format) {
-  man <- utils::read.csv(file.path(dir, "manifest.csv"), stringsAsFactors = FALSE)
   val <- primal$value
-  ext <- c(parquet = ".parquet", ipc = ".arrow", csv = ".csv")[[format]]
   add <- list()
-  for (x in man$variable) {
-    vdir <- file.path(dir, x)
-    tags <- sort(sub(paste0("^keys-(.*)\\", ext, "$"), "\\1",
-                     list.files(vdir, pattern = paste0("^keys-.*\\", ext, "$"))))
-    for (tag in tags) {
-      kk <- data.table::setDT(.load_dataframe(file.path(vdir, paste0("keys-", tag)), format))
-      k0 <- kk$k[1] - 1L
-      v <- numeric(nrow(kk))
-      tt <- .load_dataframe(file.path(vdir, paste0("terms-", tag)), format)
-      if (!is.null(tt) && nrow(tt)) {
-        s <- rowsum(tt$coef * val[tt$j], tt$k - k0, reorder = FALSE)
-        v[as.integer(rownames(s))] <- v[as.integer(rownames(s))] + s[, 1]
-      }
-      cc <- .load_dataframe(file.path(vdir, paste0("const-", tag)), format)
-      if (!is.null(cc) && nrow(cc)) {
-        s <- rowsum(cc$value, cc$k - k0, reorder = FALSE)
-        v[as.integer(rownames(s))] <- v[as.integer(rownames(s))] + s[, 1]
-      }
-      data.table::set(kk, j = "k", value = NULL)
+  for (x in .mx_subst_vars(dir)) {
+    for (kk in .mx_subst_parts(x, dir, format, val)) {
       data.table::set(kk, j = "j", value = NA_integer_)
       data.table::set(kk, j = "symbol", value = x)
-      data.table::set(kk, j = "value", value = v)
       data.table::set(kk, j = "reduced_cost", value = NA_real_)
       add[[length(add) + 1L]] <- kk
     }
   }
   if (!length(add)) return(primal)
   data.table::rbindlist(c(list(primal), add), use.names = TRUE, fill = TRUE)
+}
+
+#' The substituted variables of a bundle, in the order they were written
+#' @keywords internal
+#' @noRd
+.mx_subst_vars <- function(dir) {
+  utils::read.csv(file.path(dir, "manifest.csv"), stringsAsFactors = FALSE)$variable
+}
+
+#' One substituted variable's values, part by part
+#'
+#' @param val The solved values of the columns, by `j`.
+#' @return A list of data.tables (`i1..iN`, `value`), one per part.
+#' @keywords internal
+#' @noRd
+.mx_subst_parts <- function(x, dir, format, val) {
+  ext <- c(parquet = ".parquet", ipc = ".arrow", csv = ".csv")[[format]]
+  vdir <- file.path(dir, x)
+  tags <- sort(sub(paste0("^keys-(.*)\\", ext, "$"), "\\1",
+                   list.files(vdir, pattern = paste0("^keys-.*\\", ext, "$"))))
+  lapply(tags, function(tag) {
+    kk <- data.table::setDT(.load_dataframe(file.path(vdir, paste0("keys-", tag)), format))
+    k0 <- kk$k[1] - 1L
+    v <- numeric(nrow(kk))
+    tt <- .load_dataframe(file.path(vdir, paste0("terms-", tag)), format)
+    if (!is.null(tt) && nrow(tt)) {
+      s <- rowsum(tt$coef * val[tt$j], tt$k - k0, reorder = FALSE)
+      v[as.integer(rownames(s))] <- v[as.integer(rownames(s))] + s[, 1]
+    }
+    cc <- .load_dataframe(file.path(vdir, paste0("const-", tag)), format)
+    if (!is.null(cc) && nrow(cc)) {
+      s <- rowsum(cc$value, cc$k - k0, reorder = FALSE)
+      v[as.integer(rownames(s))] <- v[as.integer(rownames(s))] + s[, 1]
+    }
+    data.table::set(kk, j = "k", value = NULL)
+    data.table::set(kk, j = "value", value = v)
+    kk
+  })
+}
+
+#' One substituted variable as a long, dim-named data frame
+#'
+#' The shape `.solution_by_variable()` gives, built from the parts without
+#' the variable's rows ever entering the decoded columns.
+#' @keywords internal
+#' @noRd
+.mx_subst_frame <- function(x, sb, val, dn, lv, nonzero_only) {
+  parts <- .mx_subst_parts(x, sb$dir, sb$format, val)
+  if (nonzero_only) parts <- lapply(parts, function(p) p[which(p$value != 0)])
+  blk <- data.table::rbindlist(parts, use.names = TRUE)
+  rm(parts)
+  if (!nrow(blk)) return(NULL)
+  idx <- paste0("i", seq_along(dn))
+  out <- as.data.frame(blk[, idx, with = FALSE])
+  names(out) <- dn
+  for (cl in dn) {
+    if (is.factor(out[[cl]])) out[[cl]] <- as.character(out[[cl]])
+    else if (!is.null(lv) && is.integer(out[[cl]])) out[[cl]] <- lv[out[[cl]]]
+  }
+  for (cl in intersect(c("year", "yearp", "yeare", "yearn", "year2"), dn)) {
+    out[[cl]] <- suppressWarnings(as.integer(out[[cl]]))
+  }
+  out$value <- as.numeric(blk$value)
+  out
 }
