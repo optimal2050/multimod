@@ -53,6 +53,24 @@ test_that("substituting a definition keeps the optimum and rebuilds the variable
   expect_false(dir.exists(file.path(base$dir, "model_subst")))
 })
 
+test_that("definitions referring to substituted variables are substituted in turn", {
+  skip_if_not_installed("highs")
+  skip_if_not_installed("arrow")
+  m <- example_models$energyRt$multimod
+  lp <- model_to_lp(m)
+  defs <- c("eqTechActSng", "eqTechOutTot", "eqTechInpTot", "eqStorageInpTot",
+            "eqStorageOutTot", "eqSupOutTot", "eqImportTot", "eqExportTot", "eqDemInp")
+  r <- .subst_solve(m, defs, presolve = TRUE)
+  x <- .subst_full_x(lp, r$sol$primal)
+  expect_false(anyNA(x))
+  ax <- as.numeric(lp$A %*% x)
+  expect_lt(max(pmax(lp$row_lo - ax, ax - lp$row_up, 0)), 1e-7)
+  expect_equal(sum(lp$obj * x), r$sol$objective, tolerance = 1e-9)
+  # a variable defined through itself (a roll-up over timeslices) is not a definition
+  f <- file.path(withr::local_tempdir(), "model.mps")
+  expect_error(write_mps(m, f, stream = TRUE, substitute = "eqOutTot"), "does not define one variable")
+})
+
 test_that("substitution decodes from every index format", {
   skip_if_not_installed("highs")
   skip_if_not_installed("arrow")
@@ -65,6 +83,37 @@ test_that("substitution decodes from every index format", {
     r$sol$objective
   }, numeric(1))
   expect_equal(unname(objs), rep(objs[[1]], 3), tolerance = 1e-12)
+})
+
+test_that("deferred substituted variables are written as the expanded ones", {
+  skip_if_not_installed("highs")
+  skip_if_not_installed("arrow")
+  m <- example_models$energyRt$multimod
+  defs <- c("eqTechActSng", "eqTechOutTot", "eqTechInpTot", "eqDemInp")
+  d <- withr::local_tempdir()
+  f <- file.path(d, "model.mps")
+  withr::with_options(list(multimod.engine = "native"),
+    write_mps(m, f, stream = TRUE, substitute = defs))
+  r <- solve_mps(f, verbose = FALSE)
+  out <- lapply(c("expand", "defer"), function(how) {
+    s <- read_mps_solution(r$sol_file, index_dir = d, substituted = how)
+    o <- file.path(d, how)
+    write_energyrt_output(s, o, format = "parquet")
+    list(s = s, o = o)
+  })
+  expect_false("vTechOut" %in% out[[2]]$s$primal$symbol)
+  fa <- sort(list.files(out[[1]]$o))
+  expect_identical(fa, sort(list.files(out[[2]]$o)))
+  for (v in intersect(c("vTechOut", "vTechOutTot", "vTechInpTot", "vDemInp", "vTechAct"),
+                      sub("[.]parquet$", "", fa))) {
+    a <- as.data.frame(arrow::read_parquet(file.path(out[[1]]$o, paste0(v, ".parquet"))))
+    b <- as.data.frame(arrow::read_parquet(file.path(out[[2]]$o, paste0(v, ".parquet"))))
+    key <- function(x) x[do.call(order, x[setdiff(names(x), "value")]), , drop = FALSE]
+    expect_equal(key(a), key(b), ignore_attr = TRUE, info = v)
+  }
+  rs <- lapply(out, function(x) read.csv(file.path(x$o, "raw_data_set.csv")))
+  key <- function(x) x[order(x$set, x$value), ]
+  expect_equal(key(rs[[1]]), key(rs[[2]]), ignore_attr = TRUE)
 })
 
 test_that("substitution refuses what it cannot substitute", {
