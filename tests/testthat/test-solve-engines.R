@@ -74,6 +74,30 @@ test_that("the cuOpt header gives status and objective, plain or gzipped", {
                "not optimal")
 })
 
+test_that("a named solution is placed by name; a missing entry is an error", {
+  v <- multimod:::.place_by_name(c("x(b)", "x(a)"), c("x(a)", "x(b)", "ONE_VAR_CONSTANT"),
+                                 c(1, 2, 1), "column")
+  expect_identical(v, c(2, 1))
+  expect_error(multimod:::.place_by_name("x(c)", c("x(a)"), 1, "column"),
+               "not in the solution, e.g. 'x\\(c\\)'")
+  expect_error(multimod:::.place_by_name("x(a)", c("x(a)", "x(a)"), 1:2, "column"),
+               "more than once")
+  expect_identical(multimod:::.place_by_name("r", character(0), numeric(0), "row"), NA_real_)
+})
+
+test_that("read_mps_solution decodes a named matrix through its name tables", {
+  d <- withr::local_tempdir()
+  ci <- data.table::data.table(symbol = c("vX", "vX", "vY"), name = c("vX(a)", "vX(b)", "vY"),
+                               i1 = c("a", "b", NA))
+  ri <- data.table::data.table(symbol = "eqC", name = "c_e_eqC_", i1 = NA_character_)
+  sol <- list(objective = 3, status = "Optimal",
+              columns = data.frame(name = c("vY", "vX(b)", "vX(a)"), primal = c(3, 2, 1), dual = NA_real_),
+              rows = data.frame(name = "c_e_eqC_", primal = 5, dual = 0.5))
+  s <- read_mps_solution(sol, col_index = ci, row_index = ri)
+  expect_identical(s$primal$value, c(1, 2, 3))
+  expect_identical(s$dual$marginal, 0.5)
+})
+
 test_that("a remote solve wants a compressed solution file", {
   skip_if_not_installed("mmcloud")
   f <- tempfile(fileext = ".mps"); writeLines("NAME x", f); on.exit(unlink(f))

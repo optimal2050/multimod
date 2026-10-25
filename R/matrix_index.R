@@ -180,6 +180,10 @@
 #'   to another call codes the other table with the same dictionary. The
 #'   streaming writer builds both tables this way, so that the members are
 #'   never held as strings; the files it writes carry the labels.
+#' @param exclude Internal: a named list (by variable) of coded tuple tables
+#'   (`i1..iN`) whose columns are left out, as a build-time substitution
+#'   removes them. Each tuple must be a column of its variable. Needs a
+#'   dictionary (`codes`).
 #'
 #' @return A `data.table` with columns `j` (1-based column index), `symbol`,
 #'   `name` (`symbol.i1.i2...`, when `names = TRUE`), `i1`..`iN` (index
@@ -190,11 +194,15 @@
 #' @examples
 #' cols <- build_col_index(example_models$toy)
 #' table(cols$symbol)
-build_col_index <- function(model, verbose = FALSE, names = TRUE, codes = FALSE) {
+build_col_index <- function(model, verbose = FALSE, names = TRUE, codes = FALSE,
+                            exclude = NULL) {
   stopifnot(inherits(model, "multimod") || inherits(model, "mm_model"))
   vars <- model$variables
   if (!length(vars)) stop("Model has no variables.")
   codes <- .index_codes(codes)
+  if (length(exclude) && is.null(codes)) {
+    stop("build_col_index: `exclude` needs a dictionary (`codes`).", call. = FALSE)
+  }
 
   dim_names <- list()
   pieces <- vector("list", length(vars))
@@ -227,6 +235,19 @@ build_col_index <- function(model, verbose = FALSE, names = TRUE, codes = FALSE)
       blk <- .symbol_block(tp, nm, names = names, codes = codes)
     }
     dim_names[[nm]] <- attr(blk, "dim_names")
+    ex <- exclude[[nm]]
+    if (!is.null(ex)) {
+      n_in <- nrow(blk)
+      on <- names(ex)
+      blk <- blk[!ex, on = on]
+      data.table::setattr(blk, "dim_names", dim_names[[nm]])
+      if (n_in - nrow(blk) != nrow(ex)) {
+        stop("build_col_index: ", nrow(ex) - (n_in - nrow(blk)), " tuple(s) to substitute ",
+             "are not columns of '", nm, "'.", call. = FALSE)
+      }
+      if (verbose) message(sprintf("  %-30s %8d  (%d substituted)", nm, nrow(blk), nrow(ex)))
+      if (!nrow(blk)) next
+    }
 
     lo <- if (!is.null(v$bounds$lo)) as.numeric(v$bounds$lo)[1] else NA_real_
     up <- if (!is.null(v$bounds$up)) as.numeric(v$bounds$up)[1] else NA_real_
@@ -279,6 +300,8 @@ build_col_index <- function(model, verbose = FALSE, names = TRUE, codes = FALSE)
 #' @param codes Store the index members as integer codes of a dictionary —
 #'   see [build_col_index()]. The row index of an LP is coded with the
 #'   dictionary of its column index.
+#' @param skip Internal: names of equations that get no rows (definitions
+#'   substituted at build time).
 #'
 #' @return A `data.table` with columns `i` (1-based row index), `symbol`,
 #'   `name` (when `names = TRUE`), `i1`..`iN`, `sense` (`"=="`, `"<="`,
@@ -287,7 +310,8 @@ build_col_index <- function(model, verbose = FALSE, names = TRUE, codes = FALSE)
 #' @examples
 #' rows <- build_row_index(example_models$toy)
 #' table(rows$symbol)
-build_row_index <- function(model, verbose = FALSE, names = TRUE, codes = FALSE) {
+build_row_index <- function(model, verbose = FALSE, names = TRUE, codes = FALSE,
+                            skip = NULL) {
   stopifnot(inherits(model, "multimod") || inherits(model, "mm_model"))
   eqs <- model$equations
   if (!length(eqs)) stop("Model has no equations.")
@@ -299,6 +323,10 @@ build_row_index <- function(model, verbose = FALSE, names = TRUE, codes = FALSE)
   for (k in seq_along(eqs)) {
     e <- eqs[[k]]
     nm <- base::names(eqs)[k]
+    if (nm %in% skip) {
+      if (verbose) message(sprintf("  %-30s %8d  (substituted)", nm, 0L))
+      next
+    }
     dn <- .domain_name(e$domain)
     if (is.na(dn)) {
       tp <- .dims_tuples(model, e$dims)

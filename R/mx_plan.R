@@ -274,6 +274,23 @@
 
 .mx_lower_variable <- function(node, bound, L) {
   if (.mx_has_shift(node)) return(.mx_lower_fail(L, "shift"))
+  nm <- node$name
+  if (!is.null(L$ctx$subst[[nm]])) {
+    if (identical(L$defining, nm)) {
+      # the variable a definition is being solved for: its term is located,
+      # never executed
+      ref <- .mx_bound_names(.mx_ref_dims(node), bound, L$ctx)
+      return(list(.mx_term(list(list(op = "var", table = paste0("v:", nm),
+                                     on = stats::setNames(paste0("i", seq_along(ref)), ref),
+                                     column = "j")))))
+    }
+    return(.mx_subst_ref(node, bound, L))
+  }
+  .mx_lower_var_lookup(node, bound, L)
+}
+
+# a variable reference as a column lookup
+.mx_lower_var_lookup <- function(node, bound, L) {
   ctx <- L$ctx
   nm <- node$name
   ci <- ctx$col_cache[[nm]]
