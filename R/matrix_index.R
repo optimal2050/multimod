@@ -301,7 +301,9 @@ build_col_index <- function(model, verbose = FALSE, names = TRUE, codes = FALSE,
 #'   see [build_col_index()]. The row index of an LP is coded with the
 #'   dictionary of its column index.
 #' @param skip Internal: names of equations that get no rows (definitions
-#'   substituted at build time).
+#'   substituted at build time), or a named list by equation of `TRUE` (no
+#'   rows) or a coded tuple table (`i1..iN`, the equation's index order) of
+#'   the rows left out.
 #'
 #' @return A `data.table` with columns `i` (1-based row index), `symbol`,
 #'   `name` (when `names = TRUE`), `i1`..`iN`, `sense` (`"=="`, `"<="`,
@@ -323,7 +325,8 @@ build_row_index <- function(model, verbose = FALSE, names = TRUE, codes = FALSE,
   for (k in seq_along(eqs)) {
     e <- eqs[[k]]
     nm <- base::names(eqs)[k]
-    if (nm %in% skip) {
+    sk <- if (is.list(skip)) skip[[nm]] else if (nm %in% skip) TRUE else NULL
+    if (isTRUE(sk)) {
       if (verbose) message(sprintf("  %-30s %8d  (substituted)", nm, 0L))
       next
     }
@@ -363,6 +366,18 @@ build_row_index <- function(model, verbose = FALSE, names = TRUE, codes = FALSE,
       blk <- .symbol_block(tp, nm, names = names, codes = codes)
     }
     dim_names[[nm]] <- attr(blk, "dim_names")
+    if (is.data.frame(sk)) {
+      # a substitution over part of the domain: the substituted tuples go
+      n_in <- nrow(blk)
+      blk <- blk[!sk, on = names(sk)]
+      data.table::setattr(blk, "dim_names", dim_names[[nm]])
+      if (n_in - nrow(blk) != nrow(sk)) {
+        stop("build_row_index: ", nrow(sk) - (n_in - nrow(blk)), " tuple(s) to substitute ",
+             "are not rows of '", nm, "'.", call. = FALSE)
+      }
+      if (verbose) message(sprintf("  %-30s %8d  (%d substituted)", nm, nrow(blk), nrow(sk)))
+      if (!nrow(blk)) next
+    }
 
     rel <- if (!is.null(e$relation) && nzchar(e$relation[1])) e$relation[1] else NA_character_
     if (is.na(rel)) {

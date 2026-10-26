@@ -505,10 +505,11 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
   # never held as strings, and the build joins the codes as they are
   codes <- .index_codes(TRUE)
   subst <- .mx_subst_prepare(model, unique(as.character(substitute)), codes)
+  subst <- .mx_subst_restrict(model, subst, codes, verbose = verbose)
   col_index <- build_col_index(model, verbose = verbose, names = FALSE, codes = codes,
                                exclude = lapply(subst, function(s) s$keys))
   row_index <- build_row_index(model, verbose = verbose, names = FALSE, codes = codes,
-                               skip = vapply(subst, function(s) s$eq, character(1)))
+                               skip = .mx_subst_skip(subst))
   base <- tools::file_path_sans_ext(basename(file))
   subst_dir <- file.path(index_dir, paste0(base, "_subst"))
   unlink(subst_dir, recursive = TRUE)

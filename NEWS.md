@@ -16,6 +16,11 @@
   of its variables produces no rows, the variable no columns there, and every
   other reference to it is replaced by the definition. `read_mps_solution()`
   rebuilds the variable. Defaults to `getOption("multimod.substitute")`.
+* A substituted definition may refer to its own variable at other tuples, as
+  a total that rolls up finer timeslices or regions does. The definition is
+  composed through the levels of these references; a cycle is an error. A
+  tuple whose definition does not imply the variable's lower bound keeps its
+  row and column.
 * The matrix route joins index members as integer codes of one dictionary
   per build, and prepares each parameter and mapping lookup once instead of
   per chunk. The assembled LP is identical; a 4.4M-row model builds about

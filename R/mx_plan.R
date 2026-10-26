@@ -277,12 +277,31 @@
   nm <- node$name
   if (!is.null(L$ctx$subst[[nm]])) {
     if (identical(L$defining, nm)) {
-      # the variable a definition is being solved for: its term is located,
-      # never executed
       ref <- .mx_bound_names(.mx_ref_dims(node), bound, L$ctx)
-      return(list(.mx_term(list(list(op = "var", table = paste0("v:", nm),
-                                     on = stats::setNames(paste0("i", seq_along(ref)), ref),
-                                     column = "j")))))
+      dims <- L$defining_dims
+      if (is.null(dims) || (length(ref) == length(dims) && setequal(ref, dims))) {
+        # the variable a definition is being solved for: its term is located,
+        # never executed
+        return(list(.mx_term(list(list(op = "var", table = paste0("v:", nm),
+                                       on = stats::setNames(paste0("i", seq_along(ref)), ref),
+                                       column = "j", defined = TRUE)))))
+      }
+      # the variable at another tuple of its own definition: a placeholder
+      # column past the LP's columns, one per tuple of the domain, resolved
+      # when the definition is composed
+      sp <- L$ctx$subst[[nm]]
+      if (!isTRUE(sp$recursive)) return(.mx_lower_fail(L, "var:self"))
+      if (!all(ref %in% bound)) return(.mx_lower_fail(L, "var:unbound"))
+      id <- paste0("x:", nm)
+      if (is.null(L$tables[[id]])) {
+        L$tables[[id]] <- c(as.list(sp$keys),
+                            list(j = nrow(L$ctx$col_index) + seq_len(nrow(sp$keys))))
+      }
+      # a finer tuple kept out of the substitution is an ordinary column
+      return(c(list(.mx_term(list(list(op = "var", table = id,
+                                       on = stats::setNames(paste0("i", seq_along(ref)), ref),
+                                       column = "j")))),
+               .mx_lower_var_lookup(node, bound, L)))
     }
     return(.mx_subst_ref(node, bound, L))
   }

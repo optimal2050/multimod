@@ -1560,6 +1560,28 @@ NULL
   env
 }
 
+
+#' The context a build lowers and evaluates its equations in
+#' @keywords internal
+#' @noRd
+.mx_new_ctx <- function(model, col_index, codes, on_duplicate = "error", substitute = NULL) {
+  ctx <- new.env(parent = emptyenv())
+  ctx$model <- model
+  ctx$codes <- codes
+  ctx$col_index <- col_index
+  ctx$col_cache <- list()
+  ctx$param_cache <- list()
+  ctx$map_cache <- list()
+  ctx$set_cache <- list()
+  ctx$on_duplicate <- on_duplicate
+  ctx$dup_warned <- list()
+  ctx$trace <- .mx_trace_open(getOption("multimod.mx_trace"))
+  ctx$subst <- substitute
+  ctx$subst_def <- list()
+  ctx$subst_mat <- list()
+  ctx
+}
+
 #' Extract (row, column, coefficient) triplets from a model
 #'
 #' Walks each equation's AST set-at-a-time and returns the LP matrix entries
@@ -1608,8 +1630,6 @@ build_triplets <- function(model, col_index = NULL, row_index = NULL,
   if (is.null(col_index)) col_index <- build_col_index(model)
   if (is.null(row_index)) row_index <- build_row_index(model)
 
-  ctx <- new.env(parent = emptyenv())
-  ctx$model <- model
   # index tables built with a dictionary (`codes =`) bring it; both must
   # share it, as the column codes are joined against the row codes
   own <- attr(row_index, "codes")
@@ -1617,17 +1637,8 @@ build_triplets <- function(model, col_index = NULL, row_index = NULL,
     stop("build_triplets: the row and column index tables are coded with ",
          "different dictionaries.", call. = FALSE)
   }
-  ctx$codes <- if (.mx_is_codes(own)) own else .mx_new_codes()
-  ctx$col_index <- col_index
-  ctx$col_cache <- list()
-  ctx$param_cache <- list()
-  ctx$map_cache <- list()
-  ctx$set_cache <- list()
-  ctx$on_duplicate <- on_duplicate
-  ctx$dup_warned <- list()
-  ctx$trace <- .mx_trace_open(getOption("multimod.mx_trace"))
-  ctx$subst <- substitute
-  ctx$subst_def <- list()
+  ctx <- .mx_new_ctx(model, col_index, if (.mx_is_codes(own)) own else .mx_new_codes(),
+                     on_duplicate, substitute)
 
   # The row index with its members coded, and each equation's row range: the
   # rows of one equation are contiguous, so a range replaces a scan of the
