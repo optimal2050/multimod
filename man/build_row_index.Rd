@@ -25,7 +25,9 @@ see \code{\link[=build_col_index]{build_col_index()}}. The row index of an LP is
 dictionary of its column index.}
 
 \item{skip}{Internal: names of equations that get no rows (definitions
-substituted at build time).}
+substituted at build time), or a named list by equation of \code{TRUE} (no
+rows) or a coded tuple table (\code{i1..iN}, the equation's index order) of
+the rows left out.}
 }
 \value{
 A \code{data.table} with columns \code{i} (1-based row index), \code{symbol},

@@ -12,7 +12,8 @@ read_mps_solution(
   base = NULL,
   format = c("parquet", "ipc", "csv"),
   solver = c("auto", "highs", "cuopt"),
-  require_optimal = TRUE
+  require_optimal = TRUE,
+  substituted = c("expand", "defer")
 )
 }
 \arguments{
@@ -34,6 +35,11 @@ format present in \code{index_dir} is read.}
 \item{solver}{Which solver wrote \code{sol}; \code{"auto"} sniffs the file.}
 
 \item{require_optimal}{Passed to the reader.}
+
+\item{substituted}{For a matrix written with \code{write_mps(substitute = )}:
+\code{"expand"} rebuilds the substituted variables into \code{primal}; \code{"defer"}
+leaves them out and \code{\link[=write_solution]{write_solution()}} builds each from the bundle when
+it writes it, so a large variable is never held with the others.}
 }
 \value{
 A list with \code{objective}, \code{status}, \code{primal} (\code{j}, symbol, name,
