@@ -200,6 +200,7 @@ reference:
   - mm_session
   - solve_highs
   - solve_mps
+  - cuopt_watchdog
   - write_mps
   - read_mps_solution
   - read_highs_solution

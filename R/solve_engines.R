@@ -226,6 +226,11 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
   opts <- c("--method", as.character(control$method %||% 1L))
   if (!is.null(control$time_limit)) opts <- c(opts, "--time-limit", as.character(control$time_limit))
   if (!is.null(control$presolve)) opts <- c(opts, "--presolve", as.character(as.integer(control$presolve)))
+  # infeasibility detection: the solve's setting, else the session's, else cuOpt's default
+  for (o in c("infeasibility_detection", "strict_infeasibility")) {
+    v <- control[[o]] %||% getOption(paste0("multimod.cuopt_", o))
+    if (!is.null(v)) opts <- c(opts, paste0("--", gsub("_", "-", o)), tolower(as.character(isTRUE(v))))
+  }
   if (!is.null(control$options)) {
     opts <- c(opts, unlist(strsplit(paste(control$options, collapse = " "), "[[:space:]]+")))
   }
@@ -277,14 +282,20 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
   if (file.exists(sol_file)) file.remove(sol_file)
   t0 <- Sys.time()
   cli <- .cuopt_cli_path(control, wsl)
+  # the watchdog (cuopt_watchdog()): the log goes beside the solution file
+  wd <- .cuopt_watchdog_resolve(control)
+  log_file <- file.path(dirname(normalizePath(sol_file, mustWork = FALSE)), "cuopt.log")
   if (!wsl) {
     args <- .cuopt_cli_args(file, sol_file, control)
     if (verbose) cat("cuOpt:", cli, paste(args, collapse = " "), "\n")
-    rs <- system2(cli, shQuote(args), stdout = if (verbose) "" else FALSE,
-                  stderr = if (verbose) "" else FALSE)
+    run <- function(a) {
+      if (!is.null(wd)) return(.cuopt_run_watched(cli, a, log_file, wd, verbose))
+      system2(cli, shQuote(a), stdout = if (verbose) "" else FALSE,
+              stderr = if (verbose) "" else FALSE)
+    }
+    rs <- run(args)
     if (rs == 0 && !file.exists(sol_file) && is.null(control$presolve)) {
-      rs <- system2(cli, shQuote(c(args, "--presolve", "0")),
-                    stdout = if (verbose) "" else FALSE, stderr = if (verbose) "" else FALSE)
+      rs <- run(c(args, "--presolve", "0"))
     }
   } else {
     # cuOpt writes the solution line by line, which is slow across the
@@ -295,8 +306,19 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
     user <- c(.wsl_user_args(control), "-e")
     args <- c(user, cli, .cuopt_cli_args(.wsl_path(file), wsl_sol, control))
     if (verbose) cat("cuOpt (WSL):", paste(args, collapse = " "), "\n")
-    run <- function(a) system2("wsl", a, stdout = if (verbose) "" else FALSE,
-                               stderr = if (verbose) "" else FALSE)
+    # under the watchdog cuopt_cli is started through bash, which writes its
+    # process id first: stopping wsl.exe alone may leave the solver running
+    pid_file <- sub("\\.sol$", ".pid", wsl_sol)
+    run <- function(a) {
+      if (is.null(wd)) return(system2("wsl", a, stdout = if (verbose) "" else FALSE,
+                                      stderr = if (verbose) "" else FALSE))
+      cmd <- c(user, "bash", "-c", sprintf('echo $$ > %s; exec "$0" "$@"', pid_file), a[-seq_along(user)])
+      .cuopt_run_watched("wsl", cmd, log_file, wd, verbose,
+                         # cuopt_cli is a wrapper that starts the solver as its child: both go
+                         kill = function() processx::run("wsl", c(user, "bash", "-c",
+                                                                  sprintf("p=$(cat %s); pkill -P $p; kill $p", pid_file)),
+                                                         error_on_status = FALSE))
+    }
     sol_in_wsl <- function() suppressWarnings(system2("wsl", c(user, "test", "-s", wsl_sol))) == 0
     rs <- run(args)
     # cuOpt writes no solution file when its presolve solves the whole problem
@@ -333,7 +355,27 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
 .cuopt_worker_script <- function(mps_name, out_name, control) {
   solve <- paste(c("cuopt_cli", .cuopt_cli_args(paste0("/job/", mps_name), "/tmp/model.sol", control)),
                  collapse = " ")
+  # the watchdog (cuopt_watchdog()): the solver runs in the background, its log
+  # streams to the job's output and is read every `poll` seconds by the same
+  # rules as a local run; on a verdict the solver is stopped and the job ends
+  # with WATCHDOG_STOP and the reason
+  wd <- .cuopt_watchdog_resolve(control, local = FALSE)
+  if (!is.null(wd)) {
+    solve <- paste("run_cuopt", sub("^cuopt_cli ", "", solve))
+    watch <- c("cat > /tmp/wd.awk << 'WDAWK'", .cuopt_watchdog_awk(), "WDAWK",
+               "run_cuopt() {",
+               "  ( cuopt_cli \"$@\" 2>&1 | tee /tmp/cuopt.log ) &",
+               "  local cp=$!",
+               "  while kill -0 $cp 2>/dev/null; do",
+               paste0("    sleep ", wd$poll),
+               paste0("    v=$(awk ", .cuopt_watchdog_awk_vars(wd), " -f /tmp/wd.awk /tmp/cuopt.log 2>/dev/null || true)"),
+               "    if [ -n \"$v\" ]; then echo \"WATCHDOG_STOP: $v\"; pkill -f cuopt_cli || true; wait $cp 2>/dev/null || true; exit 3; fi",
+               "  done",
+               "  wait $cp",
+               "}")
+  } else watch <- NULL
   c("set -e",
+    watch,
     "nvidia-smi || true",
     # an image with cuOpt installed (inst/images/cuopt) skips the install
     paste("command -v cuopt_cli > /dev/null ||",
@@ -394,6 +436,9 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
     v <- tryCatch(mmcloud::cloud_verdict(job), error = function(e) NULL)
     why <- if (!is.null(v) && !identical(v$verdict, "ok")) v$message else
       if (inherits(ok, "error")) conditionMessage(ok) else paste("job ended", stage)
+    # stopped by the watchdog (cuopt_watchdog()): its reason, from the job's log
+    wd <- grep("^WATCHDOG_STOP: ", tryCatch(mmcloud::cloud_logs(job), error = function(e) character()), value = TRUE)
+    if (length(wd)) why <- paste("stopped by the watchdog:", sub("^WATCHDOG_STOP: ", "", utils::tail(wd, 1)))
     stop("Remote cuOpt solve returned no solution (job ", job$id, "): ", why)
   }
   h <- .cuopt_sol_header(sol_file)

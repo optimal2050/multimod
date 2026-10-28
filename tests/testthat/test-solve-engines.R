@@ -43,9 +43,10 @@ test_that("the WSL user comes from control, then the environment", {
 test_that("the remote worker writes to /tmp and compresses into /out", {
   s <- multimod:::.cuopt_worker_script("model.mps.gz", "model.sol.gz",
                                        list(time_limit = 600))
-  solve <- grep("^cuopt_cli ", s, value = TRUE)
+  # the solve runs under the watchdog (run_cuopt, see test-cuopt-watchdog.R)
+  solve <- grep("^run_cuopt ", s, value = TRUE)
   expect_length(solve, 1L)
-  expect_match(solve, "^cuopt_cli /job/model.mps.gz --solution-file /tmp/model.sol --method 1 --time-limit 600$")
+  expect_match(solve, "^run_cuopt /job/model.mps.gz --solution-file /tmp/model.sol --method 1 --time-limit 600$")
   expect_true("gzip -1 -c /tmp/model.sol > /out/model.sol.gz" %in% s)
   # nothing but the compressed solution is written to /out
   expect_false(any(grepl("/out/model.sol( |$)", s)))
@@ -53,7 +54,7 @@ test_that("the remote worker writes to /tmp and compresses into /out", {
   pip <- grep("pip install", s)
   expect_length(pip, 1L)
   expect_match(s[pip], "for i in 1 2 3 4 5")
-  expect_lt(pip, grep("^cuopt_cli ", s))
+  expect_lt(pip, grep("^run_cuopt ", s))
   expect_identical(s[1], "set -e")
   # a presolve that solves the whole problem writes no file: solved again
   # without it, and only when the caller did not set presolve
