@@ -72,7 +72,7 @@ test_that("the infeasibility switches reach the command line", {
 
 test_that("the cloud script runs cuOpt under the watchdog, or plainly when it is off", {
   s <- .cuopt_worker_script("model.mps.gz", "model.sol.gz", list(time_limit = 600))
-  expect_true(any(grepl("^run_cuopt /job/model.mps.gz", s)))
+  expect_true(any(grepl("^run_cuopt cuopt_cli /job/model.mps.gz", s)))
   expect_true(any(grepl("WATCHDOG_STOP", s)))
   expect_true(any(grepl("-v R=100000000000000000000 -v N=5 -v SW=1800 -v SI=500000 -v F=2", s, fixed = TRUE)))
   s0 <- .cuopt_worker_script("model.mps.gz", "model.sol.gz", list(time_limit = 600, watchdog = FALSE))
@@ -92,4 +92,57 @@ test_that("the cloud rules (awk) give the local verdicts on the same logs", {
   expect_equal(run(wd_converging), "")
   expect_match(run(wd_runaway), "objective beyond 1e\\+20 for 6 log lines")
   expect_equal(run(wd_runaway, cuopt_watchdog(runaway_n = 10)), "")
+})
+
+test_that("the Python interface writes its script, parameters and warm-start output", {
+  s <- .cuopt_worker_script("model.mps.gz", "model.sol.gz",
+                            list(api = "python", time_limit = 3600, save_warm_start = TRUE))
+  expect_true(any(grepl("^run_cuopt python3 /tmp/solve_cuopt.py /job/model.mps.gz /tmp/model.sol /tmp/params.json '' '/tmp/warm_start.pkl'", s)))
+  expect_true(any(grepl("pickle.dump(sol.get_pdlp_warm_start_data()", s, fixed = TRUE)))
+  p <- jsonlite::fromJSON(s[which(s == "cat > /tmp/params.json << 'PJEOF'") + 1L])
+  expect_equal(p$time_limit, 3600)
+  expect_equal(p$pdlp_solver_mode, 1L)        # warm starts need Stable2
+  expect_equal(p$presolve, 0L)                # and the unpresolved problem's size
+  expect_true(any(grepl("cp /tmp/warm_start.pkl /out/warm_start.pkl", s, fixed = TRUE)))
+  # no presolve retry: the Python run always writes its solution file
+  expect_false(any(grepl("--presolve 0", s, fixed = TRUE)))
+  # continuing from a warm start reads it from the job's inputs
+  s2 <- .cuopt_worker_script("model.mps.gz", "model.sol.gz",
+                             list(api = "python", warm_start = "C:/runs/warm_start.pkl"))
+  expect_true(any(grepl("'/job/warm_start.pkl' ''$", s2)))
+  # without a warm start the default PDLP mode stays
+  p0 <- .cuopt_py_params(list(time_limit = 60, options = "--relative-gap-tolerance 1e-5 --crossover false"), FALSE)
+  expect_null(p0$pdlp_solver_mode)
+  expect_equal(p0$relative_gap_tolerance, 1e-5)
+  expect_false(p0$crossover)
+  # a warm start through cuopt_cli is refused
+  expect_error(.cuopt_worker_script("m.mps.gz", "m.sol.gz", list(save_warm_start = TRUE)), "api")
+})
+
+test_that("a WSL run goes through Python beside cuopt_cli, with '-' for no warm-start file", {
+  ctl <- list(api = "python", cuopt_cli = "/opt/cuopt-env/bin/cuopt_cli")
+  cm <- .cuopt_local_command("C:/runs/model.mps", "/tmp/m.sol", "-", ctl, wsl = TRUE,
+                             "C:/runs/solve_cuopt.py", "C:/runs/cuopt_params.json")
+  expect_equal(cm$exe, "/opt/cuopt-env/bin/python3")
+  expect_equal(cm$args, c("-u", "/mnt/c/runs/solve_cuopt.py", "/mnt/c/runs/model.mps", "/tmp/m.sol",
+                          "/mnt/c/runs/cuopt_params.json", "-", "-"))
+  # continuing from a warm start: its path as WSL sees it
+  cm2 <- .cuopt_local_command("C:/runs/model.mps", "/tmp/m.sol", "/tmp/m.pkl",
+                              c(ctl, warm_start = "C:/runs/old/warm_start.pkl"), wsl = TRUE,
+                              "C:/runs/solve_cuopt.py", "C:/runs/cuopt_params.json")
+  expect_equal(tail(cm2$args, 2), c("/mnt/c/runs/old/warm_start.pkl", "/tmp/m.pkl"))
+  # the Python can be named outright
+  expect_equal(.cuopt_python_path(list(cuopt_python = "/usr/bin/python3.12"), "cuopt_cli"), "/usr/bin/python3.12")
+  withr::with_envvar(c(MULTIMOD_CUOPT_PYTHON = ""),
+                     expect_equal(.cuopt_python_path(list(), "cuopt_cli"), "python3"))
+  # without api = "python" the command stays cuopt_cli's
+  cm3 <- .cuopt_local_command("C:/runs/model.mps", "/tmp/m.sol", "-", list(cuopt_cli = "cuopt_cli"),
+                              wsl = TRUE, "s.py", "p.json")
+  expect_equal(cm3$exe, "cuopt_cli")
+  expect_equal(cm3$args[1:3], c("/mnt/c/runs/model.mps", "--solution-file", "/tmp/m.sol"))
+  # the script reads '-' as no file
+  expect_true(any(grepl("'' if w == '-' else w", .cuopt_py_source(), fixed = TRUE)))
+  # a warm start without the Python interface is refused before anything runs
+  expect_error(.solve_mps_cuopt_local(tempfile(fileext = ".mps"), tempfile(fileext = ".sol"),
+                                      list(save_warm_start = TRUE), FALSE, FALSE, wsl = TRUE), "api")
 })

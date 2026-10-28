@@ -46,7 +46,7 @@ test_that("the remote worker writes to /tmp and compresses into /out", {
   # the solve runs under the watchdog (run_cuopt, see test-cuopt-watchdog.R)
   solve <- grep("^run_cuopt ", s, value = TRUE)
   expect_length(solve, 1L)
-  expect_match(solve, "^run_cuopt /job/model.mps.gz --solution-file /tmp/model.sol --method 1 --time-limit 600$")
+  expect_match(solve, "^run_cuopt cuopt_cli /job/model.mps.gz --solution-file /tmp/model.sol --method 1 --time-limit 600$")
   expect_true("gzip -1 -c /tmp/model.sol > /out/model.sol.gz" %in% s)
   # nothing but the compressed solution is written to /out
   expect_false(any(grepl("/out/model.sol( |$)", s)))
