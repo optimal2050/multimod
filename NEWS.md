@@ -11,6 +11,12 @@
   solution file, which keeps the names the MPS carries.
 * The remote cuOpt worker skips its install when the image already carries
   `cuopt_cli`.
+* cuOpt solves run under a watchdog (`cuopt_watchdog()`): the solve is stopped
+  when its objective runs away or its residuals stop improving, locally, in WSL
+  and in a remote job alike. Thresholds per solve (`control$watchdog`), per
+  session (`options(multimod.cuopt_watchdog = )`), or off with `FALSE`.
+* `control$infeasibility_detection` and `control$strict_infeasibility` pass
+  cuOpt's options of those names.
 * `write_mps(stream = TRUE, substitute = )` substitutes definition equations
   while the matrix is built: an equality whose domain is the index set of one
   of its variables produces no rows, the variable no columns there, and every
