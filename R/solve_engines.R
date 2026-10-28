@@ -34,6 +34,18 @@
 #' environment variables `MULTIMOD_WSL_USER` and `MULTIMOD_CUOPT_CLI`, else
 #' WSL's default user and `cuopt_cli` on its `PATH`.
 #'
+#' A cuOpt run (any place) can go through cuOpt's Python interface instead of
+#' `cuopt_cli` (`control$api = "python"`). It writes the solution file whatever
+#' the status: at a time limit the current iterate is kept (status
+#' `TimeLimit`), where `cuopt_cli` writes no values. `control$save_warm_start
+#' = TRUE` also returns PDLP's warm-start data as `warm_start.pkl` beside
+#' `sol_file`; `control$warm_start` (a path to such a file) continues from it.
+#' Both run PDLP in its `Stable2` mode, the one cuOpt warm-starts, and without
+#' cuOpt's presolve (unless `control$presolve` is set): the warm-start data
+#' has the size of the problem PDLP solved. Locally and
+#' in WSL the Python is `control$cuopt_python`, else the environment variable
+#' `MULTIMOD_CUOPT_PYTHON`, else `python3` beside `cuopt_cli`.
+#'
 #' `remote` (for `where = "remote"`): `flavor`, `namespace`, `timeout`
 #' (default `"10h"`), `image` (default `"python:3.12"`), `provider` (default
 #' `"hf_jobs"`), `handle_file` (default `cloud_job.yml` beside `sol_file`),
@@ -261,6 +273,30 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
                if (wsl) "cuopt_cli" else get_multimod_solver("cuopt_cli"))
 }
 
+# The program and arguments of a run on this machine or in WSL: `cuopt_cli`,
+# or Python with the script and parameter files (`script`, `params`). "-"
+# stands for no warm-start file: wsl.exe drops an empty argument.
+.cuopt_local_command <- function(file, sol, warm_out, control, wsl, script, params) {
+  path <- if (wsl) .wsl_path else identity
+  cli <- .cuopt_cli_path(control, wsl)
+  if (!identical(control$api, "python")) {
+    return(list(exe = cli, args = .cuopt_cli_args(path(file), sol, control)))
+  }
+  warm_in <- if (is.null(control$warm_start)) "-" else
+    path(normalizePath(control$warm_start, winslash = "/", mustWork = FALSE))
+  list(exe = .cuopt_python_path(control, cli),
+       args = c("-u", path(script), path(file), sol, path(params), warm_in, warm_out))
+}
+
+# The Python that has cuOpt's package: `control$cuopt_python`, else
+# MULTIMOD_CUOPT_PYTHON, else `python3` beside `cuopt_cli` (both live in the
+# environment's bin/), else `python3` on the PATH.
+.cuopt_python_path <- function(control, cli) {
+  p <- control$cuopt_python %||% Sys.getenv("MULTIMOD_CUOPT_PYTHON", "")
+  if (nzchar(p)) return(p)
+  if (grepl("/", cli, fixed = TRUE)) file.path(dirname(cli), "python3") else "python3"
+}
+
 # The status and objective from the solution file's header (`# Status: ...`,
 # `# Objective value: ...`), without reading its body.
 .cuopt_sol_header <- function(sol_file) {
@@ -281,32 +317,52 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
                                    verbose, wsl) {
   if (file.exists(sol_file)) file.remove(sol_file)
   t0 <- Sys.time()
-  cli <- .cuopt_cli_path(control, wsl)
+  py <- identical(control$api, "python")
+  warm <- !is.null(control$warm_start) || isTRUE(control$save_warm_start)
+  if (!py && warm) stop("A cuOpt warm start needs control$api = \"python\".")
+  if (!is.null(control$warm_start) && !file.exists(control$warm_start)) {
+    stop("control$warm_start: no file ", control$warm_start)
+  }
   # the watchdog (cuopt_watchdog()): the log goes beside the solution file
   wd <- .cuopt_watchdog_resolve(control)
-  log_file <- file.path(dirname(normalizePath(sol_file, mustWork = FALSE)), "cuopt.log")
+  out_dir <- dirname(normalizePath(sol_file, mustWork = FALSE))
+  log_file <- file.path(out_dir, "cuopt.log")
+  warm_file <- file.path(out_dir, "warm_start.pkl")
+  # the Python interface: the script and its parameters beside the solution
+  # file; it writes the solution whatever the status
+  script <- file.path(out_dir, "solve_cuopt.py")
+  params <- file.path(out_dir, "cuopt_params.json")
+  if (py) {
+    writeLines(.cuopt_py_source(), script)
+    writeLines(as.character(jsonlite::toJSON(.cuopt_py_params(control, warm),
+                                             auto_unbox = TRUE, digits = NA)), params)
+  }
+  solver_args <- function(sol, warm_out) {
+    .cuopt_local_command(file, sol, warm_out, control, wsl, script, params)
+  }
+  exe <- solver_args("", "-")$exe
   if (!wsl) {
-    args <- .cuopt_cli_args(file, sol_file, control)
-    if (verbose) cat("cuOpt:", cli, paste(args, collapse = " "), "\n")
+    args <- solver_args(sol_file, if (isTRUE(control$save_warm_start)) warm_file else "-")$args
+    if (verbose) cat("cuOpt:", exe, paste(args, collapse = " "), "\n")
     run <- function(a) {
-      if (!is.null(wd)) return(.cuopt_run_watched(cli, a, log_file, wd, verbose))
-      system2(cli, shQuote(a), stdout = if (verbose) "" else FALSE,
+      if (!is.null(wd)) return(.cuopt_run_watched(exe, a, log_file, wd, verbose))
+      system2(exe, shQuote(a), stdout = if (verbose) "" else FALSE,
               stderr = if (verbose) "" else FALSE)
     }
     rs <- run(args)
-    if (rs == 0 && !file.exists(sol_file) && is.null(control$presolve)) {
+    if (!py && rs == 0 && !file.exists(sol_file) && is.null(control$presolve)) {
       rs <- run(c(args, "--presolve", "0"))
     }
   } else {
     # cuOpt writes the solution line by line, which is slow across the
     # /mnt/<drive> bridge: it writes inside WSL's own file system and the
-    # file is copied out in one piece
-    wsl_sol <- sprintf("/tmp/multimod_%s_%d.sol", basename(dirname(normalizePath(sol_file, mustWork = FALSE))),
-                       Sys.getpid())
+    # file is copied out in one piece (the warm-start data likewise)
+    wsl_sol <- sprintf("/tmp/multimod_%s_%d.sol", basename(out_dir), Sys.getpid())
+    wsl_warm <- if (isTRUE(control$save_warm_start)) sub("\\.sol$", ".pkl", wsl_sol) else "-"
     user <- c(.wsl_user_args(control), "-e")
-    args <- c(user, cli, .cuopt_cli_args(.wsl_path(file), wsl_sol, control))
+    args <- c(user, exe, solver_args(wsl_sol, wsl_warm)$args)
     if (verbose) cat("cuOpt (WSL):", paste(args, collapse = " "), "\n")
-    # under the watchdog cuopt_cli is started through bash, which writes its
+    # under the watchdog the solver is started through bash, which writes its
     # process id first: stopping wsl.exe alone may leave the solver running
     pid_file <- sub("\\.sol$", ".pid", wsl_sol)
     run <- function(a) {
@@ -319,25 +375,31 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
                                                                   sprintf("p=$(cat %s); pkill -P $p; kill $p", pid_file)),
                                                          error_on_status = FALSE))
     }
-    sol_in_wsl <- function() suppressWarnings(system2("wsl", c(user, "test", "-s", wsl_sol))) == 0
+    in_wsl <- function(f) suppressWarnings(system2("wsl", c(user, "test", "-s", f))) == 0
     rs <- run(args)
-    # cuOpt writes no solution file when its presolve solves the whole problem
-    # (it reports Optimal and exits 0): solve once more without presolve
-    if (rs == 0 && !sol_in_wsl() && is.null(control$presolve)) {
+    # cuopt_cli writes no solution file when its presolve solves the whole
+    # problem (it reports Optimal and exits 0): solve once more without presolve
+    if (!py && rs == 0 && !in_wsl(wsl_sol) && is.null(control$presolve)) {
       rs <- run(c(args, "--presolve", "0"))
     }
-    if (sol_in_wsl()) {
-      system2("wsl", c(user, "cp", wsl_sol, .wsl_path(sol_file)))
-      system2("wsl", c(user, "rm", "-f", wsl_sol))
+    for (f in c(wsl_sol, if (wsl_warm != "-") wsl_warm)) {
+      if (in_wsl(f)) {
+        to <- if (identical(f, wsl_sol)) sol_file else warm_file
+        system2("wsl", c(user, "cp", f, .wsl_path(to)))
+        system2("wsl", c(user, "rm", "-f", f))
+      }
     }
   }
   if (!file.exists(sol_file)) {
     stop("cuOpt (", if (wsl) "WSL" else "local", ") wrote no solution (exit ", rs, "). ",
-         "Check that `", if (wsl) paste(c("wsl", user), collapse = " ") else "", " ", cli,
-         " --version` runs and that the GPU is visible (`nvidia-smi`). Set ",
-         "control$cuopt_cli", if (wsl) " / control$wsl_user" else "",
-         " or MULTIMOD_CUOPT_CLI", if (wsl) " / MULTIMOD_WSL_USER" else "",
+         "Check that `", if (wsl) paste(c("wsl", user), collapse = " ") else "", " ", exe,
+         if (py) " -c 'import cuopt'" else " --version", "` runs and that the GPU is visible (`nvidia-smi`). Set ",
+         if (py) "control$cuopt_python" else "control$cuopt_cli", if (wsl) " / control$wsl_user" else "",
+         if (py) " or MULTIMOD_CUOPT_PYTHON" else " or MULTIMOD_CUOPT_CLI", if (wsl) " / MULTIMOD_WSL_USER" else "",
          " where cuOpt is not on the PATH.")
+  }
+  if (isTRUE(control$save_warm_start) && !file.exists(warm_file)) {
+    warning("cuOpt: no warm-start data was saved (see the solver log).")
   }
   h <- .cuopt_sol_header(sol_file)
   .check_cuopt_status(h, require_optimal, if (wsl) "WSL" else "local")
@@ -352,30 +414,116 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
 # one pass: /out is the volume the platform uploads after the script ends, and
 # that upload is billed time on the GPU machine. GPU memory is sampled each
 # second; the peak goes to the log.
+# cuOpt's Python interface as a script: reads the matrix, applies the
+# parameters (a JSON object of cuOpt parameter names), optionally a PDLP
+# warm start, and writes the solution in `cuopt_cli`'s format (`# Status:`,
+# `# Objective value:`, then one `name value` line per column) whatever the
+# status, plus the warm-start data when asked.
+.cuopt_py_source <- function() {
+  c("import sys, json, pickle",
+    "import cuopt.linear_programming as lp",
+    "mps, sol_out, params, warm_in, warm_out = sys.argv[1:6]",
+    "warm_in, warm_out = ['' if w == '-' else w for w in (warm_in, warm_out)]",
+    "with open(params) as fh:",
+    "    p = json.load(fh)",
+    "dm = lp.ParseMps(mps)",
+    "s = lp.SolverSettings()",
+    "for k, v in p.items():",
+    "    if k == 'pdlp_solver_mode':",
+    "        v = lp.PDLPSolverMode(int(v))",
+    "    s.set_parameter(k, v)",
+    "if warm_in:",
+    "    with open(warm_in, 'rb') as fh:",
+    "        s.set_pdlp_warm_start_data(pickle.load(fh))",
+    "sol = lp.Solve(dm, s)",
+    "reason = str(sol.get_termination_reason())",
+    "obj = sol.get_primal_objective()",
+    "x = sol.get_primal_solution()",
+    "names = dm.get_variable_names()",
+    "with open(sol_out, 'w') as fh:",
+    "    fh.write('# Status: %s\\n' % reason)",
+    "    fh.write('# Objective value: %.17g\\n' % obj)",
+    "    fh.writelines('%s %.17g\\n' % (n, v) for n, v in zip(names, x))",
+    "if warm_out:",
+    "    try:",
+    "        with open(warm_out, 'wb') as fh:",
+    "            pickle.dump(sol.get_pdlp_warm_start_data(), fh)",
+    "    except Exception as e:",
+    "        print('WARM_START_NOT_SAVED: %s' % e)",
+    "print('PY_STATUS: %s %.17g' % (reason, obj))")
+}
+
+# The cuOpt parameters of a Python-interface run, from the same control
+# fields as `cuopt_cli` (`options` given as `--name value` pairs).
+.cuopt_py_params <- function(control, warm) {
+  p <- list(method = as.integer(control$method %||% 1L))
+  if (!is.null(control$time_limit)) p$time_limit <- as.numeric(control$time_limit)
+  if (!is.null(control$presolve)) p$presolve <- as.integer(control$presolve)
+  for (o in c("infeasibility_detection", "strict_infeasibility")) {
+    v <- control[[o]] %||% getOption(paste0("multimod.cuopt_", o))
+    if (!is.null(v)) p[[o]] <- isTRUE(v)
+  }
+  if (!is.null(control$options)) {
+    tok <- unlist(strsplit(paste(control$options, collapse = " "), "[[:space:]]+"))
+    tok <- tok[nzchar(tok)]
+    for (i in seq(1, length(tok) - 1L, by = 2L)) {
+      v <- tok[i + 1L]
+      num <- suppressWarnings(as.numeric(v))
+      p[[gsub("-", "_", sub("^--", "", tok[i]))]] <-
+        if (v %in% c("true", "false")) v == "true" else if (!is.na(num)) num else v
+    }
+  }
+  # PDLP warm-starts in its Stable2 mode only (both runs), and its warm-start
+  # data is sized to the problem PDLP solved: after cuOpt's presolve that is
+  # the presolved one, which the next run cannot take. Both runs skip it
+  # unless `presolve` is set.
+  if (warm) {
+    p$pdlp_solver_mode <- 1L
+    if (is.null(control$presolve)) p$presolve <- 0L
+  }
+  p
+}
+
 .cuopt_worker_script <- function(mps_name, out_name, control) {
-  solve <- paste(c("cuopt_cli", .cuopt_cli_args(paste0("/job/", mps_name), "/tmp/model.sol", control)),
-                 collapse = " ")
+  py <- identical(control$api, "python")
+  warm_in <- if (!is.null(control$warm_start)) paste0("/job/", basename(control$warm_start)) else ""
+  warm_out <- if (isTRUE(control$save_warm_start)) "/tmp/warm_start.pkl" else ""
+  if (!py && (nzchar(warm_in) || nzchar(warm_out))) {
+    stop("A cuOpt warm start needs control$api = \"python\".")
+  }
+  solve <- if (py) {
+    paste("python3 /tmp/solve_cuopt.py", paste0("/job/", mps_name), "/tmp/model.sol",
+          "/tmp/params.json", shQuote(warm_in, type = "sh"), shQuote(warm_out, type = "sh"))
+  } else paste(c("cuopt_cli", .cuopt_cli_args(paste0("/job/", mps_name), "/tmp/model.sol", control)),
+               collapse = " ")
+  py_files <- if (py) c(
+    "cat > /tmp/solve_cuopt.py << 'PYEOF'", .cuopt_py_source(), "PYEOF",
+    "cat > /tmp/params.json << 'PJEOF'",
+    as.character(jsonlite::toJSON(.cuopt_py_params(control, nzchar(warm_in) || nzchar(warm_out)),
+                                  auto_unbox = TRUE, digits = NA)),
+    "PJEOF")
   # the watchdog (cuopt_watchdog()): the solver runs in the background, its log
   # streams to the job's output and is read every `poll` seconds by the same
   # rules as a local run; on a verdict the solver is stopped and the job ends
   # with WATCHDOG_STOP and the reason
   wd <- .cuopt_watchdog_resolve(control, local = FALSE)
   if (!is.null(wd)) {
-    solve <- paste("run_cuopt", sub("^cuopt_cli ", "", solve))
+    solve <- paste("run_cuopt", solve)
     watch <- c("cat > /tmp/wd.awk << 'WDAWK'", .cuopt_watchdog_awk(), "WDAWK",
                "run_cuopt() {",
-               "  ( cuopt_cli \"$@\" 2>&1 | tee /tmp/cuopt.log ) &",
+               "  ( \"$@\" 2>&1 | tee /tmp/cuopt.log ) &",
                "  local cp=$!",
                "  while kill -0 $cp 2>/dev/null; do",
                paste0("    sleep ", wd$poll),
                paste0("    v=$(awk ", .cuopt_watchdog_awk_vars(wd), " -f /tmp/wd.awk /tmp/cuopt.log 2>/dev/null || true)"),
-               "    if [ -n \"$v\" ]; then echo \"WATCHDOG_STOP: $v\"; pkill -f cuopt_cli || true; wait $cp 2>/dev/null || true; exit 3; fi",
+               "    if [ -n \"$v\" ]; then echo \"WATCHDOG_STOP: $v\"; pkill -f 'cuopt_cli|solve_cuopt.py' || true; wait $cp 2>/dev/null || true; exit 3; fi",
                "  done",
                "  wait $cp",
                "}")
   } else watch <- NULL
   c("set -e",
     watch,
+    py_files,
     "nvidia-smi || true",
     # an image with cuOpt installed (inst/images/cuopt) skips the install
     paste("command -v cuopt_cli > /dev/null ||",
@@ -386,9 +534,13 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
     solve,
     # cuOpt writes no solution file when its presolve solves the whole problem
     # (it reports Optimal and exits 0): solve once more without presolve
-    if (is.null(control$presolve)) paste("[ -s /tmp/model.sol ] ||", solve, "--presolve 0"),
+    if (!py && is.null(control$presolve)) paste("[ -s /tmp/model.sol ] ||", solve, "--presolve 0"),
     "echo VRAM_PEAK_MIB $(sort -n /tmp/vram.log 2>/dev/null | tail -1)",
     paste0("gzip -1 -c /tmp/model.sol > /out/", out_name),
+    # the warm-start output is declared up front: it always exists, empty
+    # when the solver could not give one
+    if (nzchar(warm_out)) c("[ -f /tmp/warm_start.pkl ] || : > /tmp/warm_start.pkl",
+                            "cp /tmp/warm_start.pkl /out/warm_start.pkl"),
     "ls -l /out")
 }
 
@@ -407,8 +559,12 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
   }
   out_name <- basename(sol_file)
   if (verbose) message(sprintf("uploading %.2f GB", file.size(gz) / 1e9))
+  if (!is.null(control$warm_start) && !file.exists(control$warm_start)) {
+    stop("control$warm_start: no file ", control$warm_start)
+  }
   job <- mmcloud::cloud_run(
-    inputs = gz, outputs = out_name,
+    inputs = c(gz, control$warm_start),
+    outputs = c(out_name, if (isTRUE(control$save_warm_start)) "warm_start.pkl"),
     script = .cuopt_worker_script(basename(gz), out_name, control),
     provider = remote$provider %||% "hf_jobs",
     flavor = remote$flavor %||% "a10g-large",

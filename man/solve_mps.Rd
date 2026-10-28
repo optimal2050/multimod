@@ -67,6 +67,17 @@ for \code{"wsl"} also \code{wsl_user} and \code{cuopt_cli} (path inside WSL), el
 environment variables \code{MULTIMOD_WSL_USER} and \code{MULTIMOD_CUOPT_CLI}, else
 WSL's default user and \code{cuopt_cli} on its \code{PATH}.
 
+A cuOpt run (any place) can go through cuOpt's Python interface instead of
+\code{cuopt_cli} (\code{control$api = "python"}). It writes the solution file whatever
+the status: at a time limit the current iterate is kept (status
+\code{TimeLimit}), where \code{cuopt_cli} writes no values. \code{control$save_warm_start = TRUE} also returns PDLP's warm-start data as \code{warm_start.pkl} beside
+\code{sol_file}; \code{control$warm_start} (a path to such a file) continues from it.
+Both run PDLP in its \code{Stable2} mode, the one cuOpt warm-starts, and without
+cuOpt's presolve (unless \code{control$presolve} is set): the warm-start data
+has the size of the problem PDLP solved. Locally and
+in WSL the Python is \code{control$cuopt_python}, else the environment variable
+\code{MULTIMOD_CUOPT_PYTHON}, else \code{python3} beside \code{cuopt_cli}.
+
 \code{remote} (for \code{where = "remote"}): \code{flavor}, \code{namespace}, \code{timeout}
 (default \code{"10h"}), \code{image} (default \code{"python:3.12"}), \code{provider} (default
 \code{"hf_jobs"}), \code{handle_file} (default \code{cloud_job.yml} beside \code{sol_file}),

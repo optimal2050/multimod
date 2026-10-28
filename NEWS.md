@@ -17,6 +17,10 @@
   session (`options(multimod.cuopt_watchdog = )`), or off with `FALSE`.
 * `control$infeasibility_detection` and `control$strict_infeasibility` pass
   cuOpt's options of those names.
+* cuOpt can run through its Python interface (`control$api = "python"`),
+  locally, in WSL or remotely: the solution file is written at any status,
+  including a time limit, and PDLP's warm-start data can be saved
+  (`control$save_warm_start`) and continued from (`control$warm_start`).
 * `write_mps(stream = TRUE, substitute = )` substitutes definition equations
   while the matrix is built: an equality whose domain is the index set of one
   of its variables produces no rows, the variable no columns there, and every
