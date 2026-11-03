@@ -182,7 +182,8 @@
 #'   never held as strings; the files it writes carry the labels.
 #' @param exclude Internal: a named list (by variable) of coded tuple tables
 #'   (`i1..iN`) whose columns are left out, as a build-time substitution
-#'   removes them. Each tuple must be a column of its variable. Needs a
+#'   removes them, or `TRUE` for a variable that gets no column at all (a
+#'   scalar substituted). Each tuple must be a column of its variable. Needs a
 #'   dictionary (`codes`).
 #'
 #' @return A `data.table` with columns `j` (1-based column index), `symbol`,
@@ -236,6 +237,10 @@ build_col_index <- function(model, verbose = FALSE, names = TRUE, codes = FALSE,
     }
     dim_names[[nm]] <- attr(blk, "dim_names")
     ex <- exclude[[nm]]
+    if (isTRUE(ex)) {                           # a scalar substituted: no column
+      if (verbose) message(sprintf("  %-30s %8d  (substituted)", nm, 0L))
+      next
+    }
     if (!is.null(ex)) {
       n_in <- nrow(blk)
       on <- names(ex)

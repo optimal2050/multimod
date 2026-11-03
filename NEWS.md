@@ -1,5 +1,10 @@
 # multimod (development version)
 
+* A scalar definition, such as the objective's, can be substituted at build
+  time. `objective_chain()` lists the definitions the objective depends on;
+  `write_mps(stream = TRUE, substitute = )` then writes the objective on the
+  columns they resolve to, keeps its constant part in `<base>_objective.csv`,
+  and `read_mps_solution()` adds that part back.
 * `solve_mps()` takes `solver` (`"highs"`, `"julia_highs"`, `"cuopt"`) and
   `where` (`"local"`, `"wsl"`, `"remote"`); the defaults keep the in-process
   HiGHS solve. cuOpt runs on this machine, inside WSL on a local GPU, or on a

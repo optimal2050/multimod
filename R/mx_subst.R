@@ -46,8 +46,9 @@
 #' variable's index order, coded with the build's dictionary.
 #' @param equations Names of the equations to substitute.
 #' @param codes The build's dictionary.
-#' @return A named list (by eliminated variable) of `list(var, eq, keys, lo)`,
-#'   or NULL when `equations` is empty.
+#' @return A named list (by eliminated variable) of `list(var, eq, keys,
+#'   rkeys, n, lo, recursive, kept)`, or NULL when `equations` is empty. A
+#'   scalar definition (no domain, no dims) has `keys = NULL` and `n = 1`.
 #' @keywords internal
 #' @noRd
 .mx_subst_prepare <- function(model, equations, codes) {
@@ -63,10 +64,12 @@
       stop("substitute: '", en, "' is not an equality.", call. = FALSE)
     }
     dn <- .domain_name(eq$domain)
-    if (is.na(dn)) stop("substitute: '", en, "' has no domain mapping.", call. = FALSE)
     dims <- .mx_eq_dims(eq)
-    tp <- .domain_tuples(model, dn, codes)
-    if (!nrow(tp)) next                     # no rows: nothing to substitute
+    # no domain and no dims: a scalar definition over one empty tuple
+    scalar <- is.na(dn) && !length(dims)
+    if (is.na(dn) && !scalar) stop("substitute: '", en, "' has no domain mapping.", call. = FALSE)
+    tp <- if (scalar) NULL else .domain_tuples(model, dn, codes)
+    if (!scalar && !nrow(tp)) next          # no rows: nothing to substitute
     vars <- c(.mx_ast_vars(eq$lhs), .mx_ast_vars(eq$rhs))
     vn <- vapply(vars, function(v) v$name, character(1))
     # an occurrence indexed by exactly the domain
@@ -93,6 +96,7 @@
     recursive <- lv[n_lit == 1L & n_all > 1L & n_exact >= 1L]
     plain <- lv[n_exact == 1L & n_all == 1L]
     pick <- if (length(recursive)) recursive else plain
+    if (length(pick) > 1L) pick <- .mx_subst_pick(model, eq, dn, pick)
     if (length(pick) != 1L) {
       stop("substitute: '", en, "' does not define one variable over its domain ",
            "(candidates: ", if (length(pick)) paste(pick, collapse = ", ") else "none",
@@ -106,19 +110,47 @@
       stop("substitute: '", x, "' (defined by '", en, "') must be continuous with ",
            "a lower bound of 0 or none and no upper bound.", call. = FALSE)
     }
-    pos <- match(.mx_bound_names(.mx_ref_dims(v), dims, ctx0), dims)
-    cols <- as.list(tp)[pos]
-    for (k in seq_along(cols)) cols[[k]] <- .mx_code_in(codes, cols[[k]])
-    keys <- data.table::setDT(stats::setNames(cols, paste0("i", seq_along(pos))))
-    if (anyDuplicated(keys)) stop("substitute: the domain of '", en, "' repeats a tuple.", call. = FALSE)
-    # the same tuples in the equation's own index order, for the rows it keeps
-    rcols <- as.list(tp)
-    for (k in seq_along(rcols)) rcols[[k]] <- .mx_code_in(codes, rcols[[k]])
-    rkeys <- data.table::setDT(stats::setNames(rcols, paste0("i", seq_along(rcols))))
-    spec[[x]] <- list(var = x, eq = en, keys = keys, rkeys = rkeys, lo = b$lo,
+    if (scalar) {
+      keys <- NULL
+      rkeys <- NULL
+      n <- 1L
+    } else {
+      pos <- match(.mx_bound_names(.mx_ref_dims(v), dims, ctx0), dims)
+      cols <- as.list(tp)[pos]
+      for (k in seq_along(cols)) cols[[k]] <- .mx_code_in(codes, cols[[k]])
+      keys <- data.table::setDT(stats::setNames(cols, paste0("i", seq_along(pos))))
+      if (anyDuplicated(keys)) stop("substitute: the domain of '", en, "' repeats a tuple.", call. = FALSE)
+      # the same tuples in the equation's own index order, for the rows it keeps
+      rcols <- as.list(tp)
+      for (k in seq_along(rcols)) rcols[[k]] <- .mx_code_in(codes, rcols[[k]])
+      rkeys <- data.table::setDT(stats::setNames(rcols, paste0("i", seq_along(rcols))))
+      n <- nrow(keys)
+    }
+    spec[[x]] <- list(var = x, eq = en, keys = keys, rkeys = rkeys, n = n, lo = b$lo,
                       recursive = length(recursive) > 0L, kept = 0L)
   }
   spec
+}
+
+#' The defined variable among several candidates: the one whose domain
+#' mapping is the equation's, else the bare left-hand side
+#' @keywords internal
+#' @noRd
+.mx_subst_pick <- function(model, eq, dn, pick) {
+  own <- pick[vapply(pick, function(v) {
+    identical(.domain_name(model$variables[[v]]$domain), dn)
+  }, logical(1))]
+  if (length(own) == 1L) return(own)
+  if (identical(.mx_cls(eq$lhs), "variable") && eq$lhs$name %in% pick) return(eq$lhs$name)
+  pick
+}
+
+#' The columns a substitution leaves out: a variable's tuples, or every
+#' column of a scalar one
+#' @keywords internal
+#' @noRd
+.mx_subst_exclude <- function(subst) {
+  lapply(subst, function(s) if (is.null(s$keys)) TRUE else s$keys)
 }
 
 #' Leave out of a self-referring substitution the tuples whose definition
@@ -139,7 +171,7 @@
   if (!length(rec)) return(subst)
   ztol <- as.numeric(getOption("multimod.zero_tol", 1e-12))
   ci0 <- build_col_index(model, names = FALSE, codes = codes,
-                         exclude = lapply(subst, function(s) s$keys))
+                         exclude = .mx_subst_exclude(subst))
   ctx0 <- .mx_new_ctx(model, ci0, codes, "error", subst)
   lo <- as.numeric(ci0$lo)
   ncol0 <- nrow(ci0)
@@ -155,10 +187,10 @@
     }
     bad <- sort(unique(bad))
     if (!length(bad)) next
-    keep <- setdiff(seq_len(nrow(sp$keys)), bad)
+    keep <- setdiff(seq_len(sp$n), bad)
     if (verbose) {
       message(sprintf("  %-24s %d of %d tuples keep their row and column (the definition does not imply %s >= 0)",
-                      x, length(bad), nrow(sp$keys), x))
+                      x, length(bad), sp$n, x))
     }
     if (!length(keep)) {
       subst[[x]] <- NULL
@@ -166,6 +198,7 @@
     }
     sp$keys <- sp$keys[keep]
     sp$rkeys <- sp$rkeys[keep]
+    sp$n <- length(keep)
     sp$kept <- length(bad)
     subst[[x]] <- sp
   }
@@ -255,7 +288,11 @@
          "' must be a number per row.", call. = FALSE)
   }
   vs <- xt$steps[[which(ops == "var")]]
-  xenv <- names(vs$on)[match(paste0("i", seq_along(vs$on)), unname(vs$on))]
+  xenv <- if (length(vs$on)) {
+    names(vs$on)[match(paste0("i", seq_along(vs$on)), unname(vs$on))]
+  } else {
+    character()
+  }
   inv <- lapply(xt$steps[ops == "factor"], function(s) { s$invert <- !isTRUE(s$invert); s })
   others <- lapply(terms[!isx], function(t) {
     t$sign <- -t$sign * xt$sign
@@ -275,7 +312,7 @@
 #' @noRd
 .mx_subst_eval <- function(nm, ctx, def, chunk = 4000000L) {
   sp <- ctx$subst[[nm]]
-  n <- nrow(sp$keys)
+  n <- sp$n
   ex <- .mx_executor(ctx, def$tables)
   plan <- list(rows = "rows", row_keys = def$xenv, terms = def$terms)
   tt <- list(); cc <- list()
@@ -317,7 +354,7 @@
 #' @noRd
 .mx_subst_materialise <- function(nm, ctx, def) {
   sp <- ctx$subst[[nm]]
-  n <- nrow(sp$keys)
+  n <- sp$n
   ncol_lp <- nrow(ctx$col_index)
   ztol <- as.numeric(getOption("multimod.zero_tol", 1e-12))
   ev <- .mx_subst_eval(nm, ctx, def)
@@ -400,18 +437,23 @@
   for (id in names(def$tables)) {
     if (is.null(L$tables[[id]])) L$tables[[id]] <- def$tables[[id]]
   }
-  gid <- paste0("d:", nm)
-  if (is.null(L$tables[[gid]])) L$tables[[gid]] <- as.list(ctx$subst[[nm]]$keys)
   ctx$subst_n <- (ctx$subst_n %||% 0L) + 1L
   sfx <- paste0("~", ctx$subst_n)
   map <- stats::setNames(ref, def$xenv)
   f <- function(n) ifelse(n %in% names(map), unname(map[n]), paste0(n, sfx))
-  gate <- list(op = "gate", table = gid,
-               on = stats::setNames(paste0("i", seq_along(ref)), ref))
-  out <- lapply(.mx_rename_env(def$terms, f), function(t) {
-    t$steps <- c(list(gate), t$steps)
-    t
-  })
+  out <- .mx_rename_env(def$terms, f)
+  if (length(ref)) {
+    # the definition holds on its domain: a gate on its tuples; a scalar
+    # definition holds everywhere
+    gid <- paste0("d:", nm)
+    if (is.null(L$tables[[gid]])) L$tables[[gid]] <- as.list(ctx$subst[[nm]]$keys)
+    gate <- list(op = "gate", table = gid,
+                 on = stats::setNames(paste0("i", seq_along(ref)), ref))
+    out <- lapply(out, function(t) {
+      t$steps <- c(list(gate), t$steps)
+      t
+    })
+  }
   c(out, .mx_lower_var_lookup(node, bound, L))
 }
 
@@ -481,7 +523,7 @@
     }
     vdir <- file.path(dir, x)
     dir.create(vdir, showWarnings = FALSE)
-    n <- nrow(sp$keys)
+    n <- sp$n
     bad <- 0
     nnz <- 0
     for (p in seq_len(max(1L, ceiling(n / chunk)))) {
@@ -522,7 +564,7 @@
            "lower bound of 0 (", bad, " negative coefficients or free columns).", call. = FALSE)
     }
     man[[x]] <- data.frame(variable = x, equation = sp$eq, rows = n, nnz = nnz,
-                           arity = ncol(sp$keys), stringsAsFactors = FALSE)
+                           arity = length(sp$keys), stringsAsFactors = FALSE)
     if (verbose) {
       message(sprintf("  substituted %-24s by %-24s %d tuples, %d terms, %.1fs", x, sp$eq, n, nnz,
                       as.numeric(difftime(Sys.time(), t0, units = "secs"))))
@@ -605,6 +647,7 @@
   blk <- data.table::rbindlist(parts, use.names = TRUE)
   rm(parts)
   if (!nrow(blk)) return(NULL)
+  if (!length(dn)) return(data.frame(value = as.numeric(blk$value)))
   idx <- paste0("i", seq_along(dn))
   out <- as.data.frame(blk[, idx, with = FALSE])
   names(out) <- dn
@@ -617,6 +660,98 @@
   }
   out$value <- as.numeric(blk$value)
   out
+}
+
+#' Definition equations the objective depends on
+#'
+#' Walks from the objective's variable through the definitions it refers to.
+#' An equality whose left-hand side is a bare variable indexed by the
+#' equation's own dimensions, the variable continuous with a lower bound of 0
+#' or none and no upper bound, defines that variable. The walk enters a
+#' defined variable when every other equation referring to it is itself a
+#' definition (an accounting total), and not when its definition carries a
+#' dimension named in `stop_dims`; a variable some constraint refers to, such
+#' as a capacity, keeps its columns. Substituting the result while the matrix
+#' is built ([write_mps()] with `stream = TRUE, substitute = `) writes the
+#' objective on the columns the definitions resolve to instead of on one
+#' defined variable; the constant part is kept beside the index tables and
+#' [read_mps_solution()] adds it to the objective.
+#'
+#' @param model A multimod model.
+#' @param stop_dims Dimension names at which the walk stops, for example
+#'   `"timeslice"` to keep per-period totals as rows; `NULL` follows every
+#'   definition.
+#' @return The equation names, each definition after the ones it refers to
+#'   and the objective's own definition last.
+#' @export
+#' @examples
+#' objective_chain(example_models$energyRt$multimod, stop_dims = "timeslice")
+objective_chain <- function(model, stop_dims = NULL) {
+  stopifnot(inherits(model, "multimod") || inherits(model, "mm_model"))
+  objs <- model$objectives
+  if (is.null(objs) || !length(objs)) {
+    stop("objective_chain: the model declares no objective.", call. = FALSE)
+  }
+  v0 <- objs[[1]]$variable
+  if (is.null(v0) || !nzchar(v0)) stop("objective_chain: the objective does not name a variable.", call. = FALSE)
+  defs <- .mx_definitions(model)
+  refs <- .mx_references(model)
+  out <- character()
+  seen <- character()
+  walk <- function(v) {
+    if (v %in% seen) return(invisible())
+    seen <<- c(seen, v)
+    en <- defs[[v]]
+    if (is.null(en)) return(invisible())
+    # a variable some constraint other than a definition refers to is part
+    # of the LP's structure and keeps its columns
+    if (!all(setdiff(refs[[v]], en) %in% unlist(defs))) return(invisible())
+    eq <- model$equations[[en]]
+    if (length(stop_dims) && any(.mx_eq_dims(eq) %in% stop_dims)) return(invisible())
+    for (r in .mx_ast_vars(eq$rhs)) walk(r$name)
+    out <<- c(out, en)
+  }
+  walk(v0)
+  unique(out)
+}
+
+#' The equations referring to each variable, by variable
+#' @keywords internal
+#' @noRd
+.mx_references <- function(model) {
+  refs <- list()
+  for (en in names(model$equations)) {
+    eq <- model$equations[[en]]
+    vs <- unique(vapply(c(.mx_ast_vars(eq$lhs), .mx_ast_vars(eq$rhs)),
+                        function(v) v$name, character(1)))
+    for (v in vs) refs[[v]] <- c(refs[[v]], en)
+  }
+  refs
+}
+
+#' The equation defining each variable, by variable
+#' @keywords internal
+#' @noRd
+.mx_definitions <- function(model) {
+  ctx0 <- new.env(parent = emptyenv())
+  ctx0$model <- model
+  defs <- list()
+  for (en in names(model$equations)) {
+    eq <- model$equations[[en]]
+    if (!identical(eq$relation[1], "==")) next
+    if (!identical(.mx_cls(eq$lhs), "variable") || .mx_has_shift(eq$lhs)) next
+    x <- eq$lhs$name
+    if (!is.null(defs[[x]])) next
+    dims <- .mx_eq_dims(eq)
+    r <- .mx_bound_names(.mx_ref_dims(eq$lhs), dims, ctx0)
+    if (length(r) != length(dims) || anyDuplicated(r) || !setequal(r, dims)) next
+    vb <- model$variables[[x]]
+    if (is.null(vb)) next
+    b <- .mx_var_bounds(vb)
+    if (is.finite(b$up) || !(b$lo == 0 || b$lo == -Inf) || b$vtype %in% c("binary", "integer")) next
+    defs[[x]] <- en
+  }
+  defs
 }
 
 utils::globalVariables(c("k", "kc", "w", "i.k", "i.w"))

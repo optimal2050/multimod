@@ -282,8 +282,8 @@
       if (is.null(dims) || (length(ref) == length(dims) && setequal(ref, dims))) {
         # the variable a definition is being solved for: its term is located,
         # never executed
-        return(list(.mx_term(list(list(op = "var", table = paste0("v:", nm),
-                                       on = stats::setNames(paste0("i", seq_along(ref)), ref),
+        on <- if (length(ref)) stats::setNames(paste0("i", seq_along(ref)), ref) else character()
+        return(list(.mx_term(list(list(op = "var", table = paste0("v:", nm), on = on,
                                        column = "j", defined = TRUE)))))
       }
       # the variable at another tuple of its own definition: a placeholder

@@ -191,15 +191,8 @@ model_to_lp <- function(model, col_index = NULL, row_index = NULL,
 #' @keywords internal
 #' @noRd
 .lp_objective <- function(model, col_index) {
-  objs <- model$objectives
-  if (is.null(objs) || !length(objs)) {
-    stop("model_to_lp: the model declares no objective (model$objectives is empty).")
-  }
-  o <- objs[[1]]
-  vname <- o$variable
-  if (is.null(vname) || !nzchar(vname)) {
-    stop("model_to_lp: the objective does not name a variable.")
-  }
+  o <- .lp_objective_symbol(model)
+  vname <- o$symbol
   jj <- col_index$j[col_index$symbol == vname]
   if (!length(jj)) {
     stop("model_to_lp: objective variable '", vname,
@@ -211,9 +204,24 @@ model_to_lp <- function(model, col_index = NULL, row_index = NULL,
   }
   obj <- numeric(nrow(col_index))
   obj[jj] <- 1
+  list(obj = obj, j = jj, maximum = o$maximum, symbol = vname)
+}
+
+#' The objective's variable and sense from the model's declaration
+#' @keywords internal
+#' @noRd
+.lp_objective_symbol <- function(model) {
+  objs <- model$objectives
+  if (is.null(objs) || !length(objs)) {
+    stop("model_to_lp: the model declares no objective (model$objectives is empty).")
+  }
+  o <- objs[[1]]
+  vname <- o$variable
+  if (is.null(vname) || !nzchar(vname)) {
+    stop("model_to_lp: the objective does not name a variable.")
+  }
   sense <- if (is.null(o$sense)) "minimize" else tolower(o$sense[1])
-  list(obj = obj, j = jj, maximum = sense %in% c("max", "maximize", "maximise"),
-       symbol = vname)
+  list(symbol = vname, maximum = sense %in% c("max", "maximize", "maximise"))
 }
 
 #' Solve a model in-process with HiGHS
@@ -344,7 +352,11 @@ solve_highs <- function(model, lp = NULL, attach = TRUE, control = list(),
 #'   its domain, and every other reference to it there is replaced by the
 #'   definition. The definitions are written beside the index tables
 #'   (`<base>_subst/`) and [read_mps_solution()] rebuilds the variable from
-#'   them. Defaults to `getOption("multimod.substitute")`.
+#'   them. The objective's own definition can be among them (see
+#'   [objective_chain()]): the objective is then written on the columns the
+#'   definitions resolve to, and its constant part, kept beside the index
+#'   tables (`<base>_objective.csv`), is added back by [read_mps_solution()].
+#'   Defaults to `getOption("multimod.substitute")`.
 #'
 #' @return Invisibly, a list of the paths written.
 #' @export
@@ -404,7 +416,7 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
 #' @keywords internal
 #' @noRd
 .write_index_tables <- function(col_index, row_index, eliminated, index_dir, base, format,
-                                keep_subst = FALSE) {
+                                keep_subst = FALSE, objective = NULL) {
   # the decoder rebuilds substituted variables from this directory; a stale
   # one from an earlier run must not survive a run without substitution
   if (!keep_subst) unlink(file.path(index_dir, paste0(base, "_subst")), recursive = TRUE)
@@ -467,6 +479,11 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
   codes_path <- file.path(index_dir, paste0(base, "_codes.csv"))
   unlink(codes_path)
   if (.mx_is_codes(codes) && format != "csv") .write_codes(codes$levels, codes_path)
+  # the objective's symbol, sense and constant part: the solver's value
+  # lacks the constant, the decoder adds it
+  obj_path <- file.path(index_dir, paste0(base, "_objective.csv"))
+  unlink(obj_path)
+  if (!is.null(objective)) .write_objective(objective, obj_path)
   list(col_index = col_path, row_index = row_path)
 }
 
@@ -507,7 +524,7 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
   subst <- .mx_subst_prepare(model, unique(as.character(substitute)), codes)
   subst <- .mx_subst_restrict(model, subst, codes, verbose = verbose)
   col_index <- build_col_index(model, verbose = verbose, names = FALSE, codes = codes,
-                               exclude = lapply(subst, function(s) s$keys))
+                               exclude = .mx_subst_exclude(subst))
   row_index <- build_row_index(model, verbose = verbose, names = FALSE, codes = codes,
                                skip = .mx_subst_skip(subst))
   base <- tools::file_path_sans_ext(basename(file))
@@ -550,9 +567,20 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
     stop("write_mps: unknown relation(s): ",
          paste(unique(row_index$sense[is.na(sense_code)]), collapse = ", "), call. = FALSE)
   }
-  obj_spec <- .lp_objective(model, col_index)
-  obj_j <- as.integer(obj_spec$j)
-  obj_x <- rep(1, length(obj_j))
+  # the objective: an indicator on the declared variable's column or, when
+  # that variable is substituted, its definition evaluated once over the
+  # remaining columns, the constant part being the objective's offset
+  obj_sym <- .lp_objective_symbol(model)
+  flattened <- obj_sym$symbol %in% names(subst)
+  obj_spec <- if (flattened) NULL else .lp_objective(model, col_index)
+  objective_of <- function(tr) {
+    if (!flattened) return(list(j = as.integer(obj_spec$j), x = rep(1, length(obj_spec$j)), offset = 0))
+    ctx <- attr(tr, "ctx")
+    ev <- .mx_subst_eval(obj_sym$symbol, ctx, .mx_subst_def(obj_sym$symbol, ctx))
+    tt <- ev$tt[, list(coef = sum(coef)), by = "j"]
+    tt <- tt[abs(tt$coef) >= ztol]
+    list(j = as.integer(tt$j), x = as.numeric(tt$coef), offset = sum(ev$cc$value))
+  }
   eliminated <- NULL
   map <- NULL
 
@@ -570,6 +598,7 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
     tr <- build(scan)
     mm_sink_close(sink)
     export(tr)
+    ob <- objective_of(tr)
     rhs <- rhs_of(tr)
     rm(tr); gc(FALSE)
     .report_empty_rows(which(mm_scan_counts(scan)$row_counts == 0L), row_index, on_empty_row)
@@ -591,6 +620,7 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
     tr <- build(sink)
     closed <- mm_sink_close(sink)
     export(tr)
+    ob <- objective_of(tr)
     rhs <- rhs_of(tr)
     rm(tr); gc(FALSE)
     .report_empty_rows(which(closed$row_counts == 0L), row_index, on_empty_row)
@@ -605,12 +635,15 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
   }
 
   if (verbose) message(format(Sys.time(), "[%H:%M:%S] "), "writing MPS ", file)
-  nnz <- mm_mps_write(file, sink, map, sense_code, rhs, obj_j, obj_x,
+  nnz <- mm_mps_write(file, sink, map, sense_code, rhs, ob$j, ob$x,
                       as.numeric(col_index$lo), as.numeric(col_index$up),
-                      isTRUE(obj_spec$maximum), ztol)
+                      isTRUE(obj_sym$maximum), ztol)
   rm(sink, map); gc(FALSE)
   paths <- .write_index_tables(col_index, row_index, eliminated, index_dir,
-                               base, format, keep_subst = length(subst) > 0)
+                               base, format, keep_subst = length(subst) > 0,
+                               objective = list(symbol = obj_sym$symbol,
+                                                sense = if (obj_sym$maximum) "max" else "min",
+                                                offset = ob$offset, flattened = flattened))
   if (verbose) {
     message(format(Sys.time(), "[%H:%M:%S] "), "wrote MPS ", file, " (",
             nrow_out, " rows x ", ncol_out, " cols, ", nnz, " nonzeros",

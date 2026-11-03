@@ -420,7 +420,11 @@ read_mps_solution <- function(sol, index_dir = NULL, col_index = NULL,
   if (!is.null(sb) && substituted == "defer") data.table::setattr(primal, "subst", sb)
   data.table::setattr(dual, "codes", attr(row_index, "codes"))
 
-  list(objective = sol$objective, status = sol$status,
+  # an objective written on the columns keeps its constant part beside the
+  # index tables
+  offset <- attr(col_index, "objective")$offset
+  objective <- if (is.null(offset) || is.na(offset)) sol$objective else sol$objective + offset
+  list(objective = objective, status = sol$status,
        primal = primal, dual = dual,
        col_index = col_index, row_index = row_index)
 }
@@ -559,6 +563,8 @@ read_mps_solution <- function(sol, index_dir = NULL, col_index = NULL,
   }
   dn <- .read_dim_names(index_dir, base)
   if (!is.null(dn)) data.table::setattr(ci, "dim_names", dn)
+  ob <- .read_objective(index_dir, base)
+  if (!is.null(ob)) data.table::setattr(ci, "objective", ob)
   el_path <- file.path(index_dir, paste0(base, "_eliminated"))
   el <- if ("jred" %in% names(ci)) .load_dataframe(el_path, format) else NULL
   if ("jred" %in% names(ci) && is.null(el)) {
@@ -892,4 +898,25 @@ write_energyrt_output <- function(solution, dir,
   if (!nrow(d)) return(NULL)
   d <- d[order(d$symbol, d$position), ]
   split(d$dim, d$symbol)
+}
+
+#' The objective sidecar: its symbol, sense, constant part and whether it
+#' was written on the columns (its variable substituted)
+#' @keywords internal
+#' @noRd
+.write_objective <- function(objective, path) {
+  utils::write.csv(data.frame(symbol = objective$symbol, sense = objective$sense,
+                              offset = as.numeric(objective$offset),
+                              flattened = isTRUE(objective$flattened),
+                              stringsAsFactors = FALSE),
+                   path, row.names = FALSE)
+}
+
+.read_objective <- function(dir, base) {
+  f <- file.path(dir, paste0(base, "_objective.csv"))
+  if (!file.exists(f)) return(NULL)
+  d <- utils::read.csv(f, stringsAsFactors = FALSE)
+  if (!nrow(d)) return(NULL)
+  list(symbol = d$symbol[1], sense = d$sense[1], offset = as.numeric(d$offset[1]),
+       flattened = isTRUE(d$flattened[1]))
 }

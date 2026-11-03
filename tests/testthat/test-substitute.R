@@ -160,6 +160,48 @@ test_that("deferred substituted variables are written as the expanded ones", {
   expect_equal(key(rs[[1]]), key(rs[[2]]), ignore_attr = TRUE)
 })
 
+test_that("the objective's definitions are substituted and the objective written on the columns", {
+  skip_if_not_installed("highs")
+  skip_if_not_installed("arrow")
+  m <- example_models$energyRt$multimod
+  lp <- model_to_lp(m)
+  chain <- objective_chain(m, stop_dims = "timeslice")
+  expect_true(all(c("eqObjective", "eqCost") %in% chain))
+  expect_false(any(c("eqOutTot", "eqTechActSng", "eqTechCap", "eqStorageOutCap", "eqTradeCap") %in% chain))
+  expect_identical(chain[length(chain)], "eqObjective")
+  for (pre in c(FALSE, TRUE)) {
+    r <- .subst_solve(m, chain, presolve = pre)
+    ci <- arrow::read_parquet(file.path(r$dir, "model_col_index.parquet"))
+    ri <- arrow::read_parquet(file.path(r$dir, "model_row_index.parquet"))
+    expect_false(any(c("vObjective", "vTotalCost") %in% ci$symbol))
+    expect_false(any(c("eqObjective", "eqCost") %in% ri$symbol))
+    ob <- read.csv(file.path(r$dir, "model_objective.csv"))
+    expect_identical(ob$symbol, "vObjective")
+    expect_true(ob$flattened)
+    obj_lines <- grep("  Obj  ", readLines(file.path(r$dir, "model.mps")), value = TRUE)
+    expect_gt(sum(!grepl("  Obj  0$", obj_lines)), 1L)
+    x <- .subst_full_x(lp, r$sol$primal)
+    expect_false(anyNA(x))
+    ax <- as.numeric(lp$A %*% x)
+    expect_lt(max(pmax(lp$row_lo - ax, ax - lp$row_up, 0)), 1e-7)
+    expect_equal(sum(lp$obj * x), r$sol$objective, tolerance = 1e-9)
+    vo <- .solution_by_variable(r$sol$primal, "vObjective", attr(r$sol$primal, "dim_names"))
+    expect_equal(vo$value, r$sol$objective, tolerance = 1e-9)
+  }
+  base <- .subst_solve(m, NULL)
+  expect_equal(r$sol$objective, base$sol$objective, tolerance = 1e-9)
+  # the deferred decode writes the scalar from its parts
+  d <- withr::local_tempdir()
+  f <- file.path(d, "model.mps")
+  withr::with_options(list(multimod.engine = "native"),
+    write_mps(m, f, stream = TRUE, substitute = chain))
+  rs <- solve_mps(f, verbose = FALSE)
+  s <- read_mps_solution(rs$sol_file, index_dir = d, substituted = "defer")
+  write_energyrt_output(s, file.path(d, "out"), format = "parquet")
+  vo <- as.data.frame(arrow::read_parquet(file.path(d, "out", "vObjective.parquet")))
+  expect_equal(vo$value, s$objective, tolerance = 1e-9)
+})
+
 test_that("substitution refuses what it cannot substitute", {
   m <- example_models$energyRt$multimod
   f <- file.path(withr::local_tempdir(), "model.mps")

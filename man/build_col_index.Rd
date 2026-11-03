@@ -30,7 +30,8 @@ never held as strings; the files it writes carry the labels.}
 
 \item{exclude}{Internal: a named list (by variable) of coded tuple tables
 (\code{i1..iN}) whose columns are left out, as a build-time substitution
-removes them. Each tuple must be a column of its variable. Needs a
+removes them, or \code{TRUE} for a variable that gets no column at all (a
+scalar substituted). Each tuple must be a column of its variable. Needs a
 dictionary (\code{codes}).}
 }
 \value{

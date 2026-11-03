@@ -54,7 +54,11 @@ in the others: its rows are not written, the variable has no columns on
 its domain, and every other reference to it there is replaced by the
 definition. The definitions are written beside the index tables
 (\verb{<base>_subst/}) and \code{\link[=read_mps_solution]{read_mps_solution()}} rebuilds the variable from
-them. Defaults to \code{getOption("multimod.substitute")}.}
+them. The objective's own definition can be among them (see
+\code{\link[=objective_chain]{objective_chain()}}): the objective is then written on the columns the
+definitions resolve to, and its constant part, kept beside the index
+tables (\verb{<base>_objective.csv}), is added back by \code{\link[=read_mps_solution]{read_mps_solution()}}.
+Defaults to \code{getOption("multimod.substitute")}.}
 }
 \value{
 Invisibly, a list of the paths written.
