@@ -178,6 +178,10 @@ NULL
 #' @param overwrite Logical; if TRUE, overwrite existing files
 #' @param keep_in_memory Logical; if TRUE, keep data in memory after saving
 #' @param save_structure Logical; if TRUE, save model structure separately
+#' @param structure How the structure (sets, mappings, parameters, variables,
+#'   equations) is written: `"rds"` (the default) as `model.rds`, `"json"` as
+#'   `model.json` through [model_to_json()] for readers outside R, or
+#'   `"both"`. [load_model()] reads either.
 #' @param verbose Logical; if TRUE, print progress messages
 #'
 #' @return Invisibly, the model with storage metadata attached.
@@ -189,6 +193,9 @@ NULL
 #' path/
 #'   model.rds                       model structure (without data when
 #'                                   keep_in_memory = FALSE)
+#'   model.json                      the structure in the JSON encoding of
+#'                                   model_to_json(), with structure = "json"
+#'                                   or "both"
 #'   metadata.json                   counts and format, for readers outside R
 #'   format.txt                      "csv", "ipc" or "parquet"
 #'   sets/sets.csv                   index of the sets
@@ -221,9 +228,11 @@ save_model <- function(
     overwrite = TRUE,
     keep_in_memory = TRUE,
     save_structure = TRUE,
+    structure = c("rds", "json", "both"),
     verbose = TRUE
 ) {
   format <- match.arg(format)
+  structure <- match.arg(structure)
 
   # Validate model
   if (!inherits(model, "mm_model") && !inherits(model, "multimod")) {
@@ -251,6 +260,7 @@ save_model <- function(
     desc = model$desc,
     saved = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
     format = format,
+    structure = structure,
     compression = if (format != "csv") compression else NA,
     compression_level = if (format != "csv") compression_level else NA,
     n_sets = length(model$sets),
@@ -393,7 +403,17 @@ save_model <- function(
 
   # Save complete model object (with structure, metadata, ASTs)
   # Data is stored separately in cross-language formats
-  saveRDS(model, file.path(path, "model.rds"))
+  if (structure %in% c("rds", "both")) {
+    saveRDS(model, file.path(path, "model.rds"))
+  }
+  if (structure %in% c("json", "both")) {
+    # without the session's storage slots: the loader sets them from the
+    # directory it reads
+    js <- model
+    js$storage <- NULL
+    js$base_path <- NULL
+    model_to_json(js, path = file.path(path, "model.json"), data = "omit")
+  }
 
   if (verbose) {
     size_mb <- sum(file.size(list.files(path, recursive = TRUE, full.names = TRUE)), na.rm = TRUE) / 1024^2
@@ -410,7 +430,15 @@ save_model <- function(
 #' @param path Character. Path to model directory
 #' @param load_data Logical. Load all data into memory (default: TRUE)
 #' @param load_structure Logical. Load equations and variables (default: TRUE)
+#' @param canonical Logical. Put the set members in code-point order and the
+#'   mapping rows in the order of their columns (C collation), so that the
+#'   matrix built from the model does not depend on who wrote the directory.
 #' @param verbose Logical. Print progress messages
+#'
+#' @details
+#' The structure is read from `model.rds`, or from `model.json` when there is
+#' no `model.rds` (see `structure` in [save_model()]). Set members missing
+#' from the structure are read from `sets/<name>/data.*`.
 #'
 #' @return A multimod model object
 #' @export
@@ -428,6 +456,7 @@ load_model <- function(
     path,
     load_data = TRUE,
     load_structure = TRUE,
+    canonical = FALSE,
     verbose = TRUE
 ) {
   if (!dir.exists(path)) {
@@ -435,14 +464,16 @@ load_model <- function(
   }
 
   model_file <- file.path(path, "model.rds")
-  if (!file.exists(model_file)) {
-    stop("Model file not found: ", model_file)
+  json_file <- file.path(path, "model.json")
+  if (!file.exists(model_file) && !file.exists(json_file)) {
+    stop("Model directory holds neither model.rds nor model.json: ", path)
   }
 
   if (verbose) cat("Loading model from:", path, "\n")
 
   # Load model structure
-  model <- readRDS(model_file)
+  model <- if (file.exists(model_file)) readRDS(model_file) else
+    model_from_json(json_file)
 
   # Read format
   format_file <- file.path(path, "format.txt")
@@ -450,6 +481,18 @@ load_model <- function(
     format <- readLines(format_file, n = 1, warn = FALSE)
   } else {
     format <- "csv"  # Default fallback
+  }
+
+  # Set members: part of model.rds, left out of model.json
+  sets_dir <- file.path(path, "sets")
+  if (dir.exists(sets_dir)) {
+    for (set_name in names(model$sets)) {
+      if (!is.null(model$sets[[set_name]]$data)) next
+      members <- .load_dataframe(file.path(sets_dir, set_name, "data"), format)
+      if (!is.null(members)) {
+        model$sets[[set_name]]$data <- as.character(members$member)
+      }
+    }
   }
 
   if (load_data) {
@@ -513,6 +556,8 @@ load_model <- function(
   }
 
   # Equations and variables already loaded from model.rds
+
+  if (isTRUE(canonical)) model <- .canonical_model(model)
 
   model$storage$path <- path
   model$storage$format <- format
@@ -1047,4 +1092,32 @@ get_data <- function(model, name, type = c("parameter", "mapping", "set", "varia
 #' @noRd
 `%||%` <- function(x, y) {
   if (is.null(x)) y else x
+}
+
+# One order whoever wrote the directory: set members by code point and mapping
+# rows by their columns, both in the C collation, so the positional names of
+# the MPS do not depend on the producer's locale or row order.
+.canonical_model <- function(model) {
+  for (s in names(model$sets)) {
+    d <- model$sets[[s]]$data
+    if (length(d)) {
+      model$sets[[s]]$data <- sort(unique(as.character(d)), method = "radix")
+    }
+  }
+  for (k in names(model$mappings)) {
+    d <- model$mappings[[k]]$data
+    if (!is.data.frame(d) || nrow(d) < 2L) next
+    keys <- lapply(unname(as.list(d)), function(v) {
+      if (is.factor(v)) as.character(v) else v
+    })
+    o <- do.call(order, c(keys, list(method = "radix")))
+    if (inherits(d, "data.table")) {
+      model$mappings[[k]]$data <- d[o]
+    } else {
+      d <- d[o, , drop = FALSE]
+      rownames(d) <- NULL
+      model$mappings[[k]]$data <- d
+    }
+  }
+  model
 }

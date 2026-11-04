@@ -4,7 +4,13 @@
 \alias{load_model}
 \title{Load multimod model from disk}
 \usage{
-load_model(path, load_data = TRUE, load_structure = TRUE, verbose = TRUE)
+load_model(
+  path,
+  load_data = TRUE,
+  load_structure = TRUE,
+  canonical = FALSE,
+  verbose = TRUE
+)
 }
 \arguments{
 \item{path}{Character. Path to model directory}
@@ -13,6 +19,10 @@ load_model(path, load_data = TRUE, load_structure = TRUE, verbose = TRUE)
 
 \item{load_structure}{Logical. Load equations and variables (default: TRUE)}
 
+\item{canonical}{Logical. Put the set members in code-point order and the
+mapping rows in the order of their columns (C collation), so that the
+matrix built from the model does not depend on who wrote the directory.}
+
 \item{verbose}{Logical. Print progress messages}
 }
 \value{
@@ -20,6 +30,11 @@ A multimod model object
 }
 \description{
 Load multimod model from disk
+}
+\details{
+The structure is read from \code{model.rds}, or from \code{model.json} when there is
+no \code{model.rds} (see \code{structure} in \code{\link[=save_model]{save_model()}}). Set members missing
+from the structure are read from \verb{sets/<name>/data.*}.
 }
 \examples{
 ws <- file.path(tempdir(), "energyRt_ws")

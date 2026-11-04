@@ -1,5 +1,11 @@
 # multimod (development version)
 
+* `save_model(structure = "json")` writes the structure as `model.json`
+  (`model_to_json()`) instead of `model.rds`, or both with `"both"`;
+  `load_model()` reads either and takes set members from `sets/<name>/data.*`
+  when the structure leaves them out. `load_model(canonical = TRUE)` orders
+  set members by code point and mapping rows by their columns, so the matrix
+  does not depend on who wrote the directory.
 * A scalar definition, such as the objective's, can be substituted at build
   time. `objective_chain()` lists the definitions the objective depends on;
   `write_mps(stream = TRUE, substitute = )` then writes the objective on the

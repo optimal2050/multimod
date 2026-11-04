@@ -13,6 +13,7 @@ save_model(
   overwrite = TRUE,
   keep_in_memory = TRUE,
   save_structure = TRUE,
+  structure = c("rds", "json", "both"),
   verbose = TRUE
 )
 }
@@ -36,6 +37,11 @@ sorted tables at several times the time}
 
 \item{save_structure}{Logical; if TRUE, save model structure separately}
 
+\item{structure}{How the structure (sets, mappings, parameters, variables,
+equations) is written: \code{"rds"} (the default) as \code{model.rds}, \code{"json"} as
+\code{model.json} through \code{\link[=model_to_json]{model_to_json()}} for readers outside R, or
+\code{"both"}. \code{\link[=load_model]{load_model()}} reads either.}
+
 \item{verbose}{Logical; if TRUE, print progress messages}
 }
 \value{
@@ -50,6 +56,9 @@ Directory structure created (the extension follows \code{format}):
 path/
   model.rds                       model structure (without data when
                                   keep_in_memory = FALSE)
+  model.json                      the structure in the JSON encoding of
+                                  model_to_json(), with structure = "json"
+                                  or "both"
   metadata.json                   counts and format, for readers outside R
   format.txt                      "csv", "ipc" or "parquet"
   sets/sets.csv                   index of the sets
