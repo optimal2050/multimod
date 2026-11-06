@@ -1,132 +1,11 @@
-# multimod (development version)
-
-* `save_model(structure = "json")` writes the structure as `model.json`
-  (`model_to_json()`) instead of `model.rds`, or both with `"both"`;
-  `load_model()` reads either and takes set members from `sets/<name>/data.*`
-  when the structure leaves them out. `load_model(canonical = TRUE)` orders
-  set members by code point and mapping rows by their columns, so the matrix
-  does not depend on who wrote the directory.
-* A scalar definition, such as the objective's, can be substituted at build
-  time. `objective_chain()` lists the definitions the objective depends on;
-  `write_mps(stream = TRUE, substitute = )` then writes the objective on the
-  columns they resolve to, keeps its constant part in `<base>_objective.csv`,
-  and `read_mps_solution()` adds that part back.
-* `solve_mps()` takes `solver` (`"highs"`, `"julia_highs"`, `"cuopt"`) and
-  `where` (`"local"`, `"wsl"`, `"remote"`); the defaults keep the in-process
-  HiGHS solve. cuOpt runs on this machine, inside WSL on a local GPU, or on a
-  rented GPU through the 'mmcloud' package (Suggests), which returns the
-  solution compressed; `control` carries each solver's options.
-* `read_mps_solution()` decodes a matrix written with names by another writer:
-  index tables with a `name` column place each value by its label instead of
-  its position. `solve_mps()` with HiGHS in the session lets HiGHS write the
-  solution file, which keeps the names the MPS carries.
-* The remote cuOpt worker skips its install when the image already carries
-  `cuopt_cli`.
-* cuOpt solves run under a watchdog (`cuopt_watchdog()`): the solve is stopped
-  when its objective runs away or its residuals stop improving, locally, in WSL
-  and in a remote job alike. Thresholds per solve (`control$watchdog`), per
-  session (`options(multimod.cuopt_watchdog = )`), or off with `FALSE`.
-* `control$infeasibility_detection` and `control$strict_infeasibility` pass
-  cuOpt's options of those names.
-* cuOpt can run through its Python interface (`control$api = "python"`),
-  locally, in WSL or remotely: the solution file is written at any status,
-  including a time limit, and PDLP's warm-start data can be saved
-  (`control$save_warm_start`) and continued from (`control$warm_start`).
-* `write_mps(stream = TRUE, substitute = )` substitutes definition equations
-  while the matrix is built: an equality whose domain is the index set of one
-  of its variables produces no rows, the variable no columns there, and every
-  other reference to it is replaced by the definition. `read_mps_solution()`
-  rebuilds the variable. Defaults to `getOption("multimod.substitute")`.
-* A substituted definition may refer to its own variable at other tuples, as
-  a total that rolls up finer timeslices or regions does. The definition is
-  composed through the levels of these references; a cycle is an error. A
-  tuple whose definition does not imply the variable's lower bound keeps its
-  row and column.
-* The matrix route joins index members as integer codes of one dictionary
-  per build, and prepares each parameter and mapping lookup once instead of
-  per chunk. The assembled LP is identical; a 4.4M-row model builds about
-  30 % faster.
-* `model_to_lp()` fills the `rhs` column of the row index.
-* An experimental native executor for the matrix route, opt-in with
-  `options(multimod.engine = "native")`: equations are lowered to block plans
-  run by compiled code; an equation outside the covered subset stays on the
-  R engine. `options(multimod.threads = )` sets its threads (default: the
-  machine's cores). The package now compiles C++17 code (`LinkingTo: cpp11`).
-* `write_mps(stream = TRUE)` builds the matrix block by block and writes the
-  MPS file itself, spooling the entries to bucket files by column range, so
-  the matrix is never held in memory. The file is equivalent to the one
-  HiGHS writes. With `presolve = TRUE` the doubleton rows are collected
-  while the entries are spooled, and the substitution is applied to the
-  spool before the file is written; the substitution is the one
-  `lp_presolve()` makes, and the bundle decodes with `read_mps_solution()`
-  unchanged.
-* A mapping can be defined by a rule instead of a table: `mapping_rule()`
-  names the tables whose natural join, gated and projected, gives the
-  tuples, and `new_mapping(rule = )` carries it. `get_data()`,
-  `load_model_data()` and the writers enumerate the tuples on demand
-  (`materialise_rule()`); the matrix route enumerates them once per build
-  in integer codes; `save_model()` writes the rule as `rule.json` beside
-  the mapping and `trim_model()` never trims one.
-* `lp_bounds()` propagates the row and column bounds of an LP to a fixed
-  point and returns the implied interval of every variable (`lo_impl`,
-  `up_impl` on the column index), with an optional objective cut from a
-  known feasible value.
-* The native executor reads parameters with wildcard (`NA`) index values,
-  as a folded table from energyRt carries them, so an equation using one
-  no longer falls back to the R engine.
-* The native executor runs a term's expansion in slices when it would
-  exceed `options(multimod.slice_rows = 16e6)` rows, so an equation that
-  sums over a large set no longer holds the whole expansion at once.
-* The streamed route holds less: the substitution map stays in compiled
-  code and the writer takes the model's rows and columns as they are, the
-  scan keeps its entries in fixed blocks, the hash indexes are a third
-  smaller, and the build collects its intermediates as it goes.
-  `options(multimod.cache_gb = )` caps the executor's index cache, dropping
-  the least recently used indexes (rebuilt when needed again) for a lower
-  peak at some cost in time.
-* `specs/goldens/matrix/` holds the LP of the two example models as plain
-  tables; `tests/testthat/test-matrix-goldens.R` checks the assembly against
-  them coefficient for coefficient.
-* `build_col_index()` and `build_row_index()` gain `codes =`: the index
-  members are stored as integer codes of one dictionary instead of labels.
-  The streaming writer builds its tables this way, so no member is held as
-  a string during the build; the parquet and feather index tables it writes
-  store the members dictionary-encoded, and `read_mps_solution()` reads
-  both encodings.
-* The substitution of the streamed presolve is composed in compiled code,
-  from the equality rows only.
-* `save_model()` writes parquet by default, at zstd level 3 (was CSV, and
-  zstd level 15 for the Arrow formats): on model data parquet is an order
-  of magnitude smaller than Arrow IPC at the same speed, and levels above 3
-  gain nothing. The index tables of `write_mps()` use the same level;
-  `read_mps_solution()` reads a bundle of another format when that is what
-  the directory holds.
-* `load_arrow_data()` reads a directory holding the parts of a table
-  directly, as a version of a dataset store does.
-* `get_data()` keeps the tables it reads from disk in a session memo keyed
-  by the table's content hash or path, within
-  `options(multimod.data_cache_gb = 8)`; a mapping several symbols share
-  is read once per session. `clear_data_cache()` and `data_cache_info()`
-  manage it. `load_model_data()` brings a model's tables into memory
-  through it; the GAMS, JuMP and Pyomo writers, `fold_model()` and
-  `mark_empty_data()` call it, so a model whose tables are references on
-  disk renders the same as one holding them.
-* The index tables of a streamed bundle store the members as integer codes
-  of one dictionary, written beside them as `<base>_codes.csv` (CSV bundles
-  keep the labels); they read back in a fraction of the time. The decode
-  holds no copy of the index tables, takes each variable's rows from the
-  runs of the symbol column instead of a scan per variable, and parses the
-  solution's values in C. `read_cuopt_solution()` reads a gzipped file
-  through a block-wise decompression instead of through lines in R.
-
-# multimod 0.5.0
+# multimod 0.6.0
 
 First CRAN release. The changes are listed against 0.0.1, the GitHub release
 of June 2025, which read GAMS and rendered models to LaTeX and back to GAMS.
 
 ## Breaking changes
 
-* multimod requires R >= 4.1.0.
+* multimod requires R >= 4.1.0, and compiles C++17 code (`LinkingTo: cpp11`).
 * The S3 classes of model objects carry an `mm_` prefix: `mm_model`,
   `mm_set`, `mm_mapping`, `mm_parameter`, `mm_variable`, `mm_equation`.
   Code testing `inherits(x, "model")` must use the new names; models saved
@@ -148,6 +27,11 @@ of June 2025, which read GAMS and rendered models to LaTeX and back to GAMS.
 * `read_gams()` and `read_gmpl()` accept text as well as file paths.
 * Lags and leads are linear by default and wrap with `circular = TRUE`;
   GAMS reads and writes both forms (`y-1`, `y--1`).
+* A mapping can be defined by a rule instead of a table: `mapping_rule()`
+  names the tables whose natural join, gated and projected, gives the
+  tuples, and `new_mapping(rule = )` carries it. `materialise_rule()`
+  enumerates the tuples; `get_data()`, the writers and the matrix route do
+  so on demand.
 * `example_models$toy` is a small capacity-expansion model built with the
   constructors.
 
@@ -160,27 +44,63 @@ of June 2025, which read GAMS and rendered models to LaTeX and back to GAMS.
   `write_gams(gdx =, include_solve =)` emits the matching load and solve
   statements. Parameters defined by a formula are written as assignments.
 
-### Solving
+### The matrix route
 
 * `model_to_lp()` assembles the LP matrix directly from the model, including
   symbols declared over sets, equation conditions, lags and leads, and
-  formula parameters.
+  formula parameters. Index members are joined as integer codes of one
+  dictionary per build.
 * `solve_highs()` solves the assembled LP in R and returns primal and dual
   values; `mm_session()` keeps the matrix between repeated solves.
 * `write_mps()` writes the LP as MPS, with an optional presolve
-  (`lp_presolve()`) that eliminates proportional columns; `solve_mps()`
-  solves an MPS file and `read_mps_solution()`, `read_highs_solution()`,
-  `read_cuopt_solution()` and `read_solver_solution()` read solutions back.
+  (`lp_presolve()`) that eliminates doubleton rows and proportional columns.
+  With `stream = TRUE` it builds the matrix block by block and writes the
+  file itself, spooling the entries to bucket files by column range, so the
+  matrix is never held in memory; the presolve is then applied to the spool.
+* `write_mps(substitute = )` substitutes definition equations while the
+  matrix is built: the defined variable has no columns and its definition
+  replaces every reference to it; `read_mps_solution()` rebuilds it.
+  `objective_chain()` lists the definitions the objective depends on.
+* A native executor evaluates the equations the block-plan lowering covers,
+  opt-in with `options(multimod.engine = "native")`; the others stay on the
+  R engine. It runs on two threads by default (`options(multimod.threads = )`),
+  runs large expansions in slices (`options(multimod.slice_rows = )`) and can
+  cap its index cache (`options(multimod.cache_gb = )`).
+* `lp_bounds()` propagates the row and column bounds of an LP to a fixed
+  point and returns the implied interval of every variable.
 * `check_matrix_numbers()` reports the coefficient range of an assembled LP.
+* `solve_mps()` solves an MPS file with HiGHS in this process, HiGHS through
+  Julia, or cuOpt on this machine or inside WSL. cuOpt runs under a watchdog
+  that stops a diverging or stalled solve (`cuopt_watchdog()`), and can use
+  its Python interface, which writes the solution at any status and saves
+  and continues from PDLP's warm-start data.
+* `read_mps_solution()`, `read_highs_solution()`, `read_cuopt_solution()`
+  and `read_solver_solution()` read solutions back against the index tables,
+  by position or, for a matrix written with names, by label.
+
+### Solving through other languages
+
 * `solve_gmpl()`, `solve_jump()` and `solve_pyomo()` run the generated code
-  and load the solution into the model. `solve_pyomo()` uses the configured
-  Python interpreter; `ensure_env = TRUE` creates the environment with
-  `mm_setup_python()` when it is not usable.
+  and load the solution into the model. None of them installs software: the
+  generated JuMP code stops and names missing Julia packages, and
+  `solve_pyomo()` stops when the interpreter cannot import Pyomo.
+  `mm_setup_python()` creates a Python environment for Pyomo when called.
 
 ### Workspace, reduction and exchange
 
 * `save_model()`, `load_model()` and `get_data()` store a model and its data
-  as CSV, Arrow IPC or Parquet files that the generated code reads directly.
+  as Parquet (default), Arrow IPC or CSV files that the generated code reads
+  directly. The structure is written as `model.rds`, `model.json` or both
+  (`structure =`); `load_model(canonical = TRUE)` orders set members and
+  mapping rows so the matrix does not depend on who wrote the directory.
+* `get_data()` keeps the tables it reads from disk in a session memo within
+  `options(multimod.data_cache_gb = 8)`; `clear_data_cache()` and
+  `data_cache_info()` manage it, and `load_model_data()` brings a model's
+  tables into memory through it.
+* Writing functions write only where they are told: `write_pyomo()` needs
+  `model_dir`, `write_gmpl()` writes a directory only when `model_dir` is
+  given, and `import_gmpl_data()` needs `model_path` to save CSV or Arrow
+  data.
 * `fold_model()` drops dimensions a parameter does not vary over;
   `trim_model()` drops unused symbols. `unfold_model()` and `untrim_model()`
   reverse them.
@@ -189,14 +109,16 @@ of June 2025, which read GAMS and rendered models to LaTeX and back to GAMS.
   `validate_ast()` checks a node against them.
 * CamelCase constructors (`Set()`, `Parameter()`, `Equation()`, ...) are
   provided as aliases of `new_*()` and `ast_*()`.
+* `compare_jump_stats()` compares the constraint statistics of two JuMP
+  runs, and writes the comparison when given a `file`.
 
 ### Configuration
 
 * Interpreter and solver paths resolve from R options, environment
-  variables, a configuration file and auto-detection, in that order; see
-  `multimod_config_write()` and `multimod_config_show()`.
-* `mm_setup_python()` creates a Python environment for Pyomo, and
-  `mm_check_python()` reports whether the configured one is usable.
+  variables, a configuration file and detection, in that order; see
+  `multimod_config_show()`. `multimod_config_write()` writes a configuration
+  file to the path it is given.
+* `mm_check_python()` reports whether the configured interpreter is usable.
 * The `glpsol` executable is taken from the 'glpsol' package when it is
   installed.
 

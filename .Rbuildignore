@@ -10,6 +10,7 @@
 ^vignettes/articles$
 ^CODE_OF_CONDUCT\.md$
 ^\.github$
+^\.git$
 ^\.claude$
 ^AGENTS\.md$
 ^CLAUDE\.md$
@@ -31,3 +32,4 @@
 ^src/.*\.o$
 ^src/.*\.dll$
 ^src/.*\.so$
+^vignettes/\.DS_Store$

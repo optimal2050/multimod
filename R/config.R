@@ -7,8 +7,15 @@
 #' **Priority order** (highest to lowest):
 #' 1. R option: `getOption("multimod.<solver>_path")`
 #' 2. Environment variable: `MULTIMOD_<SOLVER>`
-#' 3. YAML config file: the per-user directory given by `tools::R_user_dir("multimod", "config")` or `.multimod.yml`
-#' 4. Intelligent defaults (reticulate for Python, system PATH for others)
+#' 3. YAML config file: `.multimod.yml` in the working directory, then
+#'    `config.yml` in the per-user directory
+#'    `tools::R_user_dir("multimod", "config")`
+#' 4. Defaults: the conda environment `env_name` for Python (looked up, not
+#'    started), the system `PATH` for the others
+#'
+#' `multimod_config_write()` writes only to the `file` it is given. To write
+#' the user-level file that `multimod_config_read()` finds, pass
+#' `file.path(tools::R_user_dir("multimod", "config"), "config.yml")`.
 #'
 #' @return
 #' - `get_multimod_python()`, `get_multimod_julia()`, `get_multimod_glpsol()`
@@ -28,6 +35,13 @@
 #' @examples
 #' # where the configuration would be read from
 #' multimod_config_path()
+#'
+#' # write a configuration file, here to a temporary location
+#' if (requireNamespace("yaml", quietly = TRUE)) {
+#'   f <- multimod_config_write(list(julia = list(path = "julia")),
+#'                              file = tempfile(fileext = ".yml"))
+#'   readLines(f)
+#' }
 #'
 #' \donttest{
 #' # what is resolved now; probes the machine for Python, Julia and glpsol
@@ -54,12 +68,12 @@
 #' # Or use environment variables (system-wide):
 #' Sys.setenv(MULTIMOD_PYTHON = "C:/Python310/python.exe")
 #' 
-#' # Or use YAML config file (the config.yml under tools::R_user_dir("multimod", "config")):
+#' # Or a YAML file, here the user-level one multimod_config_read() finds:
 #' multimod_config_write(list(
 #'   python = list(path = "C:/Python310/python.exe", env_name = "multimod"),
 #'   julia = list(path = "C:/Julia-1.10/bin/julia.exe"),
 #'   glpsol = list(path = "C:/glpk/bin/glpsol.exe")
-#' ))
+#' ), file = file.path(tools::R_user_dir("multimod", "config"), "config.yml"))
 #' 
 #' # View current configuration
 #' multimod_config_show()
@@ -96,19 +110,16 @@ get_multimod_python <- function(env_name = "multimod") {
   yaml_path <- .get_config_value("python", "path")
   if (!is.null(yaml_path)) return(normalizePath(yaml_path, mustWork = FALSE))
   
-  # 4. Try reticulate for conda environment
-  if (requireNamespace("reticulate", quietly = TRUE)) {
-    if (!is.null(env_name) && nzchar(env_name)) {
-      tryCatch({
-        reticulate::use_condaenv(env_name, required = FALSE)
-      }, error = function(e) NULL)
-    }
-    cfg <- tryCatch(reticulate::py_config(), error = function(e) NULL)
-    if (!is.null(cfg$python) && file.exists(cfg$python)) {
-      return(normalizePath(cfg$python))
-    }
+  # 4. The conda environment `env_name`, when a conda binary exists. Only
+  #    looked up: Python is not started and nothing is installed.
+  if (!is.null(env_name) && nzchar(env_name) &&
+      requireNamespace("reticulate", quietly = TRUE)) {
+    py <- tryCatch(
+      reticulate::conda_python(env_name, conda = reticulate::conda_binary()),
+      error = function(e) NULL)
+    if (length(py) == 1L && !is.na(py) && file.exists(py)) return(normalizePath(py))
   }
-  
+
   # 5. Fall back to system python
   "python"
 }
@@ -280,21 +291,23 @@ get_multimod_solver <- function(solver_name) {
 
 #' @rdname multimod-config
 #' @param config Named list of configuration values to write to YAML file.
-#' @param global Logical; if `TRUE`, writes to the per-user directory given by `tools::R_user_dir("multimod", "config")` (user-wide).
-#'   If `FALSE` (default), writes to `.multimod.yml` in current working directory.
+#' @param file Path of the YAML file to write; required.
+#' @param global Logical; for `multimod_config_read()` and
+#'   `multimod_config_path()`: when `TRUE`, the per-user file under
+#'   `tools::R_user_dir("multimod", "config")` comes first; when `FALSE`
+#'   (default), `.multimod.yml` in the working directory.
 #' @export
-multimod_config_write <- function(config, global = FALSE) {
+multimod_config_write <- function(config, file) {
+  if (missing(file) || !is.character(file) || length(file) != 1L || !nzchar(file)) {
+    stop("'file' must name the YAML file to write.", call. = FALSE)
+  }
   if (!requireNamespace("yaml", quietly = TRUE)) {
     stop("The 'yaml' package is required for config file support.\n",
          "Install it with: install.packages('yaml')")
   }
-  
-  config_file <- if (global) {
-    file.path(tools::R_user_dir("multimod", "config"), "config.yml")
-  } else {
-    file.path(getwd(), ".multimod.yml")
-  }
-  
+
+  config_file <- file
+
   # Create directory if needed
   config_dir <- dirname(config_file)
   if (!dir.exists(config_dir)) {

@@ -35,8 +35,10 @@
 #' files <- export_model_source("energyrt", ws, format = "gmpl")
 #' basename(files)
 #'
-#' model <- read_gmpl(file.path(ws, "solvers", "gmpl", "model.mod"),
-#'                    file.path(ws, "solvers", "gmpl", "data.dat"))
+#' # the model section; its data file `data.dat` is the second argument of
+#' # read_gmpl(), which takes longer to parse
+#' model <- read_gmpl(file.path(ws, "solvers", "gmpl", "model.mod"))
+#' model
 #' unlink(ws, recursive = TRUE)
 #' }
 #'

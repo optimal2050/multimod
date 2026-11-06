@@ -18,7 +18,8 @@ import_gmpl_data(
 \item{gmpl_data}{Path to GMPL data file, character vector of data file contents,
 or a list from read_gmpl_data()}
 
-\item{model_path}{Optional path to save parameter data as CSV files (default: model's base_path)}
+\item{model_path}{Directory to save parameter data to; required when
+\code{format} is \code{"csv"} or \code{"arrow"}, unused for \code{"memory"}.}
 
 \item{format}{Data storage format: "memory" (default), "csv", or "arrow"}
 

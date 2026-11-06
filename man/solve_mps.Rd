@@ -78,8 +78,25 @@ has the size of the problem PDLP solved. Locally and
 in WSL the Python is \code{control$cuopt_python}, else the environment variable
 \code{MULTIMOD_CUOPT_PYTHON}, else \code{python3} beside \code{cuopt_cli}.
 
+Scripts and parameter files a solver needs go to temporary files and are
+removed afterwards; the cuOpt log goes to \code{control$log_file}, else to a
+temporary file. Only the solution (and, when asked, the warm-start data)
+is written beside \code{sol_file}.
+
 \code{remote} (for \code{where = "remote"}): \code{flavor}, \code{namespace}, \code{timeout}
 (default \code{"10h"}), \code{image} (default \code{"python:3.12"}), \code{provider} (default
 \code{"hf_jobs"}), \code{handle_file} (default \code{cloud_job.yml} beside \code{sol_file}),
 \code{name}, \code{poll} (seconds) and \code{max_wait} (seconds).
+}
+\examples{
+if (requireNamespace("highs", quietly = TRUE)) {
+  dir <- tempfile("mps-")
+  dir.create(dir)
+  mps <- file.path(dir, "toy.mps")
+  write_mps(example_models$toy, mps, format = "csv")
+  s <- solve_mps(mps)
+  s$objective
+  sol <- read_mps_solution(s$sol_file, index_dir = dir, format = "csv")
+  head(sol$primal)
+}
 }

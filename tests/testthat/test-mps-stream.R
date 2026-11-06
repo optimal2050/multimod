@@ -117,6 +117,7 @@ test_that("a streamed parquet bundle decodes to the same members as a classic on
 })
 
 test_that("a sliced expansion gives the same file", {
+  skip_on_cran()
   skip_if_not_installed("highs")
   # a slice budget of a few rows forces every expansion through the slicer
   withr::with_options(list(multimod.slice_rows = 50), {
@@ -139,6 +140,7 @@ fold_last <- function(model, name) {
 }
 
 test_that("a wildcard parameter lowers natively and gives the R engine's matrix", {
+  skip_on_cran()
   for (m in list(example_models$toy, example_models$energyRt$multimod)) {
     cand <- names(m$parameters)[vapply(m$parameters, function(p) {
       is.data.frame(p$data) && NROW(p$data) > 1L && ncol(p$data) >= 3L && "value" %in% names(p$data)

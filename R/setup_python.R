@@ -1,15 +1,13 @@
 #' Set up the Python environment for multimod
 #'
-#' This is the installer: one Conda environment, shared by the whole stack.
-#' energyRt resolves its Python through [get_multimod_python()], so there is
-#' one environment and one source of truth rather than a per-package env.
-#'
-#' It bootstraps a Conda environment (named "multimod" by default)
-#' using the [reticulate](https://rstudio.github.io/reticulate/) toolkit. It
-#' ensures `reticulate::install_miniconda()` has been invoked (unless disabled),
-#' creates the target environment when missing, installs the requested Python
-#' packages, and activates the environment for the current R session via
-#' `reticulate::use_condaenv()`.
+#' Installs software: a Conda environment (named "multimod" by default) with
+#' the Python packages the Pyomo route needs, using the
+#' [reticulate](https://rstudio.github.io/reticulate/) toolkit. It runs only
+#' when called; no other multimod function calls it. It creates the
+#' environment when missing, installs the requested packages, and activates
+#' the environment for the current R session via `reticulate::use_condaenv()`.
+#' A Conda installation is required; with `ensure_miniconda = TRUE` Miniconda
+#' is installed first when none is found.
 #'
 #' After setup, multimod uses this environment either when it is set with
 #' `set_multimod_python()` or when `get_multimod_python()` detects it through
@@ -27,9 +25,9 @@
 #'   executable, which pip does not ship.
 #' @param python_version Python version spec passed to
 #'   [reticulate::conda_create()]. Use `NULL` for reticulate's default.
-#' @param ensure_miniconda Logical flag controlling whether
-#'   [reticulate::install_miniconda()] should run when no Conda binary is
-#'   detected on the system. Defaults to `TRUE` to minimize user setup.
+#' @param ensure_miniconda Logical; when `TRUE`,
+#'   [reticulate::install_miniconda()] runs when no Conda binary is found.
+#'   Default `FALSE`: without Conda the function stops.
 #' @param reinstall Logical flag; when `TRUE` the environment is recreated even
 #'   if it already exists. Defaults to `FALSE` to preserve prior installs.
 #' @param pip Logical; when `TRUE` (default) packages are installed via
@@ -46,7 +44,7 @@ mm_setup_python <- function(
     packages = c("pyomo", "highspy", "pyarrow", "pandas"),
     conda_packages = "glpk",
     python_version = "3.14",
-    ensure_miniconda = TRUE,
+    ensure_miniconda = FALSE,
     reinstall = FALSE,
   pip = TRUE,
     ...) {
@@ -62,7 +60,9 @@ mm_setup_python <- function(
 
     if (!conda_ok) {
       if (!isTRUE(ensure_miniconda)) {
-        stop("No Conda installation detected. Enable 'ensure_miniconda' or install Conda manually.")
+        stop("No Conda installation found. Install one, for instance with ",
+             "reticulate::install_miniconda(), or call mm_setup_python(ensure_miniconda = TRUE).",
+             call. = FALSE)
       }
       reticulate::install_miniconda(...)
     }

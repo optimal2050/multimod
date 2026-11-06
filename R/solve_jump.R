@@ -41,7 +41,7 @@
 #' The solutions are available in the returned model, which replaces the one
 #' passed in:
 #' 
-#' \code{result <- solve_jump(my_model, "path/to/model", load_results = TRUE)}
+#' \code{result <- solve_jump(my_model, model_dir = ws, load_results = TRUE)}
 #' 
 #' \code{my_model <- result$model  # Update with loaded solutions}
 #'
@@ -188,16 +188,24 @@ solve_jump_juliacall <- function(julia_file, verbose) {
     stop("JuliaCall package required for method='juliacall'. Install with: install.packages('JuliaCall')")
   }
   
-  # Setup Julia (only first time)
+  # Start Julia (once per session) without installing JuliaCall's Julia
+  # dependencies
   if (!exists(".julia_initialized", envir = .mm_state)) {
-    JuliaCall::julia_setup()
+    tryCatch(JuliaCall::julia_setup(install = FALSE, verbose = FALSE),
+             error = function(e) {
+               stop("JuliaCall could not start Julia: ", conditionMessage(e),
+                    ". Run JuliaCall::julia_setup() once to install its Julia ",
+                    "dependencies, or use method = \"system\".", call. = FALSE)
+             })
     assign(".julia_initialized", TRUE, envir = .mm_state)
   }
-  
-  # Change to model directory
+
+  # Change to model directory, and back afterwards
   model_dir <- dirname(julia_file)
+  old_dir <- JuliaCall::julia_eval("pwd()")
+  on.exit(JuliaCall::julia_command(sprintf("cd(\"%s\")", gsub("\\\\", "/", old_dir))), add = TRUE)
   JuliaCall::julia_command(sprintf("cd(\"%s\")", gsub("\\\\", "/", model_dir)))
-  
+
   # Execute model
   start_time <- Sys.time()
   

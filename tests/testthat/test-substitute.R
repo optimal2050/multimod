@@ -31,6 +31,7 @@
 }
 
 test_that("substituting a definition keeps the optimum and rebuilds the variable", {
+  skip_on_cran()
   skip_if_not_installed("highs")
   skip_if_not_installed("arrow")
   m <- example_models$energyRt$multimod
@@ -54,6 +55,7 @@ test_that("substituting a definition keeps the optimum and rebuilds the variable
 })
 
 test_that("definitions referring to substituted variables are substituted in turn", {
+  skip_on_cran()
   skip_if_not_installed("highs")
   skip_if_not_installed("arrow")
   m <- example_models$energyRt$multimod
@@ -69,6 +71,7 @@ test_that("definitions referring to substituted variables are substituted in tur
 })
 
 test_that("a definition rolled up over finer timeslices is composed through its levels", {
+  skip_on_cran()
   skip_if_not_installed("highs")
   skip_if_not_installed("arrow")
   m <- example_models$energyRt$multimod
@@ -161,6 +164,7 @@ test_that("deferred substituted variables are written as the expanded ones", {
 })
 
 test_that("the objective's definitions are substituted and the objective written on the columns", {
+  skip_on_cran()
   skip_if_not_installed("highs")
   skip_if_not_installed("arrow")
   m <- example_models$energyRt$multimod

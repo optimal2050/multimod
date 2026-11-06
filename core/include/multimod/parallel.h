@@ -2,11 +2,13 @@
 //
 // The range [0, n) is split into `threads` contiguous chunks; the calling
 // thread runs the last chunk. An exception thrown in a worker is rethrown on
-// the calling thread after every worker has joined.
+// the calling thread after every worker has joined. A worker that cannot be
+// started runs its chunk on the calling thread instead.
 #pragma once
 #include <algorithm>
 #include <cstdint>
 #include <exception>
+#include <system_error>
 #include <thread>
 #include <vector>
 
@@ -22,12 +24,14 @@ void parallel_for(int64_t n, int threads, Fn fn) {
   if (t == 1) { fn(0, n, 0); return; }
   int64_t chunk = (n + t - 1) / t;
   std::vector<std::thread> workers;
+  workers.reserve(t - 1);
   std::vector<std::exception_ptr> errors(t);
   for (int w = 0; w < t - 1; ++w) {
     int64_t b = w * chunk, e = std::min(n, b + chunk);
-    workers.emplace_back([&, w, b, e]() {
+    auto task = [&, w, b, e]() {
       try { fn(b, e, w); } catch (...) { errors[w] = std::current_exception(); }
-    });
+    };
+    try { workers.emplace_back(task); } catch (const std::system_error&) { task(); }
   }
   int64_t b = (t - 1) * chunk, e = n;
   try { if (b < e) fn(b, e, t - 1); } catch (...) { errors[t - 1] = std::current_exception(); }
@@ -56,11 +60,13 @@ void parallel_chunks(const std::vector<int64_t>& bounds, Fn fn) {
   if (t <= 0) return;
   if (t == 1) { fn(0, bounds[0], bounds[1]); return; }
   std::vector<std::thread> workers;
+  workers.reserve(t - 1);
   std::vector<std::exception_ptr> errors(t);
   for (int w = 0; w < t - 1; ++w) {
-    workers.emplace_back([&, w]() {
+    auto task = [&, w]() {
       try { fn(w, bounds[w], bounds[w + 1]); } catch (...) { errors[w] = std::current_exception(); }
-    });
+    };
+    try { workers.emplace_back(task); } catch (const std::system_error&) { task(); }
   }
   try { fn(t - 1, bounds[t - 1], bounds[t]); } catch (...) { errors[t - 1] = std::current_exception(); }
   for (auto& th : workers) th.join();

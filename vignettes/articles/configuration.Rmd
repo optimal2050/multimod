@@ -72,7 +72,10 @@ export MULTIMOD_JULIA=/usr/local/bin/julia
 export MULTIMOD_GLPSOL=/usr/bin/glpsol
 ```
 
-A YAML file suits a project shared by several people:
+A YAML file suits a project shared by several people. It is read from
+`.multimod.yml` in the working directory, then from `config.yml` in the
+user-level directory `tools::R_user_dir("multimod", "config")`;
+`multimod_config_write()` writes only to the file it is given:
 
 ```{r yaml}
 multimod_config_write(
@@ -82,7 +85,8 @@ multimod_config_write(
     julia  = list(path = "C:/Julia-1.11/bin/julia.exe"),
     glpsol = list(path = "C:/glpk/bin/glpsol.exe")
   ),
-  global = FALSE   # .multimod.yml in the working directory; TRUE = user level
+  file = ".multimod.yml"   # the project file; for the user-level one:
+  # file.path(tools::R_user_dir("multimod", "config"), "config.yml")
 )
 multimod_config_path()        # where the project file is
 multimod_config_read()
@@ -138,8 +142,8 @@ system2(get_multimod_julia(), c("-e", "println(VERSION)"))
 ```
 
 The generated `model.jl` needs the packages JuMP, HiGHS, Arrow, DataFrames
-and CSV. It installs any that are missing on its first run, which takes a
-few minutes; to do it beforehand:
+and CSV. It does not install them: when one is missing it stops and names
+it. They are installed once, in Julia:
 
 ```julia
 using Pkg
@@ -160,8 +164,9 @@ mm_check_python()
 
 `mm_check_python()` reports the interpreter that will be used, its version
 and the packages that fail to import. `solve_pyomo()` uses the configured
-interpreter as it is; `solve_pyomo(ensure_env = TRUE)` checks it first and
-runs `mm_setup_python()` when it is not usable.
+interpreter as it is, and stops when it cannot import `pyomo`; it never
+installs. `mm_setup_python()` is the only function that installs software,
+and runs only when called.
 
 To use an existing interpreter instead, point to it and check it carries
 the packages a route needs:

@@ -19,6 +19,7 @@ namespace multimod {
 
 using KeyCols = std::vector<const int*>;
 
+// the 64-bit finalizer of MurmurHash3 (Austin Appleby, public domain)
 inline uint64_t mix64(uint64_t h) {
   h ^= h >> 33; h *= 0xff51afd7ed558ccdULL;
   h ^= h >> 33; h *= 0xc4ceb9fe1a85ec53ULL;

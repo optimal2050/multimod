@@ -1,9 +1,9 @@
 #include "multimod/mps.h"
 
 #include <algorithm>
-#include <charconv>
-#include <filesystem>
 #include <cmath>
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <limits>
 #include <stdexcept>
@@ -26,11 +26,35 @@ void ensure_dir(const std::string& dir) {
   if (MM_MKDIR(dir.c_str()) != 0) throw std::runtime_error("cannot create directory " + dir);
 }
 
-// shortest round-trip decimal of a double
+// A decimal that reads back to the same double. Integers below 1e15 print
+// without exponent; otherwise the fewest of 15, 16 or 17 significant digits
+// that round-trip (%g drops trailing zeros, so 0.1 stays "0.1"). snprintf is
+// available on every macOS target CRAN builds for.
 void fmt_num(double v, std::string& out) {
   char buf[64];
-  auto r = std::to_chars(buf, buf + sizeof(buf), v);
-  out.append(buf, r.ptr);
+  int n = 0;
+  if (std::isfinite(v) && v == std::floor(v) && std::fabs(v) < 1e15) {
+    n = std::snprintf(buf, sizeof(buf), "%.0f", v);
+  } else {
+    for (int p = 15; p <= 17; ++p) {
+      n = std::snprintf(buf, sizeof(buf), "%.*g", p, v);
+      if (p == 17 || std::strtod(buf, nullptr) == v) break;
+    }
+  }
+  if (n > 0) out.append(buf, static_cast<size_t>(n));
+}
+
+// Size of a file in bytes, 64-bit on every platform; stat() needs no newer
+// macOS target than the rest of the code.
+uint64_t file_bytes(const std::string& path) {
+#ifdef _WIN32
+  struct _stat64 st;
+  if (_stat64(path.c_str(), &st) != 0) throw std::runtime_error("cannot stat " + path);
+#else
+  struct stat st;
+  if (stat(path.c_str(), &st) != 0) throw std::runtime_error("cannot stat " + path);
+#endif
+  return static_cast<uint64_t>(st.st_size);
 }
 
 bool is_inf(double v) { return std::isinf(v); }
@@ -111,7 +135,7 @@ void Sink::remap(const int* ired, const int* jred, const int* ref, const double*
     FILE* f = std::fopen(raw[b].c_str(), "rb");
     if (!f) throw std::runtime_error("cannot read " + raw[b]);
     // the size from the file system: ftell() is 32-bit on some platforms
-    v.resize(static_cast<size_t>(std::filesystem::file_size(raw[b]) / sizeof(Entry)));
+    v.resize(static_cast<size_t>(file_bytes(raw[b]) / sizeof(Entry)));
     if (!v.empty() && std::fread(v.data(), sizeof(Entry), v.size(), f) != v.size()) {
       std::fclose(f);
       throw std::runtime_error("short read on " + raw[b]);
@@ -217,7 +241,7 @@ std::vector<Entry> Sink::read_bucket_raw(int b) const {
   std::vector<Entry> v;
   FILE* f = std::fopen(bucket_path(b).c_str(), "rb");
   if (!f) throw std::runtime_error("cannot read bucket file " + bucket_path(b));
-  v.resize(static_cast<size_t>(std::filesystem::file_size(bucket_path(b)) / sizeof(Entry)));
+  v.resize(static_cast<size_t>(file_bytes(bucket_path(b)) / sizeof(Entry)));
   if (!v.empty() && std::fread(v.data(), sizeof(Entry), v.size(), f) != v.size()) {
     std::fclose(f);
     throw std::runtime_error("short read on " + bucket_path(b));

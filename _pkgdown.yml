@@ -202,6 +202,8 @@ reference:
   - solve_mps
   - cuopt_watchdog
   - write_mps
+  - objective_chain
+  - lp_bounds
   - read_mps_solution
   - read_highs_solution
   - read_cuopt_solution
@@ -215,6 +217,9 @@ reference:
   - save_model
   - load_model
   - get_data
+  - load_model_data
+  - clear_data_cache
+  - mapping_rule
   - update_parameter
   - update_mapping
   - save_parameter

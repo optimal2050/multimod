@@ -46,6 +46,11 @@
 #' in WSL the Python is `control$cuopt_python`, else the environment variable
 #' `MULTIMOD_CUOPT_PYTHON`, else `python3` beside `cuopt_cli`.
 #'
+#' Scripts and parameter files a solver needs go to temporary files and are
+#' removed afterwards; the cuOpt log goes to `control$log_file`, else to a
+#' temporary file. Only the solution (and, when asked, the warm-start data)
+#' is written beside `sol_file`.
+#'
 #' `remote` (for `where = "remote"`): `flavor`, `namespace`, `timeout`
 #' (default `"10h"`), `image` (default `"python:3.12"`), `provider` (default
 #' `"hf_jobs"`), `handle_file` (default `cloud_job.yml` beside `sol_file`),
@@ -65,6 +70,17 @@
 #'
 #' @return A list with `status_message`, `objective`, `sol_file` and
 #'   `run_time` (seconds); a remote run adds `job`, the job handle.
+#' @examples
+#' if (requireNamespace("highs", quietly = TRUE)) {
+#'   dir <- tempfile("mps-")
+#'   dir.create(dir)
+#'   mps <- file.path(dir, "toy.mps")
+#'   write_mps(example_models$toy, mps, format = "csv")
+#'   s <- solve_mps(mps)
+#'   s$objective
+#'   sol <- read_mps_solution(s$sol_file, index_dir = dir, format = "csv")
+#'   head(sol$primal)
+#' }
 #' @export
 solve_mps <- function(file, sol_file = NULL, control = list(),
                       require_optimal = TRUE, verbose = FALSE,
@@ -170,8 +186,8 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
 # HiGHS through Julia --------------------------------------------------------
 
 # HiGHS.jl's C API reads the file and writes the solution itself: no JuMP model
-# is built. The script carries the options typed from R and is written beside
-# the solution file.
+# is built. The script carries the options typed from R and is written to a
+# temporary file.
 .julia_highs_script <- function(control) {
   setter <- function(nm, v) {
     if (is.logical(v)) sprintf('HiGHS.Highs_setBoolOptionValue(h, "%s", %s)', nm, if (isTRUE(v)) "1" else "0")
@@ -207,7 +223,8 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
 }
 
 .solve_mps_julia <- function(file, sol_file, control, require_optimal, verbose) {
-  jl <- file.path(dirname(sol_file), "solve_mps.jl")
+  jl <- tempfile("solve_mps_", fileext = ".jl")
+  on.exit(unlink(jl), add = TRUE)
   writeLines(.julia_highs_script(control), jl)
   if (file.exists(sol_file)) file.remove(sol_file)
   t0 <- Sys.time()
@@ -323,15 +340,17 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
   if (!is.null(control$warm_start) && !file.exists(control$warm_start)) {
     stop("control$warm_start: no file ", control$warm_start)
   }
-  # the watchdog (cuopt_watchdog()): the log goes beside the solution file
+  # the watchdog (cuopt_watchdog()) reads the solver's log: `control$log_file`,
+  # else a temporary file
   wd <- .cuopt_watchdog_resolve(control)
   out_dir <- dirname(normalizePath(sol_file, mustWork = FALSE))
-  log_file <- file.path(out_dir, "cuopt.log")
+  log_file <- control$log_file %||% tempfile("cuopt_", fileext = ".log")
   warm_file <- file.path(out_dir, "warm_start.pkl")
-  # the Python interface: the script and its parameters beside the solution
-  # file; it writes the solution whatever the status
-  script <- file.path(out_dir, "solve_cuopt.py")
-  params <- file.path(out_dir, "cuopt_params.json")
+  # the Python interface: the script and its parameters in temporary files;
+  # it writes the solution whatever the status
+  script <- tempfile("solve_cuopt_", fileext = ".py")
+  params <- tempfile("cuopt_params_", fileext = ".json")
+  on.exit(unlink(c(script, params)), add = TRUE)
   if (py) {
     writeLines(.cuopt_py_source(), script)
     writeLines(as.character(jsonlite::toJSON(.cuopt_py_params(control, warm),
@@ -355,16 +374,23 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
     }
   } else {
     # cuOpt writes the solution line by line, which is slow across the
-    # /mnt/<drive> bridge: it writes inside WSL's own file system and the
-    # file is copied out in one piece (the warm-start data likewise)
-    wsl_sol <- sprintf("/tmp/multimod_%s_%d.sol", basename(out_dir), Sys.getpid())
-    wsl_warm <- if (isTRUE(control$save_warm_start)) sub("\\.sol$", ".pkl", wsl_sol) else "-"
+    # /mnt/<drive> bridge: it writes to a temporary directory inside WSL's own
+    # file system, removed afterwards, and the file is copied out in one
+    # piece (the warm-start data likewise)
     user <- c(.wsl_user_args(control), "-e")
+    wsl_dir <- suppressWarnings(system2("wsl", c(user, "mktemp", "-d"), stdout = TRUE, stderr = FALSE))
+    if (!length(wsl_dir) || !startsWith(wsl_dir[1], "/")) {
+      stop("cuOpt (WSL): could not create a temporary directory inside WSL.")
+    }
+    wsl_dir <- wsl_dir[1]
+    on.exit(system2("wsl", c(user, "rm", "-rf", wsl_dir)), add = TRUE)
+    wsl_sol <- paste0(wsl_dir, "/solution.sol")
+    wsl_warm <- if (isTRUE(control$save_warm_start)) paste0(wsl_dir, "/warm_start.pkl") else "-"
     args <- c(user, exe, solver_args(wsl_sol, wsl_warm)$args)
     if (verbose) cat("cuOpt (WSL):", paste(args, collapse = " "), "\n")
     # under the watchdog the solver is started through bash, which writes its
     # process id first: stopping wsl.exe alone may leave the solver running
-    pid_file <- sub("\\.sol$", ".pid", wsl_sol)
+    pid_file <- paste0(wsl_dir, "/solver.pid")
     run <- function(a) {
       if (is.null(wd)) return(system2("wsl", a, stdout = if (verbose) "" else FALSE,
                                       stderr = if (verbose) "" else FALSE))
@@ -386,7 +412,6 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
       if (in_wsl(f)) {
         to <- if (identical(f, wsl_sol)) sol_file else warm_file
         system2("wsl", c(user, "cp", f, .wsl_path(to)))
-        system2("wsl", c(user, "rm", "-f", f))
       }
     }
   }

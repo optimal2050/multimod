@@ -9,8 +9,7 @@
 #' @param model_dir Model workspace directory. The scaffold is written to
 #'   `<model_dir>/solvers/<solver_dir>/` and reads its data from the workspace,
 #'   so the directory must hold one written by [save_model()]; if it does not,
-#'   the model is saved there first (CSV format). Defaults to the directory the
-#'   model was loaded from or saved to (`model$base_path`).
+#'   the model is saved there first (CSV format). Required.
 #' @param solver Python solver name passed to `pyomo.opt.SolverFactory`
 #'   (default `"highs"`).
 #' @param data_mode Whether data should be stored externally in files
@@ -70,9 +69,6 @@ write_pyomo_internal <- function(model, model_dir = NULL, solver_dir = "pyomo",
          "pass `model_dir` instead of `file`.")
   }
 
-  if (is.null(model_dir)) {
-    model_dir <- model$base_path
-  }
   if (is.null(model_dir)) {
     stop("`model_dir` is required: the Pyomo scaffold reads its data from a ",
          "model workspace (see save_model()).")

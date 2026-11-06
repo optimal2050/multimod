@@ -17,6 +17,10 @@ NULL
   invisible()
 }
 
+.onUnload <- function(libpath) {
+  library.dynam.unload("multimod", libpath)
+}
+
 # Column names used in data.table / dplyr expressions, and R6 bindings.
 utils::globalVariables(c(".", "value", "n", "self", "private", "min_val", "max_val",
                          ".N", "lo", "up"))

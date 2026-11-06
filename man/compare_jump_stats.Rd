@@ -4,19 +4,15 @@
 \alias{compare_jump_stats}
 \title{Compare JuMP model constraint statistics between two model directories}
 \usage{
-compare_jump_stats(
-  model_dir1,
-  model_dir2,
-  save_comparison = TRUE,
-  verbose = TRUE
-)
+compare_jump_stats(model_dir1, model_dir2, file = NULL, verbose = TRUE)
 }
 \arguments{
-\item{model_dir1}{Path to first model's solver/jump directory (e.g., "tmp/model_v1/solvers/jump")}
+\item{model_dir1, model_dir2}{The \code{solvers/jump} directories of the two
+models (holding \code{constraint_stats.csv}, written by the generated JuMP
+code), or the model workspaces above them.}
 
-\item{model_dir2}{Path to second model's solver/jump directory (e.g., "tmp/model_v2/solvers/jump")}
-
-\item{save_comparison}{Logical; if TRUE, saves merged comparison to CSV in model_dir1's parent directory}
+\item{file}{Optional path of a CSV file to write the merged comparison to.
+\code{NULL} (default) writes nothing.}
 
 \item{verbose}{Logical; if TRUE, prints detailed comparison results}
 }
@@ -33,18 +29,18 @@ and compares constraint counts and non-zero counts. Useful for validating
 model generation changes.
 }
 \examples{
-\dontrun{
-# Compare two JuMP model versions written to workspaces ws1 and ws2 and
-# solved with solve_jump() (needs Julia)
-comp <- compare_jump_stats(
-  file.path(ws1, "solvers", "jump"),
-  file.path(ws2, "solvers", "jump"),
-  verbose = TRUE
-)
+# the statistics files of two JuMP runs; solve_jump() writes them
+d1 <- file.path(tempfile("jump1-"), "solvers", "jump")
+d2 <- file.path(tempfile("jump2-"), "solvers", "jump")
+dir.create(d1, recursive = TRUE); dir.create(d2, recursive = TRUE)
+write.csv(data.frame(name = c("eqDemand", "eqCap"), count = c(4, 6),
+                     nnz_total = c(8, 12)),
+          file.path(d1, "constraint_stats.csv"), row.names = FALSE)
+write.csv(data.frame(name = c("eqDemand", "eqCap"), count = c(4, 6),
+                     nnz_total = c(8, 14)),
+          file.path(d2, "constraint_stats.csv"), row.names = FALSE)
 
-# Check if models match
-if (comp$summary$all_match) {
-  message("Models are identical!")
-}
-}
+comp <- compare_jump_stats(d1, d2, verbose = FALSE)
+comp$nnz_differences
+comp$summary$all_match
 }

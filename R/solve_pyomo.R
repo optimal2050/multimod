@@ -6,9 +6,9 @@
 #' the script writes to `solution/status.json`. With `load_results = TRUE` the
 #' variable values the script exports are read back into `model`.
 #'
-#' The Python environment is created once with [mm_setup_python()]. With
-#' `ensure_env = TRUE`, `solve_pyomo()` checks the environment and creates it
-#' when it is not usable, which may install Miniconda and Python packages.
+#' The Python environment is set up beforehand, for instance once with
+#' [mm_setup_python()]; `solve_pyomo()` installs nothing. When the interpreter
+#' cannot import `pyomo`, it stops and says so.
 #'
 #' @param model Optional multimod model. Required when `load_results = TRUE`:
 #'   the solution of each variable is stored in
@@ -19,21 +19,8 @@
 #'   Defaults to "pyomo" to match `write_pyomo()`.
 #' @param env_name Name of the Conda environment handled by
 #'   `mm_setup_python()`. Defaults to "multimod".
-#' @param ensure_env Logical; when `TRUE` the environment is checked with
-#'   [mm_check_python()] and `mm_setup_python()` runs if it is not usable.
-#'   Default `FALSE`: the configured interpreter is used as it is, and nothing
-#'   is installed.
-#' @param packages Character vector of Python packages to request when the
-#'   helper runs. `NULL` (default) uses [mm_setup_python()]'s own list, so the
-#'   environment contents have a single owner.
-#' @param python_version Optional Python version passed through to
-#'   `mm_setup_python()`.
-#' @param ensure_miniconda Forwarded to `mm_setup_python()`.
-#' @param reinstall_env When `TRUE`, asks the helper to recreate the Conda
-#'   environment before solving.
-#' @param python Optional path to a Python executable. When omitted the Python
-#'   binary reported by `reticulate::py_config()` for the activated environment is
-#'   used.
+#' @param python Optional path to a Python executable. When omitted it is
+#'   resolved by [get_multimod_python()].
 #' @param solver Optional solver name that is exported to the Python process via
 #'   the `PYOMO_SOLVER` environment variable.
 #' @param env Named character vector of additional environment variables to pass
@@ -46,7 +33,6 @@
 #'   output, `FALSE` = quiet) or one of `"buffer"`, `"stream"`, `"quiet"`.
 #' @param timeout Optional timeout (in seconds). Requires the `processx`
 #'   package.
-#' @param ... Additional arguments forwarded to [mm_setup_python()].
 #'
 #' @return A list describing the solver run (exit code, success flag, elapsed
 #'   time, raw output, parsed status metadata when available, and environment
@@ -58,18 +44,12 @@ solve_pyomo <- function(model = NULL,
                         model_dir,
                         solver_dir = "pyomo",
                         env_name = "multimod",
-                        ensure_env = FALSE,
-                        packages = NULL,
-                        python_version = NULL,
-                        ensure_miniconda = TRUE,
-                        reinstall_env = FALSE,
                         python = NULL,
                         solver = NULL,
                         env = NULL,
                         load_results = FALSE,
                         verbose = c("buffer", "stream", "quiet"),
-                        timeout = NULL,
-                        ...) {
+                        timeout = NULL) {
   stopifnot(!missing(model_dir))
   verbose_mode <- if (is.logical(verbose)) {
     if (verbose) "buffer" else "quiet"
@@ -88,28 +68,6 @@ solve_pyomo <- function(model = NULL,
     stop("Pyomo solve entrypoint not found. Run write_pyomo() before solve_pyomo().")
   }
 
-  if (ensure_env) {
-    # Bootstrapping on every solve reinstalls an environment that already
-    # works, which is slow and shells out to conda for nothing.
-    usable <- isTRUE(mm_check_python(env_name = env_name, python = python)$ok)
-    setup_args <- list(
-      env_name = env_name,
-      python_version = python_version,
-      ensure_miniconda = ensure_miniconda,
-      reinstall = reinstall_env,
-      ...
-    )
-    # Omitted rather than passed as NULL: NULL means "install nothing".
-    if (!is.null(packages)) setup_args$packages <- packages
-    if (isTRUE(reinstall_env) || !usable) {
-      do.call(mm_setup_python, setup_args)
-    } else if (!is.null(env_name) && requireNamespace("reticulate", quietly = TRUE)) {
-      reticulate::use_condaenv(env_name, required = FALSE)
-    }
-  } else if (!is.null(env_name) && requireNamespace("reticulate", quietly = TRUE)) {
-    reticulate::use_condaenv(env_name, required = FALSE)
-  }
-
   python_exec <- python
   if (is.null(python_exec)) {
     # Use configuration system to find Python
@@ -118,6 +76,13 @@ solve_pyomo <- function(model = NULL,
 
   if (is.null(python_exec) || is.na(python_exec) || !nzchar(python_exec)) {
     stop("Unable to locate a Python executable. Provide the 'python' argument, configure via set_multimod_python(), or ensure reticulate is configured.")
+  }
+  chk <- mm_check_python(env_name = env_name, python = python_exec)
+  if (!isTRUE(chk$ok)) {
+    stop("The Python interpreter '", python_exec, "' cannot import ",
+         paste(chk$missing, collapse = ", "), ". Set up an environment with ",
+         "mm_setup_python(), or name an interpreter with the 'python' argument ",
+         "or set_multimod_python().", call. = FALSE)
   }
 
   extra_env <- character(0)

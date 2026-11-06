@@ -38,7 +38,7 @@ from the structure are read from \verb{sets/<name>/data.*}.
 }
 \examples{
 ws <- file.path(tempdir(), "energyRt_ws")
-save_model(example_models$energyRt$multimod, ws, verbose = FALSE)
+save_model(example_models$energyRt$multimod, ws, format = "csv", verbose = FALSE)
 
 # Load model with all data
 m <- load_model(ws, verbose = FALSE)

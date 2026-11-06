@@ -126,5 +126,5 @@ lp_bounds <- function(lp, objective = NULL, max_pass = 50L, tol = 1e-9, verbose 
   lp
 }
 
-utils::globalVariables(c("a", "blo", "bup", "clo", "cup", "Lf", "Ln", "Uf", "Un",
+utils::globalVariables(c(":=", "i", "a", "blo", "bup", "clo", "cup", "Lf", "Ln", "Uf", "Un",
                          "i.Lf", "i.Ln", "i.Uf", "i.Un", "Lrest", "Urest", "nlo", "nup"))

@@ -2678,7 +2678,8 @@ parse_list_format <- function(name, text, default_val) {
 #' @param model A multimod model object
 #' @param gmpl_data Path to GMPL data file, character vector of data file contents,
 #'   or a list from read_gmpl_data()
-#' @param model_path Optional path to save parameter data as CSV files (default: model's base_path)
+#' @param model_path Directory to save parameter data to; required when
+#'   `format` is `"csv"` or `"arrow"`, unused for `"memory"`.
 #' @param format Data storage format: "memory" (default), "csv", or "arrow"
 #' @param verbose Logical. If TRUE, print progress (default FALSE)
 #'
@@ -2719,14 +2720,9 @@ import_gmpl_data <- function(model,
 
   format <- match.arg(format)
 
-  # Determine model path
-  if (is.null(model_path)) {
-    model_path <- model$base_path
-    if (is.null(model_path)) {
-      model_path <- tempdir()
-      model$base_path <- model_path
-      if (verbose) cat("Using temporary directory:", model_path, "\n")
-    }
+  if (format != "memory" && is.null(model_path)) {
+    stop("`model_path` is required with format = \"", format, "\": the ",
+         "directory to save the parameter data to.", call. = FALSE)
   }
 
   # Read data if needed

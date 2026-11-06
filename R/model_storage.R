@@ -213,12 +213,15 @@ NULL
 #' m <- example_models$energyRt$multimod
 #' ws <- file.path(tempdir(), "energyRt_ws")
 #'
-#' # Save with the default parquet format
-#' m <- save_model(m, ws, verbose = FALSE)
+#' # CSV needs no further package
+#' m <- save_model(m, ws, format = "csv", verbose = FALSE)
 #'
-#' # Save and drop the data from memory; get_data() reloads it from disk
-#' m_light <- save_model(m, ws, keep_in_memory = FALSE, verbose = FALSE)
-#' head(get_data(m_light, "pTechOlife"))
+#' # The default parquet format needs 'arrow'; here the data is also dropped
+#' # from memory, and get_data() reloads it from disk
+#' if (requireNamespace("arrow", quietly = TRUE)) {
+#'   m_light <- save_model(m, ws, keep_in_memory = FALSE, verbose = FALSE)
+#'   head(get_data(m_light, "pTechOlife"))
+#' }
 save_model <- function(
     model,
     path,
@@ -445,7 +448,7 @@ save_model <- function(
 #'
 #' @examples
 #' ws <- file.path(tempdir(), "energyRt_ws")
-#' save_model(example_models$energyRt$multimod, ws, verbose = FALSE)
+#' save_model(example_models$energyRt$multimod, ws, format = "csv", verbose = FALSE)
 #'
 #' # Load model with all data
 #' m <- load_model(ws, verbose = FALSE)

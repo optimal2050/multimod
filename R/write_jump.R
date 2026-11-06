@@ -67,7 +67,7 @@
 #'
 #' # Into a saved model workspace: <model_dir>/solvers/<solver_dir>/model.jl
 #' ws <- file.path(tempdir(), "energyRt_ws")
-#' save_model(m, ws, verbose = FALSE)
+#' save_model(m, ws, format = "csv", verbose = FALSE)
 #' write_jump(m, model_dir = ws)
 #' write_jump(m, model_dir = ws, solver_dir = "jump-highs")
 #'
@@ -783,9 +783,9 @@ write_jump_internal <- function(model, file = NULL, model_dir = NULL, solver_dir
   }
   lines <- c(lines, "")
 
-  # Package installation check
-  lines <- c(lines, "# Check and install required packages")
-  lines <- c(lines, "import Pkg")
+  # The packages must be installed beforehand: the script stops and names the
+  # missing ones, it never installs
+  lines <- c(lines, "# Required packages")
 
   # Determine required packages
   optimizer_package <- sub("\\..*$", "", optimizer)
@@ -795,13 +795,14 @@ write_jump_internal <- function(model, file = NULL, model_dir = NULL, solver_dir
   }
 
   lines <- c(lines, paste0("required_packages = [\"", paste(required_pkgs, collapse = "\", \""), "\"]"))
-  lines <- c(lines, "for pkg in required_packages")
-  lines <- c(lines, "    if !haskey(Pkg.project().dependencies, pkg)")
-  lines <- c(lines, "        println(\"Installing package: $pkg\")")
-  lines <- c(lines, "        Pkg.add(pkg)")
-  lines <- c(lines, "    end")
-  lines <- c(lines, "end")
-  lines <- c(lines, "")
+  lines <- c(lines,
+    'missing_packages = filter(p -> Base.find_package(p) === nothing, required_packages)',
+    'if !isempty(missing_packages)',
+    '    error("Julia packages not installed: " * join(missing_packages, ", ") *',
+    '          ". Install them once with: import Pkg; Pkg.add([\\"" *',
+    '          join(missing_packages, "\\", \\"") * "\\"])")',
+    'end',
+    "")
 
   lines <- c(lines, "using JuMP")
 

@@ -1,9 +1,49 @@
 ## Resubmission
 
-This resubmission fixes the test failure in the incoming pre-tests on
-Debian: the 'arrow' build there has no 'zstd' codec, which `save_model()`
-requested. Arrow files are now written with the first codec the installed
-'arrow' build provides ('zstd', then 'lz4' or 'snappy', then none).
+This is a resubmission of multimod, now as version 0.6.0. It answers the
+review of 0.5.0, and adds a compiled engine for the LP matrix route (see
+"Compiled code" below).
+
+### Response to the previous review
+
+> Please ensure that your functions do not write by default or in your
+> examples/vignettes/tests in the user's home filespace (including the
+> package directory and getwd()).
+
+* `multimod_config_write()` takes a required `file`; it wrote to
+  `getwd()` by default. Its example writes to `tempfile()`.
+* `compare_jump_stats()` writes only to a `file` it is given; it wrote a
+  CSV beside its input by default. Its example runs on files under
+  `tempdir()`.
+* `write_gmpl()` writes a directory only when `model_dir` is given;
+  `write_pyomo()` requires `model_dir`; `import_gmpl_data()` requires
+  `model_path` to save data. None falls back to a stored or default path.
+* `solve_mps()` writes the scripts and parameter files a solver needs to
+  temporary files and removes them; only the solution file is written, at
+  the path given or beside the input file.
+* Examples, tests and the vignette write only under `tempdir()`.
+
+> Please do not install packages in your functions, examples or vignette.
+
+* The generated JuMP code no longer installs Julia packages: it stops and
+  names the missing ones.
+* `solve_pyomo()` no longer sets up a Python environment; it stops when the
+  interpreter cannot import Pyomo.
+* `solve_jump(method = "juliacall")` starts Julia without installing
+  JuliaCall's dependencies.
+* The Python interpreter is looked up without starting Python, so no
+  interpreter is provisioned as a side effect.
+* `mm_setup_python()` is the only function that installs software. It is
+  documented as such, runs only when called, is never called by another
+  function, and installs Miniconda only with `ensure_miniconda = TRUE`
+  (default `FALSE`).
+
+## Compiled code
+
+The package now compiles C++17 code (`LinkingTo: cpp11`, no external
+libraries): a native executor for the matrix route and a streaming MPS
+writer. It runs on two threads by default (`options(multimod.threads = )`),
+and is used in the tests only through small models.
 
 ## R CMD check results
 
@@ -29,10 +69,12 @@ and, when it is installed, the 'highs' package.
 
 `data/example_models.rda` contains a model derived from the energyRt model
 templates (Apache License 2.0, copyright the energyRt development team);
-see `inst/COPYRIGHTS` and the `Copyright` field.
+see `inst/COPYRIGHTS` and the `Copyright` field. The hash finalizer in
+`src/core/include/multimod/keyhash.h` is MurmurHash3's (public domain).
 
 ## Test environments
 
-* Windows 11, R 4.6.1 and R 4.5.3 (local)
+* Windows 11, R 4.6.2 (local)
 * win-builder: R-devel, R-release
-* R-hub: linux, ubuntu-release, macos-arm64
+* macbuilder: R-release (macOS arm64)
+* R-hub: linux, macos-arm64, gcc-asan, clang-asan

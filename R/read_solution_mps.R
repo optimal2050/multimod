@@ -726,7 +726,7 @@ write_solution <- function(solution, dir,
       format,
       arrow = {
         f <- file.path(dir, paste0(nm, ".arrow"))
-        arrow::write_feather(df, f, compression = "lz4")
+        arrow::write_feather(df, f, compression = .arrow_codec("lz4", fallback = NULL))
         f
       },
       parquet = {

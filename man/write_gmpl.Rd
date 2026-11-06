@@ -8,7 +8,7 @@
 write_gmpl(
   model,
   file = NULL,
-  model_dir = model$base_dir,
+  model_dir = NULL,
   format_expr = FALSE,
   include_solve = TRUE,
   export_vars = NULL,
@@ -52,7 +52,8 @@ write_gmpl(
 
 \item{file}{Output file path (optional, ignored if model_dir is provided)}
 
-\item{model_dir}{Optional directory path for organized model structure (creates solvers/gmpl/)}
+\item{model_dir}{Optional model workspace directory; the code is written to
+its \verb{solvers/gmpl/}. \code{NULL} (default) writes no directory.}
 
 \item{format_expr}{logical; whether to format expressions with line breaks}
 

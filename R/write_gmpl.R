@@ -3,7 +3,8 @@
 #'
 #' @param model A `multimod` model object
 #' @param file Output file path (optional, ignored if model_dir is provided)
-#' @param model_dir Optional directory path for organized model structure (creates solvers/gmpl/)
+#' @param model_dir Optional model workspace directory; the code is written to
+#'   its `solvers/gmpl/`. `NULL` (default) writes no directory.
 #' @param format_expr logical; whether to format expressions with line breaks
 #' @param include_solve logical; whether to include solve and end statements
 #' @param export_vars character vector of variable names to export to CSV; if NULL (default), all variables are exported; if FALSE or character(0), no custom export
@@ -25,7 +26,7 @@
 #' @examples
 #' code <- write_gmpl(example_models$toy)
 #' cat(head(code, 20), sep = "\n")
-write_gmpl <- function(model, file = NULL, model_dir = model$base_dir,
+write_gmpl <- function(model, file = NULL, model_dir = NULL,
                        format_expr = FALSE, include_solve = TRUE,
                       export_vars = NULL, use_table_output = FALSE, use_folded = NULL, objective = "cost",
                       export_data = FALSE, drop_default_values = FALSE, INF = 1e20,

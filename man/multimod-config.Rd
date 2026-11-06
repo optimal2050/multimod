@@ -32,7 +32,7 @@ set_multimod_solver(solver_name, path = NULL)
 
 get_multimod_solver(solver_name)
 
-multimod_config_write(config, global = FALSE)
+multimod_config_write(config, file)
 
 multimod_config_read(global = FALSE)
 
@@ -50,8 +50,12 @@ Defaults to \code{"multimod"}.}
 
 \item{config}{Named list of configuration values to write to YAML file.}
 
-\item{global}{Logical; if \code{TRUE}, writes to the per-user directory given by \code{tools::R_user_dir("multimod", "config")} (user-wide).
-If \code{FALSE} (default), writes to \code{.multimod.yml} in current working directory.}
+\item{file}{Path of the YAML file to write; required.}
+
+\item{global}{Logical; for \code{multimod_config_read()} and
+\code{multimod_config_path()}: when \code{TRUE}, the per-user file under
+\code{tools::R_user_dir("multimod", "config")} comes first; when \code{FALSE}
+(default), \code{.multimod.yml} in the working directory.}
 }
 \value{
 \itemize{
@@ -77,13 +81,27 @@ can be set via R options, environment variables, or a YAML config file.
 \enumerate{
 \item R option: \code{getOption("multimod.<solver>_path")}
 \item Environment variable: \verb{MULTIMOD_<SOLVER>}
-\item YAML config file: the per-user directory given by \code{tools::R_user_dir("multimod", "config")} or \code{.multimod.yml}
-\item Intelligent defaults (reticulate for Python, system PATH for others)
+\item YAML config file: \code{.multimod.yml} in the working directory, then
+\code{config.yml} in the per-user directory
+\code{tools::R_user_dir("multimod", "config")}
+\item Defaults: the conda environment \code{env_name} for Python (looked up, not
+started), the system \code{PATH} for the others
 }
+
+\code{multimod_config_write()} writes only to the \code{file} it is given. To write
+the user-level file that \code{multimod_config_read()} finds, pass
+\code{file.path(tools::R_user_dir("multimod", "config"), "config.yml")}.
 }
 \examples{
 # where the configuration would be read from
 multimod_config_path()
+
+# write a configuration file, here to a temporary location
+if (requireNamespace("yaml", quietly = TRUE)) {
+  f <- multimod_config_write(list(julia = list(path = "julia")),
+                             file = tempfile(fileext = ".yml"))
+  readLines(f)
+}
 
 \donttest{
 # what is resolved now; probes the machine for Python, Julia and glpsol
@@ -110,12 +128,12 @@ options(
 # Or use environment variables (system-wide):
 Sys.setenv(MULTIMOD_PYTHON = "C:/Python310/python.exe")
 
-# Or use YAML config file (the config.yml under tools::R_user_dir("multimod", "config")):
+# Or a YAML file, here the user-level one multimod_config_read() finds:
 multimod_config_write(list(
   python = list(path = "C:/Python310/python.exe", env_name = "multimod"),
   julia = list(path = "C:/Julia-1.10/bin/julia.exe"),
   glpsol = list(path = "C:/glpk/bin/glpsol.exe")
-))
+), file = file.path(tools::R_user_dir("multimod", "config"), "config.yml"))
 
 # View current configuration
 multimod_config_show()

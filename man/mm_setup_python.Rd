@@ -9,7 +9,7 @@ mm_setup_python(
   packages = c("pyomo", "highspy", "pyarrow", "pandas"),
   conda_packages = "glpk",
   python_version = "3.14",
-  ensure_miniconda = TRUE,
+  ensure_miniconda = FALSE,
   reinstall = FALSE,
   pip = TRUE,
   ...
@@ -32,9 +32,9 @@ executable, which pip does not ship.}
 \item{python_version}{Python version spec passed to
 \code{\link[reticulate:conda_create]{reticulate::conda_create()}}. Use \code{NULL} for reticulate's default.}
 
-\item{ensure_miniconda}{Logical flag controlling whether
-\code{\link[reticulate:install_miniconda]{reticulate::install_miniconda()}} should run when no Conda binary is
-detected on the system. Defaults to \code{TRUE} to minimize user setup.}
+\item{ensure_miniconda}{Logical; when \code{TRUE},
+\code{\link[reticulate:install_miniconda]{reticulate::install_miniconda()}} runs when no Conda binary is found.
+Default \code{FALSE}: without Conda the function stops.}
 
 \item{reinstall}{Logical flag; when \code{TRUE} the environment is recreated even
 if it already exists. Defaults to \code{FALSE} to preserve prior installs.}
@@ -50,18 +50,16 @@ Set to \code{FALSE} to install via conda instead.}
 Invisibly returns the environment name once configured.
 }
 \description{
-This is the installer: one Conda environment, shared by the whole stack.
-energyRt resolves its Python through \code{\link[=get_multimod_python]{get_multimod_python()}}, so there is
-one environment and one source of truth rather than a per-package env.
+Installs software: a Conda environment (named "multimod" by default) with
+the Python packages the Pyomo route needs, using the
+\href{https://rstudio.github.io/reticulate/}{reticulate} toolkit. It runs only
+when called; no other multimod function calls it. It creates the
+environment when missing, installs the requested packages, and activates
+the environment for the current R session via \code{reticulate::use_condaenv()}.
+A Conda installation is required; with \code{ensure_miniconda = TRUE} Miniconda
+is installed first when none is found.
 }
 \details{
-It bootstraps a Conda environment (named "multimod" by default)
-using the \href{https://rstudio.github.io/reticulate/}{reticulate} toolkit. It
-ensures \code{reticulate::install_miniconda()} has been invoked (unless disabled),
-creates the target environment when missing, installs the requested Python
-packages, and activates the environment for the current R session via
-\code{reticulate::use_condaenv()}.
-
 After setup, multimod uses this environment either when it is set with
 \code{set_multimod_python()} or when \code{get_multimod_python()} detects it through
 reticulate.

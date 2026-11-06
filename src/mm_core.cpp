@@ -39,7 +39,9 @@ multimod::OnPairs pairs_of(sexp x) {
 
 std::string str_of(sexp x) {
   if (x == R_NilValue) return "";
-  return std::string(strings(x)[0]);
+  strings v(x);
+  if (v.size() != 1) stop("a single string was expected, got %d", static_cast<int>(v.size()));
+  return std::string(v[0]);
 }
 
 double num_of(sexp x, double dflt) {
@@ -166,6 +168,7 @@ multimod::Table table_of(list cols, const std::string& tname) {
   for (R_xlen_t c = 0; c < cols.size(); ++c) {
     sexp col = cols[c];
     std::string nm(cnames[c]);
+    if (c > 0 && Rf_xlength(col) != tab.n) stop("table %s: column %s differs in length", tname.c_str(), nm.c_str());
     if (TYPEOF(col) == INTSXP) { tab.icols[nm] = INTEGER(col); tab.n = Rf_xlength(col); }
     else if (TYPEOF(col) == REALSXP) { tab.dcols[nm] = REAL(col); tab.n = Rf_xlength(col); }
     else stop("table %s: column %s is neither integer nor double", tname.c_str(), nm.c_str());
@@ -199,8 +202,8 @@ list result_of(const multimod::Triplets& out) {
 }  // namespace
 
 // An executor over the tables of one lowered equation. The R vectors behind
-// the tables are read in place: the caller keeps them alive while the
-// executor is used.
+// the tables are read in place; the external pointer's protected slot keeps
+// them alive as long as the executor.
 [[cpp11::register]]
 sexp mm_block_open(list tables, int threads, double slice_rows) {
   std::map<std::string, multimod::Table> tbl;
@@ -212,6 +215,7 @@ sexp mm_block_open(list tables, int threads, double slice_rows) {
     }
   }
   external_pointer<multimod::Executor> ptr(new multimod::Executor(std::move(tbl), threads, static_cast<int64_t>(slice_rows)));
+  R_SetExternalPtrProtected(ptr, safe[Rf_cons](tables, R_NilValue));
   return sexp(static_cast<SEXP>(ptr));
 }
 
@@ -227,6 +231,7 @@ strings mm_block_add(sexp ex, list tables) {
     std::string nm(tnames[t]);
     if (p->add_table(nm, table_of(list(tables[t]), nm))) added.push_back(nm);
   }
+  R_SetExternalPtrProtected(ex, safe[Rf_cons](tables, R_ExternalPtrProtected(ex)));
   return added;
 }
 
@@ -302,12 +307,13 @@ list mm_block_run_sink(sexp ex, list plan, list rows, sexp sink) {
 }
 
 // The substitution the sink applies while writing. The R vectors are read in
-// place and must outlive the sink.
+// place; the sink's protected slot keeps them alive.
 [[cpp11::register]]
 void mm_sink_map(sexp sink, integers ired, integers jred, integers ref, doubles coef, double tol) {
   external_pointer<multimod::Sink> p(sink);
   if (ref.size() != jred.size() || coef.size() != jred.size()) stop("ref and coef must match jred");
   p->set_map(INTEGER(ired), INTEGER(jred), INTEGER(ref), REAL(coef), ired.size(), jred.size(), tol);
+  R_SetExternalPtrProtected(sink, writable::list({ired, jred, ref, coef}));
 }
 
 // --- scan pass of the presolve --------------------------------------------
@@ -358,6 +364,8 @@ list mm_presolve_map(sexp scan, sexp candidate, sexp is_int, doubles col_lo, dou
   if (verbose) log = [](const std::string& s) { message(s.c_str()); };
   try {
     *m = multimod::presolve_map(*p, mask_of(candidate), mask_of(is_int), REAL(col_lo), REAL(col_up), max_pass, tol, threads, log);
+  } catch (const cpp11::unwind_exception&) {
+    throw;  // an R condition or interrupt raised by the log
   } catch (const std::exception& e) {
     stop("presolve: %s", e.what());
   }

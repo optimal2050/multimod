@@ -9,18 +9,12 @@ solve_pyomo(
   model_dir,
   solver_dir = "pyomo",
   env_name = "multimod",
-  ensure_env = FALSE,
-  packages = NULL,
-  python_version = NULL,
-  ensure_miniconda = TRUE,
-  reinstall_env = FALSE,
   python = NULL,
   solver = NULL,
   env = NULL,
   load_results = FALSE,
   verbose = c("buffer", "stream", "quiet"),
-  timeout = NULL,
-  ...
+  timeout = NULL
 )
 }
 \arguments{
@@ -37,26 +31,8 @@ Defaults to "pyomo" to match \code{write_pyomo()}.}
 \item{env_name}{Name of the Conda environment handled by
 \code{mm_setup_python()}. Defaults to "multimod".}
 
-\item{ensure_env}{Logical; when \code{TRUE} the environment is checked with
-\code{\link[=mm_check_python]{mm_check_python()}} and \code{mm_setup_python()} runs if it is not usable.
-Default \code{FALSE}: the configured interpreter is used as it is, and nothing
-is installed.}
-
-\item{packages}{Character vector of Python packages to request when the
-helper runs. \code{NULL} (default) uses \code{\link[=mm_setup_python]{mm_setup_python()}}'s own list, so the
-environment contents have a single owner.}
-
-\item{python_version}{Optional Python version passed through to
-\code{mm_setup_python()}.}
-
-\item{ensure_miniconda}{Forwarded to \code{mm_setup_python()}.}
-
-\item{reinstall_env}{When \code{TRUE}, asks the helper to recreate the Conda
-environment before solving.}
-
-\item{python}{Optional path to a Python executable. When omitted the Python
-binary reported by \code{reticulate::py_config()} for the activated environment is
-used.}
+\item{python}{Optional path to a Python executable. When omitted it is
+resolved by \code{\link[=get_multimod_python]{get_multimod_python()}}.}
 
 \item{solver}{Optional solver name that is exported to the Python process via
 the \code{PYOMO_SOLVER} environment variable.}
@@ -74,8 +50,6 @@ output, \code{FALSE} = quiet) or one of \code{"buffer"}, \code{"stream"}, \code{
 
 \item{timeout}{Optional timeout (in seconds). Requires the \code{processx}
 package.}
-
-\item{...}{Additional arguments forwarded to \code{\link[=mm_setup_python]{mm_setup_python()}}.}
 }
 \value{
 A list describing the solver run (exit code, success flag, elapsed
@@ -92,7 +66,7 @@ the script writes to \code{solution/status.json}. With \code{load_results = TRUE
 variable values the script exports are read back into \code{model}.
 }
 \details{
-The Python environment is created once with \code{\link[=mm_setup_python]{mm_setup_python()}}. With
-\code{ensure_env = TRUE}, \code{solve_pyomo()} checks the environment and creates it
-when it is not usable, which may install Miniconda and Python packages.
+The Python environment is set up beforehand, for instance once with
+\code{\link[=mm_setup_python]{mm_setup_python()}}; \code{solve_pyomo()} installs nothing. When the interpreter
+cannot import \code{pyomo}, it stops and says so.
 }

@@ -566,8 +566,6 @@
   ctx$ex
 }
 
-# threads of the native executor: `options(multimod.threads = )`, default the
-# machine's cores
 #' The executor's index cache budget in bytes (Inf: keep every index)
 #' @keywords internal
 #' @noRd
@@ -584,11 +582,10 @@
   if (is.na(n) || n < 1) 16e6 else n
 }
 
+# threads of the native executor: `options(multimod.threads = )`, default 2
 .mx_threads <- function() {
-  n <- getOption("multimod.threads", NULL)
-  if (is.null(n)) n <- tryCatch(parallel::detectCores(logical = TRUE), error = function(e) 1L)
-  n <- suppressWarnings(as.integer(n))
-  if (is.na(n) || n < 1L) 1L else n
+  n <- suppressWarnings(as.integer(getOption("multimod.threads", 2L)))
+  if (length(n) != 1L || is.na(n) || n < 1L) 1L else n
 }
 
 #' Compare the two engines equation by equation
@@ -604,13 +601,18 @@
   col_index <- build_col_index(model, names = FALSE)
   row_index <- build_row_index(model, names = FALSE)
   eqs <- unique(row_index$symbol)
+  with_engine <- function(engine, expr) {
+    op <- options(multimod.engine = engine)
+    on.exit(options(op))
+    expr
+  }
   rows <- lapply(eqs, function(nm) {
-    r <- withr::with_options(list(multimod.engine = "r"), {
+    r <- with_engine("r", {
       t0 <- proc.time()[[3]]
       a <- build_triplets(model, col_index, row_index, equations = nm, chunk_rows = chunk_rows)
       list(t = proc.time()[[3]] - t0, tri = a$triplets, rhs = a$rhs)
     })
-    n <- withr::with_options(list(multimod.engine = "native"), {
+    n <- with_engine("native", {
       t0 <- proc.time()[[3]]
       a <- build_triplets(model, col_index, row_index, equations = nm, chunk_rows = chunk_rows)
       list(t = proc.time()[[3]] - t0, tri = a$triplets, rhs = a$rhs,

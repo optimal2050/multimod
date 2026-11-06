@@ -220,14 +220,18 @@ lists what else is not done yet.
 
 ## Development direction
 
-The long-term architecture envisages a native C++ or Rust computational
-core with R, Python and Julia interfaces. Future research directions
-include AI-assisted formulation and support for nonlinear and stochastic
-optimization. These are planned directions, not implemented features.
+The matrix route has a native C++ engine, compiled into the package: it
+evaluates the equations the block-plan lowering covers
+(`options(multimod.engine = "native")`) and writes MPS files block by
+block (`write_mps(stream = TRUE)`). The long-term architecture gives this
+core Python and Julia interfaces beside the R one. Further research
+directions include AI-assisted formulation and support for nonlinear and
+stochastic optimization; these are planned, not implemented.
 
 The repository is laid out for that architecture: the R package at the
-root, `core/` and `python/` reserved for the native core and its Python
-binding, `specs/` for the cross-language goldens, and one documentation
+root, `core/` holding the native core (copied into `src/` for the R
+build) and `python/` reserved for its Python binding, `specs/` for the
+cross-language goldens, and one documentation
 site under `docs/` with the R reference at
 [`/r/`](https://optimal2050.github.io/multimod/r/) beside the future
 language sections.

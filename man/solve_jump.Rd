@@ -64,7 +64,7 @@ A log file (solution_log.txt) in model_dir tracks all solution loads.
 The solutions are available in the returned model, which replaces the one
 passed in:
 
-\code{result <- solve_jump(my_model, "path/to/model", load_results = TRUE)}
+\code{result <- solve_jump(my_model, model_dir = ws, load_results = TRUE)}
 
 \code{my_model <- result$model  # Update with loaded solutions}
 }

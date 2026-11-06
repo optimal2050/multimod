@@ -59,3 +59,13 @@ A list with \code{triplets} (\code{data.table(i, j, coef)}, aggregated), \code{r
 Walks each equation's AST set-at-a-time and returns the LP matrix entries
 together with the right-hand side implied by the equation's constant terms.
 }
+\section{Native engine}{
+
+\code{options(multimod.engine = "native")} runs the equations that the block-plan
+lowering covers in compiled code; the others stay on the R engine. Further
+options: \code{multimod.threads} (threads of the executor, default 2),
+\code{multimod.slice_rows} (rows a term's expansion may reach before it runs in
+slices, default \code{16e6}) and \code{multimod.cache_gb} (cap on the executor's index
+cache, default no cap).
+}
+

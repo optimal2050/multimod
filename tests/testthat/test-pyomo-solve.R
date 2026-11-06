@@ -64,7 +64,7 @@ test_that("solve_pyomo solves example model successfully", {
   # Solve with default solver (HiGHS)
   result <- tryCatch(
     solve_pyomo(model, temp_dir, solver = "highs", 
-                verbose = FALSE, ensure_env = FALSE),
+                verbose = FALSE),
     error = function(e) {
       message("Solve error: ", e$message)
       NULL
@@ -121,7 +121,7 @@ test_that("solve_pyomo handles model_dir without model object", {
   # Solve without model object (model = NULL)
   result <- tryCatch(
     solve_pyomo(model = NULL, model_dir = temp_dir, 
-                solver = "highs", verbose = FALSE, ensure_env = FALSE),
+                solver = "highs", verbose = FALSE),
     error = function(e) NULL
   )
   
@@ -161,7 +161,7 @@ test_that("solve_pyomo verbose output works", {
   # Capture output
   output <- capture.output({
     result <- tryCatch(
-      solve_pyomo(model, temp_dir, verbose = TRUE, ensure_env = FALSE),
+      solve_pyomo(model, temp_dir, verbose = TRUE),
       error = function(e) NULL
     )
   })
@@ -190,7 +190,7 @@ test_that("solve_pyomo handles missing Python gracefully", {
   
   # Should error or skip gracefully
   expect_error(
-    solve_pyomo(model, temp_dir, ensure_env = FALSE),
+    solve_pyomo(model, temp_dir),
     regexp = "Python|not found|executable"
   )
 })
@@ -212,7 +212,7 @@ test_that("solve_pyomo handles missing model files", {
   
   # Should error about missing files
   expect_error(
-    solve_pyomo(model, temp_dir, ensure_env = FALSE),
+    solve_pyomo(model, temp_dir),
     regexp = "model.py|not found|does not exist"
   )
 })
@@ -305,7 +305,7 @@ test_that("solve_pyomo(load_results = TRUE) reads the toy solution back", {
   toy <- example_models$toy
   d <- withr::local_tempdir()
   write_pyomo(toy, model_dir = d, export_vars = TRUE)
-  r <- solve_pyomo(toy, d, solver = "highs", verbose = FALSE, ensure_env = FALSE,
+  r <- solve_pyomo(toy, d, solver = "highs", verbose = FALSE,
                    load_results = TRUE)
   expect_true(r$success)
   expect_equal(r$objective, 198000, tolerance = 1e-6)
@@ -314,7 +314,7 @@ test_that("solve_pyomo(load_results = TRUE) reads the toy solution back", {
   expect_equal(sum(gen$value), 1600, tolerance = 1e-6)
   expect_setequal(r$model$solution_metadata$variables_loaded, c("vCap", "vGen"))
 
-  expect_error(solve_pyomo(NULL, d, verbose = FALSE, ensure_env = FALSE,
+  expect_error(solve_pyomo(NULL, d, verbose = FALSE,
                            load_results = TRUE), "needs the")
 })
 

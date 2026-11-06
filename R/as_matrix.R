@@ -1615,6 +1615,14 @@ NULL
 #'   native executor, and the build's context is returned in the `ctx`
 #'   attribute.
 #'
+#' @section Native engine:
+#' `options(multimod.engine = "native")` runs the equations that the block-plan
+#' lowering covers in compiled code; the others stay on the R engine. Further
+#' options: `multimod.threads` (threads of the executor, default 2),
+#' `multimod.slice_rows` (rows a term's expansion may reach before it runs in
+#' slices, default `16e6`) and `multimod.cache_gb` (cap on the executor's index
+#' cache, default no cap).
+#'
 #' @return A list with `triplets` (`data.table(i, j, coef)`, aggregated), `rhs`
 #'   (`data.table(i, rhs)`), and `row_index` / `col_index` as used.
 #' @export

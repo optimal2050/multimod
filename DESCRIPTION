@@ -1,6 +1,6 @@
 Package: multimod
 Title: Define and Render Mathematical Models Across Modeling Languages
-Version: 0.5.0.9000
+Version: 0.6.0
 Authors@R:
   c(person(given = "Oleg", 
           family = "Lugovoy", 
@@ -38,7 +38,6 @@ Imports:
     magrittr,
     jsonlite,
     methods,
-    parallel,
     stats,
     tools,
     utils
@@ -51,7 +50,6 @@ Suggests:
     withr,
     reticulate (>= 1.28),
     knitr,
-    lobstr,
     rmarkdown,
     progressr,
     dtplyr,

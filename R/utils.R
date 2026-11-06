@@ -647,9 +647,11 @@ extract_ast_names <- function(ast, types = c("variable", "parameter", "mapping")
 #' and compares constraint counts and non-zero counts. Useful for validating
 #' model generation changes.
 #'
-#' @param model_dir1 Path to first model's solver/jump directory (e.g., "tmp/model_v1/solvers/jump")
-#' @param model_dir2 Path to second model's solver/jump directory (e.g., "tmp/model_v2/solvers/jump")
-#' @param save_comparison Logical; if TRUE, saves merged comparison to CSV in model_dir1's parent directory
+#' @param model_dir1,model_dir2 The `solvers/jump` directories of the two
+#'   models (holding `constraint_stats.csv`, written by the generated JuMP
+#'   code), or the model workspaces above them.
+#' @param file Optional path of a CSV file to write the merged comparison to.
+#'   `NULL` (default) writes nothing.
 #' @param verbose Logical; if TRUE, prints detailed comparison results
 #'
 #' @return A list with components:
@@ -661,23 +663,23 @@ extract_ast_names <- function(ast, types = c("variable", "parameter", "mapping")
 #' @export
 #'
 #' @examples
-#' \dontrun{
-#' # Compare two JuMP model versions written to workspaces ws1 and ws2 and
-#' # solved with solve_jump() (needs Julia)
-#' comp <- compare_jump_stats(
-#'   file.path(ws1, "solvers", "jump"),
-#'   file.path(ws2, "solvers", "jump"),
-#'   verbose = TRUE
-#' )
+#' # the statistics files of two JuMP runs; solve_jump() writes them
+#' d1 <- file.path(tempfile("jump1-"), "solvers", "jump")
+#' d2 <- file.path(tempfile("jump2-"), "solvers", "jump")
+#' dir.create(d1, recursive = TRUE); dir.create(d2, recursive = TRUE)
+#' write.csv(data.frame(name = c("eqDemand", "eqCap"), count = c(4, 6),
+#'                      nnz_total = c(8, 12)),
+#'           file.path(d1, "constraint_stats.csv"), row.names = FALSE)
+#' write.csv(data.frame(name = c("eqDemand", "eqCap"), count = c(4, 6),
+#'                      nnz_total = c(8, 14)),
+#'           file.path(d2, "constraint_stats.csv"), row.names = FALSE)
 #'
-#' # Check if models match
-#' if (comp$summary$all_match) {
-#'   message("Models are identical!")
-#' }
-#' }
+#' comp <- compare_jump_stats(d1, d2, verbose = FALSE)
+#' comp$nnz_differences
+#' comp$summary$all_match
 compare_jump_stats <- function(model_dir1,
                               model_dir2,
-                              save_comparison = TRUE,
+                              file = NULL,
                               verbose = TRUE) {
 
   # Helper to find constraint_stats.csv
@@ -758,17 +760,10 @@ compare_jump_stats <- function(model_dir1,
   }
 
   # Save comparison if requested
-  if (save_comparison) {
-    # Determine output directory
-    out_dir <- if (file.exists(file.path(model_dir1, "solvers"))) {
-      model_dir1
-    } else {
-      dirname(dirname(model_dir1))  # Go up from solvers/jump to model root
-    }
-    out_file <- file.path(out_dir, "constraint_comparison.csv")
-    write.csv(merged, out_file, row.names = FALSE)
+  if (!is.null(file)) {
+    write.csv(merged, file, row.names = FALSE)
     if (verbose) {
-      cat("Comparison saved to:", normalizePath(out_file), "\n\n")
+      cat("Comparison saved to:", normalizePath(file), "\n\n")
     }
   }
 
@@ -836,11 +831,14 @@ compare_jump_stats <- function(model_dir1,
 #' The JuMP and Pyomo scaffolds read sets, mappings and parameters from the
 #' workspace at run time. A missing or empty `model_dir`, or one holding only
 #' a `solvers/` folder from another writer, is initialised with
-#' [save_model()] (CSV). Anything else without `model.rds` is refused:
-#' `save_model(overwrite = TRUE)` would wipe it.
+#' [save_model()] (CSV). Anything else without a model structure
+#' (`model.rds` or `model.json`) is refused: `save_model(overwrite = TRUE)`
+#' would wipe it.
 #' @noRd
 .ensure_workspace <- function(model, model_dir) {
-  if (file.exists(file.path(model_dir, "model.rds"))) return(invisible(model_dir))
+  if (any(file.exists(file.path(model_dir, c("model.rds", "model.json"))))) {
+    return(invisible(model_dir))
+  }
   entries <- if (dir.exists(model_dir)) {
     list.files(model_dir, all.files = TRUE, no.. = TRUE)
   } else {
@@ -850,7 +848,8 @@ compare_jump_stats <- function(model_dir1,
   own <- c("solvers", "variables", "solution_log.txt")
   if (length(setdiff(entries, own)) > 0) {
     stop("`model_dir` (", model_dir, ") is not empty and holds no model ",
-         "workspace (model.rds); pass an empty directory or one written by save_model().")
+         "workspace (model.rds or model.json); pass an empty directory or one ",
+         "written by save_model().")
   }
   staging <- tempfile("mm_ws_")
   save_model(model, staging, format = "csv", verbose = FALSE)

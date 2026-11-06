@@ -26,8 +26,7 @@ write_pyomo(
 \item{model_dir}{Model workspace directory. The scaffold is written to
 \verb{<model_dir>/solvers/<solver_dir>/} and reads its data from the workspace,
 so the directory must hold one written by \code{\link[=save_model]{save_model()}}; if it does not,
-the model is saved there first (CSV format). Defaults to the directory the
-model was loaded from or saved to (\code{model$base_path}).}
+the model is saved there first (CSV format). Required.}
 
 \item{solver_dir}{Solver subdirectory name (default: "jump", e.g., "jump-highs")}
 

@@ -74,7 +74,7 @@ write_jump(m, file = tempfile(fileext = ".jl"))
 
 # Into a saved model workspace: <model_dir>/solvers/<solver_dir>/model.jl
 ws <- file.path(tempdir(), "energyRt_ws")
-save_model(m, ws, verbose = FALSE)
+save_model(m, ws, format = "csv", verbose = FALSE)
 write_jump(m, model_dir = ws)
 write_jump(m, model_dir = ws, solver_dir = "jump-highs")
 

@@ -298,10 +298,11 @@ backend's directory for closer inspection:
 | JuMP | `julia model.jl` | `solution/*.csv`, the two stats files, the Julia output |
 | Pyomo | `python model.py` | `solution/status.json`, `solution/variables.json` |
 
-The first Julia run installs and compiles the packages the model needs,
-which makes it much slower than later runs. `solve_jump()` and
-`solve_gmpl()` accept `timeout =`; `solve_pyomo(ensure_env = TRUE)` checks
-the Python environment with `mm_check_python()` before running.
+The first Julia run compiles the packages the model needs, which makes it
+much slower than later runs; the packages themselves are installed
+beforehand (see the configuration article). `solve_jump()` and
+`solve_gmpl()` accept `timeout =`; `solve_pyomo()` checks the Python
+environment with `mm_check_python()` before running.
 
 ## Results back in R
 

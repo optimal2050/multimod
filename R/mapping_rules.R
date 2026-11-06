@@ -178,7 +178,7 @@ materialise_rule <- function(model, rule) {
 #' dictionary by the rule's hash, so the column index, the row index and
 #' the equations of one build share one enumeration.
 #' @return A data.table of integer columns `rule$cols`, each flagged
-#'   `mx_coded` as [.mx_code_in()] expects.
+#'   `mx_coded` as `.mx_code_in()` expects.
 #' @keywords internal
 #' @noRd
 rule_tuples_coded <- function(model, rule, codes) {
