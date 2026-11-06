@@ -70,55 +70,6 @@ test_that("the infeasibility switches reach the command line", {
                       expect_true("--infeasibility-detection" %in% .cuopt_options(list())))
 })
 
-test_that("the cloud script runs cuOpt under the watchdog, or plainly when it is off", {
-  s <- .cuopt_worker_script("model.mps.gz", "model.sol.gz", list(time_limit = 600))
-  expect_true(any(grepl("^run_cuopt cuopt_cli /job/model.mps.gz", s)))
-  expect_true(any(grepl("WATCHDOG_STOP", s)))
-  expect_true(any(grepl("-v R=100000000000000000000 -v N=5 -v SW=1800 -v SI=500000 -v F=2", s, fixed = TRUE)))
-  s0 <- .cuopt_worker_script("model.mps.gz", "model.sol.gz", list(time_limit = 600, watchdog = FALSE))
-  expect_false(any(grepl("run_cuopt|WATCHDOG", s0)))
-  expect_true(any(grepl("^cuopt_cli /job/model.mps.gz", s0)))
-})
-
-test_that("the cloud rules (awk) give the local verdicts on the same logs", {
-  awk <- Sys.which("awk")
-  skip_if(!nzchar(awk), "no awk on the PATH")
-  prog <- withr::local_tempfile(fileext = ".awk"); writeLines(.cuopt_watchdog_awk(), prog)
-  run <- function(lines, w = cuopt_watchdog()) {
-    f <- withr::local_tempfile(fileext = ".log"); writeLines(lines, f)
-    out <- system2(awk, c(strsplit(.cuopt_watchdog_awk_vars(w), " ")[[1]], "-f", prog, f), stdout = TRUE)
-    paste(out, collapse = "")
-  }
-  expect_equal(run(wd_converging), "")
-  expect_match(run(wd_runaway), "objective beyond 1e\\+20 for 6 log lines")
-  expect_equal(run(wd_runaway, cuopt_watchdog(runaway_n = 10)), "")
-})
-
-test_that("the Python interface writes its script, parameters and warm-start output", {
-  s <- .cuopt_worker_script("model.mps.gz", "model.sol.gz",
-                            list(api = "python", time_limit = 3600, save_warm_start = TRUE))
-  expect_true(any(grepl("^run_cuopt python3 /tmp/solve_cuopt.py /job/model.mps.gz /tmp/model.sol /tmp/params.json '' '/tmp/warm_start.pkl'", s)))
-  expect_true(any(grepl("pickle.dump(sol.get_pdlp_warm_start_data()", s, fixed = TRUE)))
-  p <- jsonlite::fromJSON(s[which(s == "cat > /tmp/params.json << 'PJEOF'") + 1L])
-  expect_equal(p$time_limit, 3600)
-  expect_equal(p$pdlp_solver_mode, 1L)        # warm starts need Stable2
-  expect_equal(p$presolve, 0L)                # and the unpresolved problem's size
-  expect_true(any(grepl("cp /tmp/warm_start.pkl /out/warm_start.pkl", s, fixed = TRUE)))
-  # no presolve retry: the Python run always writes its solution file
-  expect_false(any(grepl("--presolve 0", s, fixed = TRUE)))
-  # continuing from a warm start reads it from the job's inputs
-  s2 <- .cuopt_worker_script("model.mps.gz", "model.sol.gz",
-                             list(api = "python", warm_start = "C:/runs/warm_start.pkl"))
-  expect_true(any(grepl("'/job/warm_start.pkl' ''$", s2)))
-  # without a warm start the default PDLP mode stays
-  p0 <- .cuopt_py_params(list(time_limit = 60, options = "--relative-gap-tolerance 1e-5 --crossover false"), FALSE)
-  expect_null(p0$pdlp_solver_mode)
-  expect_equal(p0$relative_gap_tolerance, 1e-5)
-  expect_false(p0$crossover)
-  # a warm start through cuopt_cli is refused
-  expect_error(.cuopt_worker_script("m.mps.gz", "m.sol.gz", list(save_warm_start = TRUE)), "api")
-})
-
 test_that("a WSL run goes through Python beside cuopt_cli, with '-' for no warm-start file", {
   ctl <- list(api = "python", cuopt_cli = "/opt/cuopt-env/bin/cuopt_cli")
   cm <- .cuopt_local_command("C:/runs/model.mps", "/tmp/m.sol", "-", ctl, wsl = TRUE,

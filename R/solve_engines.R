@@ -4,7 +4,7 @@
 #
 # The matrix is a file; the solver reads it and writes a solution file that
 # read_mps_solution() decodes against the index tables. Which solver and where
-# it runs (in this process, a local executable, WSL, a rented machine) only
+# it runs (in this process, a local executable, WSL) only
 # changes how the solution file is produced, so every combination returns the
 # same list and the decoding never depends on it.
 
@@ -21,10 +21,6 @@
 #' * `"cuopt"`, `"local"`: NVIDIA cuOpt's `cuopt_cli` on this machine (Linux).
 #' * `"cuopt"`, `"wsl"`: `cuopt_cli` inside WSL on a local GPU (Windows); the
 #'   solution is written inside WSL and copied out in one piece.
-#' * `"cuopt"`, `"remote"`: a rented GPU through the 'mmcloud' package: the
-#'   matrix is compressed and uploaded, the job's handle is written to
-#'   `remote$handle_file` before the wait, and the compressed solution is
-#'   fetched back.
 #'
 #' `control` holds the solver's options. HiGHS (both places): named HiGHS
 #' options, e.g. `list(solver = "ipm")`. cuOpt: `method` (default `1`, PDLP),
@@ -51,25 +47,18 @@
 #' temporary file. Only the solution (and, when asked, the warm-start data)
 #' is written beside `sol_file`.
 #'
-#' `remote` (for `where = "remote"`): `flavor`, `namespace`, `timeout`
-#' (default `"10h"`), `image` (default `"python:3.12"`), `provider` (default
-#' `"hf_jobs"`), `handle_file` (default `cloud_job.yml` beside `sol_file`),
-#' `name`, `poll` (seconds) and `max_wait` (seconds).
-#'
 #' @param file Path to the MPS file. HiGHS in this process reads it
 #'   uncompressed; cuOpt reads `.gz` as well.
 #' @param sol_file Path for the solution file; default `file` with a `.sol`
-#'   extension (`.sol.gz` for `where = "remote"`, which always returns it
-#'   compressed).
+#'   extension, in the directory of `file`.
 #' @param control Solver options; see Details.
 #' @param require_optimal Logical; error unless the run ends optimal.
 #' @param verbose Logical; report progress.
 #' @param solver `"highs"`, `"julia_highs"` or `"cuopt"`.
-#' @param where `"local"`, `"wsl"` or `"remote"`.
-#' @param remote Settings of a remote run; see Details.
+#' @param where `"local"` or `"wsl"`.
 #'
 #' @return A list with `status_message`, `objective`, `sol_file` and
-#'   `run_time` (seconds); a remote run adds `job`, the job handle.
+#'   `run_time` (seconds).
 #' @examples
 #' if (requireNamespace("highs", quietly = TRUE)) {
 #'   dir <- tempfile("mps-")
@@ -85,8 +74,7 @@
 solve_mps <- function(file, sol_file = NULL, control = list(),
                       require_optimal = TRUE, verbose = FALSE,
                       solver = c("highs", "julia_highs", "cuopt"),
-                      where = c("local", "wsl", "remote"),
-                      remote = list()) {
+                      where = c("local", "wsl")) {
   solver <- match.arg(solver)
   where <- match.arg(where)
   if (!file.exists(file)) stop("MPS file not found: ", file)
@@ -96,17 +84,15 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
   }
   key <- paste(solver, where, sep = "/")
   if (is.null(sol_file)) {
-    sol_file <- paste0(sub("\\.mps(\\.gz)?$", "", file, ignore.case = TRUE),
-                       if (identical(where, "remote")) ".sol.gz" else ".sol")
+    sol_file <- paste0(sub("\\.mps(\\.gz)?$", "", file, ignore.case = TRUE), ".sol")
   }
   switch(key,
     "highs/local"       = .solve_mps_highs(file, sol_file, control, require_optimal, verbose),
     "julia_highs/local" = .solve_mps_julia(file, sol_file, control, require_optimal, verbose),
     "cuopt/local"       = .solve_mps_cuopt_local(file, sol_file, control, require_optimal, verbose, wsl = FALSE),
     "cuopt/wsl"         = .solve_mps_cuopt_local(file, sol_file, control, require_optimal, verbose, wsl = TRUE),
-    "cuopt/remote"      = .solve_mps_cuopt_remote(file, sol_file, control, require_optimal, verbose, remote),
     stop("solver = '", solver, "' does not run where = '", where, "'. Available: ",
-         "highs/local, julia_highs/local, cuopt/local, cuopt/wsl, cuopt/remote.")
+         "highs/local, julia_highs/local, cuopt/local, cuopt/wsl.")
   )
 }
 
@@ -432,13 +418,6 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
        run_time = as.numeric(difftime(Sys.time(), t0, units = "secs")))
 }
 
-# The script a rented machine runs. The image is a plain Python one: cuOpt's
-# wheels carry their own CUDA runtime, so the driver is enough. The install is
-# repeated because a download that stalls mid-file is not retried by pip. The
-# solution is written to the container's own disk and compressed into /out in
-# one pass: /out is the volume the platform uploads after the script ends, and
-# that upload is billed time on the GPU machine. GPU memory is sampled each
-# second; the peak goes to the log.
 # cuOpt's Python interface as a script: reads the matrix, applies the
 # parameters (a JSON object of cuOpt parameter names), optionally a PDLP
 # warm start, and writes the solution in `cuopt_cli`'s format (`# Status:`,
@@ -507,124 +486,4 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
     if (is.null(control$presolve)) p$presolve <- 0L
   }
   p
-}
-
-.cuopt_worker_script <- function(mps_name, out_name, control) {
-  py <- identical(control$api, "python")
-  warm_in <- if (!is.null(control$warm_start)) paste0("/job/", basename(control$warm_start)) else ""
-  warm_out <- if (isTRUE(control$save_warm_start)) "/tmp/warm_start.pkl" else ""
-  if (!py && (nzchar(warm_in) || nzchar(warm_out))) {
-    stop("A cuOpt warm start needs control$api = \"python\".")
-  }
-  solve <- if (py) {
-    paste("python3 /tmp/solve_cuopt.py", paste0("/job/", mps_name), "/tmp/model.sol",
-          "/tmp/params.json", shQuote(warm_in, type = "sh"), shQuote(warm_out, type = "sh"))
-  } else paste(c("cuopt_cli", .cuopt_cli_args(paste0("/job/", mps_name), "/tmp/model.sol", control)),
-               collapse = " ")
-  py_files <- if (py) c(
-    "cat > /tmp/solve_cuopt.py << 'PYEOF'", .cuopt_py_source(), "PYEOF",
-    "cat > /tmp/params.json << 'PJEOF'",
-    as.character(jsonlite::toJSON(.cuopt_py_params(control, nzchar(warm_in) || nzchar(warm_out)),
-                                  auto_unbox = TRUE, digits = NA)),
-    "PJEOF")
-  # the watchdog (cuopt_watchdog()): the solver runs in the background, its log
-  # streams to the job's output and is read every `poll` seconds by the same
-  # rules as a local run; on a verdict the solver is stopped and the job ends
-  # with WATCHDOG_STOP and the reason
-  wd <- .cuopt_watchdog_resolve(control, local = FALSE)
-  if (!is.null(wd)) {
-    solve <- paste("run_cuopt", solve)
-    watch <- c("cat > /tmp/wd.awk << 'WDAWK'", .cuopt_watchdog_awk(), "WDAWK",
-               "run_cuopt() {",
-               "  ( \"$@\" 2>&1 | tee /tmp/cuopt.log ) &",
-               "  local cp=$!",
-               "  while kill -0 $cp 2>/dev/null; do",
-               paste0("    sleep ", wd$poll),
-               paste0("    v=$(awk ", .cuopt_watchdog_awk_vars(wd), " -f /tmp/wd.awk /tmp/cuopt.log 2>/dev/null || true)"),
-               "    if [ -n \"$v\" ]; then echo \"WATCHDOG_STOP: $v\"; pkill -f 'cuopt_cli|solve_cuopt.py' || true; wait $cp 2>/dev/null || true; exit 3; fi",
-               "  done",
-               "  wait $cp",
-               "}")
-  } else watch <- NULL
-  c("set -e",
-    watch,
-    py_files,
-    "nvidia-smi || true",
-    # an image with cuOpt installed (inst/images/cuopt) skips the install
-    paste("command -v cuopt_cli > /dev/null ||",
-          "for i in 1 2 3 4 5; do",
-          "pip install -q --no-cache-dir --retries 10 --timeout 120 cuopt-cu12 && break;",
-          "echo \"pip install attempt $i failed\"; sleep 15; done"),
-    "(nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits -l 1 > /tmp/vram.log 2>/dev/null &) || true",
-    solve,
-    # cuOpt writes no solution file when its presolve solves the whole problem
-    # (it reports Optimal and exits 0): solve once more without presolve
-    if (!py && is.null(control$presolve)) paste("[ -s /tmp/model.sol ] ||", solve, "--presolve 0"),
-    "echo VRAM_PEAK_MIB $(sort -n /tmp/vram.log 2>/dev/null | tail -1)",
-    paste0("gzip -1 -c /tmp/model.sol > /out/", out_name),
-    # the warm-start output is declared up front: it always exists, empty
-    # when the solver could not give one
-    if (nzchar(warm_out)) c("[ -f /tmp/warm_start.pkl ] || : > /tmp/warm_start.pkl",
-                            "cp /tmp/warm_start.pkl /out/warm_start.pkl"),
-    "ls -l /out")
-}
-
-.solve_mps_cuopt_remote <- function(file, sol_file, control, require_optimal,
-                                    verbose, remote) {
-  if (!requireNamespace("mmcloud", quietly = TRUE)) {
-    stop("where = 'remote' needs the 'mmcloud' package.")
-  }
-  if (!grepl("\\.gz$", sol_file, ignore.case = TRUE)) {
-    stop("A remote solve returns the solution compressed: `sol_file` must end in .gz.")
-  }
-  t0 <- Sys.time()
-  dir <- dirname(sol_file)
-  gz <- if (grepl("\\.gz$", file, ignore.case = TRUE)) file else {
-    mmcloud::cloud_compress(file, level = 1L, echo = verbose)
-  }
-  out_name <- basename(sol_file)
-  if (verbose) message(sprintf("uploading %.2f GB", file.size(gz) / 1e9))
-  if (!is.null(control$warm_start) && !file.exists(control$warm_start)) {
-    stop("control$warm_start: no file ", control$warm_start)
-  }
-  job <- mmcloud::cloud_run(
-    inputs = c(gz, control$warm_start),
-    outputs = c(out_name, if (isTRUE(control$save_warm_start)) "warm_start.pkl"),
-    script = .cuopt_worker_script(basename(gz), out_name, control),
-    provider = remote$provider %||% "hf_jobs",
-    flavor = remote$flavor %||% "a10g-large",
-    timeout = remote$timeout %||% "10h",
-    namespace = remote$namespace,
-    image = remote$image %||% "python:3.12",
-    name = remote$name %||% paste0("multimod-", tools::file_path_sans_ext(basename(file))),
-    echo = verbose)
-  # the handle outlives this call: a killed session can still poll, cancel or
-  # fetch the job
-  handle <- remote$handle_file %||% file.path(dir, "cloud_job.yml")
-  tryCatch(mmcloud::cloud_handle_write(job, handle), error = function(e) NULL)
-  # nothing of the matrix is needed through the wait
-  clear_data_cache()
-  gc(FALSE)
-  stage <- mmcloud::cloud_wait(job, poll = remote$poll %||% 15,
-                               max_wait = remote$max_wait %||% Inf, echo = verbose)
-  ok <- tryCatch({
-    mmcloud::cloud_fetch(job, dir, echo = verbose)
-    TRUE
-  }, error = function(e) e)
-  if (!isTRUE(ok) || !identical(stage, "COMPLETED") || !file.exists(sol_file)) {
-    # a job can end cleanly and return nothing (infeasible, time limit,
-    # cancelled): report the solver's own conclusion where there is one
-    v <- tryCatch(mmcloud::cloud_verdict(job), error = function(e) NULL)
-    why <- if (!is.null(v) && !identical(v$verdict, "ok")) v$message else
-      if (inherits(ok, "error")) conditionMessage(ok) else paste("job ended", stage)
-    # stopped by the watchdog (cuopt_watchdog()): its reason, from the job's log
-    wd <- grep("^WATCHDOG_STOP: ", tryCatch(mmcloud::cloud_logs(job), error = function(e) character()), value = TRUE)
-    if (length(wd)) why <- paste("stopped by the watchdog:", sub("^WATCHDOG_STOP: ", "", utils::tail(wd, 1)))
-    stop("Remote cuOpt solve returned no solution (job ", job$id, "): ", why)
-  }
-  h <- .cuopt_sol_header(sol_file)
-  .check_cuopt_status(h, require_optimal, "remote")
-  list(status_message = h$status, objective = h$objective, sol_file = sol_file,
-       run_time = as.numeric(difftime(Sys.time(), t0, units = "secs")),
-       job = job)
 }

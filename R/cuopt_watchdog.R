@@ -50,7 +50,7 @@ print.cuopt_watchdog <- function(x, ...) {
 }
 
 # The settings in force: the solve's, the session's or the defaults; NULL = off.
-# A local run needs 'processx'; a cloud job runs the rules in its own script.
+# The watchdog needs 'processx'.
 .cuopt_watchdog_resolve <- function(control, local = TRUE) {
   w <- control$watchdog
   if (is.null(w)) w <- getOption("multimod.cuopt_watchdog", cuopt_watchdog())
@@ -112,38 +112,6 @@ print.cuopt_watchdog <- function(x, ...) {
     }
   }
   NULL
-}
-
-# The same two rules for a cloud job, as an awk program over the cuopt_cli log:
-# prints the reason to stop, or nothing. An NA threshold is passed as 0 (off).
-.cuopt_watchdog_awk <- function() {
-  c('function a(x) { return x < 0 ? -x : x }',
-    'function stall(x, cut,   i, bp, bd, bg, ip, id, ig, nb, ni) {',
-    '  bp = bd = bg = ip = id = ig = 1e308; nb = ni = 0',
-    '  for (i = 1; i <= n; i++) {',
-    '    if (x[i] > cut) { ni++; if (pr[i] < ip) ip = pr[i]; if (dr[i] < id) id = dr[i]; if (g[i] < ig) ig = g[i] }',
-    '    else { nb++; if (pr[i] < bp) bp = pr[i]; if (dr[i] < bd) bd = dr[i]; if (g[i] < bg) bg = g[i] }',
-    '  }',
-    '  return (nb > 0 && ni > 0 && ip > bp / F && id > bd / F && ig > bg / F)',
-    '}',
-    '/^ *[0-9]+ +[-+]?[0-9.]+e[-+][0-9]+ / && NF == 7 {',
-    '  n++; it[n] = $1 + 0; po[n] = $2 + 0; du[n] = $3 + 0; g[n] = $4 + 0; pr[n] = $5 + 0; dr[n] = $6 + 0',
-    '  t = $7; sub(/s$/, "", t); tm[n] = t + 0',
-    '  if (R > 0 && (a(po[n]) > R || a(du[n]) > R)) c++; else c = 0',
-    '}',
-    'END {',
-    '  if (n < 2) exit',
-    '  if (R > 0 && N > 0 && c >= N) { printf "objective beyond %g for %d log lines (primal %.3g, dual %.3g)\\n", R, c, po[n], du[n]; exit }',
-    '  if (F > 0 && SW > 0 && tm[n] - tm[1] >= SW && stall(tm, tm[n] - SW)) { printf "no progress by a factor %g in the last %g s\\n", F, SW; exit }',
-    '  if (F > 0 && SI > 0 && it[n] - it[1] >= SI && stall(it, it[n] - SI)) { printf "no progress by a factor %g in the last %d iterations\\n", F, SI; exit }',
-    '}')
-}
-
-# The awk variables of the settings (an NA rule is 0: off)
-.cuopt_watchdog_awk_vars <- function(w) {
-  v <- function(x) if (is.finite(x)) format(x, scientific = FALSE) else "0"
-  sprintf("-v R=%s -v N=%s -v SW=%s -v SI=%s -v F=%s", v(w$runaway), v(w$runaway_n),
-          v(w$stall_window), v(w$stall_iter), v(w$stall_factor))
 }
 
 # One cuopt_cli call under the watchdog: the process writes its log to

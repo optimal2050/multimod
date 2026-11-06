@@ -11,8 +11,7 @@ solve_mps(
   require_optimal = TRUE,
   verbose = FALSE,
   solver = c("highs", "julia_highs", "cuopt"),
-  where = c("local", "wsl", "remote"),
-  remote = list()
+  where = c("local", "wsl")
 )
 }
 \arguments{
@@ -20,8 +19,7 @@ solve_mps(
 uncompressed; cuOpt reads \code{.gz} as well.}
 
 \item{sol_file}{Path for the solution file; default \code{file} with a \code{.sol}
-extension (\code{.sol.gz} for \code{where = "remote"}, which always returns it
-compressed).}
+extension, in the directory of \code{file}.}
 
 \item{control}{Solver options; see Details.}
 
@@ -31,13 +29,11 @@ compressed).}
 
 \item{solver}{\code{"highs"}, \code{"julia_highs"} or \code{"cuopt"}.}
 
-\item{where}{\code{"local"}, \code{"wsl"} or \code{"remote"}.}
-
-\item{remote}{Settings of a remote run; see Details.}
+\item{where}{\code{"local"} or \code{"wsl"}.}
 }
 \value{
 A list with \code{status_message}, \code{objective}, \code{sol_file} and
-\code{run_time} (seconds); a remote run adds \code{job}, the job handle.
+\code{run_time} (seconds).
 }
 \description{
 Reads an MPS file written by \code{\link[=write_mps]{write_mps()}}, solves it and writes a solution
@@ -53,10 +49,6 @@ carries the HiPO interior point method. Julia is found by
 \item \code{"cuopt"}, \code{"local"}: NVIDIA cuOpt's \code{cuopt_cli} on this machine (Linux).
 \item \code{"cuopt"}, \code{"wsl"}: \code{cuopt_cli} inside WSL on a local GPU (Windows); the
 solution is written inside WSL and copied out in one piece.
-\item \code{"cuopt"}, \code{"remote"}: a rented GPU through the 'mmcloud' package: the
-matrix is compressed and uploaded, the job's handle is written to
-\code{remote$handle_file} before the wait, and the compressed solution is
-fetched back.
 }
 
 \code{control} holds the solver's options. HiGHS (both places): named HiGHS
@@ -82,11 +74,6 @@ Scripts and parameter files a solver needs go to temporary files and are
 removed afterwards; the cuOpt log goes to \code{control$log_file}, else to a
 temporary file. Only the solution (and, when asked, the warm-start data)
 is written beside \code{sol_file}.
-
-\code{remote} (for \code{where = "remote"}): \code{flavor}, \code{namespace}, \code{timeout}
-(default \code{"10h"}), \code{image} (default \code{"python:3.12"}), \code{provider} (default
-\code{"hf_jobs"}), \code{handle_file} (default \code{cloud_job.yml} beside \code{sol_file}),
-\code{name}, \code{poll} (seconds) and \code{max_wait} (seconds).
 }
 \examples{
 if (requireNamespace("highs", quietly = TRUE)) {

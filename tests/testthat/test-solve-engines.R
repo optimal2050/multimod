@@ -3,10 +3,9 @@
 
 test_that("an unsupported solver/place pair is refused with the list", {
   f <- tempfile(fileext = ".mps"); writeLines("NAME x", f); on.exit(unlink(f))
-  expect_error(solve_mps(f, solver = "highs", where = "remote"),
-               "does not run where = 'remote'.*cuopt/remote")
+  expect_error(solve_mps(f, solver = "highs", where = "remote"), "should be one of")
   expect_error(solve_mps(f, solver = "julia_highs", where = "wsl"),
-               "does not run where = 'wsl'")
+               "does not run where = 'wsl'.*cuopt/wsl\\.$")
 })
 
 test_that("control must be a named list", {
@@ -40,29 +39,6 @@ test_that("the WSL user comes from control, then the environment", {
   expect_identical(multimod:::.wsl_user_args(list()), c("-u", "me"))
 })
 
-test_that("the remote worker writes to /tmp and compresses into /out", {
-  s <- multimod:::.cuopt_worker_script("model.mps.gz", "model.sol.gz",
-                                       list(time_limit = 600))
-  # the solve runs under the watchdog (run_cuopt, see test-cuopt-watchdog.R)
-  solve <- grep("^run_cuopt ", s, value = TRUE)
-  expect_length(solve, 1L)
-  expect_match(solve, "^run_cuopt cuopt_cli /job/model.mps.gz --solution-file /tmp/model.sol --method 1 --time-limit 600$")
-  expect_true("gzip -1 -c /tmp/model.sol > /out/model.sol.gz" %in% s)
-  # nothing but the compressed solution is written to /out
-  expect_false(any(grepl("/out/model.sol( |$)", s)))
-  # the install is retried, and comes before the solve
-  pip <- grep("pip install", s)
-  expect_length(pip, 1L)
-  expect_match(s[pip], "for i in 1 2 3 4 5")
-  expect_lt(pip, grep("^run_cuopt ", s))
-  expect_identical(s[1], "set -e")
-  # a presolve that solves the whole problem writes no file: solved again
-  # without it, and only when the caller did not set presolve
-  expect_true(paste("[ -s /tmp/model.sol ] ||", solve, "--presolve 0") %in% s)
-  s0 <- multimod:::.cuopt_worker_script("m.mps.gz", "m.sol.gz", list(presolve = TRUE))
-  expect_false(any(grepl("\\[ -s /tmp/model.sol \\]", s0)))
-})
-
 test_that("the cuOpt header gives status and objective, plain or gzipped", {
   f <- tempfile(fileext = ".sol"); on.exit(unlink(c(f, paste0(f, ".gz"))))
   writeLines(c("# Status: Optimal", "# Objective value: 36880.25", "c0 1", "c1 0"), f)
@@ -71,7 +47,7 @@ test_that("the cuOpt header gives status and objective, plain or gzipped", {
   expect_equal(h$objective, 36880.25)
   con <- gzfile(paste0(f, ".gz"), "w"); writeLines(readLines(f), con); close(con)
   expect_identical(multimod:::.cuopt_sol_header(paste0(f, ".gz"))$status, "Optimal")
-  expect_error(multimod:::.check_cuopt_status(list(status = "TimeLimit"), TRUE, "remote"),
+  expect_error(multimod:::.check_cuopt_status(list(status = "TimeLimit"), TRUE, "local"),
                "not optimal")
 })
 
@@ -97,13 +73,6 @@ test_that("read_mps_solution decodes a named matrix through its name tables", {
   s <- read_mps_solution(sol, col_index = ci, row_index = ri)
   expect_identical(s$primal$value, c(1, 2, 3))
   expect_identical(s$dual$marginal, 0.5)
-})
-
-test_that("a remote solve wants a compressed solution file", {
-  skip_if_not_installed("mmcloud")
-  f <- tempfile(fileext = ".mps"); writeLines("NAME x", f); on.exit(unlink(f))
-  expect_error(solve_mps(f, sol_file = tempfile(fileext = ".sol"),
-                         solver = "cuopt", where = "remote"), "must end in .gz")
 })
 
 test_that("the Julia script reads, sets options, solves and writes", {

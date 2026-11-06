@@ -241,8 +241,7 @@ language sections.
 [energyRt](https://github.com/optimal2050/energyRt) uses multimod as its
 model compiler: `energyRt::multimod_from_energyRt()` builds the model
 from an interpolated scenario, and the LP or MPS multimod produces is
-what energyRt hands to a local solver or, experimentally, to cloud
-hardware through the mmcloud package.
+what energyRt hands to a solver.
 
 ## License
 
