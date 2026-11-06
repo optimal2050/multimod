@@ -325,7 +325,7 @@ comment_database_code <- function(lines) {
 }
 
 # Path to scenario directory
-scenario_dir <- "~/Documents/R/multimod/dev/scenarios/BASE_UTOPIA"
+scenario_dir <- here::here("dev", "scenarios", "BASE_UTOPIA")
 
 # Check if directory exists
 if (!dir.exists(scenario_dir)) {

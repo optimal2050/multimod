@@ -11,7 +11,7 @@
 # up in a before/after difference, but it is exactly the block that will fail
 # on a smaller machine.
 #
-# MMCLOUD_PERF_LOG names a CSV to append to; unset, measurements are kept in
+# MULTIMOD_PERF_LOG names a CSV to append to; unset, measurements are kept in
 # memory and printed by perf_summary().
 
 .perf_env <- new.env(parent = emptyenv())
@@ -49,7 +49,7 @@ perf <- function(label, expr) {
   )
   .perf_env$rows[[length(.perf_env$rows) + 1L]] <- row
 
-  f <- Sys.getenv("MMCLOUD_PERF_LOG", unset = "")
+  f <- Sys.getenv("MULTIMOD_PERF_LOG", unset = "")
   if (nzchar(f)) {
     utils::write.table(row, f, sep = ",", row.names = FALSE,
                        col.names = !file.exists(f), append = file.exists(f))
@@ -63,7 +63,7 @@ perf <- function(label, expr) {
     f <- tryCatch(sys.frame(i)$test_path, error = function(e) NULL)
     if (!is.null(f)) return(basename(f))
   }
-  Sys.getenv("MMCLOUD_PERF_FILE", unset = NA_character_)
+  Sys.getenv("MULTIMOD_PERF_FILE", unset = NA_character_)
 }
 
 #' Everything measured so far, slowest first

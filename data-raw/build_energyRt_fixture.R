@@ -14,7 +14,9 @@
 ##   m_R1 <- build_energyRt_fixture("R1")   # fast build loop
 ##   m_R7 <- build_energyRt_fixture("R7")   # shipped fixture
 
-ENERGYRT_GMS <- "~/Documents/R/energyRt/gams/energyRt.gms"
+# the energyRt repository: ENERGYRT_DIR, else a sibling of this one
+ENERGYRT_GMS <- file.path(Sys.getenv("ENERGYRT_DIR", here::here("..", "energyRt")),
+                          "gams", "energyRt.gms")
 
 ## ---------------------------------------------------------------------------
 ## `multimod_from_energyRt()` (with `fill_variable_domains()` and the gate
