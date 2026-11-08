@@ -119,7 +119,7 @@ readLines(file.path(ws, "solution_log.txt"))
 
 ## Folded data
 
-A folded parameter (see [Folding and trimming](folding.html)) keeps both tables: the
+A folded parameter (see [Model redundancy](folding.html)) keeps both tables: the
 original under `data.*` and the reduced one under `folded_data/data.*`.
 `save_model()` writes both, `load_model()` reads both, and the writers take
 the folded table when the model is folded.

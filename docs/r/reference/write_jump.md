@@ -119,12 +119,51 @@ write_jump(m, file = tempfile(fileext = ".jl"))
 
 # Into a saved model workspace: <model_dir>/solvers/<solver_dir>/model.jl
 ws <- file.path(tempdir(), "energyRt_ws")
-save_model(m, ws, verbose = FALSE)
+save_model(m, ws, format = "csv", verbose = FALSE)
 write_jump(m, model_dir = ws)
+#> Warning: write_feather(version = 2) has been superseded by write_ipc_file().
+#> Warning: write_feather(version = 2) has been superseded by write_ipc_file().
+#> Warning: write_feather(version = 2) has been superseded by write_ipc_file().
+#> Warning: write_feather(version = 2) has been superseded by write_ipc_file().
+#> Warning: write_feather(version = 2) has been superseded by write_ipc_file().
+#> Warning: write_feather(version = 2) has been superseded by write_ipc_file().
+#> Warning: write_feather(version = 2) has been superseded by write_ipc_file().
+#> Warning: write_feather(version = 2) has been superseded by write_ipc_file().
+#> Warning: write_feather(version = 2) has been superseded by write_ipc_file().
+#> Warning: write_feather(version = 2) has been superseded by write_ipc_file().
+#> Warning: write_feather(version = 2) has been superseded by write_ipc_file().
+#> Warning: write_feather(version = 2) has been superseded by write_ipc_file().
+#> Warning: write_feather(version = 2) has been superseded by write_ipc_file().
 write_jump(m, model_dir = ws, solver_dir = "jump-highs")
+#> Warning: write_feather(version = 2) has been superseded by write_ipc_file().
+#> Warning: write_feather(version = 2) has been superseded by write_ipc_file().
+#> Warning: write_feather(version = 2) has been superseded by write_ipc_file().
+#> Warning: write_feather(version = 2) has been superseded by write_ipc_file().
+#> Warning: write_feather(version = 2) has been superseded by write_ipc_file().
+#> Warning: write_feather(version = 2) has been superseded by write_ipc_file().
+#> Warning: write_feather(version = 2) has been superseded by write_ipc_file().
+#> Warning: write_feather(version = 2) has been superseded by write_ipc_file().
+#> Warning: write_feather(version = 2) has been superseded by write_ipc_file().
+#> Warning: write_feather(version = 2) has been superseded by write_ipc_file().
+#> Warning: write_feather(version = 2) has been superseded by write_ipc_file().
+#> Warning: write_feather(version = 2) has been superseded by write_ipc_file().
+#> Warning: write_feather(version = 2) has been superseded by write_ipc_file().
 
 # Barrier method for large models
 write_jump(m, model_dir = ws,
            optimizer_attributes = list(solver = "ipm", parallel = "on"))
-#> Removing existing solver directory: ~\AppData\Local\Temp\RtmpgRRJWR/energyRt_ws/solvers/jump
+#> Removing existing solver directory: C:\Users\admin\AppData\Local\Temp\Rtmp6Z6Hhw/energyRt_ws/solvers/jump
+#> Warning: write_feather(version = 2) has been superseded by write_ipc_file().
+#> Warning: write_feather(version = 2) has been superseded by write_ipc_file().
+#> Warning: write_feather(version = 2) has been superseded by write_ipc_file().
+#> Warning: write_feather(version = 2) has been superseded by write_ipc_file().
+#> Warning: write_feather(version = 2) has been superseded by write_ipc_file().
+#> Warning: write_feather(version = 2) has been superseded by write_ipc_file().
+#> Warning: write_feather(version = 2) has been superseded by write_ipc_file().
+#> Warning: write_feather(version = 2) has been superseded by write_ipc_file().
+#> Warning: write_feather(version = 2) has been superseded by write_ipc_file().
+#> Warning: write_feather(version = 2) has been superseded by write_ipc_file().
+#> Warning: write_feather(version = 2) has been superseded by write_ipc_file().
+#> Warning: write_feather(version = 2) has been superseded by write_ipc_file().
+#> Warning: write_feather(version = 2) has been superseded by write_ipc_file().
 ```

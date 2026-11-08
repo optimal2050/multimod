@@ -68,6 +68,7 @@
 <url><loc>https://optimal2050.github.io/multimod/r/reference/build_symbols_list.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/r/reference/build_triplets.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/r/reference/check_matrix_numbers.html</loc></url>
+<url><loc>https://optimal2050.github.io/multimod/r/reference/clear_data_cache.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/r/reference/collect_ast_classes.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/r/reference/collect_model_symbols.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/r/reference/collect_product_factors.html</loc></url>
@@ -81,6 +82,7 @@
 <url><loc>https://optimal2050.github.io/multimod/r/reference/compare_variables.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/r/reference/convert_filter_with_haskey.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/r/reference/create_fold_spec.html</loc></url>
+<url><loc>https://optimal2050.github.io/multimod/r/reference/cuopt_watchdog.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/r/reference/default_index_aliases.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/r/reference/depth.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/r/reference/detect_arrow_format.html</loc></url>
@@ -167,10 +169,13 @@
 <url><loc>https://optimal2050.github.io/multimod/r/reference/load_arrow_data.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/r/reference/load_mapping.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/r/reference/load_model.html</loc></url>
+<url><loc>https://optimal2050.github.io/multimod/r/reference/load_model_data.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/r/reference/load_parameter.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/r/reference/log_solution_load.html</loc></url>
+<url><loc>https://optimal2050.github.io/multimod/r/reference/lp_bounds.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/r/reference/lp_presolve.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/r/reference/make_valid.html</loc></url>
+<url><loc>https://optimal2050.github.io/multimod/r/reference/mapping_rule.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/r/reference/map_ast.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/r/reference/mark_empty_data.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/r/reference/mark_empty_equations.html</loc></url>
@@ -200,6 +205,7 @@
 <url><loc>https://optimal2050.github.io/multimod/r/reference/node_type.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/r/reference/normalize_dim_names.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/r/reference/normalize_index_aliases.html</loc></url>
+<url><loc>https://optimal2050.github.io/multimod/r/reference/objective_chain.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/r/reference/parameter_result_to_dataframe.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/r/reference/parse_bracket_format.html</loc></url>
 <url><loc>https://optimal2050.github.io/multimod/r/reference/parse_conditional.html</loc></url>

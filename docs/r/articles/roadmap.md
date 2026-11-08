@@ -1,13 +1,12 @@
 # Development status and roadmap
 
-multimod 0.5.0 is the first CRAN release. The API is young: function
-signatures and class structures may still change between minor versions,
-and the NEWS file records every such change. This page lists what the
-release does not do yet, and the order in which the gaps are to be
-closed. What it does is in the README’s capability table and in the
-articles.
+multimod 0.6.0 is the first CRAN release. Function signatures and class
+structures may still change between minor versions, and the NEWS file
+records every such change. This page lists what the release does not do
+yet, and the order in which the gaps are to be closed. What it does is
+in the README’s capability table and in the articles.
 
-## Limitations in 0.5.0
+## Limitations in 0.6.0
 
 - **Model class.** Linear programs with continuous variables are the
   tested path. Integer and binary variables are carried in the AST and
@@ -21,14 +20,19 @@ articles.
   `if` blocks, or macros.
   [`read_gmpl()`](https://optimal2050.github.io/multimod/r/reference/read_gmpl.md)
   reads MathProg model files with data sections, computed parameters and
-  parametric defaults; set expressions in declarations are not parsed.
-  JuMP is read one constraint at a time — `mm_equation(lang = "jump")`
-  takes a `@constraint()` statement — not as a whole model. There is no
-  Pyomo reader.
+  parametric defaults. It does not yet read set expressions in
+  declarations, a set of tuples declared as `set S within A cross B` (it
+  is read as one-dimensional), a tuple condition such as `(t,r) in S`
+  inside an iterated operator, or two-dimensional parameter data in list
+  form (`param p := a x 1 b y 2;`). JuMP is read one constraint at a
+  time — `mm_equation(lang = "jump")` takes a `@constraint()` statement
+  — not as a whole model. There is no Pyomo reader.
 - **Writers.**
-  [`write_gams_data()`](https://optimal2050.github.io/multimod/r/reference/write_gams_data.md)
-  writes a GDX through the ‘gdxtools’ package, which at the time of
-  writing does not install on R 4.6 and later.
+  [`write_gams_data()`](https://optimal2050.github.io/multimod/r/reference/write_gams_data.md),
+  which writes a GDX through the ‘gdxtools’ package, is experimental and
+  has not been tested with the current ‘gdxtools’ release.
+  [`write_gams()`](https://optimal2050.github.io/multimod/r/reference/write_gams.md)
+  output has not been compiled with a licensed GAMS installation.
   `write_pyomo(data_mode = "embedded")` is not implemented and falls
   back to the external loader.
 - **Matrix route.** A symbol declared over plain sets, with no domain
@@ -38,36 +42,45 @@ articles.
   parameters defined by a formula are computed. A circular lag has no
   syntax in MathProg, JuMP or Pyomo, so those writers refuse it rather
   than flatten it.
+- **Native matrix route.** The C++17 executor handles the equation plans
+  its block-plan lowering supports and falls back to the R engine per
+  equation. The streamed MPS writer, presolve scan/map/remap and
+  build-time definition substitution are native, but the model and AST
+  APIs remain R interfaces; Python and Julia bindings to the core are
+  not implemented.
 - **Experimental exports.** Functions grouped under “Experimental” in
   the reference index
   ([`as_r()`](https://optimal2050.github.io/multimod/r/reference/as_r.md),
-  the `compare_*()` helpers, visualisation, the granular storage
+  the `compare_*()` helpers, visualization, the granular storage
   functions, configuration file writers) are exported but have no tests
   yet.
 
 ## Next
 
-### 0.5.x
+### 0.6.x
 
-- Done in 0.5.0: dense domains, conditions, lags and formula parameters
-  in the matrix route, so a MathProg model solves with
-  [`solve_highs()`](https://optimal2050.github.io/multimod/r/reference/solve_highs.md)
-  (see the matrix-route limitation above for what that covers).
+- Controlled benchmarks of the R and native executors and of the
+  in-memory and streamed MPS routes on representative model sizes.
 - The four `SC2_*`/`SC4_*` storage-bracket equations of OSeMOSYS
-  assemble with no coefficients; find out why.
+  assemble with no coefficients; the cause is to be established.
+- [`read_gmpl()`](https://optimal2050.github.io/multimod/r/reference/read_gmpl.md):
+  sets of tuples declared with `within ... cross`, tuple conditions in
+  iterated operators, and two-dimensional list data.
 - [`write_gams()`](https://optimal2050.github.io/multimod/r/reference/write_gams.md)
-  output that GAMS can run: parenthesised references and `ord()` for a
-  set element used in arithmetic.
+  output verified with a GAMS installation, including `ord()` for a set
+  element used in arithmetic.
 - Replace the remaining [`cat()`](https://rdrr.io/r/base/cat.html)
   diagnostics with [`message()`](https://rdrr.io/r/base/message.html) so
   they can be silenced.
 - Tests for the experimental exports, or their retirement.
 
-### 0.6 to 0.8
+### 0.7 to 0.9
 
 - API consolidation: one argument vocabulary across the `write_*()` and
   `solve_*()` families, consistent return values, fewer exported
   helpers.
+- Broader native block-plan coverage, reducing the equations that fall
+  back to the R executor.
 - The matrix route as the default for linear problems; the symbolic
   writers remain for interoperability, inspection and documentation.
 - Row and column names in the written MPS as an option.
@@ -84,18 +97,18 @@ articles.
 
 ### Later
 
-- A C++ core with Python and Julia bindings to the same AST and JSON
-  schema.
+- Python and Julia interfaces to the native C++ core and the same AST
+  and JSON schema used by R.
 - AMPL reader and writer; LP and MPS readers.
 - Symbolic simplification of equations; redundancy detection with
   safeguards; data-driven generation of domain mappings.
-- Direct solver APIs without files in between.
+- Additional direct solver APIs beyond the current HiGHS R route.
 - An interactive model explorer and equation dependency graphs.
 
 ## Scope
 
 multimod does not aim to translate every model automatically. It keeps a
-transparent intermediate representation that a modeller can read, adapt
+transparent intermediate representation that a modeler can read, adapt
 and re-render: the symbolic structure is there to be edited by hand
 during development, testing and teaching, and to be documented exactly
 as solved.

@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.5.0</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -23,7 +23,7 @@
     <li><a class="dropdown-item" href="../articles/ast.html">Writing a model in R</a></li>
     <li><a class="dropdown-item" href="../articles/solving.html">Solving and reading results</a></li>
     <li><a class="dropdown-item" href="../articles/model_workspace.html">Model workspace and data</a></li>
-    <li><a class="dropdown-item" href="../articles/folding.html">Folding and trimming</a></li>
+    <li><a class="dropdown-item" href="../articles/folding.html">Model redundancy</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>An existing model</h6></li>
     <li><a class="dropdown-item" href="../articles/field-models.html">Two models from the field</a></li>
@@ -138,12 +138,12 @@ a lower bound only.</p>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">lp</span><span class="op">$</span><span class="va">row_index</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>        i   symbol     i1     i2  sense   rhs</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;int&gt;   &lt;char&gt; &lt;char&gt; &lt;char&gt; &lt;char&gt; &lt;num&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1:     1 eqCapLim   coal  north     &lt;=    NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2:     2 eqCapLim    gas  north     &lt;=    NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3:     3 eqCapLim   wind  north     &lt;=    NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4:     4 eqCapLim   coal  south     &lt;=    NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5:     5 eqCapLim    gas  south     &lt;=    NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6:     6 eqCapLim   wind  south     &lt;=    NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:     1 eqCapLim   coal  north     &lt;=     0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2:     2 eqCapLim    gas  north     &lt;=     0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3:     3 eqCapLim   wind  north     &lt;=     0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4:     4 eqCapLim   coal  south     &lt;=     0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5:     5 eqCapLim    gas  south     &lt;=     0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6:     6 eqCapLim   wind  south     &lt;=     0</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

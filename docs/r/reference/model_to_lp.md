@@ -84,10 +84,10 @@ dim(lp$A)
 head(lp$row_index)
 #>        i   symbol     i1     i2  sense   rhs
 #>    <int>   <char> <char> <char> <char> <num>
-#> 1:     1 eqCapLim   coal  north     <=    NA
-#> 2:     2 eqCapLim    gas  north     <=    NA
-#> 3:     3 eqCapLim   wind  north     <=    NA
-#> 4:     4 eqCapLim   coal  south     <=    NA
-#> 5:     5 eqCapLim    gas  south     <=    NA
-#> 6:     6 eqCapLim   wind  south     <=    NA
+#> 1:     1 eqCapLim   coal  north     <=     0
+#> 2:     2 eqCapLim    gas  north     <=     0
+#> 3:     3 eqCapLim   wind  north     <=     0
+#> 4:     4 eqCapLim   coal  south     <=     0
+#> 5:     5 eqCapLim    gas  south     <=     0
+#> 6:     6 eqCapLim   wind  south     <=     0
 ```

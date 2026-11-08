@@ -120,15 +120,15 @@ symbols, and every result table is built on them:
 lp$row_index
 #>        i   symbol     i1     i2  sense   rhs
 #>    <int>   <char> <char> <char> <char> <num>
-#> 1:     1 eqCapLim   coal  north     <=    NA
-#> 2:     2 eqCapLim    gas  north     <=    NA
-#> 3:     3 eqCapLim   wind  north     <=    NA
-#> 4:     4 eqCapLim   coal  south     <=    NA
-#> 5:     5 eqCapLim    gas  south     <=    NA
-#> 6:     6 eqCapLim   wind  south     <=    NA
-#> 7:     7 eqDemand  north   <NA>     >=    NA
-#> 8:     8 eqDemand  south   <NA>     >=    NA
-#> 9:     9   eqCost   <NA>   <NA>     ==    NA
+#> 1:     1 eqCapLim   coal  north     <=     0
+#> 2:     2 eqCapLim    gas  north     <=     0
+#> 3:     3 eqCapLim   wind  north     <=     0
+#> 4:     4 eqCapLim   coal  south     <=     0
+#> 5:     5 eqCapLim    gas  south     <=     0
+#> 6:     6 eqCapLim   wind  south     <=     0
+#> 7:     7 eqDemand  north   <NA>     >=  1000
+#> 8:     8 eqDemand  south   <NA>     >=   600
+#> 9:     9   eqCost   <NA>   <NA>     ==     0
 lp$col_index[c(1, 7, 13), ]
 #>        j symbol     i1     i2    lo    up      vtype
 #>    <int> <char> <char> <char> <num> <num>     <char>
@@ -208,14 +208,58 @@ r$dual[r$dual$symbol == "eqDemand", c("symbol", "i1", "value", "marginal")]
 
 The arrays can also leave R:
 [`write_mps()`](https://optimal2050.github.io/multimod/r/reference/write_mps.md)
-writes them as an MPS file for any solver that reads one, and
+writes them as an MPS file for any solver that reads one.
 [`solve_mps()`](https://optimal2050.github.io/multimod/r/reference/solve_mps.md)
-solves such a file locally with HiGHS and writes a solution file
+can solve that file with HiGHS in R, HiGHS through Julia, or cuOpt
+locally or in WSL; each route writes a solution file
 [`read_mps_solution()`](https://optimal2050.github.io/multimod/r/reference/read_mps_solution.md)
 understands.
 [`mm_session()`](https://optimal2050.github.io/multimod/r/reference/mm_session.md)
 keeps the assembled matrix between repeated solves of the same structure
 with changed data.
+
+### Native execution and streamed MPS
+
+The matrix builder uses its R engine by default. For performance on
+large models, `options(multimod.engine = "native")` sends supported
+equation plans to the package’s multithreaded C++17 executor. An
+equation that cannot be lowered to a native plan continues through the R
+engine.
+
+`write_mps(stream = TRUE)` sends each coefficient block to a native
+spool and MPS writer instead of materializing the complete sparse matrix
+in R. The MPS file is written with row and column index tables that map
+a solver’s positional solution back to model symbols.
+
+``` r
+
+mps_dir <- file.path(ws, "solvers", "mps")
+dir.create(mps_dir, recursive = TRUE)
+mps <- file.path(mps_dir, "model.mps")
+
+native_paths <- local({
+  old <- options(multimod.engine = "native")
+  on.exit(options(old))
+  write_mps(
+    model = toy,
+    file = mps,
+    format = "csv",
+    stream = TRUE,
+    verbose = FALSE
+  )
+})
+file.exists(native_paths$mps)
+#> [1] TRUE
+```
+
+With `presolve = TRUE`, the native scan, presolve-map and remap steps
+remove eligible doubleton rows and proportional columns from the spooled
+blocks. `substitute =` names definition equations to eliminate while the
+matrix is built;
+[`read_mps_solution()`](https://optimal2050.github.io/multimod/r/reference/read_mps_solution.md)
+reconstructs their variables. These options are for reducing build time,
+matrix size and the memory used for coefficient blocks. Detailed
+benchmarks will be reported separately.
 
 ## Generating code
 
@@ -336,6 +380,12 @@ change without regenerating the model.
 ``` r
 
 jl <- write_jump(toy, model_dir = ws)
+#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
+#> chunk_size, : write_feather(version = 2) has been superseded by
+#> write_ipc_file().
+#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
+#> chunk_size, : write_feather(version = 2) has been superseded by
+#> write_ipc_file().
 cat(grep("^@variable|^@objective", jl, value = TRUE), sep = "\n")
 #> @variable(model, vCap[mTR] >= 0)  # installed capacity, kW
 #> @variable(model, vGen[mTR] >= 0)  # generation, MWh
@@ -448,13 +498,15 @@ backend’s directory for closer inspection:
 | JuMP | `julia model.jl` | `solution/*.csv`, the two stats files, the Julia output |
 | Pyomo | `python model.py` | `solution/status.json`, `solution/variables.json` |
 
-The first Julia run installs and compiles the packages the model needs,
-which makes it much slower than later runs.
+The first Julia run compiles the packages the model needs, which makes
+it much slower than later runs; the packages themselves are installed
+beforehand (see the configuration article).
 [`solve_jump()`](https://optimal2050.github.io/multimod/r/reference/solve_jump.md)
 and
 [`solve_gmpl()`](https://optimal2050.github.io/multimod/r/reference/solve_gmpl.md)
-accept `timeout =`; `solve_pyomo(ensure_env = TRUE)` checks the Python
-environment with
+accept `timeout =`;
+[`solve_pyomo()`](https://optimal2050.github.io/multimod/r/reference/solve_pyomo.md)
+checks the Python environment with
 [`mm_check_python()`](https://optimal2050.github.io/multimod/r/reference/mm_check_python.md)
 before running.
 
@@ -557,7 +609,9 @@ order in which they are checked.
 | Route | Needs | Returns | Use when |
 |----|----|----|----|
 | [`solve_highs()`](https://optimal2050.github.io/multimod/r/reference/solve_highs.md) | the ‘highs’ R package | primal, duals, reduced costs, the LP arrays | the model fits in memory and duals or repeated solves ([`mm_session()`](https://optimal2050.github.io/multimod/r/reference/mm_session.md)) are needed |
-| [`write_mps()`](https://optimal2050.github.io/multimod/r/reference/write_mps.md) | the ‘highs’ R package | an MPS file | the solver runs elsewhere |
+| `write_mps(stream = FALSE)` | the ‘highs’ R package | an MPS file and index tables | the assembled matrix fits in memory and the solver runs elsewhere |
+| `write_mps(stream = TRUE)` | compiled multimod; ‘arrow’ for Parquet index tables | an MPS file and index tables | a large model should be built and written block by block |
+| [`solve_mps()`](https://optimal2050.github.io/multimod/r/reference/solve_mps.md) | HiGHS in R or Julia, or cuOpt locally or in WSL | status, objective and a solution file | an MPS bundle is solved locally or on a local GPU |
 | [`solve_gmpl()`](https://optimal2050.github.io/multimod/r/reference/solve_gmpl.md) | `glpsol` | primal values | a small or medium LP, or when a readable model file is the point |
 | [`solve_jump()`](https://optimal2050.github.io/multimod/r/reference/solve_jump.md) | Julia | primal values, build statistics | a large model, or a solver only JuMP wraps (`optimizer =`) |
 | [`solve_pyomo()`](https://optimal2050.github.io/multimod/r/reference/solve_pyomo.md) | Python with pyomo | primal values, status | the results continue in a Python pipeline |

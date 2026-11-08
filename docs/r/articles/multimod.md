@@ -179,8 +179,8 @@ get_trim_summary(trimmed, format = "data.frame")
 #> 5    equations   153     103        50            67.3
 ```
 
-The “Folding and trimming” article on the website applies both
-reductions and shows that the optimum is unchanged.
+The “Model redundancy” article on the website applies both reductions
+and shows that the optimum is unchanged.
 
 ## LaTeX
 
@@ -270,6 +270,49 @@ result$objective
 #> [1] 198000
 ```
 
+### Native matrix and MPS route
+
+The matrix builder uses its R engine by default. For performance on
+large models, `options(multimod.engine = "native")` sends supported
+equation plans to the package’s multithreaded C++17 executor; equations
+outside its current scope continue through the R engine.
+
+`write_mps(stream = TRUE)` builds coefficient blocks through that
+executor and sends them to a native spool and MPS writer. The complete
+sparse matrix is not materialized in R, which bounds the memory used for
+coefficient blocks. The same route supports build-time presolve
+(`presolve = TRUE`) and definition substitution (`substitute =`).
+
+``` r
+
+mps_dir <- tempfile("toy-mps-")
+dir.create(mps_dir)
+mps <- file.path(mps_dir, "toy.mps")
+
+paths <- local({
+  old <- options(multimod.engine = "native")
+  on.exit(options(old))
+  write_mps(
+    model = toy,
+    file = mps,
+    format = "csv",
+    stream = TRUE,
+    verbose = FALSE
+  )
+})
+file.exists(paths$mps)
+#> [1] TRUE
+```
+
+The MPS file and its index tables form a bundle:
+[`solve_mps()`](https://optimal2050.github.io/multimod/r/reference/solve_mps.md)
+can solve the file, and
+[`read_mps_solution()`](https://optimal2050.github.io/multimod/r/reference/read_mps_solution.md)
+uses the tables to map a solver’s positional rows and columns back to
+model symbols. Large-model runs indicate that the native streamed route
+can substantially reduce matrix-construction and MPS-writing time;
+detailed benchmarks will be reported separately.
+
 [`solve_gmpl()`](https://optimal2050.github.io/multimod/r/reference/solve_gmpl.md),
 [`solve_jump()`](https://optimal2050.github.io/multimod/r/reference/solve_jump.md)
 and
@@ -284,7 +327,7 @@ The articles on the package website,
 
 - “Writing a model in R”: the constructors, building `toy` step by step.
 - “Solving and reading results”: every solve route and its output.
-- “Folding and trimming”: the two reductions and their effect.
+- “Model redundancy”: folding and trimming, and their effect.
 - “Two models from the field”: the energyRt model and a published
   MathProg model, read and solved.
 - “Model workspace and data”, “Configuring solver paths”, “LaTeX

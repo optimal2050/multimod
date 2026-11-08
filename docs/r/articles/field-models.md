@@ -37,16 +37,6 @@ and development. *Energy Policy*, 39(10), 5850-5870.
 ose <- read_gmpl(file.path(osemosys_dir, "src", "osemosys.txt"),
                  file.path(osemosys_dir, "tests", "utopia.txt"))
 ose
-#> Model: osemosys
-#> Description: GMPL model from osemosys.txt
-#> Source:  ~\source\OSeMOSYS_GNU_MathProg\src\osemosys.txt 
-#> Language:  gmpl 
-#> Sets:  11 
-#> Mappings:  0 
-#> Aliases:  11 
-#> Parameters:  61 
-#> Variables:  68 
-#> Equations:  95
 ```
 
 The reader returns 11 sets, 61 parameters, 68 variables and 95
@@ -58,11 +48,8 @@ the annuity), and the rest take their declared defaults, among them a
 ``` r
 
 validate(ose, stop_on_error = FALSE)$valid
-#> [1] TRUE
 as_gams(ose$parameters$CapitalRecoveryFactor$formula$expr)
-#> [1] "(1 - (1 + DiscountRateIdv[r,t]) ** -1) / (1 - (1 + DiscountRateIdv[r,t]) ** -OperationalLife[r,t])"
 cat(as_latex(ose$equations$CAa1_TotalNewCapacity$rhs))
-#> \sum_{\texttt{yy}} \bm{\mathit{NewCapacity}}_{\texttt{r},\texttt{t},\texttt{yy}} \mid \texttt{y}  -  \texttt{yy}  <  \mathsf{OperationalLife}_{\texttt{r},\texttt{t}}  \land  \texttt{y}  -  \texttt{yy}  \geq  0
 ```
 
 ### JuMP
@@ -91,17 +78,13 @@ dir.create(ws)
 write_jump(ose, model_dir = ws)
 data_jl <- readLines(file.path(ws, "solvers", "jump", "data.jl"))
 cat(substr(grep("^CapitalRecoveryFactor = Dict", data_jl, value = TRUE), 1, 160), "...\n")
-#> CapitalRecoveryFactor = Dict((r,t) => (1 - (1 + get(DiscountRateIdv, (r, t), get(DiscountRate, r, DiscountRateDef))) ^ -1) / (1 - (1 + get(DiscountRateIdv, (r,  ...
 ```
 
 ``` r
 
 j <- solve_jump(ose, ws, verbose = FALSE)
-#> Loading solutions from: solvers/jump/solution
 j$objective
-#> [1] 29446.86
 j$status
-#> [1] "OPTIMAL"
 ```
 
 The objective matches glpsol’s 29446.86.
@@ -119,22 +102,8 @@ itself.
 ``` r
 
 h <- solve_highs(ose, attach = FALSE)
-#> Warning: model_to_lp(): 504 equation row(s) carry no coefficients and so
-#> constrain nothing:
-#> SC2_LowerLimit_EndOfDailyTimeBracketOfLastInstanceOfDayTypeInFirstWeekConstraint
-#> (126 rows),
-#> SC2_UpperLimit_EndOfDailyTimeBracketOfLastInstanceOfDayTypeInFirstWeekConstraint
-#> (126 rows),
-#> SC4_LowerLimit_BeginningOfDailyTimeBracketOfFirstInstanceOfDayTypeInLastWeekConstraint
-#> (126 rows),
-#> SC4_UpperLimit_BeginningOfDailyTimeBracketOfFirstInstanceOfDayTypeInLastWeekConstraint
-#> (126 rows). A row like this still assembles and still solves to Optimal, so the
-#> result answers a different model. Check the gating maps and index names of the
-#> equation(s) named above; check_matrix_numbers() reports the same.
 h$objective
-#> [1] 29446.86
 nrow(build_row_index(ose))   # glpsol generates exactly this many rows
-#> [1] 119273
 ```
 
 ### Known limitations
@@ -192,7 +161,7 @@ cat(gms[i:(i + 4)], sep = "\n")
 m <- example_models$energyRt$multimod
 m
 #> Model: 
-#> Source:  ~/Documents/R/energyRt/gams/energyRt.gms 
+#> Source:  energyRt/gams/energyRt.gms 
 #> Language:  GAMS 
 #> Sets:  27 
 #> Mappings:  324 
@@ -239,6 +208,45 @@ c(objective = g$objective, status = g$status)
 ``` r
 
 write_jump(m, model_dir = ws)
+#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
+#> chunk_size, : write_feather(version = 2) has been superseded by
+#> write_ipc_file().
+#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
+#> chunk_size, : write_feather(version = 2) has been superseded by
+#> write_ipc_file().
+#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
+#> chunk_size, : write_feather(version = 2) has been superseded by
+#> write_ipc_file().
+#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
+#> chunk_size, : write_feather(version = 2) has been superseded by
+#> write_ipc_file().
+#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
+#> chunk_size, : write_feather(version = 2) has been superseded by
+#> write_ipc_file().
+#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
+#> chunk_size, : write_feather(version = 2) has been superseded by
+#> write_ipc_file().
+#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
+#> chunk_size, : write_feather(version = 2) has been superseded by
+#> write_ipc_file().
+#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
+#> chunk_size, : write_feather(version = 2) has been superseded by
+#> write_ipc_file().
+#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
+#> chunk_size, : write_feather(version = 2) has been superseded by
+#> write_ipc_file().
+#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
+#> chunk_size, : write_feather(version = 2) has been superseded by
+#> write_ipc_file().
+#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
+#> chunk_size, : write_feather(version = 2) has been superseded by
+#> write_ipc_file().
+#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
+#> chunk_size, : write_feather(version = 2) has been superseded by
+#> write_ipc_file().
+#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
+#> chunk_size, : write_feather(version = 2) has been superseded by
+#> write_ipc_file().
 j <- solve_jump(m, ws, verbose = FALSE)
 #> Loading solutions from: solvers/jump/solution
 c(objective = j$objective, status = j$status)

@@ -1,61 +1,41 @@
 # multimod
 
-> **A unified framework for mathematical model representation, analysis,
-> transformation, and optimization.**
+> **A unified framework for representing, transforming, and solving
+> mathematical optimization models across languages and solvers.**
 
-**multimod** is a unified framework for working with mathematical
-optimization models independently of the languages and solvers used to
-implement them. Its current implementation is an R package. It
-represents a model as a structured abstract syntax tree (AST) of sets,
-mappings, parameters, variables, and equations. That representation can
-be constructed in R, parsed from supported modeling-language syntax,
-inspected and transformed, or translated into other representations.
+**multimod** is an R package for representing, analyzing, transforming,
+and solving mathematical optimization models. It stores sets, mappings,
+parameters, variables, and equations in a structured abstract syntax
+tree (AST). Models can be constructed with R functions or imported from
+the supported subsets of GAMS and GNU MathProg.
 
-**Define the mathematics once; choose how to express, simplify, and
-solve it.** Rather than maintaining separate implementations of the same
-formulation, multimod provides a common model representation and
-multiple routes from formulation to solution.
+The package validates and visualizes model structure, folds redundant
+dimensions, trims unused symbols, and stores models as JSON or in CSV-
+and Arrow-based workspaces. It renders models and equations as GAMS, GNU
+MathProg, JuMP, Pyomo, or LaTeX.
 
-## Why multimod?
-
-- **Separate mathematical meaning from implementation.** Work with a
-  structured formulation instead of tying model logic to one programming
-  language, modeling system, or solver.
-- **Move between modeling environments.** Generate MathProg, GAMS, JuMP,
-  and Pyomo code, or render equations as LaTeX for inspection and
-  documentation. Import supported subsets of existing GAMS and MathProg
-  models.
-- **Avoid unnecessary model-building overhead.** Assemble the
-  linear-programming matrix directly in R and pass it to HiGHS, or
-  export MPS, without first generating and executing another
-  modeling-language implementation.
-- **Reduce models to the information their data contains.** Fold
-  dimensions with no variation and trim unused symbols, helping make
-  formulations and their generated representations more compact.
-- **Inspect and reuse model structure.** Validate and visualize the AST,
-  examine model statistics, exchange structures as JSON, and maintain
-  data in CSV or Arrow-based workspaces.
-- **Support reproducible modeling workflows.** Keep formulations, data,
-  generated code, and solution routes connected through a common model
-  representation.
+For continuous linear optimization, multimod can generate an LP matrix
+for HiGHS or cuOpt, write an MPS file, or run generated model code with
+the corresponding external toolchain. It also reads solver results into
+R.
 
 multimod originated in energy system modeling and includes an energy
-model among its examples, but **its core is domain-independent**. It can
-represent linear optimization models in other fields as well.
+model among its examples. Its model representation is not specific to
+that domain.
 
 ## Architecture: from formulation to solution
 
 A model can enter multimod through R constructors, supported equation
 syntax, or a supported source-code reader. Once represented as an AST,
 it can be inspected, reduced, saved, translated into another modeling
-language, or compiled directly into an LP matrix. These are alternative
-routes from the *same mathematical formulation*, not separate models to
-maintain.
+language, or compiled directly into an LP matrix. Each output route
+operates on the same model representation.
 
 ``` text
 ┌─────────────────────────────┐
-│      Input Formats          │
+│        Model inputs         │
 ├─────────────────────────────┤
+│ R constructors and DSL      │ → new_*(), ast_*(), mm_equation()
 │ GAMS    (basic/linear only) │ → read_gams()
 │ MathProg (limited features) │ → read_gmpl()
 │ JuMP    (constraints only)  │ → mm_equation()
@@ -77,15 +57,15 @@ maintain.
 │ Output: model code               │  │ Output: LP matrix                │
 ├──────────────────────────────────┤  ├──────────────────────────────────┤
 │ LaTeX    write_latex()       [x] │  │ model_to_lp()               [x]  │
-│ MathProg write_gmpl()        [x] │  │ write_mps()                 [x]  │
-│ JuMP     write_jump()        [x] │  │ solve_highs()               [x]  │
-│ Pyomo    write_pyomo()       [x] │  │ solve_mps()                 [x]  │
-│ GAMS     write_gams() +      [x] │  │ read_mps_solution()         [x]  │
-│          write_gams_data()       │  │                                  │
-│ {{AMPL, ...}}                [ ] │  │ no generated model text, so      │
-│                                  │  │ no model-build step — the        │
-│ then an external solver:         │  │ time and memory wall on          │
-│ glpsol, Julia, Python, NEOS      │  │ large models                     │
+│ MathProg write_gmpl()        [x] │  │ native C++ executor         [x]  │
+│ JuMP     write_jump()        [x] │  │ write_mps(stream=TRUE)      [x]  │
+│ Pyomo    write_pyomo()       [x] │  │ native presolve/remap       [x]  │
+│ GAMS     write_gams() +      [x] │  │ solve_highs()               [x]  │
+│          write_gams_data()       │  │ solve_mps()                 [x]  │
+│ {{AMPL, ...}}                [ ] │  │ read_mps_solution()         [x]  │
+│                                  │  │                                  │
+│ then an external solver:         │  │ direct matrix construction       │
+│ glpsol, Julia, Python, NEOS      │  │ no generated model source        │
 └──────────────────────────────────┘  └──────────────────────────────────┘
 
 Status: [x] implemented | [~] and { } developing | [ ] and {{ }} considering
@@ -99,6 +79,29 @@ variables**. Language importers cover documented subsets, and some
 output routes remain experimental; see [Capabilities](#capabilities) and
 the
 [roadmap](https://optimal2050.github.io/multimod/r/articles/roadmap.html).
+
+### Native matrix route
+
+For performance on large models, the matrix route includes a C++17
+executor for supported equation plans. Enable it with
+`options(multimod.engine = "native")`; equations that cannot be lowered
+to a native plan continue through the R engine. The executor is
+multithreaded, slices large expansions, and is used by both
+[`model_to_lp()`](https://optimal2050.github.io/multimod/r/reference/model_to_lp.md)
+and the streamed MPS route.
+
+`write_mps(stream = TRUE)` sends coefficient blocks to a native spool
+and MPS writer instead of materializing the complete sparse matrix in R.
+Its native scan, presolve-map, and remap steps can eliminate doubleton
+rows and proportional columns while the file is built. Build-time
+definition substitution is applied on the same route. These paths are
+intended to reduce matrix-build time and bound the memory used for
+coefficient blocks.
+
+Large-model runs indicate that the native streamed route can
+substantially reduce matrix-construction and MPS-writing time relative
+to the earlier in-memory route. Performance depends on model structure
+and build options; detailed benchmarks will be reported separately.
 
 ## Installation
 
@@ -204,9 +207,9 @@ lists what else is not done yet.
 - [Writing a model in
   R](https://optimal2050.github.io/multimod/r/articles/ast.html): the
   constructors, step by step.
-- [Folding and
-  trimming](https://optimal2050.github.io/multimod/r/articles/folding.html):
-  reducing a model to the size its data needs.
+- [Model
+  redundancy](https://optimal2050.github.io/multimod/r/articles/folding.html):
+  folding and trimming a model to the size its data needs.
 - Further articles on the
   [website](https://optimal2050.github.io/multimod/r/): solving and
   reading results, the two field models, the model workspace,
@@ -214,17 +217,17 @@ lists what else is not done yet.
 
 ## Development direction
 
-The long-term architecture envisages a native C++ or Rust computational
-core with R and Python interfaces. Future research directions include
+The long-term architecture gives the native core Python and Julia
+interfaces beside the R one. Further research directions include
 AI-assisted formulation and support for nonlinear and stochastic
-optimization. These are planned directions, not implemented features.
+optimization; these are planned, not implemented.
 
 The repository is laid out for that architecture: the R package at the
-root, `core/` and `python/` reserved for the native core and its Python
-binding, `specs/` for the cross-language goldens, and one documentation
-site under `docs/` with the R reference at
-[`/r/`](https://optimal2050.github.io/multimod/r/) beside the future
-language sections.
+root, `core/` holding the native core (copied into `src/` for the R
+build) and `python/` reserved for its Python binding, `specs/` for the
+cross-language goldens, and one documentation site under `docs/` with
+the R reference at [`/r/`](https://optimal2050.github.io/multimod/r/)
+beside the future language sections.
 
 ## Integration with energyRt
 
@@ -232,8 +235,7 @@ language sections.
 model compiler:
 [`energyRt::multimod_from_energyRt()`](https://energyRt.org/reference/multimod_from_energyRt.html)
 builds the model from an interpolated scenario, and the LP or MPS
-multimod produces is what energyRt hands to a local solver or,
-experimentally, to cloud hardware through the mmcloud package.
+multimod produces is what energyRt hands to a solver.
 
 ## License
 

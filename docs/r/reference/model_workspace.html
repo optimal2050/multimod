@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.5.0</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -23,7 +23,7 @@
     <li><a class="dropdown-item" href="../articles/ast.html">Writing a model in R</a></li>
     <li><a class="dropdown-item" href="../articles/solving.html">Solving and reading results</a></li>
     <li><a class="dropdown-item" href="../articles/model_workspace.html">Model workspace and data</a></li>
-    <li><a class="dropdown-item" href="../articles/folding.html">Folding and trimming</a></li>
+    <li><a class="dropdown-item" href="../articles/folding.html">Model redundancy</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>An existing model</h6></li>
     <li><a class="dropdown-item" href="../articles/field-models.html">Two models from the field</a></li>
@@ -95,9 +95,12 @@
     <h2 id="storage-formats">Storage Formats<a class="anchor" aria-label="anchor" href="#storage-formats"></a></h2>
 
 
-<ul><li><p><strong>csv</strong> - Universal, human-readable (default)</p></li>
-<li><p><strong>ipc</strong> - Arrow IPC/Feather (.arrow extension), fastest, compression: zstd level 15 (recommended)</p></li>
-<li><p><strong>parquet</strong> - Popular Arrow format (but may have compatibility issues)</p></li>
+<ul><li><p><strong>parquet</strong> - default; zstd level 3. The smallest for model
+data (set members and mappings are dictionary-encoded before
+compression) and read by every Arrow implementation</p></li>
+<li><p><strong>ipc</strong> - Arrow IPC/Feather (.arrow extension); faster to
+read, several times larger on categorical data</p></li>
+<li><p><strong>csv</strong> - Universal, human-readable</p></li>
 </ul></div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

@@ -32,19 +32,19 @@ A list with 2 elements:
 
   gams
 
-  :   List with `model`: energyRt's GAMS template source
-      (`gams/energyRt.gms`) as a character vector, ready for
-      `read_gams(include = FALSE)`.
+  : List with `model`: energyRt's GAMS template source
+    (`gams/energyRt.gms`) as a character vector, ready for
+    `read_gams(include = FALSE)`.
 
   multimod
 
-  :   The multimod model parsed from that source, with data from an
-      interpolated energyRt scenario attached.
+  : The multimod model parsed from that source, with data from an
+    interpolated energyRt scenario attached.
 
   metadata
 
-  :   List with source, scenario, repository, license, energyRt_version,
-      gams_source, date_imported, note.
+  : List with source, scenario, repository, license, energyRt_version,
+    gams_source, date_imported, note.
 
 ## Source
 
@@ -124,7 +124,7 @@ example_models$toy
 # the parsed energyRt model
 example_models$energyRt$multimod
 #> Model: 
-#> Source:  ~/Documents/R/energyRt/gams/energyRt.gms 
+#> Source:  energyRt/gams/energyRt.gms 
 #> Language:  GAMS 
 #> Sets:  27 
 #> Mappings:  324 

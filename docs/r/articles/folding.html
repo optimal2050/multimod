@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Folding and trimming • multimod</title>
+<title>Model redundancy • multimod</title>
 <!-- favicons --><link rel="icon" type="image/png" sizes="96x96" href="../favicon-96x96.png">
 <link rel="icon" type="”image/svg+xml”" href="../favicon.svg">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
@@ -15,7 +15,7 @@
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Folding and trimming">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Model redundancy">
 <script data-goatcounter="https://multimod.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </head>
 <body>
@@ -26,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.5.0</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -44,7 +44,7 @@
     <li><a class="dropdown-item" href="../articles/ast.html">Writing a model in R</a></li>
     <li><a class="dropdown-item" href="../articles/solving.html">Solving and reading results</a></li>
     <li><a class="dropdown-item" href="../articles/model_workspace.html">Model workspace and data</a></li>
-    <li><a class="dropdown-item" href="../articles/folding.html">Folding and trimming</a></li>
+    <li><a class="dropdown-item" href="../articles/folding.html">Model redundancy</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>An existing model</h6></li>
     <li><a class="dropdown-item" href="../articles/field-models.html">Two models from the field</a></li>
@@ -82,7 +82,7 @@
 
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
-      <img src="../logo.png" class="logo" alt=""><h1>Folding and trimming</h1>
+      <img src="../logo.png" class="logo" alt=""><h1>Model redundancy</h1>
             
       
       <small class="dont-index">Source: <a href="https://github.com/optimal2050/multimod/blob/HEAD/vignettes/articles/folding.Rmd" class="external-link"><code>vignettes/articles/folding.Rmd</code></a></small>
@@ -96,7 +96,7 @@
 <span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="va">example_models</span><span class="op">$</span><span class="va">energyRt</span><span class="op">$</span><span class="va">multimod</span></span>
 <span><span class="va">mod</span></span>
 <span><span class="co">#&gt; Model: </span></span>
-<span><span class="co">#&gt; Source:  ~/Documents/R/energyRt/gams/energyRt.gms </span></span>
+<span><span class="co">#&gt; Source:  energyRt/gams/energyRt.gms </span></span>
 <span><span class="co">#&gt; Language:  GAMS </span></span>
 <span><span class="co">#&gt; Sets:  27 </span></span>
 <span><span class="co">#&gt; Mappings:  324 </span></span>
@@ -104,95 +104,133 @@
 <span><span class="co">#&gt; Parameters:  218 </span></span>
 <span><span class="co">#&gt; Variables:  93 </span></span>
 <span><span class="co">#&gt; Equations:  153</span></span></code></pre></div>
-<div class="section level2">
-<h2 id="the-flexibility-performance-tradeoff">The flexibility-performance tradeoff<a class="anchor" aria-label="anchor" href="#the-flexibility-performance-tradeoff"></a>
-</h2>
-<p>Framework models such as energyRt are written to cover many cases:
-one generic set of equations covers technologies, storage, trade,
-emissions and more, and every parameter is indexed over every dimension
-it may vary by (technology, commodity, region, year, timeslice). A given
-scenario uses only part of that:</p>
-<ul>
-<li>a single-region model has no interregional trade,</li>
-<li>most technologies have the same efficiency in every timeslice,</li>
-<li>features the scenario does not use leave sets and mappings empty,
-and the equations that depend on them generate no constraints.</li>
-</ul>
-<p>This generality has a cost at model-build time and in the solver:
-data that is repeated across a dimension inflates the data files and the
-coefficient count, and equations with empty domains are still processed.
-multimod offers two complementary transformations that remove this
-redundancy without changing the optimum, as the appendix verifies:</p>
+<p>A framework model such as energyRt declares each parameter over every
+dimension it may vary by (technology, commodity, region, year,
+timeslice) and carries equations for features a given scenario may not
+use. Two transformations remove the resulting redundancy without
+changing the optimum:</p>
 <ol style="list-style-type: decimal">
 <li>
-<strong>Folding</strong> removes a dimension from a parameter when
-the values are constant across it (data redundancy).</li>
+<strong>Folding</strong> drops a dimension from a parameter whose
+values are constant across it (data redundancy).</li>
 <li>
-<strong>Trimming</strong> marks sets, parameters, mappings,
-variables and equations that have no data or no instances, so code
-generators skip them (structural redundancy).</li>
+<strong>Trimming</strong> flags sets, parameters, mappings,
+variables and equations with no data or no instances (structural
+redundancy).</li>
 </ol>
-<p>Both are reversible, and both are honored by the MathProg, JuMP,
+<p>Both are reversible, and both are honoured by the MathProg, JuMP,
 Pyomo and LaTeX writers and by the matrix route.</p>
-</div>
 <div class="section level2">
 <h2 id="folding">Folding<a class="anchor" aria-label="anchor" href="#folding"></a>
 </h2>
-<div class="section level3">
-<h3 id="the-idea">The idea<a class="anchor" aria-label="anchor" href="#the-idea"></a>
-</h3>
-<p>Consider a 5-dimensional parameter whose values do not depend on the
-timeslice:</p>
-<pre><code><span><span class="va">pTechCinp2use</span><span class="op">[</span><span class="va">E01</span>, <span class="va">ELC</span>, <span class="va">R1</span>, <span class="fl">2025</span>, <span class="va">s1</span><span class="op">]</span> <span class="op">=</span> <span class="fl">0.95</span></span>
-<span><span class="va">pTechCinp2use</span><span class="op">[</span><span class="va">E01</span>, <span class="va">ELC</span>, <span class="va">R1</span>, <span class="fl">2025</span>, <span class="va">s2</span><span class="op">]</span> <span class="op">=</span> <span class="fl">0.95</span></span>
-<span><span class="va">...</span></span></code></pre>
-<p>Folding drops the <code>timeslice</code> dimension and keeps one row
-per remaining index combination. Equations that reference the parameter
-are rewritten to omit the folded index:</p>
+<p>A parameter with the same value in every timeslice is stored once per
+remaining index combination, and the equations that use it lose the
+folded index:</p>
 <pre><code><span><span class="co"># before</span></span>
 <span><span class="va">vTechInp</span><span class="op">[</span><span class="va">t</span>,<span class="va">c</span>,<span class="va">r</span>,<span class="va">y</span>,<span class="va">s</span><span class="op">]</span> <span class="op">&gt;=</span> <span class="va">pTechCinp2use</span><span class="op">[</span><span class="va">t</span>,<span class="va">c</span>,<span class="va">r</span>,<span class="va">y</span>,<span class="va">s</span><span class="op">]</span> <span class="op">*</span> <span class="va">vTechAct</span><span class="op">[</span><span class="va">t</span>,<span class="va">r</span>,<span class="va">y</span>,<span class="va">s</span><span class="op">]</span></span>
 <span><span class="co"># after</span></span>
 <span><span class="va">vTechInp</span><span class="op">[</span><span class="va">t</span>,<span class="va">c</span>,<span class="va">r</span>,<span class="va">y</span>,<span class="va">s</span><span class="op">]</span> <span class="op">&gt;=</span> <span class="va">pTechCinp2use</span><span class="op">[</span><span class="va">t</span>,<span class="va">c</span>,<span class="va">r</span>,<span class="va">y</span><span class="op">]</span>   <span class="op">*</span> <span class="va">vTechAct</span><span class="op">[</span><span class="va">t</span>,<span class="va">r</span>,<span class="va">y</span>,<span class="va">s</span><span class="op">]</span></span></code></pre>
-</div>
 <div class="section level3">
-<h3 id="diagnose-redundancy">Diagnose redundancy<a class="anchor" aria-label="anchor" href="#diagnose-redundancy"></a>
+<h3 id="redundancy-in-the-data">Redundancy in the data<a class="anchor" aria-label="anchor" href="#redundancy-in-the-data"></a>
 </h3>
-<p><code><a href="../reference/analyze_parameter_redundancy.html">analyze_parameter_redundancy()</a></code> reports, per parameter,
-how many rows carry a repeated value. High redundancy marks a folding
-candidate.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<p><code><a href="../reference/analyze_parameter_redundancy.html">analyze_parameter_redundancy()</a></code> counts, per parameter,
+the rows that repeat a value.</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">red</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/analyze_parameter_redundancy.html">analyze_parameter_redundancy</a></span><span class="op">(</span><span class="va">mod</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="va">red</span> <span class="op">&lt;-</span> <span class="va">red</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="op">-</span><span class="va">red</span><span class="op">$</span><span class="va">orig_redundancy_pct</span><span class="op">)</span>, <span class="op">]</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">red</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"param_name"</span>, <span class="st">"dims"</span>, <span class="st">"orig_rows"</span>, <span class="st">"orig_unique"</span>,</span>
-<span>             <span class="st">"orig_redundancy_pct"</span><span class="op">)</span><span class="op">]</span>, <span class="fl">8</span><span class="op">)</span></span>
-<span><span class="co">#&gt;          param_name                                   dims orig_rows</span></span>
-<span><span class="co">#&gt; 3     pTechCinp2use    tech, comm, region, year, timeslice      1344</span></span>
-<span><span class="co">#&gt; 30      pTradeIrEff trade, region, region, year, timeslice       576</span></span>
-<span><span class="co">#&gt; 8         pTechAfLo          tech, region, year, timeslice       336</span></span>
-<span><span class="co">#&gt; 23   pStorageInpEff     stg, comm, region, year, timeslice       336</span></span>
-<span><span class="co">#&gt; 24   pStorageOutEff     stg, comm, region, year, timeslice       336</span></span>
-<span><span class="co">#&gt; 20    pTimesliceAgg             year, timeslice, timeslice       180</span></span>
-<span><span class="co">#&gt; 19 pTimesliceWeight                        year, timeslice        68</span></span>
-<span><span class="co">#&gt; 35    pTradeInvcost                    trade, region, year        48</span></span>
-<span><span class="co">#&gt;    orig_unique orig_redundancy_pct</span></span>
-<span><span class="co">#&gt; 3            3                99.8</span></span>
-<span><span class="co">#&gt; 30           1                99.8</span></span>
-<span><span class="co">#&gt; 8            1                99.7</span></span>
-<span><span class="co">#&gt; 23           1                99.7</span></span>
-<span><span class="co">#&gt; 24           1                99.7</span></span>
-<span><span class="co">#&gt; 20           1                99.4</span></span>
-<span><span class="co">#&gt; 19           1                98.5</span></span>
-<span><span class="co">#&gt; 35           1                97.9</span></span></code></pre></div>
+<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">red</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"param_name"</span>, <span class="st">"dims"</span>, <span class="st">"orig_rows"</span>, <span class="st">"orig_unique"</span>,</span>
+<span>               <span class="st">"orig_redundancy_pct"</span><span class="op">)</span><span class="op">]</span>, <span class="fl">8</span><span class="op">)</span>,</span>
+<span>  row.names <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  caption <span class="op">=</span> <span class="st">"Parameters with the most repeated values (rows; redundancy in %)"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<caption>Parameters with the most repeated values (rows; redundancy in
+%)</caption>
+<colgroup>
+<col width="17%">
+<col width="39%">
+<col width="10%">
+<col width="12%">
+<col width="20%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">param_name</th>
+<th align="left">dims</th>
+<th align="right">orig_rows</th>
+<th align="right">orig_unique</th>
+<th align="right">orig_redundancy_pct</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">pTechCinp2use</td>
+<td align="left">tech, comm, region, year, timeslice</td>
+<td align="right">1344</td>
+<td align="right">3</td>
+<td align="right">99.8</td>
+</tr>
+<tr class="even">
+<td align="left">pTradeIrEff</td>
+<td align="left">trade, region, region, year, timeslice</td>
+<td align="right">576</td>
+<td align="right">1</td>
+<td align="right">99.8</td>
+</tr>
+<tr class="odd">
+<td align="left">pTechAfLo</td>
+<td align="left">tech, region, year, timeslice</td>
+<td align="right">336</td>
+<td align="right">1</td>
+<td align="right">99.7</td>
+</tr>
+<tr class="even">
+<td align="left">pStorageInpEff</td>
+<td align="left">stg, comm, region, year, timeslice</td>
+<td align="right">336</td>
+<td align="right">1</td>
+<td align="right">99.7</td>
+</tr>
+<tr class="odd">
+<td align="left">pStorageOutEff</td>
+<td align="left">stg, comm, region, year, timeslice</td>
+<td align="right">336</td>
+<td align="right">1</td>
+<td align="right">99.7</td>
+</tr>
+<tr class="even">
+<td align="left">pTimesliceAgg</td>
+<td align="left">year, timeslice, timeslice</td>
+<td align="right">180</td>
+<td align="right">1</td>
+<td align="right">99.4</td>
+</tr>
+<tr class="odd">
+<td align="left">pTimesliceWeight</td>
+<td align="left">year, timeslice</td>
+<td align="right">68</td>
+<td align="right">1</td>
+<td align="right">98.5</td>
+</tr>
+<tr class="even">
+<td align="left">pTradeInvcost</td>
+<td align="left">trade, region, year</td>
+<td align="right">48</td>
+<td align="right">1</td>
+<td align="right">97.9</td>
+</tr>
+</tbody>
+</table>
 </div>
 <div class="section level3">
-<h3 id="build-a-fold-specification">Build a fold specification<a class="anchor" aria-label="anchor" href="#build-a-fold-specification"></a>
+<h3 id="fold-specification">Fold specification<a class="anchor" aria-label="anchor" href="#fold-specification"></a>
 </h3>
-<p><code><a href="../reference/create_fold_spec.html">create_fold_spec()</a></code> takes <code>fold_dims</code>, a named
-list: one entry per dimension to fold, whose value names the
-<em>validation mappings</em> to check against. For an energyRt model the
-technology parameters are validated against <code>mTechTimeslice</code>
-and the commodity parameters against <code>mCommTimeslice</code>:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<p><code><a href="../reference/create_fold_spec.html">create_fold_spec()</a></code> takes one entry per dimension to
+fold, naming the <em>validation mappings</em> that state which entities
+may vary by that dimension; a parameter folds only when its values are
+constant within every group the mapping allows. In energyRt these are
+<code>mTechTimeslice</code> for technologies and
+<code>mCommTimeslice</code> for commodities.</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fold_spec</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/create_fold_spec.html">create_fold_spec</a></span><span class="op">(</span></span>
 <span>  <span class="va">mod</span>,</span>
 <span>  fold_dims <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
@@ -200,34 +238,74 @@ and the commodity parameters against <code>mCommTimeslice</code>:</p>
 <span>  <span class="op">)</span>,</span>
 <span>  verbose <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
-<span><span class="va">fold_spec</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"param_name"</span>, <span class="st">"validation_mapping"</span>, <span class="st">"can_fold"</span>, <span class="st">"unproven"</span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="co">#&gt;         param_name validation_mapping can_fold unproven</span></span>
-<span><span class="co">#&gt; 1    pTechCinp2use     mTechTimeslice     TRUE    FALSE</span></span>
-<span><span class="co">#&gt; 2        pTechAfLo     mTechTimeslice     TRUE    FALSE</span></span>
-<span><span class="co">#&gt; 3         pSupCost     mCommTimeslice     TRUE    FALSE</span></span>
-<span><span class="co">#&gt; 4 pTimesliceWeight               &lt;NA&gt;     TRUE    FALSE</span></span>
-<span><span class="co">#&gt; 5    pTimesliceAgg               &lt;NA&gt;    FALSE    FALSE</span></span>
-<span><span class="co">#&gt; 6   pStorageInpEff     mCommTimeslice     TRUE    FALSE</span></span>
-<span><span class="co">#&gt; 7   pStorageOutEff     mCommTimeslice     TRUE    FALSE</span></span>
-<span><span class="co">#&gt; 8      pTradeIrEff               &lt;NA&gt;    FALSE    FALSE</span></span>
-<span><span class="co">#&gt; 9  pImportRowPrice               &lt;NA&gt;    FALSE     TRUE</span></span></code></pre></div>
-<p>The result is a data frame with one row per parameter that carries
-the dimension. <code>can_fold</code> is <code>TRUE</code> when the
-values are constant across the dimension in every group formed by the
-other indices. <code>unproven</code> flags parameters that failed only
-because no validation mapping was found for their entity type; supplying
-one (for example <code>sup = "mSupTimeslice"</code>) would let them be
-checked.</p>
-<p>The validation mapping matters because a parameter may be constant
-across the timeslice <em>in the data</em> only because the scenario
-never varied it. The mapping states which entities may vary by that
-dimension, so folding stays consistent with the model structure, not
-only with one dataset. A value of
-<code>c("mStorageComm", "mCommTimeslice")</code> chains two mappings
-when the entity is linked to the dimension indirectly.</p>
-<p>Several dimensions can be folded in one specification; they are
-applied in the order given, each on the result of the previous one:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">fold_spec</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"param_name"</span>, <span class="st">"validation_mapping"</span>, <span class="st">"can_fold"</span>, <span class="st">"unproven"</span><span class="op">)</span><span class="op">]</span>, <span class="fl">8</span><span class="op">)</span>,</span>
+<span>  row.names <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  caption <span class="op">=</span> <span class="st">"Fold specification, first rows"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<caption>Fold specification, first rows</caption>
+<thead><tr class="header">
+<th align="left">param_name</th>
+<th align="left">validation_mapping</th>
+<th align="left">can_fold</th>
+<th align="left">unproven</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">pTechCinp2use</td>
+<td align="left">mTechTimeslice</td>
+<td align="left">TRUE</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="even">
+<td align="left">pTechAfLo</td>
+<td align="left">mTechTimeslice</td>
+<td align="left">TRUE</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="odd">
+<td align="left">pSupCost</td>
+<td align="left">mCommTimeslice</td>
+<td align="left">TRUE</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="even">
+<td align="left">pTimesliceWeight</td>
+<td align="left">NA</td>
+<td align="left">TRUE</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="odd">
+<td align="left">pTimesliceAgg</td>
+<td align="left">NA</td>
+<td align="left">FALSE</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="even">
+<td align="left">pStorageInpEff</td>
+<td align="left">mCommTimeslice</td>
+<td align="left">TRUE</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="odd">
+<td align="left">pStorageOutEff</td>
+<td align="left">mCommTimeslice</td>
+<td align="left">TRUE</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="even">
+<td align="left">pTradeIrEff</td>
+<td align="left">NA</td>
+<td align="left">FALSE</td>
+<td align="left">FALSE</td>
+</tr>
+</tbody>
+</table>
+<p><code>unproven</code> marks parameters without a validation mapping
+for their entity type. Several dimensions are folded in the order
+given:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/create_fold_spec.html">create_fold_spec</a></span><span class="op">(</span></span>
 <span>  <span class="va">mod</span>,</span>
 <span>  fold_dims <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
@@ -237,174 +315,184 @@ applied in the order given, each on the result of the previous one:</p>
 <span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
-<h3 id="apply-the-fold">Apply the fold<a class="anchor" aria-label="anchor" href="#apply-the-fold"></a>
+<h3 id="fold-and-unfold">Fold and unfold<a class="anchor" aria-label="anchor" href="#fold-and-unfold"></a>
 </h3>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">mod_folded</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/fold_model.html">fold_model</a></span><span class="op">(</span><span class="va">mod</span>, fold_spec <span class="op">=</span> <span class="va">fold_spec</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/is_folded.html">is_folded</a></span><span class="op">(</span><span class="va">mod</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] FALSE</span></span>
-<span><span class="fu"><a href="../reference/is_folded.html">is_folded</a></span><span class="op">(</span><span class="va">mod_folded</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
-<p><code><a href="../reference/fold_model.html">fold_model()</a></code> collapses the data of every parameter with
-<code>can_fold = TRUE</code>, rewrites each equation that references one
-of them, and records what it did in
-<code>model$misc$fold_summary</code>. <code><a href="../reference/get_fold_summary.html">get_fold_summary()</a></code>
-reads that record:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/get_fold_summary.html">get_fold_summary</a></span><span class="op">(</span><span class="va">mod_folded</span>, format <span class="op">=</span> <span class="st">"data.frame"</span><span class="op">)</span><span class="op">[</span></span>
-<span>  , <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"parameter"</span>, <span class="st">"removed_dims"</span>, <span class="st">"original_rows"</span>, <span class="st">"folded_rows"</span>, <span class="st">"compression"</span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="co">#&gt;          parameter removed_dims original_rows folded_rows compression</span></span>
-<span><span class="co">#&gt; 1    pTechCinp2use    timeslice          1344         112       12.0x</span></span>
-<span><span class="co">#&gt; 2        pTechAfLo    timeslice           336          28       12.0x</span></span>
-<span><span class="co">#&gt; 3         pSupCost    timeslice            76          76        1.0x</span></span>
-<span><span class="co">#&gt; 4 pTimesliceWeight    timeslice            68           4       17.0x</span></span>
-<span><span class="co">#&gt; 5   pStorageInpEff    timeslice           336          28       12.0x</span></span>
-<span><span class="co">#&gt; 6   pStorageOutEff    timeslice           336          28       12.0x</span></span></code></pre></div>
-<p>With <code>format = "text"</code> the same information is printed as
-a report; <code>format = "list"</code> returns it as nested lists.</p>
-</div>
-<div class="section level3">
-<h3 id="inspect-a-folded-parameter">Inspect a folded parameter<a class="anchor" aria-label="anchor" href="#inspect-a-folded-parameter"></a>
-</h3>
-<p><code><a href="../reference/is_folded.html">is_folded()</a></code> also works on a single parameter, and
-<code><a href="../reference/get_active_dims.html">get_active_dims()</a></code> returns the dimensions in force after
-folding; the declaration stays in <code>$dims</code>.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>original <span class="op">=</span> <span class="fu"><a href="../reference/is_folded.html">is_folded</a></span><span class="op">(</span><span class="va">mod</span><span class="op">)</span>, folded <span class="op">=</span> <span class="fu"><a href="../reference/is_folded.html">is_folded</a></span><span class="op">(</span><span class="va">mod_folded</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; original   folded </span></span>
+<span><span class="co">#&gt;    FALSE     TRUE</span></span>
+<span><span class="va">fs</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_fold_summary.html">get_fold_summary</a></span><span class="op">(</span><span class="va">mod_folded</span>, format <span class="op">=</span> <span class="st">"data.frame"</span><span class="op">)</span></span>
+<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
+<span>  <span class="va">fs</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"parameter"</span>, <span class="st">"removed_dims"</span>, <span class="st">"original_rows"</span>, <span class="st">"folded_rows"</span>, <span class="st">"compression"</span><span class="op">)</span><span class="op">]</span>,</span>
+<span>  row.names <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  caption <span class="op">=</span> <span class="st">"Folded parameters (rows; compression = original / folded rows)"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<caption>Folded parameters (rows; compression = original / folded
+rows)</caption>
+<colgroup>
+<col width="25%">
+<col width="19%">
+<col width="20%">
+<col width="17%">
+<col width="17%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">parameter</th>
+<th align="left">removed_dims</th>
+<th align="right">original_rows</th>
+<th align="right">folded_rows</th>
+<th align="left">compression</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">pTechCinp2use</td>
+<td align="left">timeslice</td>
+<td align="right">1344</td>
+<td align="right">112</td>
+<td align="left">12.0x</td>
+</tr>
+<tr class="even">
+<td align="left">pTechAfLo</td>
+<td align="left">timeslice</td>
+<td align="right">336</td>
+<td align="right">28</td>
+<td align="left">12.0x</td>
+</tr>
+<tr class="odd">
+<td align="left">pSupCost</td>
+<td align="left">timeslice</td>
+<td align="right">76</td>
+<td align="right">76</td>
+<td align="left">1.0x</td>
+</tr>
+<tr class="even">
+<td align="left">pTimesliceWeight</td>
+<td align="left">timeslice</td>
+<td align="right">68</td>
+<td align="right">4</td>
+<td align="left">17.0x</td>
+</tr>
+<tr class="odd">
+<td align="left">pStorageInpEff</td>
+<td align="left">timeslice</td>
+<td align="right">336</td>
+<td align="right">28</td>
+<td align="left">12.0x</td>
+</tr>
+<tr class="even">
+<td align="left">pStorageOutEff</td>
+<td align="left">timeslice</td>
+<td align="right">336</td>
+<td align="right">28</td>
+<td align="left">12.0x</td>
+</tr>
+</tbody>
+</table>
+<p>A folded parameter keeps its declared dimensions in
+<code>$dims</code>; <code><a href="../reference/get_active_dims.html">get_active_dims()</a></code> returns the ones in
+force.</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">p</span> <span class="op">&lt;-</span> <span class="va">mod_folded</span><span class="op">$</span><span class="va">parameters</span><span class="op">$</span><span class="va">pTechCinp2use</span></span>
-<span><span class="fu"><a href="../reference/is_folded.html">is_folded</a></span><span class="op">(</span><span class="va">p</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span>
-<span><span class="va">p</span><span class="op">$</span><span class="va">dims</span>              <span class="co"># as declared</span></span>
+<span><span class="va">p</span><span class="op">$</span><span class="va">dims</span></span>
 <span><span class="co">#&gt; &lt;AST dims&gt; </span></span>
 <span><span class="co">#&gt; [tech,comm,region,year,timeslice]</span></span>
-<span><span class="fu"><a href="../reference/get_active_dims.html">get_active_dims</a></span><span class="op">(</span><span class="va">p</span><span class="op">)</span>  <span class="co"># in force after folding</span></span>
+<span><span class="fu"><a href="../reference/get_active_dims.html">get_active_dims</a></span><span class="op">(</span><span class="va">p</span><span class="op">)</span></span>
 <span><span class="co">#&gt; &lt;AST dims&gt; </span></span>
-<span><span class="co">#&gt; [tech,comm,region,year]</span></span>
-<span></span>
-<span><span class="co"># parameters the fold did not touch keep their declaration</span></span>
-<span><span class="fu"><a href="../reference/is_folded.html">is_folded</a></span><span class="op">(</span><span class="va">mod_folded</span><span class="op">$</span><span class="va">parameters</span><span class="op">$</span><span class="va">pTechInvcost</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] FALSE</span></span></code></pre></div>
-<p>The fold metadata lives in <code>p$misc$fold_info</code>:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">p</span><span class="op">$</span><span class="va">misc</span><span class="op">$</span><span class="va">fold_info</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"original_dims"</span>, <span class="st">"removed_dims"</span>, <span class="st">"original_rows"</span>,</span>
-<span>                   <span class="st">"folded_rows"</span>, <span class="st">"compression_ratio"</span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="co">#&gt; $original_dims</span></span>
-<span><span class="co">#&gt; [1] "tech"      "comm"      "region"    "year"      "timeslice"</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $removed_dims</span></span>
-<span><span class="co">#&gt; [1] "timeslice"</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $original_rows</span></span>
-<span><span class="co">#&gt; [1] 1344</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $folded_rows</span></span>
-<span><span class="co">#&gt; [1] 112</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $compression_ratio</span></span>
-<span><span class="co">#&gt; [1] 12</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="unfold">Unfold<a class="anchor" aria-label="anchor" href="#unfold"></a>
-</h3>
-<p><code><a href="../reference/unfold_model.html">unfold_model()</a></code> restores the original data and dimensions
-of every folded parameter:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<span><span class="co">#&gt; [tech,comm,region,year]</span></span></code></pre></div>
+<p><code><a href="../reference/unfold_model.html">unfold_model()</a></code> restores the original data:</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">mod_unfolded</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/unfold_model.html">unfold_model</a></span><span class="op">(</span><span class="va">mod_folded</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">mod_unfolded</span><span class="op">$</span><span class="va">parameters</span><span class="op">$</span><span class="va">pTechCinp2use</span><span class="op">$</span><span class="va">data</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 1344</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">mod</span><span class="op">$</span><span class="va">parameters</span><span class="op">$</span><span class="va">pTechCinp2use</span><span class="op">$</span><span class="va">data</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 1344</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="aliases-and-repeated-dimensions">Aliases and repeated dimensions<a class="anchor" aria-label="anchor" href="#aliases-and-repeated-dimensions"></a>
-</h3>
-<p>A parameter can be declared with one dimension name while its data
-uses an alias column (<code>comm</code> declared, <code>acomm</code> in
-the data), or a dimension can appear twice in different roles
-(<code>{region, region}</code> stored as <code>src</code>,
-<code>dst</code>). Folding resolves the first through
-<code>model$aliases</code> and keeps every data column other than the
-folded one for the second, so both cases fold without special
-handling.</p>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>original <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">mod</span><span class="op">$</span><span class="va">parameters</span><span class="op">$</span><span class="va">pTechCinp2use</span><span class="op">$</span><span class="va">data</span><span class="op">)</span>,</span>
+<span>  unfolded <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">mod_unfolded</span><span class="op">$</span><span class="va">parameters</span><span class="op">$</span><span class="va">pTechCinp2use</span><span class="op">$</span><span class="va">data</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; original unfolded </span></span>
+<span><span class="co">#&gt;     1344     1344</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level2">
 <h2 id="trimming">Trimming<a class="anchor" aria-label="anchor" href="#trimming"></a>
 </h2>
-<div class="section level3">
-<h3 id="the-idea-1">The idea<a class="anchor" aria-label="anchor" href="#the-idea-1"></a>
-</h3>
-<p>A scenario rarely exercises every feature of a framework model.
-Elements that end up without data or without instances are:</p>
+<p>Trimming flags with <code>$trimmed = TRUE</code>, and deletes
+nothing:</p>
 <ul>
-<li>
-<strong>empty sets and mappings</strong> (no storage technologies,
-no trade routes),</li>
-<li>
-<strong>empty parameters</strong>,</li>
-<li>
-<strong>variables</strong> indexed by an empty set,</li>
-<li>
-<strong>equations</strong> whose domain is empty, or that only
-reference trimmed variables.</li>
+<li>sets, parameters and mappings without data;</li>
+<li>variables over an empty domain;</li>
+<li>equations with an empty domain or only trimmed variables.</li>
 </ul>
-<p>Trimming marks these with <code>$trimmed = TRUE</code>. Nothing is
-deleted; code generators and <code><a href="../reference/write_latex.html">write_latex()</a></code> check the flag
-and skip (or annotate) the element.</p>
-</div>
-<div class="section level3">
-<h3 id="four-phases">Four phases<a class="anchor" aria-label="anchor" href="#four-phases"></a>
-</h3>
-<pre><code>1. mark sets, parameters and mappings with no data
-2. mark variables whose domain is empty
-3. mark equations with an empty domain, or with only trimmed variables
-4. untrim anything a non-trimmed equation still uses</code></pre>
-<p>Phase 4 is what keeps trimming conservative: an element is only
-trimmed when no surviving equation needs it.</p>
-</div>
-<div class="section level3">
-<h3 id="apply-the-trim">Apply the trim<a class="anchor" aria-label="anchor" href="#apply-the-trim"></a>
-</h3>
-<p>Folding comes first: it can empty a parameter that trimming then
-removes.</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<p>Anything a remaining equation still uses is then unflagged, so no
+element a surviving equation needs is trimmed. Folding comes first,
+since it can empty a parameter.</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">mod_trimmed</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/trim_model.html">trim_model</a></span><span class="op">(</span><span class="va">mod_folded</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/is_trimmed.html">is_trimmed</a></span><span class="op">(</span><span class="va">mod</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] FALSE</span></span>
-<span><span class="fu"><a href="../reference/is_trimmed.html">is_trimmed</a></span><span class="op">(</span><span class="va">mod_trimmed</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span>
-<span><span class="fu"><a href="../reference/get_trim_summary.html">get_trim_summary</a></span><span class="op">(</span><span class="va">mod_trimmed</span>, format <span class="op">=</span> <span class="st">"data.frame"</span><span class="op">)</span></span>
-<span><span class="co">#&gt;   element_type total trimmed remaining percent_trimmed</span></span>
-<span><span class="co">#&gt; 1         sets    27       6        21            22.2</span></span>
-<span><span class="co">#&gt; 2   parameters   218       1       217             0.5</span></span>
-<span><span class="co">#&gt; 3     mappings   324     160       164            49.4</span></span>
-<span><span class="co">#&gt; 4    variables    93      10        83            10.8</span></span>
-<span><span class="co">#&gt; 5    equations   153     103        50            67.3</span></span></code></pre></div>
-<p>The example scenario uses a small share of the energyRt equations, so
-most of them trim away. As with folding, <code>format = "text"</code>
-prints a report and <code>format = "list"</code> returns nested lists.
-<code><a href="../reference/is_trimmed.html">is_trimmed()</a></code> works on individual elements too:</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/is_trimmed.html">is_trimmed</a></span><span class="op">(</span><span class="va">mod_trimmed</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqTechCap</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] FALSE</span></span>
-<span><span class="fu"><a href="../reference/is_trimmed.html">is_trimmed</a></span><span class="op">(</span><span class="va">mod_trimmed</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqTechInpTot</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] FALSE</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="../reference/get_trim_summary.html">get_trim_summary</a></span><span class="op">(</span><span class="va">mod_trimmed</span>, format <span class="op">=</span> <span class="st">"list"</span><span class="op">)</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">names</span><span class="op">)</span></span>
+<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="../reference/get_trim_summary.html">get_trim_summary</a></span><span class="op">(</span><span class="va">mod_trimmed</span>, format <span class="op">=</span> <span class="st">"data.frame"</span><span class="op">)</span>,</span>
+<span>  row.names <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  caption <span class="op">=</span> <span class="st">"Elements trimmed, by type (counts)"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<caption>Elements trimmed, by type (counts)</caption>
+<thead><tr class="header">
+<th align="left">element_type</th>
+<th align="right">total</th>
+<th align="right">trimmed</th>
+<th align="right">remaining</th>
+<th align="right">percent_trimmed</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">sets</td>
+<td align="right">27</td>
+<td align="right">6</td>
+<td align="right">21</td>
+<td align="right">22.2</td>
+</tr>
+<tr class="even">
+<td align="left">parameters</td>
+<td align="right">218</td>
+<td align="right">1</td>
+<td align="right">217</td>
+<td align="right">0.5</td>
+</tr>
+<tr class="odd">
+<td align="left">mappings</td>
+<td align="right">324</td>
+<td align="right">160</td>
+<td align="right">164</td>
+<td align="right">49.4</td>
+</tr>
+<tr class="even">
+<td align="left">variables</td>
+<td align="right">93</td>
+<td align="right">10</td>
+<td align="right">83</td>
+<td align="right">10.8</td>
+</tr>
+<tr class="odd">
+<td align="left">equations</td>
+<td align="right">153</td>
+<td align="right">103</td>
+<td align="right">50</td>
+<td align="right">67.3</td>
+</tr>
+</tbody>
+</table>
+<p><code><a href="../reference/is_trimmed.html">is_trimmed()</a></code> applies to a model or to one element;
+<code><a href="../reference/untrim_model.html">untrim_model()</a></code> clears the flags.</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">trimmed_eqs</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_trim_summary.html">get_trim_summary</a></span><span class="op">(</span><span class="va">mod_trimmed</span>, format <span class="op">=</span> <span class="st">"list"</span><span class="op">)</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">names</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">trimmed_eqs</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "eqTechGrp2Sng"    "eqTechSng2Grp"    "eqTechGrp2Grp"    "eqTechShareInpLo"</span></span>
-<span><span class="co">#&gt; [5] "eqTechShareInpUp" "eqTechShareOutLo"</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="untrim">Untrim<a class="anchor" aria-label="anchor" href="#untrim"></a>
-</h3>
-<p><code><a href="../reference/untrim_model.html">untrim_model()</a></code> clears the flags, on all element types by
-default or on the ones named in <code>elements</code>:</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">mod_back</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/untrim_model.html">untrim_model</a></span><span class="op">(</span><span class="va">mod_trimmed</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/is_trimmed.html">is_trimmed</a></span><span class="op">(</span><span class="va">mod_back</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [5] "eqTechShareInpUp" "eqTechShareOutLo"</span></span>
+<span><span class="fu"><a href="../reference/is_trimmed.html">is_trimmed</a></span><span class="op">(</span><span class="va">mod_trimmed</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqTechGrp2Sng</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] TRUE</span></span>
+<span><span class="fu"><a href="../reference/is_trimmed.html">is_trimmed</a></span><span class="op">(</span><span class="va">mod_trimmed</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqTechCap</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] FALSE</span></span>
+<span><span class="fu"><a href="../reference/is_trimmed.html">is_trimmed</a></span><span class="op">(</span><span class="fu"><a href="../reference/untrim_model.html">untrim_model</a></span><span class="op">(</span><span class="va">mod_trimmed</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] FALSE</span></span></code></pre></div>
 </div>
-</div>
 <div class="section level2">
-<h2 id="folding-versus-trimming">Folding versus trimming<a class="anchor" aria-label="anchor" href="#folding-versus-trimming"></a>
+<h2 id="folding-and-trimming-compared">Folding and trimming compared<a class="anchor" aria-label="anchor" href="#folding-and-trimming-compared"></a>
 </h2>
 <table class="table">
 <colgroup>
@@ -430,12 +518,12 @@ default or on the ones named in <code>elements</code>:</p>
 </tr>
 <tr class="odd">
 <td>Reduces</td>
-<td>parameter rows, coefficient count</td>
+<td>parameter rows, coefficients</td>
 <td>sets, parameters, variables, equations emitted</td>
 </tr>
 <tr class="even">
 <td>Needs</td>
-<td>a fold specification (validation mappings)</td>
+<td>validation mappings</td>
 <td>nothing; driven by the data</td>
 </tr>
 <tr class="odd">
@@ -445,78 +533,48 @@ default or on the ones named in <code>elements</code>:</p>
 </tr>
 </tbody>
 </table>
-<p><strong>Folding</strong> applies when parameters are constant across
-a dimension the scenario does not need (timeslice is the usual case),
-when data files or solver memory are the bottleneck, or when a model
-written for many regions or years is run with one.</p>
-<p><strong>Trimming</strong> applies when the scenario leaves optional
-features unused, when empty sets or parameters exist, or when many
-equations generate no constraints.</p>
-<p><strong>Both</strong> suit framework models, folding first and
-trimming second. The objective of a transformed model is worth comparing
-with the original’s before relying on it (see the appendix).</p>
-<p>Folding and trimming change what the generated model
-<em>contains</em>; they do not change what it <em>means</em>. A
-dimension that varies in the data is not foldable
-(<code><a href="../reference/create_fold_spec.html">create_fold_spec()</a></code> refuses it, although a hand-edited
-specification can override that), and an untrimmed copy remains useful
-when the complete structure is wanted for documentation or
-comparison.</p>
 </div>
 <div class="section level2">
-<h2 id="writing-transformed-models">Writing transformed models<a class="anchor" aria-label="anchor" href="#writing-transformed-models"></a>
+<h2 id="writing-a-reduced-model">Writing a reduced model<a class="anchor" aria-label="anchor" href="#writing-a-reduced-model"></a>
 </h2>
-<p>The writers honor the flags. <code><a href="../reference/write_gmpl.html">write_gmpl()</a></code>,
-<code><a href="../reference/write_jump.html">write_jump()</a></code> and <code><a href="../reference/write_pyomo.html">write_pyomo()</a></code> use the folded
-dimensions by default and skip trimmed elements;
-<code><a href="../reference/write_latex.html">write_latex()</a></code> chooses <code>model_view = "reduced"</code>
-for a folded or trimmed model and annotates the removed elements in
-<code>model_view = "full"</code>. <code><a href="../reference/model_to_lp.html">model_to_lp()</a></code> and
-<code><a href="../reference/solve_highs.html">solve_highs()</a></code> assemble the matrix from the active
-dimensions directly.</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<p><code><a href="../reference/write_gmpl.html">write_gmpl()</a></code>, <code><a href="../reference/write_jump.html">write_jump()</a></code> and
+<code><a href="../reference/write_pyomo.html">write_pyomo()</a></code> use the folded dimensions and skip trimmed
+elements; <code><a href="../reference/write_latex.html">write_latex()</a></code> shows the reduced model, or the
+full one with the removed parts marked
+(<code>model_view = "full"</code>); <code><a href="../reference/model_to_lp.html">model_to_lp()</a></code> builds
+the matrix from the active dimensions.</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"trimmed"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/save_model.html">save_model</a></span><span class="op">(</span><span class="va">mod_trimmed</span>, <span class="va">dir</span>, format <span class="op">=</span> <span class="st">"ipc"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/save_model.html">save_model</a></span><span class="op">(</span><span class="va">mod_trimmed</span>, <span class="va">dir</span>, format <span class="op">=</span> <span class="st">"csv"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/write_gmpl.html">write_gmpl</a></span><span class="op">(</span><span class="va">mod_trimmed</span>, model_dir <span class="op">=</span> <span class="va">dir</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/write_jump.html">write_jump</a></span><span class="op">(</span><span class="va">mod_trimmed</span>, model_dir <span class="op">=</span> <span class="va">dir</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/write_latex.html">write_latex</a></span><span class="op">(</span><span class="va">mod_trimmed</span>, file <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">dir</span>, <span class="st">"model.tex"</span><span class="op">)</span>, model_view <span class="op">=</span> <span class="st">"full"</span><span class="op">)</span></span></code></pre></div>
-<p>A fold specification is an ordinary data frame; saved with
-<code><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS()</a></code>, it reproduces the transformation on another
-scenario of the same model.</p>
+<span><span class="fu"><a href="../reference/write_jump.html">write_jump</a></span><span class="op">(</span><span class="va">mod_trimmed</span>, model_dir <span class="op">=</span> <span class="va">dir</span><span class="op">)</span></span></code></pre></div>
+<p>A fold specification is a data frame; saved with
+<code><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS()</a></code>, it applies to other scenarios of the same
+model.</p>
 </div>
 <div class="section level2">
 <h2 id="limitations">Limitations<a class="anchor" aria-label="anchor" href="#limitations"></a>
 </h2>
 <ul>
-<li>Folding is all-or-nothing per parameter: either every group is
-constant across the dimension or the parameter is left alone.</li>
-<li>Folding needs validation mappings that reflect the model’s
-structure; for a model other than energyRt, the specification names the
-mappings that link each entity to the dimension.</li>
-<li>Folding loads the parameter data into memory while it runs.</li>
-<li>Trimming only flags elements; the data stays on disk and in the
-object.</li>
-<li>Trimming is conservative by design: it never removes an element a
-surviving equation references, so unused variables inside non-empty
-equations are kept.</li>
+<li>A parameter folds only when every group is constant across the
+dimension.</li>
+<li>Folding needs validation mappings; for a model other than energyRt,
+the specification names them.</li>
+<li>Folding holds the parameter data in memory while it runs.</li>
+<li>Trimming only flags elements; their data stays in the model and on
+disk.</li>
 </ul>
 </div>
 <div class="section level2">
-<h2 id="appendix-the-objective-is-unchanged">Appendix: the objective is unchanged<a class="anchor" aria-label="anchor" href="#appendix-the-objective-is-unchanged"></a>
+<h2 id="the-optimum-is-unchanged">The optimum is unchanged<a class="anchor" aria-label="anchor" href="#the-optimum-is-unchanged"></a>
 </h2>
-<p>The transformed models solve to the same objective as the original.
-The check below uses the matrix route with the ‘highs’ package.</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">r0</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_highs.html">solve_highs</a></span><span class="op">(</span><span class="va">mod</span>, attach <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="va">r1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_highs.html">solve_highs</a></span><span class="op">(</span><span class="va">mod_folded</span>, attach <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="va">r2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_highs.html">solve_highs</a></span><span class="op">(</span><span class="va">mod_trimmed</span>, attach <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>original <span class="op">=</span> <span class="va">r0</span><span class="op">$</span><span class="va">objective</span>, folded <span class="op">=</span> <span class="va">r1</span><span class="op">$</span><span class="va">objective</span>, trimmed <span class="op">=</span> <span class="va">r2</span><span class="op">$</span><span class="va">objective</span><span class="op">)</span></span>
 <span><span class="co">#&gt; original   folded  trimmed </span></span>
-<span><span class="co">#&gt; 46398.42 46398.42 46398.42</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="va">r0</span><span class="op">$</span><span class="va">objective</span>, <span class="va">r1</span><span class="op">$</span><span class="va">objective</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="va">r0</span><span class="op">$</span><span class="va">objective</span>, <span class="va">r2</span><span class="op">$</span><span class="va">objective</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+<span><span class="co">#&gt; 46398.42 46398.42 46398.42</span></span></code></pre></div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

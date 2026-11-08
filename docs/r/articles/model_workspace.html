@@ -26,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.5.0</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -44,7 +44,7 @@
     <li><a class="dropdown-item" href="../articles/ast.html">Writing a model in R</a></li>
     <li><a class="dropdown-item" href="../articles/solving.html">Solving and reading results</a></li>
     <li><a class="dropdown-item" href="../articles/model_workspace.html">Model workspace and data</a></li>
-    <li><a class="dropdown-item" href="../articles/folding.html">Folding and trimming</a></li>
+    <li><a class="dropdown-item" href="../articles/folding.html">Model redundancy</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>An existing model</h6></li>
     <li><a class="dropdown-item" href="../articles/field-models.html">Two models from the field</a></li>
@@ -141,6 +141,30 @@ them as readily as CSV.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ws_ipc</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span><span class="st">"toy-ipc-"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/save_model.html">save_model</a></span><span class="op">(</span><span class="va">toy</span>, <span class="va">ws_ipc</span>, format <span class="op">=</span> <span class="st">"ipc"</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =</span></span>
+<span><span class="co">#&gt; chunk_size, : write_feather(version = 2) has been superseded by</span></span>
+<span><span class="co">#&gt; write_ipc_file().</span></span>
+<span><span class="co">#&gt; Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =</span></span>
+<span><span class="co">#&gt; chunk_size, : write_feather(version = 2) has been superseded by</span></span>
+<span><span class="co">#&gt; write_ipc_file().</span></span>
+<span><span class="co">#&gt; Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =</span></span>
+<span><span class="co">#&gt; chunk_size, : write_feather(version = 2) has been superseded by</span></span>
+<span><span class="co">#&gt; write_ipc_file().</span></span>
+<span><span class="co">#&gt; Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =</span></span>
+<span><span class="co">#&gt; chunk_size, : write_feather(version = 2) has been superseded by</span></span>
+<span><span class="co">#&gt; write_ipc_file().</span></span>
+<span><span class="co">#&gt; Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =</span></span>
+<span><span class="co">#&gt; chunk_size, : write_feather(version = 2) has been superseded by</span></span>
+<span><span class="co">#&gt; write_ipc_file().</span></span>
+<span><span class="co">#&gt; Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =</span></span>
+<span><span class="co">#&gt; chunk_size, : write_feather(version = 2) has been superseded by</span></span>
+<span><span class="co">#&gt; write_ipc_file().</span></span>
+<span><span class="co">#&gt; Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =</span></span>
+<span><span class="co">#&gt; chunk_size, : write_feather(version = 2) has been superseded by</span></span>
+<span><span class="co">#&gt; write_ipc_file().</span></span>
+<span><span class="co">#&gt; Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =</span></span>
+<span><span class="co">#&gt; chunk_size, : write_feather(version = 2) has been superseded by</span></span>
+<span><span class="co">#&gt; write_ipc_file().</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.files</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">ws_ipc</span>, <span class="st">"parameters"</span><span class="op">)</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "parameters.csv"      "pAvail/data.arrow"   "pCapCost/data.arrow"</span></span>
 <span><span class="co">#&gt; [4] "pDemand/data.arrow"  "pVarCost/data.arrow"</span></span></code></pre></div>
@@ -228,9 +252,9 @@ solution and a record of when it was loaded.</p>
 <div class="section level2">
 <h2 id="folded-data">Folded data<a class="anchor" aria-label="anchor" href="#folded-data"></a>
 </h2>
-<p>A folded parameter (see <a href="folding.html">Folding and
-trimming</a>) keeps both tables: the original under <code>data.*</code>
-and the reduced one under <code>folded_data/data.*</code>.
+<p>A folded parameter (see <a href="folding.html">Model redundancy</a>)
+keeps both tables: the original under <code>data.*</code> and the
+reduced one under <code>folded_data/data.*</code>.
 <code><a href="../reference/save_model.html">save_model()</a></code> writes both, <code><a href="../reference/load_model.html">load_model()</a></code> reads
 both, and the writers take the folded table when the model is
 folded.</p>
@@ -251,8 +275,9 @@ reader can orient itself without R.</p>
 <span><span class="co">#&gt; {</span></span>
 <span><span class="co">#&gt;   "name": "toy",</span></span>
 <span><span class="co">#&gt;   "desc": "two-region capacity expansion toy model",</span></span>
-<span><span class="co">#&gt;   "saved": "2026-10-21 21:39:26",</span></span>
+<span><span class="co">#&gt;   "saved": "2026-11-08 14:16:37",</span></span>
 <span><span class="co">#&gt;   "format": "csv",</span></span>
+<span><span class="co">#&gt;   "structure": "rds",</span></span>
 <span><span class="co">#&gt;   "compression": null,</span></span>
 <span><span class="co">#&gt;   "compression_level": null,</span></span>
 <span><span class="co">#&gt;   "n_sets": 2,</span></span>

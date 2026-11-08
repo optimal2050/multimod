@@ -10,7 +10,7 @@ Internal: Save dataframe to disk
   path,
   format,
   compression = "zstd",
-  compression_level = 15,
+  compression_level = 3,
   verbose = FALSE,
   label = NULL
 )

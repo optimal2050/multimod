@@ -9,7 +9,7 @@ together with the right-hand side implied by the equation's constant terms."><me
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.5.0</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -25,7 +25,7 @@ together with the right-hand side implied by the equation's constant terms."><me
     <li><a class="dropdown-item" href="../articles/ast.html">Writing a model in R</a></li>
     <li><a class="dropdown-item" href="../articles/solving.html">Solving and reading results</a></li>
     <li><a class="dropdown-item" href="../articles/model_workspace.html">Model workspace and data</a></li>
-    <li><a class="dropdown-item" href="../articles/folding.html">Folding and trimming</a></li>
+    <li><a class="dropdown-item" href="../articles/folding.html">Model redundancy</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>An existing model</h6></li>
     <li><a class="dropdown-item" href="../articles/field-models.html">Two models from the field</a></li>
@@ -71,7 +71,9 @@ together with the right-hand side implied by the equation's constant terms.</p>
 <span>  equations <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  on_duplicate <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"error"</span>, <span class="st">"last"</span>, <span class="st">"first"</span><span class="op">)</span>,</span>
 <span>  verbose <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  chunk_rows <span class="op">=</span> <span class="fl">1000000L</span></span>
+<span>  chunk_rows <span class="op">=</span> <span class="fl">1000000L</span>,</span>
+<span>  sink <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  substitute <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -113,11 +115,37 @@ exact; what it bounds is the pre-aggregation intermediate of a <code><a href="ht
 allocates tens of gigabytes in one piece. The aggregated per-chunk
 triplets concatenate without renumbering (<code>.k</code> carries the global row id).</p></dd>
 
+
+<dt id="arg-sink">sink<a class="anchor" aria-label="anchor" href="#arg-sink"></a></dt>
+<dd><p>Internal: an open streaming sink (see <code><a href="write_mps.html">write_mps()</a></code> with
+<code>stream = TRUE</code>). The matrix entries are written to it as each chunk is
+built and <code>triplets</code> comes back empty; <code>rhs</code> is returned as usual.</p></dd>
+
+
+<dt id="arg-substitute">substitute<a class="anchor" aria-label="anchor" href="#arg-substitute"></a></dt>
+<dd><p>Internal: definition equations substituted at build
+time, as prepared for the streaming writer (see <code><a href="write_mps.html">write_mps()</a></code>). The
+index tables must have been built without their rows and columns; the
+equations that refer to a substituted variable are lowered for the
+native executor, and the build's context is returned in the <code>ctx</code>
+attribute.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A list with <code>triplets</code> (<code>data.table(i, j, coef)</code>, aggregated), <code>rhs</code>
 (<code>data.table(i, rhs)</code>), and <code>row_index</code> / <code>col_index</code> as used.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="native-engine">Native engine<a class="anchor" aria-label="anchor" href="#native-engine"></a></h2>
+
+
+<p><code>options(multimod.engine = "native")</code> runs the equations that the block-plan
+lowering covers in compiled code; the others stay on the R engine. Further
+options: <code>multimod.threads</code> (threads of the executor, default 2),
+<code>multimod.slice_rows</code> (rows a term's expansion may reach before it runs in
+slices, default <code>16e6</code>) and <code>multimod.cache_gb</code> (cap on the executor's index
+cache, default no cap).</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

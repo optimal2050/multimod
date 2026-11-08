@@ -15,18 +15,12 @@ solve_pyomo(
   model_dir,
   solver_dir = "pyomo",
   env_name = "multimod",
-  ensure_env = FALSE,
-  packages = NULL,
-  python_version = NULL,
-  ensure_miniconda = TRUE,
-  reinstall_env = FALSE,
   python = NULL,
   solver = NULL,
   env = NULL,
   load_results = FALSE,
   verbose = c("buffer", "stream", "quiet"),
-  timeout = NULL,
-  ...
+  timeout = NULL
 )
 ```
 
@@ -57,43 +51,10 @@ solve_pyomo(
   [`mm_setup_python()`](https://optimal2050.github.io/multimod/r/reference/mm_setup_python.md).
   Defaults to "multimod".
 
-- ensure_env:
-
-  Logical; when `TRUE` the environment is checked with
-  [`mm_check_python()`](https://optimal2050.github.io/multimod/r/reference/mm_check_python.md)
-  and
-  [`mm_setup_python()`](https://optimal2050.github.io/multimod/r/reference/mm_setup_python.md)
-  runs if it is not usable. Default `FALSE`: the configured interpreter
-  is used as it is, and nothing is installed.
-
-- packages:
-
-  Character vector of Python packages to request when the helper runs.
-  `NULL` (default) uses
-  [`mm_setup_python()`](https://optimal2050.github.io/multimod/r/reference/mm_setup_python.md)'s
-  own list, so the environment contents have a single owner.
-
-- python_version:
-
-  Optional Python version passed through to
-  [`mm_setup_python()`](https://optimal2050.github.io/multimod/r/reference/mm_setup_python.md).
-
-- ensure_miniconda:
-
-  Forwarded to
-  [`mm_setup_python()`](https://optimal2050.github.io/multimod/r/reference/mm_setup_python.md).
-
-- reinstall_env:
-
-  When `TRUE`, asks the helper to recreate the Conda environment before
-  solving.
-
 - python:
 
-  Optional path to a Python executable. When omitted the Python binary
-  reported by
-  [`reticulate::py_config()`](https://rstudio.github.io/reticulate/reference/py_config.html)
-  for the activated environment is used.
+  Optional path to a Python executable. When omitted it is resolved by
+  [`get_multimod_python()`](https://optimal2050.github.io/multimod/r/reference/multimod-config.md).
 
 - solver:
 
@@ -121,11 +82,6 @@ solve_pyomo(
 
   Optional timeout (in seconds). Requires the `processx` package.
 
-- ...:
-
-  Additional arguments forwarded to
-  [`mm_setup_python()`](https://optimal2050.github.io/multimod/r/reference/mm_setup_python.md).
-
 ## Value
 
 A list describing the solver run (exit code, success flag, elapsed time,
@@ -136,8 +92,7 @@ a `solution` data frame on every variable the solver reported.
 
 ## Details
 
-The Python environment is created once with
-[`mm_setup_python()`](https://optimal2050.github.io/multimod/r/reference/mm_setup_python.md).
-With `ensure_env = TRUE`, `solve_pyomo()` checks the environment and
-creates it when it is not usable, which may install Miniconda and Python
-packages.
+The Python environment is set up beforehand, for instance once with
+[`mm_setup_python()`](https://optimal2050.github.io/multimod/r/reference/mm_setup_python.md);
+`solve_pyomo()` installs nothing. When the interpreter cannot import
+`pyomo`, it stops and says so.

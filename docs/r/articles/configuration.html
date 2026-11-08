@@ -26,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.5.0</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -44,7 +44,7 @@
     <li><a class="dropdown-item" href="../articles/ast.html">Writing a model in R</a></li>
     <li><a class="dropdown-item" href="../articles/solving.html">Solving and reading results</a></li>
     <li><a class="dropdown-item" href="../articles/model_workspace.html">Model workspace and data</a></li>
-    <li><a class="dropdown-item" href="../articles/folding.html">Folding and trimming</a></li>
+    <li><a class="dropdown-item" href="../articles/folding.html">Model redundancy</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>An existing model</h6></li>
     <li><a class="dropdown-item" href="../articles/field-models.html">Two models from the field</a></li>
@@ -93,11 +93,19 @@
     
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://optimal2050.github.io/multimod/r/">multimod</a></span><span class="op">)</span></span></code></pre></div>
-<p>The matrix route (<code><a href="../reference/model_to_lp.html">model_to_lp()</a></code>,
-<code><a href="../reference/solve_highs.html">solve_highs()</a></code>) needs nothing beyond the ‘highs’ R package.
-The code-generation routes run external toolchains, and multimod has to
-find three executables:</p>
+<p><code><a href="../reference/model_to_lp.html">model_to_lp()</a></code> and
+<code>write_mps(stream = TRUE, format = "csv")</code> need no external
+executable. <code><a href="../reference/solve_highs.html">solve_highs()</a></code>, the classic in-memory
+<code><a href="../reference/write_mps.html">write_mps()</a></code> route and
+<code>solve_mps(solver = "highs")</code> use the ‘highs’ R package. The
+code-generation routes and some MPS solver routes run external
+toolchains, and multimod has to find their executables:</p>
 <table class="table">
+<colgroup>
+<col width="33%">
+<col width="33%">
+<col width="33%">
+</colgroup>
 <thead><tr class="header">
 <th>Route</th>
 <th>Executable</th>
@@ -122,8 +130,19 @@ find three executables:</p>
 <td><code>python</code></td>
 <td><code><a href="../reference/multimod-config.html">get_multimod_python()</a></code></td>
 </tr>
+<tr class="even">
+<td>MPS, <code>solve_mps(solver = "julia_highs")</code>
+</td>
+<td><code>julia</code></td>
+<td><code><a href="../reference/multimod-config.html">get_multimod_julia()</a></code></td>
+</tr>
 </tbody>
 </table>
+<p><code>solve_mps(solver = "cuopt")</code> uses <code>cuopt_cli</code>
+or cuOpt’s Python interface, locally on Linux or inside WSL on Windows.
+Its executable, Python and WSL settings are supplied in
+<code>control</code> or through the <code>MULTIMOD_CUOPT_*</code> and
+<code>MULTIMOD_WSL_USER</code> environment variables; see <a href="solving.html">Solving and reading results</a>.</p>
 <p>Each lookup checks, in this order, and stops at the first hit:</p>
 <ol style="list-style-type: decimal">
 <li>an R option, set with <code><a href="../reference/multimod-config.html">set_multimod_python()</a></code>,
@@ -167,7 +186,12 @@ it):</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="bu">export</span> <span class="va">MULTIMOD_PYTHON</span><span class="op">=</span>/usr/bin/python3</span>
 <span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="bu">export</span> <span class="va">MULTIMOD_JULIA</span><span class="op">=</span>/usr/local/bin/julia</span>
 <span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="bu">export</span> <span class="va">MULTIMOD_GLPSOL</span><span class="op">=</span>/usr/bin/glpsol</span></code></pre></div>
-<p>A YAML file suits a project shared by several people:</p>
+<p>A YAML file suits a project shared by several people. It is read from
+<code>.multimod.yml</code> in the working directory, then from
+<code>config.yml</code> in the user-level directory
+<code>tools::R_user_dir("multimod", "config")</code>;
+<code><a href="../reference/multimod-config.html">multimod_config_write()</a></code> writes only to the file it is
+given:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/multimod-config.html">multimod_config_write</a></span><span class="op">(</span></span>
 <span>  config <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
@@ -176,7 +200,8 @@ it):</p>
 <span>    julia  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"C:/Julia-1.11/bin/julia.exe"</span><span class="op">)</span>,</span>
 <span>    glpsol <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"C:/glpk/bin/glpsol.exe"</span><span class="op">)</span></span>
 <span>  <span class="op">)</span>,</span>
-<span>  global <span class="op">=</span> <span class="cn">FALSE</span>   <span class="co"># .multimod.yml in the working directory; TRUE = user level</span></span>
+<span>  file <span class="op">=</span> <span class="st">".multimod.yml"</span>   <span class="co"># the project file; for the user-level one:</span></span>
+<span>  <span class="co"># file.path(tools::R_user_dir("multimod", "config"), "config.yml")</span></span>
 <span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/multimod-config.html">multimod_config_path</a></span><span class="op">(</span><span class="op">)</span>        <span class="co"># where the project file is</span></span>
 <span><span class="fu"><a href="../reference/multimod-config.html">multimod_config_read</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
@@ -219,8 +244,8 @@ the executable resolves:</p>
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/multimod-config.html">get_multimod_julia</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/system2.html" class="external-link">system2</a></span><span class="op">(</span><span class="fu"><a href="../reference/multimod-config.html">get_multimod_julia</a></span><span class="op">(</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"-e"</span>, <span class="st">"println(VERSION)"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>The generated <code>model.jl</code> needs the packages JuMP, HiGHS,
-Arrow, DataFrames and CSV. It installs any that are missing on its first
-run, which takes a few minutes; to do it beforehand:</p>
+Arrow, DataFrames and CSV. It does not install them: when one is missing
+it stops and names it. They are installed once, in Julia:</p>
 <div class="sourceCode" id="cb12"><pre class="sourceCode julia"><code class="sourceCode julia"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="im">using</span> <span class="bu">Pkg</span></span>
 <span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a><span class="bu">Pkg</span>.<span class="fu">add</span>([<span class="st">"JuMP"</span>, <span class="st">"HiGHS"</span>, <span class="st">"Arrow"</span>, <span class="st">"DataFrames"</span>, <span class="st">"CSV"</span>])</span></code></pre></div>
 </div>
@@ -236,9 +261,10 @@ reticulate. Miniconda is installed first if there is none.</p>
 <span><span class="fu"><a href="../reference/mm_check_python.html">mm_check_python</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p><code><a href="../reference/mm_check_python.html">mm_check_python()</a></code> reports the interpreter that will be
 used, its version and the packages that fail to import.
-<code><a href="../reference/solve_pyomo.html">solve_pyomo()</a></code> uses the configured interpreter as it is;
-<code>solve_pyomo(ensure_env = TRUE)</code> checks it first and runs
-<code><a href="../reference/mm_setup_python.html">mm_setup_python()</a></code> when it is not usable.</p>
+<code><a href="../reference/solve_pyomo.html">solve_pyomo()</a></code> uses the configured interpreter as it is, and
+stops when it cannot import <code>pyomo</code>; it never installs.
+<code><a href="../reference/mm_setup_python.html">mm_setup_python()</a></code> is the only function that installs
+software, and runs only when called.</p>
 <p>To use an existing interpreter instead, point to it and check it
 carries the packages a route needs:</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">

@@ -55,7 +55,7 @@ navbar:
         href: articles/solving.html
       - text: Model workspace and data
         href: articles/model_workspace.html
-      - text: Folding and trimming
+      - text: Model redundancy
         href: articles/folding.html
       - text: "---"
       - text: "An existing model"

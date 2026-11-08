@@ -4,18 +4,30 @@ can be set via R options, environment variables, or a YAML config file.
 Priority order (highest to lowest):
 R option: getOption("multimod.&amp;lt;solver&amp;gt;_path")
 Environment variable: MULTIMOD_&amp;lt;SOLVER&amp;gt;
-YAML config file: the per-user directory given by tools::R_user_dir("multimod", "config") or .multimod.yml
-Intelligent defaults (reticulate for Python, system PATH for others)
+YAML config file: .multimod.yml in the working directory, then
+config.yml in the per-user directory
+tools::R_user_dir("multimod", "config")
+Defaults: the conda environment env_name for Python (looked up, not
+started), the system PATH for the others
 
-'><meta property="og:description" content='These functions manage solver executable paths for multimod. Configuration
+
+multimod_config_write() writes only to the file it is given. To write
+the user-level file that multimod_config_read() finds, pass
+file.path(tools::R_user_dir("multimod", "config"), "config.yml").'><meta property="og:description" content='These functions manage solver executable paths for multimod. Configuration
 can be set via R options, environment variables, or a YAML config file.
 Priority order (highest to lowest):
 R option: getOption("multimod.&amp;lt;solver&amp;gt;_path")
 Environment variable: MULTIMOD_&amp;lt;SOLVER&amp;gt;
-YAML config file: the per-user directory given by tools::R_user_dir("multimod", "config") or .multimod.yml
-Intelligent defaults (reticulate for Python, system PATH for others)
+YAML config file: .multimod.yml in the working directory, then
+config.yml in the per-user directory
+tools::R_user_dir("multimod", "config")
+Defaults: the conda environment env_name for Python (looked up, not
+started), the system PATH for the others
 
-'><meta property="og:image" content="https://optimal2050.github.io/multimod/r/logo.png"><script data-goatcounter="https://multimod.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script></head><body>
+
+multimod_config_write() writes only to the file it is given. To write
+the user-level file that multimod_config_read() finds, pass
+file.path(tools::R_user_dir("multimod", "config"), "config.yml").'><meta property="og:image" content="https://optimal2050.github.io/multimod/r/logo.png"><script data-goatcounter="https://multimod.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -23,7 +35,7 @@ Intelligent defaults (reticulate for Python, system PATH for others)
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.5.0</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -39,7 +51,7 @@ Intelligent defaults (reticulate for Python, system PATH for others)
     <li><a class="dropdown-item" href="../articles/ast.html">Writing a model in R</a></li>
     <li><a class="dropdown-item" href="../articles/solving.html">Solving and reading results</a></li>
     <li><a class="dropdown-item" href="../articles/model_workspace.html">Model workspace and data</a></li>
-    <li><a class="dropdown-item" href="../articles/folding.html">Folding and trimming</a></li>
+    <li><a class="dropdown-item" href="../articles/folding.html">Model redundancy</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>An existing model</h6></li>
     <li><a class="dropdown-item" href="../articles/field-models.html">Two models from the field</a></li>
@@ -76,9 +88,15 @@ Intelligent defaults (reticulate for Python, system PATH for others)
 can be set via R options, environment variables, or a YAML config file.</p>
 <p><strong>Priority order</strong> (highest to lowest):</p><ol><li><p>R option: <code>getOption("multimod.&lt;solver&gt;_path")</code></p></li>
 <li><p>Environment variable: <code>MULTIMOD_&lt;SOLVER&gt;</code></p></li>
-<li><p>YAML config file: the per-user directory given by <code>tools::R_user_dir("multimod", "config")</code> or <code>.multimod.yml</code></p></li>
-<li><p>Intelligent defaults (reticulate for Python, system PATH for others)</p></li>
-</ol></div>
+<li><p>YAML config file: <code>.multimod.yml</code> in the working directory, then
+<code>config.yml</code> in the per-user directory
+<code>tools::R_user_dir("multimod", "config")</code></p></li>
+<li><p>Defaults: the conda environment <code>env_name</code> for Python (looked up, not
+started), the system <code>PATH</code> for the others</p></li>
+</ol><p><code>multimod_config_write()</code> writes only to the <code>file</code> it is given. To write
+the user-level file that <code>multimod_config_read()</code> finds, pass
+<code>file.path(tools::R_user_dir("multimod", "config"), "config.yml")</code>.</p>
+    </div>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
@@ -98,7 +116,7 @@ can be set via R options, environment variables, or a YAML config file.</p>
 <span></span>
 <span><span class="fu">get_multimod_solver</span><span class="op">(</span><span class="va">solver_name</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">multimod_config_write</span><span class="op">(</span><span class="va">config</span>, global <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="fu">multimod_config_write</span><span class="op">(</span><span class="va">config</span>, <span class="va">file</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">multimod_config_read</span><span class="op">(</span>global <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span></span>
@@ -128,9 +146,15 @@ Defaults to <code>"multimod"</code>.</p></dd>
 <dd><p>Named list of configuration values to write to YAML file.</p></dd>
 
 
+<dt id="arg-file">file<a class="anchor" aria-label="anchor" href="#arg-file"></a></dt>
+<dd><p>Path of the YAML file to write; required.</p></dd>
+
+
 <dt id="arg-global">global<a class="anchor" aria-label="anchor" href="#arg-global"></a></dt>
-<dd><p>Logical; if <code>TRUE</code>, writes to the per-user directory given by <code>tools::R_user_dir("multimod", "config")</code> (user-wide).
-If <code>FALSE</code> (default), writes to <code>.multimod.yml</code> in current working directory.</p></dd>
+<dd><p>Logical; for <code>multimod_config_read()</code> and
+<code>multimod_config_path()</code>: when <code>TRUE</code>, the per-user file under
+<code>tools::R_user_dir("multimod", "config")</code> comes first; when <code>FALSE</code>
+(default), <code>.multimod.yml</code> in the working directory.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -152,14 +176,26 @@ file is found.</p></li>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># where the configuration would be read from, and what is resolved now</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># where the configuration would be read from</span></span></span>
 <span class="r-in"><span><span class="fu">multimod_config_path</span><span class="op">(</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "~/Documents/R/multimod/docs/r/reference/.multimod.yml (not found)"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "C:/Users/admin/Documents/R/multimod/docs/r/reference/.multimod.yml (not found)"</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># write a configuration file, here to a temporary location</span></span></span>
+<span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"yaml"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
+<span class="r-in"><span>  <span class="va">f</span> <span class="op">&lt;-</span> <span class="fu">multimod_config_write</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>julia <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"julia"</span><span class="op">)</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>                             file <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".yml"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/base/readLines.html" class="external-link">readLines</a></span><span class="op">(</span><span class="va">f</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">}</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Configuration written to: C:\Users\admin\AppData\Local\Temp\Rtmp6Z6Hhw\file11ea41b767828.yml</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "julia:"        "  path: julia"</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># \donttest{</span></span></span>
+<span class="r-in"><span><span class="co"># what is resolved now; probes the machine for Python, Julia and glpsol</span></span></span>
 <span class="r-in"><span><span class="fu">multimod_config_show</span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Current multimod configuration:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Python:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Path:     ~\.conda\envs\multimod\python.exe </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Path:     C:\Users\admin\.conda\envs\multimod\python.exe </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Option:   (not set) </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Env var:  (not set) </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
@@ -169,11 +205,12 @@ file is found.</p></li>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Env var:  (not set) </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> glpsol:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Path:     ~/AppData/Local/R/win-library/4.5/glpsol/bin/x64/glpsol.exe </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Path:     C:/Users/admin/AppData/Local/R/win-library/4.6/glpsol/bin/x64/glpsol.exe </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Option:   (not set) </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Env var:  (not set) </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> YAML config file: (none found)</span>
+<span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
 <span class="r-in"><span><span class="co"># Set paths via R options (session-persistent)</span></span></span>
@@ -195,12 +232,12 @@ file is found.</p></li>
 <span class="r-in"><span><span class="co"># Or use environment variables (system-wide):</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/Sys.setenv.html" class="external-link">Sys.setenv</a></span><span class="op">(</span>MULTIMOD_PYTHON <span class="op">=</span> <span class="st">"C:/Python310/python.exe"</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Or use YAML config file (the config.yml under tools::R_user_dir("multimod", "config")):</span></span></span>
+<span class="r-in"><span><span class="co"># Or a YAML file, here the user-level one multimod_config_read() finds:</span></span></span>
 <span class="r-in"><span><span class="fu">multimod_config_write</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>  python <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"C:/Python310/python.exe"</span>, env_name <span class="op">=</span> <span class="st">"multimod"</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  julia <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"C:/Julia-1.10/bin/julia.exe"</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  glpsol <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"C:/glpk/bin/glpsol.exe"</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">)</span>, file <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu">tools</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/tools/userdir.html" class="external-link">R_user_dir</a></span><span class="op">(</span><span class="st">"multimod"</span>, <span class="st">"config"</span><span class="op">)</span>, <span class="st">"config.yml"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># View current configuration</span></span></span>
 <span class="r-in"><span><span class="fu">multimod_config_show</span><span class="op">(</span><span class="op">)</span></span></span>

@@ -26,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.5.0</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -44,7 +44,7 @@
     <li><a class="dropdown-item" href="../articles/ast.html">Writing a model in R</a></li>
     <li><a class="dropdown-item" href="../articles/solving.html">Solving and reading results</a></li>
     <li><a class="dropdown-item" href="../articles/model_workspace.html">Model workspace and data</a></li>
-    <li><a class="dropdown-item" href="../articles/folding.html">Folding and trimming</a></li>
+    <li><a class="dropdown-item" href="../articles/folding.html">Model redundancy</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>An existing model</h6></li>
     <li><a class="dropdown-item" href="../articles/field-models.html">Two models from the field</a></li>
@@ -91,13 +91,13 @@
 
     
     
-<p>multimod 0.5.0 is the first CRAN release. Function signatures and
+<p>multimod 0.6.0 is the first CRAN release. Function signatures and
 class structures may still change between minor versions, and the NEWS
 file records every such change. This page lists what the release does
 not do yet, and the order in which the gaps are to be closed. What it
 does is in the README’s capability table and in the articles.</p>
 <div class="section level2">
-<h2 id="limitations-in-0-5-0">Limitations in 0.5.0<a class="anchor" aria-label="anchor" href="#limitations-in-0-5-0"></a>
+<h2 id="limitations-in-0-6-0">Limitations in 0.6.0<a class="anchor" aria-label="anchor" href="#limitations-in-0-6-0"></a>
 </h2>
 <ul>
 <li>
@@ -138,6 +138,13 @@ lags and leads resolve by position in the set, linear unless declared
 circular lag has no syntax in MathProg, JuMP or Pyomo, so those writers
 refuse it rather than flatten it.</li>
 <li>
+<strong>Native matrix route.</strong> The C++17 executor handles the
+equation plans its block-plan lowering supports and falls back to the R
+engine per equation. The streamed MPS writer, presolve scan/map/remap
+and build-time definition substitution are native, but the model and AST
+APIs remain R interfaces; Python and Julia bindings to the core are not
+implemented.</li>
+<li>
 <strong>Experimental exports.</strong> Functions grouped under
 “Experimental” in the reference index (<code><a href="../reference/as_r.html">as_r()</a></code>, the
 <code>compare_*()</code> helpers, visualization, the granular storage
@@ -149,12 +156,11 @@ yet.</li>
 <h2 id="next">Next<a class="anchor" aria-label="anchor" href="#next"></a>
 </h2>
 <div class="section level3">
-<h3 id="x">0.5.x<a class="anchor" aria-label="anchor" href="#x"></a>
+<h3 id="x">0.6.x<a class="anchor" aria-label="anchor" href="#x"></a>
 </h3>
 <ul>
-<li>An opt-in streaming <code><a href="../reference/write_mps.html">write_mps()</a></code> that writes the matrix
-to disk as it is assembled, so a large model is not held in memory as a
-whole.</li>
+<li>Controlled benchmarks of the R and native executors and of the
+in-memory and streamed MPS routes on representative model sizes.</li>
 <li>The four <code>SC2_*</code>/<code>SC4_*</code> storage-bracket
 equations of OSeMOSYS assemble with no coefficients; the cause is to be
 established.</li>
@@ -171,12 +177,14 @@ including <code>ord()</code> for a set element used in arithmetic.</li>
 </ul>
 </div>
 <div class="section level3">
-<h3 id="to-0-8">0.6 to 0.8<a class="anchor" aria-label="anchor" href="#to-0-8"></a>
+<h3 id="to-0-9">0.7 to 0.9<a class="anchor" aria-label="anchor" href="#to-0-9"></a>
 </h3>
 <ul>
 <li>API consolidation: one argument vocabulary across the
 <code>write_*()</code> and <code>solve_*()</code> families, consistent
 return values, fewer exported helpers.</li>
+<li>Broader native block-plan coverage, reducing the equations that fall
+back to the R executor.</li>
 <li>The matrix route as the default for linear problems; the symbolic
 writers remain for interoperability, inspection and documentation.</li>
 <li>Row and column names in the written MPS as an option.</li>
@@ -200,12 +208,12 @@ objective.</li>
 <h3 id="later">Later<a class="anchor" aria-label="anchor" href="#later"></a>
 </h3>
 <ul>
-<li>A native C++ or Rust core with R, Python and Julia interfaces to the
-same AST and JSON schema.</li>
+<li>Python and Julia interfaces to the native C++ core and the same AST
+and JSON schema used by R.</li>
 <li>AMPL reader and writer; LP and MPS readers.</li>
 <li>Symbolic simplification of equations; redundancy detection with
 safeguards; data-driven generation of domain mappings.</li>
-<li>Direct solver APIs without files in between.</li>
+<li>Additional direct solver APIs beyond the current HiGHS R route.</li>
 <li>An interactive model explorer and equation dependency graphs.</li>
 </ul>
 </div>

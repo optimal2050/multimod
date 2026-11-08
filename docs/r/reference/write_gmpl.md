@@ -8,7 +8,7 @@ Write a GMPL/MathProg model file from a multimod object
 write_gmpl(
   model,
   file = NULL,
-  model_dir = model$base_dir,
+  model_dir = NULL,
   format_expr = FALSE,
   include_solve = TRUE,
   export_vars = NULL,
@@ -61,8 +61,8 @@ write_gmpl(
 
 - model_dir:
 
-  Optional directory path for organized model structure (creates
-  solvers/gmpl/)
+  Optional model workspace directory; the code is written to its
+  `solvers/gmpl/`. `NULL` (default) writes no directory.
 
 - format_expr:
 

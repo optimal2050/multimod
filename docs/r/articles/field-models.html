@@ -26,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.5.0</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -44,7 +44,7 @@
     <li><a class="dropdown-item" href="../articles/ast.html">Writing a model in R</a></li>
     <li><a class="dropdown-item" href="../articles/solving.html">Solving and reading results</a></li>
     <li><a class="dropdown-item" href="../articles/model_workspace.html">Model workspace and data</a></li>
-    <li><a class="dropdown-item" href="../articles/folding.html">Folding and trimming</a></li>
+    <li><a class="dropdown-item" href="../articles/folding.html">Model redundancy</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>An existing model</h6></li>
     <li><a class="dropdown-item" href="../articles/field-models.html">Two models from the field</a></li>
@@ -120,17 +120,7 @@ and development. <em>Energy Policy</em>, 39(10), 5850-5870. <a href="https://doi
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ose</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_gmpl.html">read_gmpl</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">osemosys_dir</span>, <span class="st">"src"</span>, <span class="st">"osemosys.txt"</span><span class="op">)</span>,</span>
 <span>                 <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">osemosys_dir</span>, <span class="st">"tests"</span>, <span class="st">"utopia.txt"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">ose</span></span>
-<span><span class="co">#&gt; Model: osemosys</span></span>
-<span><span class="co">#&gt; Description: GMPL model from osemosys.txt</span></span>
-<span><span class="co">#&gt; Source:  ~\source\OSeMOSYS_GNU_MathProg\src\osemosys.txt </span></span>
-<span><span class="co">#&gt; Language:  gmpl </span></span>
-<span><span class="co">#&gt; Sets:  11 </span></span>
-<span><span class="co">#&gt; Mappings:  0 </span></span>
-<span><span class="co">#&gt; Aliases:  11 </span></span>
-<span><span class="co">#&gt; Parameters:  61 </span></span>
-<span><span class="co">#&gt; Variables:  68 </span></span>
-<span><span class="co">#&gt; Equations:  95</span></span></code></pre></div>
+<span><span class="va">ose</span></span></code></pre></div>
 <p>The reader returns 11 sets, 61 parameters, 68 variables and 95
 equations. Twenty-six parameters carry UTOPIA data; six are formulas
 over other parameters (discount factors, the capital recovery factor,
@@ -139,11 +129,8 @@ the annuity), and the rest take their declared defaults, among them a
 <code>DiscountRate[r]</code>.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/validate.html">validate</a></span><span class="op">(</span><span class="va">ose</span>, stop_on_error <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span><span class="op">$</span><span class="va">valid</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span>
 <span><span class="fu"><a href="../reference/as_gams.html">as_gams</a></span><span class="op">(</span><span class="va">ose</span><span class="op">$</span><span class="va">parameters</span><span class="op">$</span><span class="va">CapitalRecoveryFactor</span><span class="op">$</span><span class="va">formula</span><span class="op">$</span><span class="va">expr</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "(1 - (1 + DiscountRateIdv[r,t]) ** -1) / (1 - (1 + DiscountRateIdv[r,t]) ** -OperationalLife[r,t])"</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="../reference/as_latex.html">as_latex</a></span><span class="op">(</span><span class="va">ose</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">CAa1_TotalNewCapacity</span><span class="op">$</span><span class="va">rhs</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; \sum_{\texttt{yy}} \bm{\mathit{NewCapacity}}_{\texttt{r},\texttt{t},\texttt{yy}} \mid \texttt{y}  -  \texttt{yy}  &lt;  \mathsf{OperationalLife}_{\texttt{r},\texttt{t}}  \land  \texttt{y}  -  \texttt{yy}  \geq  0</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="../reference/as_latex.html">as_latex</a></span><span class="op">(</span><span class="va">ose</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">CAa1_TotalNewCapacity</span><span class="op">$</span><span class="va">rhs</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <div class="section level3">
 <h3 id="jump">JuMP<a class="anchor" aria-label="anchor" href="#jump"></a>
 </h3>
@@ -165,15 +152,11 @@ at run time, and the parametric default becomes a nested
 <span><span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create</a></span><span class="op">(</span><span class="va">ws</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/write_jump.html">write_jump</a></span><span class="op">(</span><span class="va">ose</span>, model_dir <span class="op">=</span> <span class="va">ws</span><span class="op">)</span></span>
 <span><span class="va">data_jl</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readLines.html" class="external-link">readLines</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">ws</span>, <span class="st">"solvers"</span>, <span class="st">"jump"</span>, <span class="st">"data.jl"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/substr.html" class="external-link">substr</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grep</a></span><span class="op">(</span><span class="st">"^CapitalRecoveryFactor = Dict"</span>, <span class="va">data_jl</span>, value <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>, <span class="fl">1</span>, <span class="fl">160</span><span class="op">)</span>, <span class="st">"...\n"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; CapitalRecoveryFactor = Dict((r,t) =&gt; (1 - (1 + get(DiscountRateIdv, (r, t), get(DiscountRate, r, DiscountRateDef))) ^ -1) / (1 - (1 + get(DiscountRateIdv, (r,  ...</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/substr.html" class="external-link">substr</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grep</a></span><span class="op">(</span><span class="st">"^CapitalRecoveryFactor = Dict"</span>, <span class="va">data_jl</span>, value <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>, <span class="fl">1</span>, <span class="fl">160</span><span class="op">)</span>, <span class="st">"...\n"</span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">j</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_jump.html">solve_jump</a></span><span class="op">(</span><span class="va">ose</span>, <span class="va">ws</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Loading solutions from: solvers/jump/solution</span></span>
 <span><span class="va">j</span><span class="op">$</span><span class="va">objective</span></span>
-<span><span class="co">#&gt; [1] 29446.86</span></span>
-<span><span class="va">j</span><span class="op">$</span><span class="va">status</span></span>
-<span><span class="co">#&gt; [1] "OPTIMAL"</span></span></code></pre></div>
+<span><span class="va">j</span><span class="op">$</span><span class="va">status</span></span></code></pre></div>
 <p>The objective matches glpsol’s 29446.86.</p>
 </div>
 <div class="section level3">
@@ -188,22 +171,8 @@ declared sets, evaluates the conditions, resolves the lags and computes
 the formulas itself.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">h</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_highs.html">solve_highs</a></span><span class="op">(</span><span class="va">ose</span>, attach <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Warning: model_to_lp(): 504 equation row(s) carry no coefficients and so</span></span>
-<span><span class="co">#&gt; constrain nothing:</span></span>
-<span><span class="co">#&gt; SC2_LowerLimit_EndOfDailyTimeBracketOfLastInstanceOfDayTypeInFirstWeekConstraint</span></span>
-<span><span class="co">#&gt; (126 rows),</span></span>
-<span><span class="co">#&gt; SC2_UpperLimit_EndOfDailyTimeBracketOfLastInstanceOfDayTypeInFirstWeekConstraint</span></span>
-<span><span class="co">#&gt; (126 rows),</span></span>
-<span><span class="co">#&gt; SC4_LowerLimit_BeginningOfDailyTimeBracketOfFirstInstanceOfDayTypeInLastWeekConstraint</span></span>
-<span><span class="co">#&gt; (126 rows),</span></span>
-<span><span class="co">#&gt; SC4_UpperLimit_BeginningOfDailyTimeBracketOfFirstInstanceOfDayTypeInLastWeekConstraint</span></span>
-<span><span class="co">#&gt; (126 rows). A row like this still assembles and still solves to Optimal, so the</span></span>
-<span><span class="co">#&gt; result answers a different model. Check the gating maps and index names of the</span></span>
-<span><span class="co">#&gt; equation(s) named above; check_matrix_numbers() reports the same.</span></span>
 <span><span class="va">h</span><span class="op">$</span><span class="va">objective</span></span>
-<span><span class="co">#&gt; [1] 29446.86</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="fu"><a href="../reference/build_row_index.html">build_row_index</a></span><span class="op">(</span><span class="va">ose</span><span class="op">)</span><span class="op">)</span>   <span class="co"># glpsol generates exactly this many rows</span></span>
-<span><span class="co">#&gt; [1] 119273</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="fu"><a href="../reference/build_row_index.html">build_row_index</a></span><span class="op">(</span><span class="va">ose</span><span class="op">)</span><span class="op">)</span>   <span class="co"># glpsol generates exactly this many rows</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="known-limitations">Known limitations<a class="anchor" aria-label="anchor" href="#known-limitations"></a>
@@ -254,7 +223,7 @@ model:</p>
 <span><span class="va">m</span> <span class="op">&lt;-</span> <span class="va">example_models</span><span class="op">$</span><span class="va">energyRt</span><span class="op">$</span><span class="va">multimod</span></span>
 <span><span class="va">m</span></span>
 <span><span class="co">#&gt; Model: </span></span>
-<span><span class="co">#&gt; Source:  ~/Documents/R/energyRt/gams/energyRt.gms </span></span>
+<span><span class="co">#&gt; Source:  energyRt/gams/energyRt.gms </span></span>
 <span><span class="co">#&gt; Language:  GAMS </span></span>
 <span><span class="co">#&gt; Sets:  27 </span></span>
 <span><span class="co">#&gt; Mappings:  324 </span></span>
@@ -290,6 +259,45 @@ the one to compare.</p>
 <span><span class="co">#&gt; "46398.4234209741"          "OPTIMAL"</span></span></code></pre></div>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/write_jump.html">write_jump</a></span><span class="op">(</span><span class="va">m</span>, model_dir <span class="op">=</span> <span class="va">ws</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =</span></span>
+<span><span class="co">#&gt; chunk_size, : write_feather(version = 2) has been superseded by</span></span>
+<span><span class="co">#&gt; write_ipc_file().</span></span>
+<span><span class="co">#&gt; Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =</span></span>
+<span><span class="co">#&gt; chunk_size, : write_feather(version = 2) has been superseded by</span></span>
+<span><span class="co">#&gt; write_ipc_file().</span></span>
+<span><span class="co">#&gt; Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =</span></span>
+<span><span class="co">#&gt; chunk_size, : write_feather(version = 2) has been superseded by</span></span>
+<span><span class="co">#&gt; write_ipc_file().</span></span>
+<span><span class="co">#&gt; Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =</span></span>
+<span><span class="co">#&gt; chunk_size, : write_feather(version = 2) has been superseded by</span></span>
+<span><span class="co">#&gt; write_ipc_file().</span></span>
+<span><span class="co">#&gt; Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =</span></span>
+<span><span class="co">#&gt; chunk_size, : write_feather(version = 2) has been superseded by</span></span>
+<span><span class="co">#&gt; write_ipc_file().</span></span>
+<span><span class="co">#&gt; Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =</span></span>
+<span><span class="co">#&gt; chunk_size, : write_feather(version = 2) has been superseded by</span></span>
+<span><span class="co">#&gt; write_ipc_file().</span></span>
+<span><span class="co">#&gt; Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =</span></span>
+<span><span class="co">#&gt; chunk_size, : write_feather(version = 2) has been superseded by</span></span>
+<span><span class="co">#&gt; write_ipc_file().</span></span>
+<span><span class="co">#&gt; Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =</span></span>
+<span><span class="co">#&gt; chunk_size, : write_feather(version = 2) has been superseded by</span></span>
+<span><span class="co">#&gt; write_ipc_file().</span></span>
+<span><span class="co">#&gt; Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =</span></span>
+<span><span class="co">#&gt; chunk_size, : write_feather(version = 2) has been superseded by</span></span>
+<span><span class="co">#&gt; write_ipc_file().</span></span>
+<span><span class="co">#&gt; Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =</span></span>
+<span><span class="co">#&gt; chunk_size, : write_feather(version = 2) has been superseded by</span></span>
+<span><span class="co">#&gt; write_ipc_file().</span></span>
+<span><span class="co">#&gt; Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =</span></span>
+<span><span class="co">#&gt; chunk_size, : write_feather(version = 2) has been superseded by</span></span>
+<span><span class="co">#&gt; write_ipc_file().</span></span>
+<span><span class="co">#&gt; Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =</span></span>
+<span><span class="co">#&gt; chunk_size, : write_feather(version = 2) has been superseded by</span></span>
+<span><span class="co">#&gt; write_ipc_file().</span></span>
+<span><span class="co">#&gt; Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =</span></span>
+<span><span class="co">#&gt; chunk_size, : write_feather(version = 2) has been superseded by</span></span>
+<span><span class="co">#&gt; write_ipc_file().</span></span>
 <span><span class="va">j</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_jump.html">solve_jump</a></span><span class="op">(</span><span class="va">m</span>, <span class="va">ws</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Loading solutions from: solvers/jump/solution</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>objective <span class="op">=</span> <span class="va">j</span><span class="op">$</span><span class="va">objective</span>, status <span class="op">=</span> <span class="va">j</span><span class="op">$</span><span class="va">status</span><span class="op">)</span></span>

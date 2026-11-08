@@ -16,7 +16,10 @@ write_mps(
   lp = NULL,
   format = c("parquet", "ipc", "csv"),
   verbose = FALSE,
-  presolve = getOption("multimod.presolve", FALSE)
+  presolve = getOption("multimod.presolve", FALSE),
+  stream = FALSE,
+  buckets = 64L,
+  substitute = getOption("multimod.substitute")
 )
 ```
 
@@ -43,7 +46,7 @@ write_mps(
 
   Storage format for the index tables, passed to the package's
   [`.save_dataframe()`](https://optimal2050.github.io/multimod/r/reference/dot-save_dataframe.md):
-  `"parquet"` (default), `"ipc"` or `"csv"`.
+  `"parquet"` (default; zstd level 3), `"ipc"` or `"csv"`.
 
 - verbose:
 
@@ -56,6 +59,40 @@ write_mps(
   before writing.
   [`read_mps_solution()`](https://optimal2050.github.io/multimod/r/reference/read_mps_solution.md)
   restores them. Defaults to `getOption("multimod.presolve", FALSE)`.
+
+- stream:
+
+  Logical; build the matrix block by block and write the file without
+  holding the matrix in memory. The entries are spooled to bucket files
+  in `<file>.parts/` by column range and merged into the file at the
+  end; the file is equivalent to the one HiGHS writes. With
+  `presolve = TRUE` the blocks are built twice, a scan pass that finds
+  the doubleton rows and an emit pass that applies the substitution.
+  `lp` cannot be given with `stream = TRUE`.
+
+- buckets:
+
+  Integer; with `stream = TRUE`, the number of bucket files (one is read
+  back into memory at a time).
+
+- substitute:
+
+  Character vector of definition equations to substitute while the
+  matrix is built (`stream = TRUE` only). A definition is an equality
+  whose domain is the index set of one of its variables, linear in the
+  others: its rows are not written, the variable has no columns on its
+  domain, and every other reference to it there is replaced by the
+  definition. The definitions are written beside the index tables
+  (`<base>_subst/`) and
+  [`read_mps_solution()`](https://optimal2050.github.io/multimod/r/reference/read_mps_solution.md)
+  rebuilds the variable from them. The objective's own definition can be
+  among them (see
+  [`objective_chain()`](https://optimal2050.github.io/multimod/r/reference/objective_chain.md)):
+  the objective is then written on the columns the definitions resolve
+  to, and its constant part, kept beside the index tables
+  (`<base>_objective.csv`), is added back by
+  [`read_mps_solution()`](https://optimal2050.github.io/multimod/r/reference/read_mps_solution.md).
+  Defaults to `getOption("multimod.substitute")`.
 
 ## Value
 
@@ -77,11 +114,8 @@ if (requireNamespace("highs", quietly = TRUE)) {
   list.files(dir)
 }
 #> WARNING: Column names are not present, or contain duplicates: using names with prefix "c", beginning with suffix 0
-#> 
 #> WARNING: Row    names are not present, or contain duplicates: using names with prefix "r", beginning with suffix 0
-#> 
-#> Writing the model to ~\AppData\Local\Temp\RtmpgRRJWR\mps-ba245d30da/toy.mps
-#> 
+#> Writing the model to C:\Users\admin\AppData\Local\Temp\Rtmp6Z6Hhw\mps-11ea4589b5d5b/toy.mps
 #> [1] "toy.mps"           "toy_col_index.csv" "toy_dim_names.csv"
 #> [4] "toy_row_index.csv"
 ```

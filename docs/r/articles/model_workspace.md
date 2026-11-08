@@ -61,6 +61,30 @@ package, and the generated Julia and Python read them as readily as CSV.
 
 ws_ipc <- tempfile("toy-ipc-")
 save_model(toy, ws_ipc, format = "ipc", verbose = FALSE)
+#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
+#> chunk_size, : write_feather(version = 2) has been superseded by
+#> write_ipc_file().
+#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
+#> chunk_size, : write_feather(version = 2) has been superseded by
+#> write_ipc_file().
+#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
+#> chunk_size, : write_feather(version = 2) has been superseded by
+#> write_ipc_file().
+#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
+#> chunk_size, : write_feather(version = 2) has been superseded by
+#> write_ipc_file().
+#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
+#> chunk_size, : write_feather(version = 2) has been superseded by
+#> write_ipc_file().
+#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
+#> chunk_size, : write_feather(version = 2) has been superseded by
+#> write_ipc_file().
+#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
+#> chunk_size, : write_feather(version = 2) has been superseded by
+#> write_ipc_file().
+#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
+#> chunk_size, : write_feather(version = 2) has been superseded by
+#> write_ipc_file().
 list.files(file.path(ws_ipc, "parameters"), recursive = TRUE)
 #> [1] "parameters.csv"      "pAvail/data.arrow"   "pCapCost/data.arrow"
 #> [4] "pDemand/data.arrow"  "pVarCost/data.arrow"
@@ -166,8 +190,8 @@ readLines(file.path(ws, "solution_log.txt"))
 
 ## Folded data
 
-A folded parameter (see [Folding and
-trimming](https://optimal2050.github.io/multimod/r/articles/folding.md))
+A folded parameter (see [Model
+redundancy](https://optimal2050.github.io/multimod/r/articles/folding.md))
 keeps both tables: the original under `data.*` and the reduced one under
 `folded_data/data.*`.
 [`save_model()`](https://optimal2050.github.io/multimod/r/reference/save_model.md)
@@ -199,8 +223,9 @@ cat(readLines(file.path(ws, "metadata.json")), sep = "\n")
 #> {
 #>   "name": "toy",
 #>   "desc": "two-region capacity expansion toy model",
-#>   "saved": "2026-10-21 21:39:26",
+#>   "saved": "2026-11-08 14:16:37",
 #>   "format": "csv",
+#>   "structure": "rds",
 #>   "compression": null,
 #>   "compression_level": null,
 #>   "n_sets": 2,

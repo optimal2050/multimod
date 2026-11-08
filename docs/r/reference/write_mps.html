@@ -13,7 +13,7 @@ so a solution vector returned by a remote solver can be interpreted."><meta prop
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.5.0</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -29,7 +29,7 @@ so a solution vector returned by a remote solver can be interpreted."><meta prop
     <li><a class="dropdown-item" href="../articles/ast.html">Writing a model in R</a></li>
     <li><a class="dropdown-item" href="../articles/solving.html">Solving and reading results</a></li>
     <li><a class="dropdown-item" href="../articles/model_workspace.html">Model workspace and data</a></li>
-    <li><a class="dropdown-item" href="../articles/folding.html">Folding and trimming</a></li>
+    <li><a class="dropdown-item" href="../articles/folding.html">Model redundancy</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>An existing model</h6></li>
     <li><a class="dropdown-item" href="../articles/field-models.html">Two models from the field</a></li>
@@ -77,7 +77,10 @@ so a solution vector returned by a remote solver can be interpreted.</p>
 <span>  lp <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  format <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"parquet"</span>, <span class="st">"ipc"</span>, <span class="st">"csv"</span><span class="op">)</span>,</span>
 <span>  verbose <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  presolve <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">getOption</a></span><span class="op">(</span><span class="st">"multimod.presolve"</span>, <span class="cn">FALSE</span><span class="op">)</span></span>
+<span>  presolve <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">getOption</a></span><span class="op">(</span><span class="st">"multimod.presolve"</span>, <span class="cn">FALSE</span><span class="op">)</span>,</span>
+<span>  stream <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  buckets <span class="op">=</span> <span class="fl">64L</span>,</span>
+<span>  substitute <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">getOption</a></span><span class="op">(</span><span class="st">"multimod.substitute"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -104,7 +107,8 @@ of <code>file</code>.</p></dd>
 
 <dt id="arg-format">format<a class="anchor" aria-label="anchor" href="#arg-format"></a></dt>
 <dd><p>Storage format for the index tables, passed to the package's
-<code><a href="dot-save_dataframe.html">.save_dataframe()</a></code>: <code>"parquet"</code> (default), <code>"ipc"</code> or <code>"csv"</code>.</p></dd>
+<code><a href="dot-save_dataframe.html">.save_dataframe()</a></code>: <code>"parquet"</code> (default; zstd level 3), <code>"ipc"</code> or
+<code>"csv"</code>.</p></dd>
 
 
 <dt id="arg-verbose">verbose<a class="anchor" aria-label="anchor" href="#arg-verbose"></a></dt>
@@ -115,6 +119,35 @@ of <code>file</code>.</p></dd>
 <dd><p>Logical; eliminate proportional columns with
 <code><a href="lp_presolve.html">lp_presolve()</a></code> before writing. <code><a href="read_mps_solution.html">read_mps_solution()</a></code> restores them.
 Defaults to <code>getOption("multimod.presolve", FALSE)</code>.</p></dd>
+
+
+<dt id="arg-stream">stream<a class="anchor" aria-label="anchor" href="#arg-stream"></a></dt>
+<dd><p>Logical; build the matrix block by block and write the file
+without holding the matrix in memory. The entries are spooled to bucket
+files in <code>&lt;file&gt;.parts/</code> by column range and merged into the file at the
+end; the file is equivalent to the one HiGHS writes. With <code>presolve = TRUE</code> the blocks are built twice, a scan pass that finds the doubleton
+rows and an emit pass that applies the substitution. <code>lp</code> cannot be
+given with <code>stream = TRUE</code>.</p></dd>
+
+
+<dt id="arg-buckets">buckets<a class="anchor" aria-label="anchor" href="#arg-buckets"></a></dt>
+<dd><p>Integer; with <code>stream = TRUE</code>, the number of bucket files
+(one is read back into memory at a time).</p></dd>
+
+
+<dt id="arg-substitute">substitute<a class="anchor" aria-label="anchor" href="#arg-substitute"></a></dt>
+<dd><p>Character vector of definition equations to substitute
+while the matrix is built (<code>stream = TRUE</code> only). A definition is an
+equality whose domain is the index set of one of its variables, linear
+in the others: its rows are not written, the variable has no columns on
+its domain, and every other reference to it there is replaced by the
+definition. The definitions are written beside the index tables
+(<code>&lt;base&gt;_subst/</code>) and <code><a href="read_mps_solution.html">read_mps_solution()</a></code> rebuilds the variable from
+them. The objective's own definition can be among them (see
+<code><a href="objective_chain.html">objective_chain()</a></code>): the objective is then written on the columns the
+definitions resolve to, and its constant part, kept beside the index
+tables (<code>&lt;base&gt;_objective.csv</code>), is added back by <code><a href="read_mps_solution.html">read_mps_solution()</a></code>.
+Defaults to <code>getOption("multimod.substitute")</code>.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -137,11 +170,8 @@ cannot be mapped back to model symbols.</p>
 <span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.files</a></span><span class="op">(</span><span class="va">dir</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> WARNING: Column names are not present, or contain duplicates: using names with prefix "c", beginning with suffix 0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> WARNING: Row    names are not present, or contain duplicates: using names with prefix "r", beginning with suffix 0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Writing the model to ~\AppData\Local\Temp\RtmpgRRJWR\mps-ba245d30da/toy.mps</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Writing the model to C:\Users\admin\AppData\Local\Temp\Rtmp6Z6Hhw\mps-11ea4589b5d5b/toy.mps</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "toy.mps"           "toy_col_index.csv" "toy_dim_names.csv"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [4] "toy_row_index.csv"</span>
 </code></pre></div>

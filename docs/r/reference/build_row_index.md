@@ -7,7 +7,13 @@ domain is treated as a scalar and contributes a single row.
 ## Usage
 
 ``` r
-build_row_index(model, verbose = FALSE, names = TRUE)
+build_row_index(
+  model,
+  verbose = FALSE,
+  names = TRUE,
+  codes = FALSE,
+  skip = NULL
+)
 ```
 
 ## Arguments
@@ -24,6 +30,20 @@ build_row_index(model, verbose = FALSE, names = TRUE)
 
   Logical; add the readable `name` column — see
   [`build_col_index()`](https://optimal2050.github.io/multimod/r/reference/build_col_index.md).
+
+- codes:
+
+  Store the index members as integer codes of a dictionary — see
+  [`build_col_index()`](https://optimal2050.github.io/multimod/r/reference/build_col_index.md).
+  The row index of an LP is coded with the dictionary of its column
+  index.
+
+- skip:
+
+  Internal: names of equations that get no rows (definitions substituted
+  at build time), or a named list by equation of `TRUE` (no rows) or a
+  coded tuple table (`i1..iN`, the equation's index order) of the rows
+  left out.
 
 ## Value
 

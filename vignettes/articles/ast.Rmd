@@ -258,8 +258,8 @@ its data tables in CSV or Arrow files; see the
 
 - [Get started](multimod.html): reading, translating, analyzing and solving a
   model in a few calls.
-- [Folding and trimming](folding.html): reducing a model to the size its data
-  needs.
+- [Model redundancy](folding.html): folding and trimming a model to the size
+  its data needs.
 - [Solving and reading results](solving.html) and
   [Configuring solver paths](configuration.html): the code-generation routes
   (GLPK, JuMP, Pyomo) and their setup.

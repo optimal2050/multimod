@@ -8,8 +8,8 @@
   paths](https://optimal2050.github.io/multimod/r/articles/configuration.md):
 - [Two models from the
   field](https://optimal2050.github.io/multimod/r/articles/field-models.md):
-- [Folding and
-  trimming](https://optimal2050.github.io/multimod/r/articles/folding.md):
+- [Model
+  redundancy](https://optimal2050.github.io/multimod/r/articles/folding.md):
 - [LaTeX
   rendering](https://optimal2050.github.io/multimod/r/articles/latex.md):
 - [Model workspace and

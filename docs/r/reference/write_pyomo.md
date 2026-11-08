@@ -39,9 +39,7 @@ write_pyomo(
   `<model_dir>/solvers/<solver_dir>/` and reads its data from the
   workspace, so the directory must hold one written by
   [`save_model()`](https://optimal2050.github.io/multimod/r/reference/save_model.md);
-  if it does not, the model is saved there first (CSV format). Defaults
-  to the directory the model was loaded from or saved to
-  (`model$base_path`).
+  if it does not, the model is saved there first (CSV format). Required.
 
 - solver_dir:
 

@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.5.0</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -23,7 +23,7 @@
     <li><a class="dropdown-item" href="../articles/ast.html">Writing a model in R</a></li>
     <li><a class="dropdown-item" href="../articles/solving.html">Solving and reading results</a></li>
     <li><a class="dropdown-item" href="../articles/model_workspace.html">Model workspace and data</a></li>
-    <li><a class="dropdown-item" href="../articles/folding.html">Folding and trimming</a></li>
+    <li><a class="dropdown-item" href="../articles/folding.html">Model redundancy</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>An existing model</h6></li>
     <li><a class="dropdown-item" href="../articles/field-models.html">Two models from the field</a></li>
@@ -890,7 +890,14 @@
           <code><a href="solve_mps.html">solve_mps()</a></code>
 
         </dt>
-        <dd>Solve a written MPS file locally and emit a HiGHS solution file</dd>
+        <dd>Solve an MPS file and write a solution file</dd>
+
+        <dt>
+
+          <code><a href="cuopt_watchdog.html">cuopt_watchdog()</a></code>
+
+        </dt>
+        <dd>cuOpt watchdog settings</dd>
 
         <dt>
 
@@ -898,6 +905,20 @@
 
         </dt>
         <dd>Write a model to MPS, with the index tables needed to read results back</dd>
+
+        <dt>
+
+          <code><a href="objective_chain.html">objective_chain()</a></code>
+
+        </dt>
+        <dd>Definition equations the objective depends on</dd>
+
+        <dt>
+
+          <code><a href="lp_bounds.html">lp_bounds()</a></code>
+
+        </dt>
+        <dd>Implied bounds of every variable</dd>
 
         <dt>
 
@@ -970,6 +991,27 @@
 
         </dt>
         <dd>Get data from model (with optional lazy loading)</dd>
+
+        <dt>
+
+          <code><a href="load_model_data.html">load_model_data()</a></code>
+
+        </dt>
+        <dd>Bring a model's tables into memory</dd>
+
+        <dt>
+
+          <code><a href="clear_data_cache.html">clear_data_cache()</a></code> <code><a href="clear_data_cache.html">data_cache_info()</a></code>
+
+        </dt>
+        <dd>The memo of tables read from disk</dd>
+
+        <dt>
+
+          <code><a href="mapping_rule.html">mapping_rule()</a></code> <code><a href="mapping_rule.html">materialise_rule()</a></code>
+
+        </dt>
+        <dd>A mapping rule</dd>
 
         <dt>
 
@@ -1412,6 +1454,13 @@
 
         </dt>
         <dd>Load mapping data into memory</dd>
+
+        <dt>
+
+          <code><a href="load_model_data.html">load_model_data()</a></code>
+
+        </dt>
+        <dd>Bring a model's tables into memory</dd>
 
         <dt>
 

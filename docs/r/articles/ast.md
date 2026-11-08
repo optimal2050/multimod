@@ -362,9 +362,9 @@ article.
 - [Get
   started](https://optimal2050.github.io/multimod/r/articles/multimod.md):
   reading, translating, analyzing and solving a model in a few calls.
-- [Folding and
-  trimming](https://optimal2050.github.io/multimod/r/articles/folding.md):
-  reducing a model to the size its data needs.
+- [Model
+  redundancy](https://optimal2050.github.io/multimod/r/articles/folding.md):
+  folding and trimming a model to the size its data needs.
 - [Solving and reading
   results](https://optimal2050.github.io/multimod/r/articles/solving.md)
   and [Configuring solver

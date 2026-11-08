@@ -1,10 +1,14 @@
 # Set up the Python environment for multimod
 
-This is the installer: one Conda environment, shared by the whole stack.
-energyRt resolves its Python through
-[`get_multimod_python()`](https://optimal2050.github.io/multimod/r/reference/multimod-config.md),
-so there is one environment and one source of truth rather than a
-per-package env.
+Installs software: a Conda environment (named "multimod" by default)
+with the Python packages the Pyomo route needs, using the
+[reticulate](https://rstudio.github.io/reticulate/) toolkit. It runs
+only when called; no other multimod function calls it. It creates the
+environment when missing, installs the requested packages, and activates
+the environment for the current R session via
+[`reticulate::use_condaenv()`](https://rstudio.github.io/reticulate/reference/use_python.html).
+A Conda installation is required; with `ensure_miniconda = TRUE`
+Miniconda is installed first when none is found.
 
 ## Usage
 
@@ -14,7 +18,7 @@ mm_setup_python(
   packages = c("pyomo", "highspy", "pyarrow", "pandas"),
   conda_packages = "glpk",
   python_version = "3.14",
-  ensure_miniconda = TRUE,
+  ensure_miniconda = FALSE,
   reinstall = FALSE,
   pip = TRUE,
   ...
@@ -50,10 +54,10 @@ mm_setup_python(
 
 - ensure_miniconda:
 
-  Logical flag controlling whether
+  Logical; when `TRUE`,
   [`reticulate::install_miniconda()`](https://rstudio.github.io/reticulate/reference/install_miniconda.html)
-  should run when no Conda binary is detected on the system. Defaults to
-  `TRUE` to minimize user setup.
+  runs when no Conda binary is found. Default `FALSE`: without Conda the
+  function stops.
 
 - reinstall:
 
@@ -77,15 +81,6 @@ mm_setup_python(
 Invisibly returns the environment name once configured.
 
 ## Details
-
-It bootstraps a Conda environment (named "multimod" by default) using
-the [reticulate](https://rstudio.github.io/reticulate/) toolkit. It
-ensures
-[`reticulate::install_miniconda()`](https://rstudio.github.io/reticulate/reference/install_miniconda.html)
-has been invoked (unless disabled), creates the target environment when
-missing, installs the requested Python packages, and activates the
-environment for the current R session via
-[`reticulate::use_condaenv()`](https://rstudio.github.io/reticulate/reference/use_python.html).
 
 After setup, multimod uses this environment either when it is set with
 [`set_multimod_python()`](https://optimal2050.github.io/multimod/r/reference/multimod-config.md)

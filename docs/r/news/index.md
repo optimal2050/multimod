@@ -1,6 +1,6 @@
 # Changelog
 
-## multimod 0.5.0
+## multimod 0.6.0
 
 First CRAN release. The changes are listed against 0.0.1, the GitHub
 release of June 2025, which read GAMS and rendered models to LaTeX and
@@ -8,6 +8,8 @@ back to GAMS.
 
 ### Breaking changes
 
+- multimod requires R \>= 4.1.0, and compiles C++17 code
+  (`LinkingTo: cpp11`).
 - The S3 classes of model objects carry an `mm_` prefix: `mm_model`,
   `mm_set`, `mm_mapping`, `mm_parameter`, `mm_variable`, `mm_equation`.
   Code testing `inherits(x, "model")` must use the new names; models
@@ -35,6 +37,14 @@ back to GAMS.
   accept text as well as file paths.
 - Lags and leads are linear by default and wrap with `circular = TRUE`;
   GAMS reads and writes both forms (`y-1`, `y--1`).
+- A mapping can be defined by a rule instead of a table:
+  [`mapping_rule()`](https://optimal2050.github.io/multimod/r/reference/mapping_rule.md)
+  names the tables whose natural join, gated and projected, gives the
+  tuples, and `new_mapping(rule = )` carries it.
+  [`materialise_rule()`](https://optimal2050.github.io/multimod/r/reference/mapping_rule.md)
+  enumerates the tuples;
+  [`get_data()`](https://optimal2050.github.io/multimod/r/reference/get_data.md),
+  the writers and the matrix route do so on demand.
 - `example_models$toy` is a small capacity-expansion model built with
   the constructors.
 
@@ -54,12 +64,13 @@ back to GAMS.
   statements. Parameters defined by a formula are written as
   assignments.
 
-#### Solving
+#### The matrix route
 
 - [`model_to_lp()`](https://optimal2050.github.io/multimod/r/reference/model_to_lp.md)
   assembles the LP matrix directly from the model, including symbols
   declared over sets, equation conditions, lags and leads, and formula
-  parameters.
+  parameters. Index members are joined as integer codes of one
+  dictionary per build.
 - [`solve_highs()`](https://optimal2050.github.io/multimod/r/reference/solve_highs.md)
   solves the assembled LP in R and returns primal and dual values;
   [`mm_session()`](https://optimal2050.github.io/multimod/r/reference/mm_session.md)
@@ -67,27 +78,60 @@ back to GAMS.
 - [`write_mps()`](https://optimal2050.github.io/multimod/r/reference/write_mps.md)
   writes the LP as MPS, with an optional presolve
   ([`lp_presolve()`](https://optimal2050.github.io/multimod/r/reference/lp_presolve.md))
-  that eliminates proportional columns;
-  [`solve_mps()`](https://optimal2050.github.io/multimod/r/reference/solve_mps.md)
-  solves an MPS file and
-  [`read_mps_solution()`](https://optimal2050.github.io/multimod/r/reference/read_mps_solution.md),
+  that eliminates doubleton rows and proportional columns. With
+  `stream = TRUE` it builds the matrix block by block and writes the
+  file itself, spooling the entries to bucket files by column range, so
+  the matrix is never held in memory; the presolve is then applied to
+  the spool.
+- `write_mps(substitute = )` substitutes definition equations while the
+  matrix is built: the defined variable has no columns and its
+  definition replaces every reference to it;
+  [`read_mps_solution()`](https://optimal2050.github.io/multimod/r/reference/read_mps_solution.md)
+  rebuilds it.
+  [`objective_chain()`](https://optimal2050.github.io/multimod/r/reference/objective_chain.md)
+  lists the definitions the objective depends on.
+- For performance on large models, the matrix route includes C++17
+  implementations of the supported equation executor, streamed
+  coefficient spool and MPS writer, and the scan, presolve-map and remap
+  steps used by streamed presolve. Native equation execution is opt-in
+  with `options(multimod.engine = "native")`; unsupported equations fall
+  back to the R engine individually. The executor runs on two threads by
+  default (`options(multimod.threads = )`), slices large expansions with
+  `options(multimod.slice_rows = )`, and can cap its index cache with
+  `options(multimod.cache_gb = )`.
+- [`lp_bounds()`](https://optimal2050.github.io/multimod/r/reference/lp_bounds.md)
+  propagates the row and column bounds of an LP to a fixed point and
+  returns the implied interval of every variable.
+- [`check_matrix_numbers()`](https://optimal2050.github.io/multimod/r/reference/check_matrix_numbers.md)
+  reports the coefficient range of an assembled LP.
+- [`solve_mps()`](https://optimal2050.github.io/multimod/r/reference/solve_mps.md)
+  solves an MPS file with HiGHS in this process, HiGHS through Julia, or
+  cuOpt on this machine or inside WSL. cuOpt runs under a watchdog that
+  stops a diverging or stalled solve
+  ([`cuopt_watchdog()`](https://optimal2050.github.io/multimod/r/reference/cuopt_watchdog.md)),
+  and can use its Python interface, which writes the solution at any
+  status and saves and continues from PDLP’s warm-start data.
+- [`read_mps_solution()`](https://optimal2050.github.io/multimod/r/reference/read_mps_solution.md),
   [`read_highs_solution()`](https://optimal2050.github.io/multimod/r/reference/read_highs_solution.md),
   [`read_cuopt_solution()`](https://optimal2050.github.io/multimod/r/reference/read_cuopt_solution.md)
   and
   [`read_solver_solution()`](https://optimal2050.github.io/multimod/r/reference/read_solver_solution.md)
-  read solutions back.
-- [`check_matrix_numbers()`](https://optimal2050.github.io/multimod/r/reference/check_matrix_numbers.md)
-  reports the coefficient range of an assembled LP.
+  read solutions back against the index tables, by position or, for a
+  matrix written with names, by label.
+
+#### Solving through other languages
+
 - [`solve_gmpl()`](https://optimal2050.github.io/multimod/r/reference/solve_gmpl.md),
   [`solve_jump()`](https://optimal2050.github.io/multimod/r/reference/solve_jump.md)
   and
   [`solve_pyomo()`](https://optimal2050.github.io/multimod/r/reference/solve_pyomo.md)
-  run the generated code and load the solution into the model.
+  run the generated code and load the solution into the model. None of
+  them installs software: the generated JuMP code stops and names
+  missing Julia packages, and
   [`solve_pyomo()`](https://optimal2050.github.io/multimod/r/reference/solve_pyomo.md)
-  uses the configured Python interpreter; `ensure_env = TRUE` creates
-  the environment with
+  stops when the interpreter cannot import Pyomo.
   [`mm_setup_python()`](https://optimal2050.github.io/multimod/r/reference/mm_setup_python.md)
-  when it is not usable.
+  creates a Python environment for Pyomo when called.
 
 #### Workspace, reduction and exchange
 
@@ -95,8 +139,27 @@ back to GAMS.
   [`load_model()`](https://optimal2050.github.io/multimod/r/reference/load_model.md)
   and
   [`get_data()`](https://optimal2050.github.io/multimod/r/reference/get_data.md)
-  store a model and its data as CSV, Arrow IPC or Parquet files that the
-  generated code reads directly.
+  store a model and its data as Parquet (default), Arrow IPC or CSV
+  files that the generated code reads directly. The structure is written
+  as `model.rds`, `model.json` or both (`structure =`);
+  `load_model(canonical = TRUE)` orders set members and mapping rows so
+  the matrix does not depend on who wrote the directory.
+- [`get_data()`](https://optimal2050.github.io/multimod/r/reference/get_data.md)
+  keeps the tables it reads from disk in a session memo within
+  `options(multimod.data_cache_gb = 8)`;
+  [`clear_data_cache()`](https://optimal2050.github.io/multimod/r/reference/clear_data_cache.md)
+  and
+  [`data_cache_info()`](https://optimal2050.github.io/multimod/r/reference/clear_data_cache.md)
+  manage it, and
+  [`load_model_data()`](https://optimal2050.github.io/multimod/r/reference/load_model_data.md)
+  brings a model’s tables into memory through it.
+- Writing functions write only where they are told:
+  [`write_pyomo()`](https://optimal2050.github.io/multimod/r/reference/write_pyomo.md)
+  needs `model_dir`,
+  [`write_gmpl()`](https://optimal2050.github.io/multimod/r/reference/write_gmpl.md)
+  writes a directory only when `model_dir` is given, and
+  [`import_gmpl_data()`](https://optimal2050.github.io/multimod/r/reference/import_gmpl_data.md)
+  needs `model_path` to save CSV or Arrow data.
 - [`fold_model()`](https://optimal2050.github.io/multimod/r/reference/fold_model.md)
   drops dimensions a parameter does not vary over;
   [`trim_model()`](https://optimal2050.github.io/multimod/r/reference/trim_model.md)
@@ -120,18 +183,19 @@ back to GAMS.
   [`Parameter()`](https://optimal2050.github.io/multimod/r/reference/multimod-constructors.md),
   [`Equation()`](https://optimal2050.github.io/multimod/r/reference/multimod-constructors.md),
   …) are provided as aliases of `new_*()` and `ast_*()`.
+- [`compare_jump_stats()`](https://optimal2050.github.io/multimod/r/reference/compare_jump_stats.md)
+  compares the constraint statistics of two JuMP runs, and writes the
+  comparison when given a `file`.
 
 #### Configuration
 
 - Interpreter and solver paths resolve from R options, environment
-  variables, a configuration file and auto-detection, in that order; see
-  [`multimod_config_write()`](https://optimal2050.github.io/multimod/r/reference/multimod-config.md)
-  and
+  variables, a configuration file and detection, in that order; see
   [`multimod_config_show()`](https://optimal2050.github.io/multimod/r/reference/multimod-config.md).
-- [`mm_setup_python()`](https://optimal2050.github.io/multimod/r/reference/mm_setup_python.md)
-  creates a Python environment for Pyomo, and
-  [`mm_check_python()`](https://optimal2050.github.io/multimod/r/reference/mm_check_python.md)
-  reports whether the configured one is usable.
+  [`multimod_config_write()`](https://optimal2050.github.io/multimod/r/reference/multimod-config.md)
+  writes a configuration file to the path it is given.
+- [`mm_check_python()`](https://optimal2050.github.io/multimod/r/reference/mm_check_python.md)
+  reports whether the configured interpreter is usable.
 - The `glpsol` executable is taken from the ‘glpsol’ package when it is
   installed.
 
@@ -140,7 +204,7 @@ back to GAMS.
 - [`vignette("multimod")`](https://optimal2050.github.io/multimod/r/articles/multimod.md)
   takes a small model through reading, translation, redundancy analysis,
   LaTeX, export and solving. Website articles cover writing a model in
-  R, folding and trimming, solving and reading results, two published
+  R, model redundancy, solving and reading results, two published
   models, the model workspace, configuration and LaTeX rendering.
 - The website moved to <https://optimal2050.github.io/multimod/r/>; the
   root is a landing page for the languages the repository is laid out

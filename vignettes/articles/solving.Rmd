@@ -143,10 +143,48 @@ r$dual[r$dual$symbol == "eqDemand", c("symbol", "i1", "value", "marginal")]
 ```
 
 The arrays can also leave R: `write_mps()` writes them as an MPS file for
-any solver that reads one, and `solve_mps()` solves such a file locally with
-HiGHS and writes a solution file `read_mps_solution()` understands.
-`mm_session()` keeps the assembled matrix between repeated solves of the
-same structure with changed data.
+any solver that reads one. `solve_mps()` can solve that file with HiGHS in R,
+HiGHS through Julia, or cuOpt locally or in WSL; each route writes a solution
+file `read_mps_solution()` understands. `mm_session()` keeps the assembled
+matrix between repeated solves of the same structure with changed data.
+
+### Native execution and streamed MPS
+
+The matrix builder uses its R engine by default. For performance on large
+models, `options(multimod.engine = "native")` sends supported equation plans
+to the package's multithreaded C++17 executor. An equation that cannot be
+lowered to a native plan continues through the R engine.
+
+`write_mps(stream = TRUE)` sends each coefficient block to a native spool
+and MPS writer instead of materializing the complete sparse matrix in R. The
+MPS file is written with row and column index tables that map a solver's
+positional solution back to model symbols.
+
+```{r native-mps}
+mps_dir <- file.path(ws, "solvers", "mps")
+dir.create(mps_dir, recursive = TRUE)
+mps <- file.path(mps_dir, "model.mps")
+
+native_paths <- local({
+  old <- options(multimod.engine = "native")
+  on.exit(options(old))
+  write_mps(
+    model = toy,
+    file = mps,
+    format = "csv",
+    stream = TRUE,
+    verbose = FALSE
+  )
+})
+file.exists(native_paths$mps)
+```
+
+With `presolve = TRUE`, the native scan, presolve-map and remap steps remove
+eligible doubleton rows and proportional columns from the spooled blocks.
+`substitute =` names definition equations to eliminate while the matrix is
+built; `read_mps_solution()` reconstructs their variables. These options are
+for reducing build time, matrix size and the memory used for coefficient
+blocks. Detailed benchmarks will be reported separately.
 
 ## Generating code
 
@@ -382,7 +420,9 @@ they are present.
 | Route | Needs | Returns | Use when |
 |---|---|---|---|
 | `solve_highs()` | the 'highs' R package | primal, duals, reduced costs, the LP arrays | the model fits in memory and duals or repeated solves (`mm_session()`) are needed |
-| `write_mps()` | the 'highs' R package | an MPS file | the solver runs elsewhere |
+| `write_mps(stream = FALSE)` | the 'highs' R package | an MPS file and index tables | the assembled matrix fits in memory and the solver runs elsewhere |
+| `write_mps(stream = TRUE)` | compiled multimod; 'arrow' for Parquet index tables | an MPS file and index tables | a large model should be built and written block by block |
+| `solve_mps()` | HiGHS in R or Julia, or cuOpt locally or in WSL | status, objective and a solution file | an MPS bundle is solved locally or on a local GPU |
 | `solve_gmpl()` | `glpsol` | primal values | a small or medium LP, or when a readable model file is the point |
 | `solve_jump()` | Julia | primal values, build statistics | a large model, or a solver only JuMP wraps (`optimizer =`) |
 | `solve_pyomo()` | Python with pyomo | primal values, status | the results continue in a Python pipeline |

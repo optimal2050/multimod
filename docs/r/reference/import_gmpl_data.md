@@ -29,8 +29,8 @@ import_gmpl_data(
 
 - model_path:
 
-  Optional path to save parameter data as CSV files (default: model's
-  base_path)
+  Directory to save parameter data to; required when `format` is `"csv"`
+  or `"arrow"`, unused for `"memory"`.
 
 - format:
 

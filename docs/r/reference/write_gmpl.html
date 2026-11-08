@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.5.0</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -23,7 +23,7 @@
     <li><a class="dropdown-item" href="../articles/ast.html">Writing a model in R</a></li>
     <li><a class="dropdown-item" href="../articles/solving.html">Solving and reading results</a></li>
     <li><a class="dropdown-item" href="../articles/model_workspace.html">Model workspace and data</a></li>
-    <li><a class="dropdown-item" href="../articles/folding.html">Folding and trimming</a></li>
+    <li><a class="dropdown-item" href="../articles/folding.html">Model redundancy</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>An existing model</h6></li>
     <li><a class="dropdown-item" href="../articles/field-models.html">Two models from the field</a></li>
@@ -64,7 +64,7 @@
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">write_gmpl</span><span class="op">(</span></span>
 <span>  <span class="va">model</span>,</span>
 <span>  file <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  model_dir <span class="op">=</span> <span class="va">model</span><span class="op">$</span><span class="va">base_dir</span>,</span>
+<span>  model_dir <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  format_expr <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  include_solve <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  export_vars <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -118,7 +118,8 @@
 
 
 <dt id="arg-model-dir">model_dir<a class="anchor" aria-label="anchor" href="#arg-model-dir"></a></dt>
-<dd><p>Optional directory path for organized model structure (creates solvers/gmpl/)</p></dd>
+<dd><p>Optional model workspace directory; the code is written to
+its <code>solvers/gmpl/</code>. <code>NULL</code> (default) writes no directory.</p></dd>
 
 
 <dt id="arg-format-expr">format_expr<a class="anchor" aria-label="anchor" href="#arg-format-expr"></a></dt>

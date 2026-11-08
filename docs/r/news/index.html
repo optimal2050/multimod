@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.5.0</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -23,7 +23,7 @@
     <li><a class="dropdown-item" href="../articles/ast.html">Writing a model in R</a></li>
     <li><a class="dropdown-item" href="../articles/solving.html">Solving and reading results</a></li>
     <li><a class="dropdown-item" href="../articles/model_workspace.html">Model workspace and data</a></li>
-    <li><a class="dropdown-item" href="../articles/folding.html">Folding and trimming</a></li>
+    <li><a class="dropdown-item" href="../articles/folding.html">Model redundancy</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>An existing model</h6></li>
     <li><a class="dropdown-item" href="../articles/field-models.html">Two models from the field</a></li>
@@ -55,19 +55,20 @@
     </div>
 
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.5.0" id="multimod-050">multimod 0.5.0<a class="anchor" aria-label="anchor" href="#multimod-050"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.6.0" id="multimod-060">multimod 0.6.0<a class="anchor" aria-label="anchor" href="#multimod-060"></a></h2>
 <p>First CRAN release. The changes are listed against 0.0.1, the GitHub release of June 2025, which read GAMS and rendered models to LaTeX and back to GAMS.</p>
 <div class="section level3">
-<h3 id="breaking-changes-0-5-0">Breaking changes<a class="anchor" aria-label="anchor" href="#breaking-changes-0-5-0"></a></h3>
-<ul><li>The S3 classes of model objects carry an <code>mm_</code> prefix: <code>mm_model</code>, <code>mm_set</code>, <code>mm_mapping</code>, <code>mm_parameter</code>, <code>mm_variable</code>, <code>mm_equation</code>. Code testing <code>inherits(x, "model")</code> must use the new names; models saved with 0.0.1 must be rebuilt.</li>
+<h3 id="breaking-changes-0-6-0">Breaking changes<a class="anchor" aria-label="anchor" href="#breaking-changes-0-6-0"></a></h3>
+<ul><li>multimod requires R &gt;= 4.1.0, and compiles C++17 code (<code>LinkingTo: cpp11</code>).</li>
+<li>The S3 classes of model objects carry an <code>mm_</code> prefix: <code>mm_model</code>, <code>mm_set</code>, <code>mm_mapping</code>, <code>mm_parameter</code>, <code>mm_variable</code>, <code>mm_equation</code>. Code testing <code>inherits(x, "model")</code> must use the new names; models saved with 0.0.1 must be rebuilt.</li>
 <li>The constructors validate each node against the schema when it is built, so a malformed node is refused there. <code>options(multimod.validate = FALSE)</code> disables the check.</li>
 <li>
 <code>arrow</code> and <code>visNetwork</code> are suggested rather than imported; the functions that need them fail with an installation hint.</li>
 </ul></div>
 <div class="section level3">
-<h3 id="new-features-0-5-0">New features<a class="anchor" aria-label="anchor" href="#new-features-0-5-0"></a></h3>
+<h3 id="new-features-0-6-0">New features<a class="anchor" aria-label="anchor" href="#new-features-0-6-0"></a></h3>
 <div class="section level4">
-<h4 id="building-and-reading-models-0-5-0">Building and reading models<a class="anchor" aria-label="anchor" href="#building-and-reading-models-0-5-0"></a></h4>
+<h4 id="building-and-reading-models-0-6-0">Building and reading models<a class="anchor" aria-label="anchor" href="#building-and-reading-models-0-6-0"></a></h4>
 <ul><li>
 <code><a href="../reference/mm_equation.html">mm_equation()</a></code> builds an equation from MathProg, GAMS or JuMP text.</li>
 <li>
@@ -77,55 +78,73 @@
 <li>
 <code><a href="../reference/read_gams.html">read_gams()</a></code> and <code><a href="../reference/read_gmpl.html">read_gmpl()</a></code> accept text as well as file paths.</li>
 <li>Lags and leads are linear by default and wrap with <code>circular = TRUE</code>; GAMS reads and writes both forms (<code>y-1</code>, <code>y--1</code>).</li>
+<li>A mapping can be defined by a rule instead of a table: <code><a href="../reference/mapping_rule.html">mapping_rule()</a></code> names the tables whose natural join, gated and projected, gives the tuples, and <code>new_mapping(rule = )</code> carries it. <code><a href="../reference/mapping_rule.html">materialise_rule()</a></code> enumerates the tuples; <code><a href="../reference/get_data.html">get_data()</a></code>, the writers and the matrix route do so on demand.</li>
 <li>
 <code>example_models$toy</code> is a small capacity-expansion model built with the constructors.</li>
 </ul></div>
 <div class="section level4">
-<h4 id="rendering-0-5-0">Rendering<a class="anchor" aria-label="anchor" href="#rendering-0-5-0"></a></h4>
+<h4 id="rendering-0-6-0">Rendering<a class="anchor" aria-label="anchor" href="#rendering-0-6-0"></a></h4>
 <ul><li>
 <code><a href="../reference/as_gmpl.html">as_gmpl()</a></code>, <code><a href="../reference/as_pyomo.html">as_pyomo()</a></code> and <code><a href="../reference/write_gmpl.html">write_gmpl()</a></code>, <code><a href="../reference/write_jump.html">write_jump()</a></code>, <code><a href="../reference/write_pyomo.html">write_pyomo()</a></code> render a model to MathProg, JuMP and Pyomo, with its data embedded or read from CSV, Arrow IPC or Parquet files.</li>
 <li>
 <code><a href="../reference/write_gams_data.html">write_gams_data()</a></code> (experimental) writes a model’s data to a GDX file, and <code>write_gams(gdx =, include_solve =)</code> emits the matching load and solve statements. Parameters defined by a formula are written as assignments.</li>
 </ul></div>
 <div class="section level4">
-<h4 id="solving-0-5-0">Solving<a class="anchor" aria-label="anchor" href="#solving-0-5-0"></a></h4>
+<h4 id="the-matrix-route-0-6-0">The matrix route<a class="anchor" aria-label="anchor" href="#the-matrix-route-0-6-0"></a></h4>
 <ul><li>
-<code><a href="../reference/model_to_lp.html">model_to_lp()</a></code> assembles the LP matrix directly from the model, including symbols declared over sets, equation conditions, lags and leads, and formula parameters.</li>
+<code><a href="../reference/model_to_lp.html">model_to_lp()</a></code> assembles the LP matrix directly from the model, including symbols declared over sets, equation conditions, lags and leads, and formula parameters. Index members are joined as integer codes of one dictionary per build.</li>
 <li>
 <code><a href="../reference/solve_highs.html">solve_highs()</a></code> solves the assembled LP in R and returns primal and dual values; <code><a href="../reference/mm_session.html">mm_session()</a></code> keeps the matrix between repeated solves.</li>
 <li>
-<code><a href="../reference/write_mps.html">write_mps()</a></code> writes the LP as MPS, with an optional presolve (<code><a href="../reference/lp_presolve.html">lp_presolve()</a></code>) that eliminates proportional columns; <code><a href="../reference/solve_mps.html">solve_mps()</a></code> solves an MPS file and <code><a href="../reference/read_mps_solution.html">read_mps_solution()</a></code>, <code><a href="../reference/read_highs_solution.html">read_highs_solution()</a></code>, <code><a href="../reference/read_cuopt_solution.html">read_cuopt_solution()</a></code> and <code><a href="../reference/read_solver_solution.html">read_solver_solution()</a></code> read solutions back.</li>
+<code><a href="../reference/write_mps.html">write_mps()</a></code> writes the LP as MPS, with an optional presolve (<code><a href="../reference/lp_presolve.html">lp_presolve()</a></code>) that eliminates doubleton rows and proportional columns. With <code>stream = TRUE</code> it builds the matrix block by block and writes the file itself, spooling the entries to bucket files by column range, so the matrix is never held in memory; the presolve is then applied to the spool.</li>
+<li>
+<code>write_mps(substitute = )</code> substitutes definition equations while the matrix is built: the defined variable has no columns and its definition replaces every reference to it; <code><a href="../reference/read_mps_solution.html">read_mps_solution()</a></code> rebuilds it. <code><a href="../reference/objective_chain.html">objective_chain()</a></code> lists the definitions the objective depends on.</li>
+<li>For performance on large models, the matrix route includes C++17 implementations of the supported equation executor, streamed coefficient spool and MPS writer, and the scan, presolve-map and remap steps used by streamed presolve. Native equation execution is opt-in with <code>options(multimod.engine = "native")</code>; unsupported equations fall back to the R engine individually. The executor runs on two threads by default (<code>options(multimod.threads = )</code>), slices large expansions with <code>options(multimod.slice_rows = )</code>, and can cap its index cache with <code>options(multimod.cache_gb = )</code>.</li>
+<li>
+<code><a href="../reference/lp_bounds.html">lp_bounds()</a></code> propagates the row and column bounds of an LP to a fixed point and returns the implied interval of every variable.</li>
 <li>
 <code><a href="../reference/check_matrix_numbers.html">check_matrix_numbers()</a></code> reports the coefficient range of an assembled LP.</li>
 <li>
-<code><a href="../reference/solve_gmpl.html">solve_gmpl()</a></code>, <code><a href="../reference/solve_jump.html">solve_jump()</a></code> and <code><a href="../reference/solve_pyomo.html">solve_pyomo()</a></code> run the generated code and load the solution into the model. <code><a href="../reference/solve_pyomo.html">solve_pyomo()</a></code> uses the configured Python interpreter; <code>ensure_env = TRUE</code> creates the environment with <code><a href="../reference/mm_setup_python.html">mm_setup_python()</a></code> when it is not usable.</li>
+<code><a href="../reference/solve_mps.html">solve_mps()</a></code> solves an MPS file with HiGHS in this process, HiGHS through Julia, or cuOpt on this machine or inside WSL. cuOpt runs under a watchdog that stops a diverging or stalled solve (<code><a href="../reference/cuopt_watchdog.html">cuopt_watchdog()</a></code>), and can use its Python interface, which writes the solution at any status and saves and continues from PDLP’s warm-start data.</li>
+<li>
+<code><a href="../reference/read_mps_solution.html">read_mps_solution()</a></code>, <code><a href="../reference/read_highs_solution.html">read_highs_solution()</a></code>, <code><a href="../reference/read_cuopt_solution.html">read_cuopt_solution()</a></code> and <code><a href="../reference/read_solver_solution.html">read_solver_solution()</a></code> read solutions back against the index tables, by position or, for a matrix written with names, by label.</li>
 </ul></div>
 <div class="section level4">
-<h4 id="workspace-reduction-and-exchange-0-5-0">Workspace, reduction and exchange<a class="anchor" aria-label="anchor" href="#workspace-reduction-and-exchange-0-5-0"></a></h4>
+<h4 id="solving-through-other-languages-0-6-0">Solving through other languages<a class="anchor" aria-label="anchor" href="#solving-through-other-languages-0-6-0"></a></h4>
 <ul><li>
-<code><a href="../reference/save_model.html">save_model()</a></code>, <code><a href="../reference/load_model.html">load_model()</a></code> and <code><a href="../reference/get_data.html">get_data()</a></code> store a model and its data as CSV, Arrow IPC or Parquet files that the generated code reads directly.</li>
+<code><a href="../reference/solve_gmpl.html">solve_gmpl()</a></code>, <code><a href="../reference/solve_jump.html">solve_jump()</a></code> and <code><a href="../reference/solve_pyomo.html">solve_pyomo()</a></code> run the generated code and load the solution into the model. None of them installs software: the generated JuMP code stops and names missing Julia packages, and <code><a href="../reference/solve_pyomo.html">solve_pyomo()</a></code> stops when the interpreter cannot import Pyomo. <code><a href="../reference/mm_setup_python.html">mm_setup_python()</a></code> creates a Python environment for Pyomo when called.</li>
+</ul></div>
+<div class="section level4">
+<h4 id="workspace-reduction-and-exchange-0-6-0">Workspace, reduction and exchange<a class="anchor" aria-label="anchor" href="#workspace-reduction-and-exchange-0-6-0"></a></h4>
+<ul><li>
+<code><a href="../reference/save_model.html">save_model()</a></code>, <code><a href="../reference/load_model.html">load_model()</a></code> and <code><a href="../reference/get_data.html">get_data()</a></code> store a model and its data as Parquet (default), Arrow IPC or CSV files that the generated code reads directly. The structure is written as <code>model.rds</code>, <code>model.json</code> or both (<code>structure =</code>); <code>load_model(canonical = TRUE)</code> orders set members and mapping rows so the matrix does not depend on who wrote the directory.</li>
+<li>
+<code><a href="../reference/get_data.html">get_data()</a></code> keeps the tables it reads from disk in a session memo within <code>options(multimod.data_cache_gb = 8)</code>; <code><a href="../reference/clear_data_cache.html">clear_data_cache()</a></code> and <code><a href="../reference/clear_data_cache.html">data_cache_info()</a></code> manage it, and <code><a href="../reference/load_model_data.html">load_model_data()</a></code> brings a model’s tables into memory through it.</li>
+<li>Writing functions write only where they are told: <code><a href="../reference/write_pyomo.html">write_pyomo()</a></code> needs <code>model_dir</code>, <code><a href="../reference/write_gmpl.html">write_gmpl()</a></code> writes a directory only when <code>model_dir</code> is given, and <code><a href="../reference/import_gmpl_data.html">import_gmpl_data()</a></code> needs <code>model_path</code> to save CSV or Arrow data.</li>
 <li>
 <code><a href="../reference/fold_model.html">fold_model()</a></code> drops dimensions a parameter does not vary over; <code><a href="../reference/trim_model.html">trim_model()</a></code> drops unused symbols. <code><a href="../reference/unfold_model.html">unfold_model()</a></code> and <code><a href="../reference/untrim_model.html">untrim_model()</a></code> reverse them.</li>
 <li>
 <code><a href="../reference/model_to_json.html">model_to_json()</a></code> and <code><a href="../reference/model_from_json.html">model_from_json()</a></code> serialise a model; <code><a href="../reference/ast_schema.html">ast_schema()</a></code> and <code><a href="../reference/ast_json_schema.html">ast_json_schema()</a></code> describe the node shapes, and <code><a href="../reference/validate_ast.html">validate_ast()</a></code> checks a node against them.</li>
 <li>CamelCase constructors (<code><a href="../reference/multimod-constructors.html">Set()</a></code>, <code><a href="../reference/multimod-constructors.html">Parameter()</a></code>, <code><a href="../reference/multimod-constructors.html">Equation()</a></code>, …) are provided as aliases of <code>new_*()</code> and <code>ast_*()</code>.</li>
+<li>
+<code><a href="../reference/compare_jump_stats.html">compare_jump_stats()</a></code> compares the constraint statistics of two JuMP runs, and writes the comparison when given a <code>file</code>.</li>
 </ul></div>
 <div class="section level4">
-<h4 id="configuration-0-5-0">Configuration<a class="anchor" aria-label="anchor" href="#configuration-0-5-0"></a></h4>
-<ul><li>Interpreter and solver paths resolve from R options, environment variables, a configuration file and auto-detection, in that order; see <code><a href="../reference/multimod-config.html">multimod_config_write()</a></code> and <code><a href="../reference/multimod-config.html">multimod_config_show()</a></code>.</li>
+<h4 id="configuration-0-6-0">Configuration<a class="anchor" aria-label="anchor" href="#configuration-0-6-0"></a></h4>
+<ul><li>Interpreter and solver paths resolve from R options, environment variables, a configuration file and detection, in that order; see <code><a href="../reference/multimod-config.html">multimod_config_show()</a></code>. <code><a href="../reference/multimod-config.html">multimod_config_write()</a></code> writes a configuration file to the path it is given.</li>
 <li>
-<code><a href="../reference/mm_setup_python.html">mm_setup_python()</a></code> creates a Python environment for Pyomo, and <code><a href="../reference/mm_check_python.html">mm_check_python()</a></code> reports whether the configured one is usable.</li>
+<code><a href="../reference/mm_check_python.html">mm_check_python()</a></code> reports whether the configured interpreter is usable.</li>
 <li>The <code>glpsol</code> executable is taken from the ‘glpsol’ package when it is installed.</li>
 </ul></div>
 <div class="section level4">
-<h4 id="documentation-0-5-0">Documentation<a class="anchor" aria-label="anchor" href="#documentation-0-5-0"></a></h4>
+<h4 id="documentation-0-6-0">Documentation<a class="anchor" aria-label="anchor" href="#documentation-0-6-0"></a></h4>
 <ul><li>
-<code><a href="../articles/multimod.html">vignette("multimod")</a></code> takes a small model through reading, translation, redundancy analysis, LaTeX, export and solving. Website articles cover writing a model in R, folding and trimming, solving and reading results, two published models, the model workspace, configuration and LaTeX rendering.</li>
+<code><a href="../articles/multimod.html">vignette("multimod")</a></code> takes a small model through reading, translation, redundancy analysis, LaTeX, export and solving. Website articles cover writing a model in R, model redundancy, solving and reading results, two published models, the model workspace, configuration and LaTeX rendering.</li>
 <li>The website moved to <a href="https://optimal2050.github.io/multimod/r/" class="uri">https://optimal2050.github.io/multimod/r/</a>; the root is a landing page for the languages the repository is laid out for. Links to the old addresses are forwarded.</li>
 </ul></div>
 </div>
 <div class="section level3">
-<h3 id="bug-fixes-0-5-0">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-5-0"></a></h3>
+<h3 id="bug-fixes-0-6-0">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-6-0"></a></h3>
 <ul><li>
 <code><a href="../reference/read_gams.html">read_gams()</a></code> parses a sum over several indices, numbers in scientific notation with a signed exponent, and decimal literals in equation bodies.</li>
 <li>

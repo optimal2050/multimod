@@ -302,11 +302,20 @@ Assemble the LP from the AST, write MPS, and solve in R.
   : Solve a model in-process with HiGHS
 
 - [`solve_mps()`](https://optimal2050.github.io/multimod/r/reference/solve_mps.md)
-  : Solve a written MPS file locally and emit a HiGHS solution file
+  : Solve an MPS file and write a solution file
+
+- [`cuopt_watchdog()`](https://optimal2050.github.io/multimod/r/reference/cuopt_watchdog.md)
+  : cuOpt watchdog settings
 
 - [`write_mps()`](https://optimal2050.github.io/multimod/r/reference/write_mps.md)
   : Write a model to MPS, with the index tables needed to read results
   back
+
+- [`objective_chain()`](https://optimal2050.github.io/multimod/r/reference/objective_chain.md)
+  : Definition equations the objective depends on
+
+- [`lp_bounds()`](https://optimal2050.github.io/multimod/r/reference/lp_bounds.md)
+  : Implied bounds of every variable
 
 - [`read_mps_solution()`](https://optimal2050.github.io/multimod/r/reference/read_mps_solution.md)
   : Map a solved MPS back onto model symbols
@@ -338,6 +347,14 @@ Save, load and update a model and its data.
   : Load multimod model from disk
 - [`get_data()`](https://optimal2050.github.io/multimod/r/reference/get_data.md)
   : Get data from model (with optional lazy loading)
+- [`load_model_data()`](https://optimal2050.github.io/multimod/r/reference/load_model_data.md)
+  : Bring a model's tables into memory
+- [`clear_data_cache()`](https://optimal2050.github.io/multimod/r/reference/clear_data_cache.md)
+  [`data_cache_info()`](https://optimal2050.github.io/multimod/r/reference/clear_data_cache.md)
+  : The memo of tables read from disk
+- [`mapping_rule()`](https://optimal2050.github.io/multimod/r/reference/mapping_rule.md)
+  [`materialise_rule()`](https://optimal2050.github.io/multimod/r/reference/mapping_rule.md)
+  : A mapping rule
 - [`update_parameter()`](https://optimal2050.github.io/multimod/r/reference/update_parameter.md)
   : Update parameter data
 - [`update_mapping()`](https://optimal2050.github.io/multimod/r/reference/update_mapping.md)
@@ -486,6 +503,8 @@ Exported but untested; interfaces may change or be withdrawn.
   : Load all parameters into memory
 - [`load_mapping()`](https://optimal2050.github.io/multimod/r/reference/load_mapping.md)
   : Load mapping data into memory
+- [`load_model_data()`](https://optimal2050.github.io/multimod/r/reference/load_model_data.md)
+  : Bring a model's tables into memory
 - [`load_parameter()`](https://optimal2050.github.io/multimod/r/reference/load_parameter.md)
   : Load parameter data into memory
 - [`save_all_mappings()`](https://optimal2050.github.io/multimod/r/reference/save_all_mappings.md)

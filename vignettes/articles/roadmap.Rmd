@@ -6,13 +6,13 @@ title: "Development status and roadmap"
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
-multimod 0.5.0 is the first CRAN release. Function signatures and class
+multimod 0.6.0 is the first CRAN release. Function signatures and class
 structures may still change between minor versions, and the NEWS file
 records every such change. This page lists what the
 release does not do yet, and the order in which the gaps are to be closed.
 What it does is in the README's capability table and in the articles.
 
-## Limitations in 0.5.0
+## Limitations in 0.6.0
 
 - **Model class.** Linear programs with continuous variables are the tested
   path. Integer and binary variables are carried in the AST and written by
@@ -42,6 +42,11 @@ What it does is in the README's capability table and in the articles.
   by position in the set, linear unless declared `circular`; parameters
   defined by a formula are computed. A circular lag has no syntax in
   MathProg, JuMP or Pyomo, so those writers refuse it rather than flatten it.
+- **Native matrix route.** The C++17 executor handles the equation plans its
+  block-plan lowering supports and falls back to the R engine per equation.
+  The streamed MPS writer, presolve scan/map/remap and build-time definition
+  substitution are native, but the model and AST APIs remain R interfaces;
+  Python and Julia bindings to the core are not implemented.
 - **Experimental exports.** Functions grouped under "Experimental" in the
   reference index (`as_r()`, the `compare_*()` helpers, visualization, the
   granular storage functions, configuration file writers) are exported but
@@ -49,10 +54,10 @@ What it does is in the README's capability table and in the articles.
 
 ## Next
 
-### 0.5.x
+### 0.6.x
 
-- An opt-in streaming `write_mps()` that writes the matrix to disk as it is
-  assembled, so a large model is not held in memory as a whole.
+- Controlled benchmarks of the R and native executors and of the in-memory
+  and streamed MPS routes on representative model sizes.
 - The four `SC2_*`/`SC4_*` storage-bracket equations of OSeMOSYS assemble with
   no coefficients; the cause is to be established.
 - `read_gmpl()`: sets of tuples declared with `within ... cross`, tuple
@@ -63,10 +68,12 @@ What it does is in the README's capability table and in the articles.
   silenced.
 - Tests for the experimental exports, or their retirement.
 
-### 0.6 to 0.8
+### 0.7 to 0.9
 
 - API consolidation: one argument vocabulary across the `write_*()` and
   `solve_*()` families, consistent return values, fewer exported helpers.
+- Broader native block-plan coverage, reducing the equations that fall back
+  to the R executor.
 - The matrix route as the default for linear problems; the symbolic writers
   remain for interoperability, inspection and documentation.
 - Row and column names in the written MPS as an option.
@@ -81,12 +88,12 @@ What it does is in the README's capability table and in the articles.
 
 ### Later
 
-- A native C++ or Rust core with R, Python and Julia interfaces to the same
-  AST and JSON schema.
+- Python and Julia interfaces to the native C++ core and the same AST and
+  JSON schema used by R.
 - AMPL reader and writer; LP and MPS readers.
 - Symbolic simplification of equations; redundancy detection with
   safeguards; data-driven generation of domain mappings.
-- Direct solver APIs without files in between.
+- Additional direct solver APIs beyond the current HiGHS R route.
 - An interactive model explorer and equation dependency graphs.
 
 ## Scope

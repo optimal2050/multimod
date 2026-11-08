@@ -11,7 +11,7 @@ as a scalar and contributes a single column."><meta property="og:image" content=
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.5.0</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -27,7 +27,7 @@ as a scalar and contributes a single column."><meta property="og:image" content=
     <li><a class="dropdown-item" href="../articles/ast.html">Writing a model in R</a></li>
     <li><a class="dropdown-item" href="../articles/solving.html">Solving and reading results</a></li>
     <li><a class="dropdown-item" href="../articles/model_workspace.html">Model workspace and data</a></li>
-    <li><a class="dropdown-item" href="../articles/folding.html">Folding and trimming</a></li>
+    <li><a class="dropdown-item" href="../articles/folding.html">Model redundancy</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>An existing model</h6></li>
     <li><a class="dropdown-item" href="../articles/field-models.html">Two models from the field</a></li>
@@ -67,7 +67,13 @@ as a scalar and contributes a single column.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">build_col_index</span><span class="op">(</span><span class="va">model</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span>, names <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">build_col_index</span><span class="op">(</span></span>
+<span>  <span class="va">model</span>,</span>
+<span>  verbose <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  names <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  codes <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  exclude <span class="op">=</span> <span class="cn">NULL</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -86,6 +92,23 @@ as a scalar and contributes a single column.</p>
 <dd><p>Logical; add the readable <code>name</code> column (<code>symbol.i1.i2...</code>).
 <code>FALSE</code> skips it — on large models the names dominate index-building
 memory, and the MPS/solution path never reads them.</p></dd>
+
+
+<dt id="arg-codes">codes<a class="anchor" aria-label="anchor" href="#arg-codes"></a></dt>
+<dd><p><code>FALSE</code> (the default) stores the index members as character
+labels. <code>TRUE</code> stores them as integer codes of a dictionary made for this
+table and attached to it as the <code>codes</code> attribute; passing that attribute
+to another call codes the other table with the same dictionary. The
+streaming writer builds both tables this way, so that the members are
+never held as strings; the files it writes carry the labels.</p></dd>
+
+
+<dt id="arg-exclude">exclude<a class="anchor" aria-label="anchor" href="#arg-exclude"></a></dt>
+<dd><p>Internal: a named list (by variable) of coded tuple tables
+(<code>i1..iN</code>) whose columns are left out, as a build-time substitution
+removes them, or <code>TRUE</code> for a variable that gets no column at all (a
+scalar substituted). Each tuple must be a column of its variable. Needs a
+dictionary (<code>codes</code>).</p></dd>
 
 </dl></div>
     <div class="section level2">

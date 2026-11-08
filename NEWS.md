@@ -61,11 +61,15 @@ of June 2025, which read GAMS and rendered models to LaTeX and back to GAMS.
   matrix is built: the defined variable has no columns and its definition
   replaces every reference to it; `read_mps_solution()` rebuilds it.
   `objective_chain()` lists the definitions the objective depends on.
-* A native executor evaluates the equations the block-plan lowering covers,
-  opt-in with `options(multimod.engine = "native")`; the others stay on the
-  R engine. It runs on two threads by default (`options(multimod.threads = )`),
-  runs large expansions in slices (`options(multimod.slice_rows = )`) and can
-  cap its index cache (`options(multimod.cache_gb = )`).
+* For performance on large models, the matrix route includes C++17
+  implementations of the supported equation executor, streamed coefficient
+  spool and MPS writer, and the scan, presolve-map and remap steps used by
+  streamed presolve. Native equation execution is opt-in with
+  `options(multimod.engine = "native")`; unsupported equations fall back to
+  the R engine individually. The executor runs on two threads by default
+  (`options(multimod.threads = )`), slices large expansions with
+  `options(multimod.slice_rows = )`, and can cap its index cache with
+  `options(multimod.cache_gb = )`.
 * `lp_bounds()` propagates the row and column bounds of an LP to a fixed
   point and returns the implied interval of every variable.
 * `check_matrix_numbers()` reports the coefficient range of an assembled LP.
@@ -126,7 +130,7 @@ of June 2025, which read GAMS and rendered models to LaTeX and back to GAMS.
 
 * `vignette("multimod")` takes a small model through reading, translation,
   redundancy analysis, LaTeX, export and solving. Website articles cover
-  writing a model in R, folding and trimming, solving and reading results,
+  writing a model in R, model redundancy, solving and reading results,
   two published models, the model workspace, configuration and LaTeX
   rendering.
 * The website moved to <https://optimal2050.github.io/multimod/r/>; the

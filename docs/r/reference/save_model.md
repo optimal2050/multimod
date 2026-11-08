@@ -8,12 +8,13 @@ Save model data on disk
 save_model(
   model,
   path,
-  format = c("csv", "ipc", "parquet"),
+  format = c("parquet", "ipc", "csv"),
   compression = "zstd",
-  compression_level = 15,
+  compression_level = 3,
   overwrite = TRUE,
   keep_in_memory = TRUE,
   save_structure = TRUE,
+  structure = c("rds", "json", "both"),
   verbose = TRUE
 )
 ```
@@ -30,16 +31,18 @@ save_model(
 
 - format:
 
-  Character. Data format: "csv" (default), "ipc" (Arrow IPC/Feather), or
-  "parquet"
+  Character. Data format: "parquet" (default), "ipc" (Arrow
+  IPC/Feather), or "csv"
 
 - compression:
 
-  Compression method to use
+  Compression method to use (`"zstd"`)
 
 - compression_level:
 
-  Compression level (1-9)
+  Compression level; zstd 1-22, default 3. Levels up to 12 give the same
+  size on model data; 15 is a third smaller on sorted tables at several
+  times the time
 
 - overwrite:
 
@@ -53,6 +56,16 @@ save_model(
 
   Logical; if TRUE, save model structure separately
 
+- structure:
+
+  How the structure (sets, mappings, parameters, variables, equations)
+  is written: `"rds"` (the default) as `model.rds`, `"json"` as
+  `model.json` through
+  [`model_to_json()`](https://optimal2050.github.io/multimod/r/reference/model_to_json.md)
+  for readers outside R, or `"both"`.
+  [`load_model()`](https://optimal2050.github.io/multimod/r/reference/load_model.md)
+  reads either.
+
 - verbose:
 
   Logical; if TRUE, print progress messages
@@ -65,10 +78,12 @@ Invisibly, the model with storage metadata attached.
 
 Directory structure created (the extension follows `format`):
 
-
     path/
       model.rds                       model structure (without data when
                                       keep_in_memory = FALSE)
+      model.json                      the structure in the JSON encoding of
+                                      model_to_json(), with structure = "json"
+                                      or "both"
       metadata.json                   counts and format, for readers outside R
       format.txt                      "csv", "ipc" or "parquet"
       sets/sets.csv                   index of the sets
@@ -88,12 +103,15 @@ The solvers write their generated code and output under
 m <- example_models$energyRt$multimod
 ws <- file.path(tempdir(), "energyRt_ws")
 
-# Save with the default CSV format
-m <- save_model(m, ws, verbose = FALSE)
+# CSV needs no further package
+m <- save_model(m, ws, format = "csv", verbose = FALSE)
 
-# Save and drop the data from memory; get_data() reloads it from disk
-m_light <- save_model(m, ws, keep_in_memory = FALSE, verbose = FALSE)
-head(get_data(m_light, "pTechOlife"))
+# The default parquet format needs 'arrow'; here the data is also dropped
+# from memory, and get_data() reloads it from disk
+if (requireNamespace("arrow", quietly = TRUE)) {
+  m_light <- save_model(m, ws, keep_in_memory = FALSE, verbose = FALSE)
+  head(get_data(m_light, "pTechOlife"))
+}
 #>   tech region value
 #> 1 ECOA     C1    30
 #> 2 ECOA     C2    30

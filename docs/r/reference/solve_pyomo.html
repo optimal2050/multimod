@@ -15,7 +15,7 @@ variable values the script exports are read back into model."><meta property="og
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.5.0</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -31,7 +31,7 @@ variable values the script exports are read back into model."><meta property="og
     <li><a class="dropdown-item" href="../articles/ast.html">Writing a model in R</a></li>
     <li><a class="dropdown-item" href="../articles/solving.html">Solving and reading results</a></li>
     <li><a class="dropdown-item" href="../articles/model_workspace.html">Model workspace and data</a></li>
-    <li><a class="dropdown-item" href="../articles/folding.html">Folding and trimming</a></li>
+    <li><a class="dropdown-item" href="../articles/folding.html">Model redundancy</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>An existing model</h6></li>
     <li><a class="dropdown-item" href="../articles/field-models.html">Two models from the field</a></li>
@@ -78,18 +78,12 @@ variable values the script exports are read back into <code>model</code>.</p>
 <span>  <span class="va">model_dir</span>,</span>
 <span>  solver_dir <span class="op">=</span> <span class="st">"pyomo"</span>,</span>
 <span>  env_name <span class="op">=</span> <span class="st">"multimod"</span>,</span>
-<span>  ensure_env <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  packages <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  python_version <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  ensure_miniconda <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  reinstall_env <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  python <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  solver <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  env <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  load_results <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  verbose <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"buffer"</span>, <span class="st">"stream"</span>, <span class="st">"quiet"</span><span class="op">)</span>,</span>
-<span>  timeout <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  <span class="va">...</span></span>
+<span>  timeout <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -118,37 +112,9 @@ Defaults to "pyomo" to match <code><a href="write_pyomo.html">write_pyomo()</a><
 <code><a href="mm_setup_python.html">mm_setup_python()</a></code>. Defaults to "multimod".</p></dd>
 
 
-<dt id="arg-ensure-env">ensure_env<a class="anchor" aria-label="anchor" href="#arg-ensure-env"></a></dt>
-<dd><p>Logical; when <code>TRUE</code> the environment is checked with
-<code><a href="mm_check_python.html">mm_check_python()</a></code> and <code><a href="mm_setup_python.html">mm_setup_python()</a></code> runs if it is not usable.
-Default <code>FALSE</code>: the configured interpreter is used as it is, and nothing
-is installed.</p></dd>
-
-
-<dt id="arg-packages">packages<a class="anchor" aria-label="anchor" href="#arg-packages"></a></dt>
-<dd><p>Character vector of Python packages to request when the
-helper runs. <code>NULL</code> (default) uses <code><a href="mm_setup_python.html">mm_setup_python()</a></code>'s own list, so the
-environment contents have a single owner.</p></dd>
-
-
-<dt id="arg-python-version">python_version<a class="anchor" aria-label="anchor" href="#arg-python-version"></a></dt>
-<dd><p>Optional Python version passed through to
-<code><a href="mm_setup_python.html">mm_setup_python()</a></code>.</p></dd>
-
-
-<dt id="arg-ensure-miniconda">ensure_miniconda<a class="anchor" aria-label="anchor" href="#arg-ensure-miniconda"></a></dt>
-<dd><p>Forwarded to <code><a href="mm_setup_python.html">mm_setup_python()</a></code>.</p></dd>
-
-
-<dt id="arg-reinstall-env">reinstall_env<a class="anchor" aria-label="anchor" href="#arg-reinstall-env"></a></dt>
-<dd><p>When <code>TRUE</code>, asks the helper to recreate the Conda
-environment before solving.</p></dd>
-
-
 <dt id="arg-python">python<a class="anchor" aria-label="anchor" href="#arg-python"></a></dt>
-<dd><p>Optional path to a Python executable. When omitted the Python
-binary reported by <code><a href="https://rstudio.github.io/reticulate/reference/py_config.html" class="external-link">reticulate::py_config()</a></code> for the activated environment is
-used.</p></dd>
+<dd><p>Optional path to a Python executable. When omitted it is
+resolved by <code><a href="multimod-config.html">get_multimod_python()</a></code>.</p></dd>
 
 
 <dt id="arg-solver">solver<a class="anchor" aria-label="anchor" href="#arg-solver"></a></dt>
@@ -177,10 +143,6 @@ output, <code>FALSE</code> = quiet) or one of <code>"buffer"</code>, <code>"stre
 <dd><p>Optional timeout (in seconds). Requires the <code>processx</code>
 package.</p></dd>
 
-
-<dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Additional arguments forwarded to <code><a href="mm_setup_python.html">mm_setup_python()</a></code>.</p></dd>
-
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -192,9 +154,9 @@ is the objective value the script records in <code>status.json</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>The Python environment is created once with <code><a href="mm_setup_python.html">mm_setup_python()</a></code>. With
-<code>ensure_env = TRUE</code>, <code>solve_pyomo()</code> checks the environment and creates it
-when it is not usable, which may install Miniconda and Python packages.</p>
+    <p>The Python environment is set up beforehand, for instance once with
+<code><a href="mm_setup_python.html">mm_setup_python()</a></code>; <code>solve_pyomo()</code> installs nothing. When the interpreter
+cannot import <code>pyomo</code>, it stops and says so.</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

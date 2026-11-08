@@ -26,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.5.0</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -44,7 +44,7 @@
     <li><a class="dropdown-item" href="../articles/ast.html">Writing a model in R</a></li>
     <li><a class="dropdown-item" href="../articles/solving.html">Solving and reading results</a></li>
     <li><a class="dropdown-item" href="../articles/model_workspace.html">Model workspace and data</a></li>
-    <li><a class="dropdown-item" href="../articles/folding.html">Folding and trimming</a></li>
+    <li><a class="dropdown-item" href="../articles/folding.html">Model redundancy</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>An existing model</h6></li>
     <li><a class="dropdown-item" href="../articles/field-models.html">Two models from the field</a></li>
@@ -242,8 +242,8 @@ leaves unused:</p>
 <span><span class="co">#&gt; 3     mappings   324     160       164            49.4</span></span>
 <span><span class="co">#&gt; 4    variables    93      10        83            10.8</span></span>
 <span><span class="co">#&gt; 5    equations   153     103        50            67.3</span></span></code></pre></div>
-<p>The “Folding and trimming” article on the website applies both
-reductions and shows that the optimum is unchanged.</p>
+<p>The “Model redundancy” article on the website applies both reductions
+and shows that the optimum is unchanged.</p>
 </div>
 <div class="section level2">
 <h2 id="latex">LaTeX<a class="anchor" aria-label="anchor" href="#latex"></a>
@@ -257,7 +257,7 @@ The demand balance of <code>toy</code>:</p>
 <span><span class="va">rhs</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/as_latex.html">as_latex</a></span><span class="op">(</span><span class="va">eq</span><span class="op">$</span><span class="va">rhs</span><span class="op">)</span></span>
 <span><span class="va">lhs</span></span>
 <span><span class="co">#&gt; [1] "\\sum_{\\texttt{tech}} \\bm{\\mathit{vGen}}_{\\texttt{tech},\\texttt{region}}"</span></span></code></pre></div>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><munder><mo>∑</mo><mtext mathvariant="monospace">𝚝𝚎𝚌𝚑</mtext></munder><msub><mrow><mi>𝑣</mi><mi>𝐺</mi><mi>𝑒</mi><mi>𝑛</mi></mrow><mrow><mtext mathvariant="monospace">𝚝𝚎𝚌𝚑</mtext><mo>,</mo><mtext mathvariant="monospace">𝚛𝚎𝚐𝚒𝚘𝚗</mtext></mrow></msub><mo>≥</mo><msub><mrow><mi>𝗉</mi><mi>𝖣</mi><mi>𝖾</mi><mi>𝗆</mi><mi>𝖺</mi><mi>𝗇</mi><mi>𝖽</mi></mrow><mtext mathvariant="monospace">𝚛𝚎𝚐𝚒𝚘𝚗</mtext></msub></mrow><annotation encoding="application/x-tex"> \sum_{\texttt{tech}} \boldsymbol{\mathit{vGen}}_{\texttt{tech},\texttt{region}} \ge \mathsf{pDemand}_{\texttt{region}} </annotation></semantics></math></p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><munder><mo>∑</mo><mtext mathvariant="monospace">𝚝𝚎𝚌𝚑</mtext></munder><msub><mrow><mi mathvariant="italic">𝑣</mi><mi mathvariant="italic">𝐺</mi><mi mathvariant="italic">𝑒</mi><mi mathvariant="italic">𝑛</mi></mrow><mrow><mtext mathvariant="monospace">𝚝𝚎𝚌𝚑</mtext><mo>,</mo><mtext mathvariant="monospace">𝚛𝚎𝚐𝚒𝚘𝚗</mtext></mrow></msub><mo>≥</mo><msub><mrow><mi mathvariant="sans-serif">𝗉</mi><mi mathvariant="sans-serif">𝖣</mi><mi mathvariant="sans-serif">𝖾</mi><mi mathvariant="sans-serif">𝗆</mi><mi mathvariant="sans-serif">𝖺</mi><mi mathvariant="sans-serif">𝗇</mi><mi mathvariant="sans-serif">𝖽</mi></mrow><mtext mathvariant="monospace">𝚛𝚎𝚐𝚒𝚘𝚗</mtext></msub></mrow><annotation encoding="application/x-tex"> \sum_{\texttt{tech}} \boldsymbol{\mathit{vGen}}_{\texttt{tech},\texttt{region}} \ge \mathsf{pDemand}_{\texttt{region}} </annotation></semantics></math></p>
 </div>
 <div class="section level2">
 <h2 id="exporting">Exporting<a class="anchor" aria-label="anchor" href="#exporting"></a>
@@ -314,9 +314,48 @@ the ‘highs’ package:</p>
 <code class="sourceCode R"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_highs.html">solve_highs</a></span><span class="op">(</span><span class="va">toy</span>, attach <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="va">result</span><span class="op">$</span><span class="va">objective</span></span>
 <span><span class="co">#&gt; [1] 198000</span></span></code></pre></div>
+<div class="section level3">
+<h3 id="native-matrix-and-mps-route">Native matrix and MPS route<a class="anchor" aria-label="anchor" href="#native-matrix-and-mps-route"></a>
+</h3>
+<p>The matrix builder uses its R engine by default. For performance on
+large models, <code>options(multimod.engine = "native")</code> sends
+supported equation plans to the package’s multithreaded C++17 executor;
+equations outside its current scope continue through the R engine.</p>
+<p><code>write_mps(stream = TRUE)</code> builds coefficient blocks
+through that executor and sends them to a native spool and MPS writer.
+The complete sparse matrix is not materialized in R, which bounds the
+memory used for coefficient blocks. The same route supports build-time
+presolve (<code>presolve = TRUE</code>) and definition substitution
+(<code>substitute =</code>).</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">mps_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span><span class="st">"toy-mps-"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create</a></span><span class="op">(</span><span class="va">mps_dir</span><span class="op">)</span></span>
+<span><span class="va">mps</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">mps_dir</span>, <span class="st">"toy.mps"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">paths</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/eval.html" class="external-link">local</a></span><span class="op">(</span><span class="op">{</span></span>
+<span>  <span class="va">old</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span>multimod.engine <span class="op">=</span> <span class="st">"native"</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/on.exit.html" class="external-link">on.exit</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span><span class="va">old</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="../reference/write_mps.html">write_mps</a></span><span class="op">(</span></span>
+<span>    model <span class="op">=</span> <span class="va">toy</span>,</span>
+<span>    file <span class="op">=</span> <span class="va">mps</span>,</span>
+<span>    format <span class="op">=</span> <span class="st">"csv"</span>,</span>
+<span>    stream <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>    verbose <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.exists</a></span><span class="op">(</span><span class="va">paths</span><span class="op">$</span><span class="va">mps</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+<p>The MPS file and its index tables form a bundle:
+<code><a href="../reference/solve_mps.html">solve_mps()</a></code> can solve the file, and
+<code><a href="../reference/read_mps_solution.html">read_mps_solution()</a></code> uses the tables to map a solver’s
+positional rows and columns back to model symbols. Large-model runs
+indicate that the native streamed route can substantially reduce
+matrix-construction and MPS-writing time; detailed benchmarks will be
+reported separately.</p>
 <p><code><a href="../reference/solve_gmpl.html">solve_gmpl()</a></code>, <code><a href="../reference/solve_jump.html">solve_jump()</a></code> and
 <code><a href="../reference/solve_pyomo.html">solve_pyomo()</a></code> solve the generated code with GLPK, Julia or
 Python instead, and load the solution back into the model.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="further-reading">Further reading<a class="anchor" aria-label="anchor" href="#further-reading"></a>
@@ -328,7 +367,7 @@ topic in detail:</p>
 step by step.</li>
 <li>“Solving and reading results”: every solve route and its
 output.</li>
-<li>“Folding and trimming”: the two reductions and their effect.</li>
+<li>“Model redundancy”: folding and trimming, and their effect.</li>
 <li>“Two models from the field”: the energyRt model and a published
 MathProg model, read and solved.</li>
 <li>“Model workspace and data”, “Configuring solver paths”, “LaTeX

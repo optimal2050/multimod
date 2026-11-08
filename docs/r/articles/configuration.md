@@ -5,17 +5,29 @@
 library(multimod)
 ```
 
-The matrix route
-([`model_to_lp()`](https://optimal2050.github.io/multimod/r/reference/model_to_lp.md),
-[`solve_highs()`](https://optimal2050.github.io/multimod/r/reference/solve_highs.md))
-needs nothing beyond the ‘highs’ R package. The code-generation routes
-run external toolchains, and multimod has to find three executables:
+[`model_to_lp()`](https://optimal2050.github.io/multimod/r/reference/model_to_lp.md)
+and `write_mps(stream = TRUE, format = "csv")` need no external
+executable.
+[`solve_highs()`](https://optimal2050.github.io/multimod/r/reference/solve_highs.md),
+the classic in-memory
+[`write_mps()`](https://optimal2050.github.io/multimod/r/reference/write_mps.md)
+route and `solve_mps(solver = "highs")` use the ‘highs’ R package. The
+code-generation routes and some MPS solver routes run external
+toolchains, and multimod has to find their executables:
 
 | Route | Executable | Looked up by |
 |----|----|----|
 | MathProg, [`solve_gmpl()`](https://optimal2050.github.io/multimod/r/reference/solve_gmpl.md) | `glpsol` | [`get_multimod_glpsol()`](https://optimal2050.github.io/multimod/r/reference/multimod-config.md) |
 | JuMP, [`solve_jump()`](https://optimal2050.github.io/multimod/r/reference/solve_jump.md) | `julia` | [`get_multimod_julia()`](https://optimal2050.github.io/multimod/r/reference/multimod-config.md) |
 | Pyomo, [`solve_pyomo()`](https://optimal2050.github.io/multimod/r/reference/solve_pyomo.md) | `python` | [`get_multimod_python()`](https://optimal2050.github.io/multimod/r/reference/multimod-config.md) |
+| MPS, `solve_mps(solver = "julia_highs")` | `julia` | [`get_multimod_julia()`](https://optimal2050.github.io/multimod/r/reference/multimod-config.md) |
+
+`solve_mps(solver = "cuopt")` uses `cuopt_cli` or cuOpt’s Python
+interface, locally on Linux or inside WSL on Windows. Its executable,
+Python and WSL settings are supplied in `control` or through the
+`MULTIMOD_CUOPT_*` and `MULTIMOD_WSL_USER` environment variables; see
+[Solving and reading
+results](https://optimal2050.github.io/multimod/r/articles/solving.md).
 
 Each lookup checks, in this order, and stops at the first hit:
 
@@ -76,7 +88,11 @@ export MULTIMOD_JULIA=/usr/local/bin/julia
 export MULTIMOD_GLPSOL=/usr/bin/glpsol
 ```
 
-A YAML file suits a project shared by several people:
+A YAML file suits a project shared by several people. It is read from
+`.multimod.yml` in the working directory, then from `config.yml` in the
+user-level directory `tools::R_user_dir("multimod", "config")`;
+[`multimod_config_write()`](https://optimal2050.github.io/multimod/r/reference/multimod-config.md)
+writes only to the file it is given:
 
 ``` r
 
@@ -87,7 +103,8 @@ multimod_config_write(
     julia  = list(path = "C:/Julia-1.11/bin/julia.exe"),
     glpsol = list(path = "C:/glpk/bin/glpsol.exe")
   ),
-  global = FALSE   # .multimod.yml in the working directory; TRUE = user level
+  file = ".multimod.yml"   # the project file; for the user-level one:
+  # file.path(tools::R_user_dir("multimod", "config"), "config.yml")
 )
 multimod_config_path()        # where the project file is
 multimod_config_read()
@@ -148,8 +165,8 @@ system2(get_multimod_julia(), c("-e", "println(VERSION)"))
 ```
 
 The generated `model.jl` needs the packages JuMP, HiGHS, Arrow,
-DataFrames and CSV. It installs any that are missing on its first run,
-which takes a few minutes; to do it beforehand:
+DataFrames and CSV. It does not install them: when one is missing it
+stops and names it. They are installed once, in Julia:
 
 ``` julia
 using Pkg
@@ -174,10 +191,10 @@ mm_check_python()
 reports the interpreter that will be used, its version and the packages
 that fail to import.
 [`solve_pyomo()`](https://optimal2050.github.io/multimod/r/reference/solve_pyomo.md)
-uses the configured interpreter as it is;
-`solve_pyomo(ensure_env = TRUE)` checks it first and runs
+uses the configured interpreter as it is, and stops when it cannot
+import `pyomo`; it never installs.
 [`mm_setup_python()`](https://optimal2050.github.io/multimod/r/reference/mm_setup_python.md)
-when it is not usable.
+is the only function that installs software, and runs only when called.
 
 To use an existing interpreter instead, point to it and check it carries
 the packages a route needs:

@@ -29,7 +29,7 @@
 
     <a class="navbar-brand me-2" href="index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.5.0</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -47,7 +47,7 @@
     <li><a class="dropdown-item" href="articles/ast.html">Writing a model in R</a></li>
     <li><a class="dropdown-item" href="articles/solving.html">Solving and reading results</a></li>
     <li><a class="dropdown-item" href="articles/model_workspace.html">Model workspace and data</a></li>
-    <li><a class="dropdown-item" href="articles/folding.html">Folding and trimming</a></li>
+    <li><a class="dropdown-item" href="articles/folding.html">Model redundancy</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>An existing model</h6></li>
     <li><a class="dropdown-item" href="articles/field-models.html">Two models from the field</a></li>
@@ -89,36 +89,20 @@
 <!-- badges: start -->
 
 <blockquote>
-<p><strong>A unified framework for mathematical model representation, analysis, transformation, and optimization.</strong></p>
+<p><strong>A unified framework for representing, transforming, and solving mathematical optimization models across languages and solvers.</strong></p>
 </blockquote>
-<p><strong>multimod</strong> is a unified framework for working with mathematical optimization models independently of the languages and solvers used to implement them. Its current implementation is an R package. It represents a model as a structured abstract syntax tree (AST) of sets, mappings, parameters, variables, and equations. That representation can be constructed in R, parsed from supported modeling-language syntax, inspected and transformed, or translated into other representations.</p>
-<p><strong>Define the mathematics once; choose how to express, simplify, and solve it.</strong> Rather than maintaining separate implementations of the same formulation, multimod provides a common model representation and multiple routes from formulation to solution.</p>
-<div class="section level2">
-<h2 id="why-multimod">Why multimod?<a class="anchor" aria-label="anchor" href="#why-multimod"></a>
-</h2>
-<ul>
-<li>
-<strong>Separate mathematical meaning from implementation.</strong> Work with a structured formulation instead of tying model logic to one programming language, modeling system, or solver.</li>
-<li>
-<strong>Move between modeling environments.</strong> Generate MathProg, GAMS, JuMP, and Pyomo code, or render equations as LaTeX for inspection and documentation. Import supported subsets of existing GAMS and MathProg models.</li>
-<li>
-<strong>Avoid unnecessary model-building overhead.</strong> Assemble the linear-programming matrix directly in R and pass it to HiGHS, or export MPS, without first generating and executing another modeling-language implementation.</li>
-<li>
-<strong>Reduce models to the information their data contains.</strong> Fold dimensions with no variation and trim unused symbols, helping make formulations and their generated representations more compact.</li>
-<li>
-<strong>Inspect and reuse model structure.</strong> Validate and visualize the AST, examine model statistics, exchange structures as JSON, and maintain data in CSV or Arrow-based workspaces.</li>
-<li>
-<strong>Support reproducible modeling workflows.</strong> Keep formulations, data, generated code, and solution routes connected through a common model representation.</li>
-</ul>
-<p>multimod originated in energy system modeling and includes an energy model among its examples, but <strong>its core is domain-independent</strong>. It can represent linear optimization models in other fields as well.</p>
-</div>
+<p><strong>multimod</strong> is an R package for representing, analyzing, transforming, and solving mathematical optimization models. It stores sets, mappings, parameters, variables, and equations in a structured abstract syntax tree (AST). Models can be constructed with R functions or imported from the supported subsets of GAMS and GNU MathProg.</p>
+<p>The package validates and visualizes model structure, folds redundant dimensions, trims unused symbols, and stores models as JSON or in CSV- and Arrow-based workspaces. It renders models and equations as GAMS, GNU MathProg, JuMP, Pyomo, or LaTeX.</p>
+<p>For continuous linear optimization, multimod can generate an LP matrix for HiGHS or cuOpt, write an MPS file, or run generated model code with the corresponding external toolchain. It also reads solver results into R.</p>
+<p>multimod originated in energy system modeling and includes an energy model among its examples. Its model representation is not specific to that domain.</p>
 <div class="section level2">
 <h2 id="architecture-from-formulation-to-solution">Architecture: from formulation to solution<a class="anchor" aria-label="anchor" href="#architecture-from-formulation-to-solution"></a>
 </h2>
-<p>A model can enter multimod through R constructors, supported equation syntax, or a supported source-code reader. Once represented as an AST, it can be inspected, reduced, saved, translated into another modeling language, or compiled directly into an LP matrix. These are alternative routes from the <em>same mathematical formulation</em>, not separate models to maintain.</p>
+<p>A model can enter multimod through R constructors, supported equation syntax, or a supported source-code reader. Once represented as an AST, it can be inspected, reduced, saved, translated into another modeling language, or compiled directly into an LP matrix. Each output route operates on the same model representation.</p>
 <pre class="text"><code>┌─────────────────────────────┐
-│      Input Formats          │
+│        Model inputs         │
 ├─────────────────────────────┤
+│ R constructors and DSL      │ → new_*(), ast_*(), mm_equation()
 │ GAMS    (basic/linear only) │ → read_gams()
 │ MathProg (limited features) │ → read_gmpl()
 │ JuMP    (constraints only)  │ → mm_equation()
@@ -140,21 +124,28 @@
 │ Output: model code               │  │ Output: LP matrix                │
 ├──────────────────────────────────┤  ├──────────────────────────────────┤
 │ LaTeX    write_latex()       [x] │  │ model_to_lp()               [x]  │
-│ MathProg write_gmpl()        [x] │  │ write_mps()                 [x]  │
-│ JuMP     write_jump()        [x] │  │ solve_highs()               [x]  │
-│ Pyomo    write_pyomo()       [x] │  │ solve_mps()                 [x]  │
-│ GAMS     write_gams() +      [x] │  │ read_mps_solution()         [x]  │
-│          write_gams_data()       │  │                                  │
-│ {{AMPL, ...}}                [ ] │  │ no generated model text, so      │
-│                                  │  │ no model-build step — the        │
-│ then an external solver:         │  │ time and memory wall on          │
-│ glpsol, Julia, Python, NEOS      │  │ large models                     │
+│ MathProg write_gmpl()        [x] │  │ native C++ executor         [x]  │
+│ JuMP     write_jump()        [x] │  │ write_mps(stream=TRUE)      [x]  │
+│ Pyomo    write_pyomo()       [x] │  │ native presolve/remap       [x]  │
+│ GAMS     write_gams() +      [x] │  │ solve_highs()               [x]  │
+│          write_gams_data()       │  │ solve_mps()                 [x]  │
+│ {{AMPL, ...}}                [ ] │  │ read_mps_solution()         [x]  │
+│                                  │  │                                  │
+│ then an external solver:         │  │ direct matrix construction       │
+│ glpsol, Julia, Python, NEOS      │  │ no generated model source        │
 └──────────────────────────────────┘  └──────────────────────────────────┘
 
 Status: [x] implemented | [~] and { } developing | [ ] and {{ }} considering</code></pre>
 <!-- ![multimod architecture](man/figures/multimod-architecture.svg) -->
 <p>The diagram summarizes the architecture; the table under <a href="#capabilities">Capabilities</a> lists the implemented functions.</p>
 <p>The current tested scope is <strong>linear programming with continuous variables</strong>. Language importers cover documented subsets, and some output routes remain experimental; see <a href="#capabilities">Capabilities</a> and the <a href="https://optimal2050.github.io/multimod/r/articles/roadmap.html">roadmap</a>.</p>
+<div class="section level3">
+<h3 id="native-matrix-route">Native matrix route<a class="anchor" aria-label="anchor" href="#native-matrix-route"></a>
+</h3>
+<p>For performance on large models, the matrix route includes a C++17 executor for supported equation plans. Enable it with <code>options(multimod.engine = "native")</code>; equations that cannot be lowered to a native plan continue through the R engine. The executor is multithreaded, slices large expansions, and is used by both <code><a href="reference/model_to_lp.html">model_to_lp()</a></code> and the streamed MPS route.</p>
+<p><code>write_mps(stream = TRUE)</code> sends coefficient blocks to a native spool and MPS writer instead of materializing the complete sparse matrix in R. Its native scan, presolve-map, and remap steps can eliminate doubleton rows and proportional columns while the file is built. Build-time definition substitution is applied on the same route. These paths are intended to reduce matrix-build time and bound the memory used for coefficient blocks.</p>
+<p>Large-model runs indicate that the native streamed route can substantially reduce matrix-construction and MPS-writing time relative to the earlier in-memory route. Performance depends on model structure and build options; detailed benchmarks will be reported separately.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
@@ -167,7 +158,7 @@ Status: [x] implemented | [~] and { } developing | [ ] and {{ }} considering</co
 <h2 id="quickstart-one-model-several-representations">Quickstart: one model, several representations<a class="anchor" aria-label="anchor" href="#quickstart-one-model-several-representations"></a>
 </h2>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://optimal2050.github.io/multimod/" class="external-link">multimod</a></span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://optimal2050.github.io/multimod/r/">multimod</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">toy</span> <span class="op">&lt;-</span> <span class="va">example_models</span><span class="op">$</span><span class="va">toy</span>          <span class="co"># built in R, see "Writing a model in R"</span></span>
 <span><span class="va">toy</span></span>
@@ -265,20 +256,20 @@ Status: [x] implemented | [~] and { } developing | [ ] and {{ }} considering</co
 <li>
 <a href="https://optimal2050.github.io/multimod/r/articles/ast.html">Writing a model in R</a>: the constructors, step by step.</li>
 <li>
-<a href="https://optimal2050.github.io/multimod/r/articles/folding.html">Folding and trimming</a>: reducing a model to the size its data needs.</li>
+<a href="https://optimal2050.github.io/multimod/r/articles/folding.html">Model redundancy</a>: folding and trimming a model to the size its data needs.</li>
 <li>Further articles on the <a href="https://optimal2050.github.io/multimod/r/">website</a>: solving and reading results, the two field models, the model workspace, configuration, LaTeX.</li>
 </ul>
 </div>
 <div class="section level2">
 <h2 id="development-direction">Development direction<a class="anchor" aria-label="anchor" href="#development-direction"></a>
 </h2>
-<p>The long-term architecture envisages a native C++ or Rust computational core with R, Python and Julia interfaces. Future research directions include AI-assisted formulation and support for nonlinear and stochastic optimization. These are planned directions, not implemented features.</p>
-<p>The repository is laid out for that architecture: the R package at the root, <code>core/</code> and <code>python/</code> reserved for the native core and its Python binding, <code>specs/</code> for the cross-language goldens, and one documentation site under <code>docs/</code> with the R reference at <a href="https://optimal2050.github.io/multimod/r/"><code>/r/</code></a> beside the future language sections.</p>
+<p>The long-term architecture gives the native core Python and Julia interfaces beside the R one. Further research directions include AI-assisted formulation and support for nonlinear and stochastic optimization; these are planned, not implemented.</p>
+<p>The repository is laid out for that architecture: the R package at the root, <code>core/</code> holding the native core (copied into <code>src/</code> for the R build) and <code>python/</code> reserved for its Python binding, <code>specs/</code> for the cross-language goldens, and one documentation site under <code>docs/</code> with the R reference at <a href="https://optimal2050.github.io/multimod/r/"><code>/r/</code></a> beside the future language sections.</p>
 </div>
 <div class="section level2">
 <h2 id="integration-with-energyrt">Integration with energyRt<a class="anchor" aria-label="anchor" href="#integration-with-energyrt"></a>
 </h2>
-<p><a href="https://github.com/optimal2050/energyRt" class="external-link">energyRt</a> uses multimod as its model compiler: <code><a href="https://energyRt.org/reference/multimod_from_energyRt.html" class="external-link">energyRt::multimod_from_energyRt()</a></code> builds the model from an interpolated scenario, and the LP or MPS multimod produces is what energyRt hands to a local solver or, experimentally, to cloud hardware through the mmcloud package.</p>
+<p><a href="https://github.com/optimal2050/energyRt" class="external-link">energyRt</a> uses multimod as its model compiler: <code><a href="https://energyRt.org/reference/multimod_from_energyRt.html" class="external-link">energyRt::multimod_from_energyRt()</a></code> builds the model from an interpolated scenario, and the LP or MPS multimod produces is what energyRt hands to a solver.</p>
 </div>
 <div class="section level2">
 <h2 id="license">License<a class="anchor" aria-label="anchor" href="#license"></a>

@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">multimod</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.5.0</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -23,7 +23,7 @@
     <li><a class="dropdown-item" href="../articles/ast.html">Writing a model in R</a></li>
     <li><a class="dropdown-item" href="../articles/solving.html">Solving and reading results</a></li>
     <li><a class="dropdown-item" href="../articles/model_workspace.html">Model workspace and data</a></li>
-    <li><a class="dropdown-item" href="../articles/folding.html">Folding and trimming</a></li>
+    <li><a class="dropdown-item" href="../articles/folding.html">Model redundancy</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>An existing model</h6></li>
     <li><a class="dropdown-item" href="../articles/field-models.html">Two models from the field</a></li>
@@ -64,12 +64,13 @@
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">save_model</span><span class="op">(</span></span>
 <span>  <span class="va">model</span>,</span>
 <span>  <span class="va">path</span>,</span>
-<span>  format <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"csv"</span>, <span class="st">"ipc"</span>, <span class="st">"parquet"</span><span class="op">)</span>,</span>
+<span>  format <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"parquet"</span>, <span class="st">"ipc"</span>, <span class="st">"csv"</span><span class="op">)</span>,</span>
 <span>  compression <span class="op">=</span> <span class="st">"zstd"</span>,</span>
-<span>  compression_level <span class="op">=</span> <span class="fl">15</span>,</span>
+<span>  compression_level <span class="op">=</span> <span class="fl">3</span>,</span>
 <span>  overwrite <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  keep_in_memory <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  save_structure <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  structure <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"rds"</span>, <span class="st">"json"</span>, <span class="st">"both"</span><span class="op">)</span>,</span>
 <span>  verbose <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -87,15 +88,18 @@
 
 
 <dt id="arg-format">format<a class="anchor" aria-label="anchor" href="#arg-format"></a></dt>
-<dd><p>Character. Data format: "csv" (default), "ipc" (Arrow IPC/Feather), or "parquet"</p></dd>
+<dd><p>Character. Data format: "parquet" (default), "ipc" (Arrow
+IPC/Feather), or "csv"</p></dd>
 
 
 <dt id="arg-compression">compression<a class="anchor" aria-label="anchor" href="#arg-compression"></a></dt>
-<dd><p>Compression method to use</p></dd>
+<dd><p>Compression method to use (<code>"zstd"</code>)</p></dd>
 
 
 <dt id="arg-compression-level">compression_level<a class="anchor" aria-label="anchor" href="#arg-compression-level"></a></dt>
-<dd><p>Compression level (1-9)</p></dd>
+<dd><p>Compression level; zstd 1-22, default 3. Levels
+up to 12 give the same size on model data; 15 is a third smaller on
+sorted tables at several times the time</p></dd>
 
 
 <dt id="arg-overwrite">overwrite<a class="anchor" aria-label="anchor" href="#arg-overwrite"></a></dt>
@@ -108,6 +112,13 @@
 
 <dt id="arg-save-structure">save_structure<a class="anchor" aria-label="anchor" href="#arg-save-structure"></a></dt>
 <dd><p>Logical; if TRUE, save model structure separately</p></dd>
+
+
+<dt id="arg-structure">structure<a class="anchor" aria-label="anchor" href="#arg-structure"></a></dt>
+<dd><p>How the structure (sets, mappings, parameters, variables,
+equations) is written: <code>"rds"</code> (the default) as <code>model.rds</code>, <code>"json"</code> as
+<code>model.json</code> through <code><a href="model_to_json.html">model_to_json()</a></code> for readers outside R, or
+<code>"both"</code>. <code><a href="load_model.html">load_model()</a></code> reads either.</p></dd>
 
 
 <dt id="arg-verbose">verbose<a class="anchor" aria-label="anchor" href="#arg-verbose"></a></dt>
@@ -124,6 +135,9 @@
 path/
   model.rds                       model structure (without data when
                                   keep_in_memory = FALSE)
+  model.json                      the structure in the JSON encoding of
+                                  model_to_json(), with structure = "json"
+                                  or "both"
   metadata.json                   counts and format, for readers outside R
   format.txt                      "csv", "ipc" or "parquet"
   sets/sets.csv                   index of the sets
@@ -142,12 +156,15 @@ path/
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="va">example_models</span><span class="op">$</span><span class="va">energyRt</span><span class="op">$</span><span class="va">multimod</span></span></span>
 <span class="r-in"><span><span class="va">ws</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"energyRt_ws"</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Save with the default CSV format</span></span></span>
-<span class="r-in"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu">save_model</span><span class="op">(</span><span class="va">m</span>, <span class="va">ws</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="co"># CSV needs no further package</span></span></span>
+<span class="r-in"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu">save_model</span><span class="op">(</span><span class="va">m</span>, <span class="va">ws</span>, format <span class="op">=</span> <span class="st">"csv"</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Save and drop the data from memory; get_data() reloads it from disk</span></span></span>
-<span class="r-in"><span><span class="va">m_light</span> <span class="op">&lt;-</span> <span class="fu">save_model</span><span class="op">(</span><span class="va">m</span>, <span class="va">ws</span>, keep_in_memory <span class="op">=</span> <span class="cn">FALSE</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="get_data.html">get_data</a></span><span class="op">(</span><span class="va">m_light</span>, <span class="st">"pTechOlife"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="co"># The default parquet format needs 'arrow'; here the data is also dropped</span></span></span>
+<span class="r-in"><span><span class="co"># from memory, and get_data() reloads it from disk</span></span></span>
+<span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"arrow"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
+<span class="r-in"><span>  <span class="va">m_light</span> <span class="op">&lt;-</span> <span class="fu">save_model</span><span class="op">(</span><span class="va">m</span>, <span class="va">ws</span>, keep_in_memory <span class="op">=</span> <span class="cn">FALSE</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="get_data.html">get_data</a></span><span class="op">(</span><span class="va">m_light</span>, <span class="st">"pTechOlife"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">}</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   tech region value</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1 ECOA     C1    30</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2 ECOA     C2    30</span>

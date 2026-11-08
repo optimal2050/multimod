@@ -13,7 +13,8 @@ new_mapping(
   active_dims = NULL,
   data = NULL,
   auto_fold = FALSE,
-  symbols = NULL
+  symbols = NULL,
+  rule = NULL
 )
 ```
 
@@ -52,6 +53,13 @@ new_mapping(
   optional named list of known symbols (sets, aliases) used to resolve
   dimension names in
   [`ast_dims()`](https://optimal2050.github.io/multimod/r/reference/ast_dims.md)
+
+- rule:
+
+  an
+  [`mapping_rule()`](https://optimal2050.github.io/multimod/r/reference/mapping_rule.md)
+  defining the tuples by joins of other tables, instead of `data`; its
+  `cols` default to the dimension names
 
 ## Value
 

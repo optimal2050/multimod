@@ -13,7 +13,8 @@ read_mps_solution(
   base = NULL,
   format = c("parquet", "ipc", "csv"),
   solver = c("auto", "highs", "cuopt"),
-  require_optimal = TRUE
+  require_optimal = TRUE,
+  substituted = c("expand", "defer")
 )
 ```
 
@@ -41,7 +42,9 @@ read_mps_solution(
 
 - format:
 
-  Storage format of the index tables.
+  Storage format of the index tables: `"parquet"` (default), `"ipc"` or
+  `"csv"`. When no table of that format is found, the one format present
+  in `index_dir` is read.
 
 - solver:
 
@@ -50,6 +53,15 @@ read_mps_solution(
 - require_optimal:
 
   Passed to the reader.
+
+- substituted:
+
+  For a matrix written with `write_mps(substitute = )`: `"expand"`
+  rebuilds the substituted variables into `primal`; `"defer"` leaves
+  them out and
+  [`write_solution()`](https://optimal2050.github.io/multimod/r/reference/write_solution.md)
+  builds each from the bundle when it writes it, so a large variable is
+  never held with the others.
 
 ## Value
 
@@ -71,10 +83,7 @@ if (requireNamespace("highs", quietly = TRUE)) {
   names(sol)
 }
 #> WARNING: Column names are not present, or contain duplicates: using names with prefix "c", beginning with suffix 0
-#> 
 #> WARNING: Row    names are not present, or contain duplicates: using names with prefix "r", beginning with suffix 0
-#> 
-#> Writing the model to ~\AppData\Local\Temp\RtmpgRRJWR\mps-ba24570c5ca2/toy.mps
-#> 
+#> Writing the model to C:\Users\admin\AppData\Local\Temp\Rtmp6Z6Hhw\mps-11ea44bf2422d/toy.mps
 #> [1] "objective" "status"    "primal"    "dual"      "col_index" "row_index"
 ```

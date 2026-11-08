@@ -11,15 +11,24 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
 library(multimod)
 ```
 
-The matrix route (`model_to_lp()`, `solve_highs()`) needs nothing beyond the
-'highs' R package. The code-generation routes run external toolchains, and multimod has
-to find three executables:
+`model_to_lp()` and `write_mps(stream = TRUE, format = "csv")` need no
+external executable. `solve_highs()`, the classic in-memory `write_mps()`
+route and `solve_mps(solver = "highs")` use the 'highs' R package. The
+code-generation routes and some MPS solver routes run external toolchains,
+and multimod has to find their executables:
 
 | Route | Executable | Looked up by |
 |---|---|---|
 | MathProg, `solve_gmpl()` | `glpsol` | `get_multimod_glpsol()` |
 | JuMP, `solve_jump()` | `julia` | `get_multimod_julia()` |
 | Pyomo, `solve_pyomo()` | `python` | `get_multimod_python()` |
+| MPS, `solve_mps(solver = "julia_highs")` | `julia` | `get_multimod_julia()` |
+
+`solve_mps(solver = "cuopt")` uses `cuopt_cli` or cuOpt's Python interface,
+locally on Linux or inside WSL on Windows. Its executable, Python and WSL
+settings are supplied in `control` or through the `MULTIMOD_CUOPT_*` and
+`MULTIMOD_WSL_USER` environment variables; see
+[Solving and reading results](solving.html).
 
 Each lookup checks, in this order, and stops at the first hit:
 

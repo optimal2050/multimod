@@ -49,9 +49,11 @@ workspaces on disk.
 
 ## Storage Formats
 
-- **csv** - Universal, human-readable (default)
+- **parquet** - default; zstd level 3. The smallest for model data (set
+  members and mappings are dictionary-encoded before compression) and
+  read by every Arrow implementation
 
-- **ipc** - Arrow IPC/Feather (.arrow extension), fastest, compression:
-  zstd level 15 (recommended)
+- **ipc** - Arrow IPC/Feather (.arrow extension); faster to read,
+  several times larger on categorical data
 
-- **parquet** - Popular Arrow format (but may have compatibility issues)
+- **csv** - Universal, human-readable
