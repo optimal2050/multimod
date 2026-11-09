@@ -125,18 +125,33 @@ toy <- example_models$toy          # built in R, see "Writing a model in R"
 toy
 #> Model: toy
 #> Description: two-region capacity expansion toy model
-#> Language:  multimod 
-#> Sets:  2 
-#> Mappings:  2 
-#> Aliases:  0 
-#> Parameters:  4 
-#> Variables:  3 
+#> Language:  multimod
+#> Sets:  2
+#> Mappings:  2
+#> Aliases:  0
+#> Parameters:  4
+#> Variables:  3
 #> Equations:  3
 
-as_latex(toy$equations$eqDemand)
-#> [1] "\\begin{flushleft}\n\\subsection*{\\textbf{eqDemand} -- \\textit{demand is met in every region}} \n\\quad$\\textbf{eqDemand} \n_{\\texttt{region}}$ \n$\\mid\\left\\{\\texttt{region}\\right\\} \\in \\mathit{mR}_{\\texttt{region}}$ \\\\\n\\begin{equation*}\n\\begin{adjustbox}{max width=\\textwidth}\n$\\begin{aligned}\n&\\sum_{\\texttt{tech}} \\bm{\\mathit{vGen}}_{\\texttt{tech},\\texttt{region}} \\ge \\mathsf{pDemand}_{\\texttt{region}} \\\\\n\\end{aligned}$\n\\end{adjustbox}\n\\end{equation*}\n\\vspace{1em}\n\\end{flushleft}"
-as_gams(toy$equations$eqDemand)
-#> [1] "eqDemand[region]$mR[region]..\n  sum(tech, vGen[tech,region]) =g=\n  pDemand[region];"
+as_latex(toy$equations$eqDemand) |> cat()
+#> \begin{flushleft}
+#> \subsection*{\textbf{eqDemand} -- \textit{demand is met in every region}}
+#> \quad$\textbf{eqDemand}
+#> _{\texttt{region}}$
+#> $\mid\left\{\texttt{region}\right\} \in \mathit{mR}_{\texttt{region}}$ \\
+#> \begin{equation*}
+#> \begin{adjustbox}{max width=\textwidth}
+#> $\begin{aligned}
+#> &\sum_{\texttt{tech}} \bm{\mathit{vGen}}_{\texttt{tech},\texttt{region}} \ge \mathsf{pDemand}_{\texttt{region}} \\
+#> \end{aligned}$
+#> \end{adjustbox}
+#> \end{equation*}
+#> \vspace{1em}
+#> \end{flushleft}
+as_gams(toy$equations$eqDemand) |> cat()
+#> eqDemand[region]$mR[region]..
+#>   sum(tech, vGen[tech,region]) =g=
+#>   pDemand[region];
 ```
 
 An equation is written as text — MathProg by default, GAMS or JuMP by
@@ -149,8 +164,12 @@ cap_total <- mm_equation(
   "eqCapTotal: sum{t in tech, r in region} vCap[t,r] <= 2000",
   desc = "total installed capacity"
 )
-as_jump(cap_total, model = toy)
-#> [1] "@constraint(\n    model,\n    eqCapTotal,\n    sum(vCap[(t, r)] for t in tech, r in region) <= 2000\n)"
+as_jump(cap_total, model = toy) |> cat()
+#> @constraint(
+#>     model,
+#>     eqCapTotal,
+#>     sum(vCap[(t, r)] for t in tech, r in region) <= 2000
+#> )
 ```
 
 The same model solved in R:

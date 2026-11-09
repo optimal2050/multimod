@@ -70,9 +70,9 @@ writeLines(c(
 ), dat)
 model <- read_gmpl(mod, dat)
 model
-#> Model: file11ea41bb11149
-#> Description: GMPL model from file11ea41bb11149.mod
-#> Source:  C:\Users\admin\AppData\Local\Temp\Rtmp6Z6Hhw\file11ea41bb11149.mod 
+#> Model: filee76c41633645
+#> Description: GMPL model from filee76c41633645.mod
+#> Source:  C:\Users\admin\AppData\Local\Temp\Rtmp8QjY7E\filee76c41633645.mod 
 #> Language:  gmpl 
 #> Sets:  1 
 #> Mappings:  0 

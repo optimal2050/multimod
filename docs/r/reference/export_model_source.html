@@ -129,11 +129,11 @@ data (CSV), written once by <code><a href="save_model.html">save_model()</a></co
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest{</span></span></span>
 <span class="r-in"><span><span class="va">ws</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"energyrt_ws"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">files</span> <span class="op">&lt;-</span> <span class="fu">export_model_source</span><span class="op">(</span><span class="st">"energyrt"</span>, <span class="va">ws</span>, format <span class="op">=</span> <span class="st">"gmpl"</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Created directory: C:\Users\admin\AppData\Local\Temp\Rtmp6Z6Hhw/energyrt_ws</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Created directory: C:\Users\admin\AppData\Local\Temp\Rtmp8QjY7E/energyrt_ws</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Wrote: model workspace (model.rds, sets/, mappings/, parameters/)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Wrote: README.txt</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Wrote: solvers/gmpl/ (model.mod, data.dat)</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Export complete: 4 file(s) written to C:\Users\admin\AppData\Local\Temp\Rtmp6Z6Hhw\energyrt_ws</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Export complete: 4 file(s) written to C:\Users\admin\AppData\Local\Temp\Rtmp8QjY7E\energyrt_ws</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/basename.html" class="external-link">basename</a></span><span class="op">(</span><span class="va">files</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "model.rds"  "README.txt" "model.mod"  "data.dat"  </span>
 <span class="r-in"><span></span></span>
@@ -148,7 +148,7 @@ data (CSV), written once by <code><a href="save_model.html">save_model()</a></co
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Parameters:  218 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Variables:   93 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Equations:   153 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Source:      C:\Users\admin\AppData\Local\Temp\Rtmp6Z6Hhw\energyrt_ws\solvers\gmpl\model.mod </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Source:      C:\Users\admin\AppData\Local\Temp\Rtmp8QjY7E\energyrt_ws\solvers\gmpl\model.mod </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Language:    gmpl </span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">ws</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="co"># }</span></span></span>

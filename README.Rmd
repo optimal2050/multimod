@@ -134,8 +134,8 @@ library(multimod)
 toy <- example_models$toy          # built in R, see "Writing a model in R"
 toy
 
-as_latex(toy$equations$eqDemand)
-as_gams(toy$equations$eqDemand)
+as_latex(toy$equations$eqDemand) |> cat()
+as_gams(toy$equations$eqDemand) |> cat()
 ```
 
 An equation is written as text — MathProg by default, GAMS or JuMP by
@@ -147,7 +147,7 @@ cap_total <- mm_equation(
   "eqCapTotal: sum{t in tech, r in region} vCap[t,r] <= 2000",
   desc = "total installed capacity"
 )
-as_jump(cap_total, model = toy)
+as_jump(cap_total, model = toy) |> cat()
 ```
 
 The same model solved in R:

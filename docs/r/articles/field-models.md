@@ -48,8 +48,8 @@ the annuity), and the rest take their declared defaults, among them a
 ``` r
 
 validate(ose, stop_on_error = FALSE)$valid
-as_gams(ose$parameters$CapitalRecoveryFactor$formula$expr)
-cat(as_latex(ose$equations$CAa1_TotalNewCapacity$rhs))
+as_gams(ose$parameters$CapitalRecoveryFactor$formula$expr) |> cat()
+as_latex(ose$equations$CAa1_TotalNewCapacity$rhs) |> cat()
 ```
 
 ### JuMP

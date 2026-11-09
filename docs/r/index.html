@@ -164,18 +164,33 @@ Status: [x] implemented | [~] and { } developing | [ ] and {{ }} considering</co
 <span><span class="va">toy</span></span>
 <span><span class="co">#&gt; Model: toy</span></span>
 <span><span class="co">#&gt; Description: two-region capacity expansion toy model</span></span>
-<span><span class="co">#&gt; Language:  multimod </span></span>
-<span><span class="co">#&gt; Sets:  2 </span></span>
-<span><span class="co">#&gt; Mappings:  2 </span></span>
-<span><span class="co">#&gt; Aliases:  0 </span></span>
-<span><span class="co">#&gt; Parameters:  4 </span></span>
-<span><span class="co">#&gt; Variables:  3 </span></span>
+<span><span class="co">#&gt; Language:  multimod</span></span>
+<span><span class="co">#&gt; Sets:  2</span></span>
+<span><span class="co">#&gt; Mappings:  2</span></span>
+<span><span class="co">#&gt; Aliases:  0</span></span>
+<span><span class="co">#&gt; Parameters:  4</span></span>
+<span><span class="co">#&gt; Variables:  3</span></span>
 <span><span class="co">#&gt; Equations:  3</span></span>
 <span></span>
-<span><span class="fu"><a href="reference/as_latex.html">as_latex</a></span><span class="op">(</span><span class="va">toy</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqDemand</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "\\begin{flushleft}\n\\subsection*{\\textbf{eqDemand} -- \\textit{demand is met in every region}} \n\\quad$\\textbf{eqDemand} \n_{\\texttt{region}}$ \n$\\mid\\left\\{\\texttt{region}\\right\\} \\in \\mathit{mR}_{\\texttt{region}}$ \\\\\n\\begin{equation*}\n\\begin{adjustbox}{max width=\\textwidth}\n$\\begin{aligned}\n&amp;\\sum_{\\texttt{tech}} \\bm{\\mathit{vGen}}_{\\texttt{tech},\\texttt{region}} \\ge \\mathsf{pDemand}_{\\texttt{region}} \\\\\n\\end{aligned}$\n\\end{adjustbox}\n\\end{equation*}\n\\vspace{1em}\n\\end{flushleft}"</span></span>
-<span><span class="fu"><a href="reference/as_gams.html">as_gams</a></span><span class="op">(</span><span class="va">toy</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqDemand</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "eqDemand[region]$mR[region]..\n  sum(tech, vGen[tech,region]) =g=\n  pDemand[region];"</span></span></code></pre></div>
+<span><span class="fu"><a href="reference/as_latex.html">as_latex</a></span><span class="op">(</span><span class="va">toy</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqDemand</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; \begin{flushleft}</span></span>
+<span><span class="co">#&gt; \subsection*{\textbf{eqDemand} -- \textit{demand is met in every region}}</span></span>
+<span><span class="co">#&gt; \quad$\textbf{eqDemand}</span></span>
+<span><span class="co">#&gt; _{\texttt{region}}$</span></span>
+<span><span class="co">#&gt; $\mid\left\{\texttt{region}\right\} \in \mathit{mR}_{\texttt{region}}$ \\</span></span>
+<span><span class="co">#&gt; \begin{equation*}</span></span>
+<span><span class="co">#&gt; \begin{adjustbox}{max width=\textwidth}</span></span>
+<span><span class="co">#&gt; $\begin{aligned}</span></span>
+<span><span class="co">#&gt; &amp;\sum_{\texttt{tech}} \bm{\mathit{vGen}}_{\texttt{tech},\texttt{region}} \ge \mathsf{pDemand}_{\texttt{region}} \\</span></span>
+<span><span class="co">#&gt; \end{aligned}$</span></span>
+<span><span class="co">#&gt; \end{adjustbox}</span></span>
+<span><span class="co">#&gt; \end{equation*}</span></span>
+<span><span class="co">#&gt; \vspace{1em}</span></span>
+<span><span class="co">#&gt; \end{flushleft}</span></span>
+<span><span class="fu"><a href="reference/as_gams.html">as_gams</a></span><span class="op">(</span><span class="va">toy</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqDemand</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; eqDemand[region]$mR[region]..</span></span>
+<span><span class="co">#&gt;   sum(tech, vGen[tech,region]) =g=</span></span>
+<span><span class="co">#&gt;   pDemand[region];</span></span></code></pre></div>
 <p>An equation is written as text — MathProg by default, GAMS or JuMP by choice — and parsed into the same tree the constructors build:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cap_total</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/mm_equation.html">mm_equation</a></span><span class="op">(</span></span>
@@ -183,8 +198,12 @@ Status: [x] implemented | [~] and { } developing | [ ] and {{ }} considering</co
 <span>  <span class="st">"eqCapTotal: sum{t in tech, r in region} vCap[t,r] &lt;= 2000"</span>,</span>
 <span>  desc <span class="op">=</span> <span class="st">"total installed capacity"</span></span>
 <span><span class="op">)</span></span>
-<span><span class="fu"><a href="reference/as_jump.html">as_jump</a></span><span class="op">(</span><span class="va">cap_total</span>, model <span class="op">=</span> <span class="va">toy</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "@constraint(\n    model,\n    eqCapTotal,\n    sum(vCap[(t, r)] for t in tech, r in region) &lt;= 2000\n)"</span></span></code></pre></div>
+<span><span class="fu"><a href="reference/as_jump.html">as_jump</a></span><span class="op">(</span><span class="va">cap_total</span>, model <span class="op">=</span> <span class="va">toy</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; @constraint(</span></span>
+<span><span class="co">#&gt;     model,</span></span>
+<span><span class="co">#&gt;     eqCapTotal,</span></span>
+<span><span class="co">#&gt;     sum(vCap[(t, r)] for t in tech, r in region) &lt;= 2000</span></span>
+<span><span class="co">#&gt; )</span></span></code></pre></div>
 <p>The same model solved in R:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">r</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/solve_highs.html">solve_highs</a></span><span class="op">(</span><span class="va">toy</span>, attach <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>

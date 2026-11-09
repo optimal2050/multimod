@@ -155,17 +155,17 @@ same kind as <code>toy</code>.</p>
 <p>Any equation of the model renders to GAMS, JuMP and Pyomo:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">meet</span> <span class="op">&lt;-</span> <span class="va">m</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">meet</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="../reference/as_gams.html">as_gams</a></span><span class="op">(</span><span class="va">meet</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/as_gams.html">as_gams</a></span><span class="op">(</span><span class="va">meet</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; meet[r]..</span></span>
 <span><span class="co">#&gt;   sum(t, gen[t,r]) =g=</span></span>
 <span><span class="co">#&gt;   Demand[r];</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="../reference/as_jump.html">as_jump</a></span><span class="op">(</span><span class="va">meet</span>, model <span class="op">=</span> <span class="va">m</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/as_jump.html">as_jump</a></span><span class="op">(</span><span class="va">meet</span>, model <span class="op">=</span> <span class="va">m</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; @constraint(</span></span>
 <span><span class="co">#&gt;     model,</span></span>
 <span><span class="co">#&gt;     meet[r in REGION],</span></span>
 <span><span class="co">#&gt;     sum(gen[t, r] for t in TECH) &gt;= get(Demand, r, DemandDef)</span></span>
 <span><span class="co">#&gt; )</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="../reference/as_pyomo.html">as_pyomo</a></span><span class="op">(</span><span class="va">meet</span>, model <span class="op">=</span> <span class="va">m</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/as_pyomo.html">as_pyomo</a></span><span class="op">(</span><span class="va">meet</span>, model <span class="op">=</span> <span class="va">m</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; def _meet_rule(model, r):</span></span>
 <span><span class="co">#&gt;     _expr = sum(model.gen[t, r] for t in model.TECH) &gt;= model.Demand[r]</span></span>
 <span><span class="co">#&gt;     if _expr is True or _expr is False:</span></span>
@@ -183,7 +183,7 @@ the model’s declarations:</p>
 <span>  <span class="st">"eqCapTotal.. sum((tech, region), vCap(tech, region)) =l= 2000;"</span>,</span>
 <span>  lang <span class="op">=</span> <span class="st">"gams"</span></span>
 <span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="../reference/as_gmpl.html">as_gmpl</a></span><span class="op">(</span><span class="va">cap</span>, model <span class="op">=</span> <span class="va">toy</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/as_gmpl.html">as_gmpl</a></span><span class="op">(</span><span class="va">cap</span>, model <span class="op">=</span> <span class="va">toy</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; s.t. eqCapTotal: sum{t in tech, r in region}(vCap[t,r]) &lt;= 2000;</span></span></code></pre></div>
 </div>
 <div class="section level2">
@@ -255,8 +255,8 @@ The demand balance of <code>toy</code>:</p>
 <code class="sourceCode R"><span><span class="va">eq</span> <span class="op">&lt;-</span> <span class="va">toy</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqDemand</span></span>
 <span><span class="va">lhs</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/as_latex.html">as_latex</a></span><span class="op">(</span><span class="va">eq</span><span class="op">$</span><span class="va">lhs</span><span class="op">)</span></span>
 <span><span class="va">rhs</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/as_latex.html">as_latex</a></span><span class="op">(</span><span class="va">eq</span><span class="op">$</span><span class="va">rhs</span><span class="op">)</span></span>
-<span><span class="va">lhs</span></span>
-<span><span class="co">#&gt; [1] "\\sum_{\\texttt{tech}} \\bm{\\mathit{vGen}}_{\\texttt{tech},\\texttt{region}}"</span></span></code></pre></div>
+<span><span class="va">lhs</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; \sum_{\texttt{tech}} \bm{\mathit{vGen}}_{\texttt{tech},\texttt{region}}</span></span></code></pre></div>
 <p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><munder><mo>∑</mo><mtext mathvariant="monospace">𝚝𝚎𝚌𝚑</mtext></munder><msub><mrow><mi mathvariant="italic">𝑣</mi><mi mathvariant="italic">𝐺</mi><mi mathvariant="italic">𝑒</mi><mi mathvariant="italic">𝑛</mi></mrow><mrow><mtext mathvariant="monospace">𝚝𝚎𝚌𝚑</mtext><mo>,</mo><mtext mathvariant="monospace">𝚛𝚎𝚐𝚒𝚘𝚗</mtext></mrow></msub><mo>≥</mo><msub><mrow><mi mathvariant="sans-serif">𝗉</mi><mi mathvariant="sans-serif">𝖣</mi><mi mathvariant="sans-serif">𝖾</mi><mi mathvariant="sans-serif">𝗆</mi><mi mathvariant="sans-serif">𝖺</mi><mi mathvariant="sans-serif">𝗇</mi><mi mathvariant="sans-serif">𝖽</mi></mrow><mtext mathvariant="monospace">𝚛𝚎𝚐𝚒𝚘𝚗</mtext></msub></mrow><annotation encoding="application/x-tex"> \sum_{\texttt{tech}} \boldsymbol{\mathit{vGen}}_{\texttt{tech},\texttt{region}} \ge \mathsf{pDemand}_{\texttt{region}} </annotation></semantics></math></p>
 </div>
 <div class="section level2">

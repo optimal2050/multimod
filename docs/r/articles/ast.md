@@ -167,10 +167,10 @@ before it is used:
 
 ``` r
 
-as_gams(limit)
-#> [1] "pAvail[tech,region] * vCap[tech,region]"
-as_latex(limit)
-#> [1] "\\mathsf{pAvail}_{\\texttt{tech},\\texttt{region}}  \\cdot  \\bm{\\mathit{vCap}}_{\\texttt{tech},\\texttt{region}}"
+as_gams(limit) |> cat()
+#> pAvail[tech,region] * vCap[tech,region]
+as_latex(limit) |> cat()
+#> \mathsf{pAvail}_{\texttt{tech},\texttt{region}}  \cdot  \bm{\mathit{vCap}}_{\texttt{tech},\texttt{region}}
 ```
 
 ## Equations
@@ -210,8 +210,19 @@ eqDemand
 #>   relation:  >= 
 #>   lhs:  sum([tech]vGen[tech,region]) 
 #>   rhs:  pDemand[region]
-as_latex(eqCost)
-#> [1] "\\begin{flushleft}\n\\subsection*{\\textbf{eqCost} -- \\textit{total cost}} \n\\quad$\\textbf{eqCost}$\n\\begin{equation*}\n\\begin{adjustbox}{max width=\\textwidth}\n$\\begin{aligned}\n&\\bm{\\mathit{vCost}}_{} = \\sum_{\\texttt{tech}, \\texttt{region}} \\mathsf{pCapCost}_{\\texttt{tech}}  \\cdot  \\bm{\\mathit{vCap}}_{\\texttt{tech},\\texttt{region}}  +  \\mathsf{pVarCost}_{\\texttt{tech}}  \\cdot  \\bm{\\mathit{vGen}}_{\\texttt{tech},\\texttt{region}} \\\\\n\\end{aligned}$\n\\end{adjustbox}\n\\end{equation*}\n\\vspace{1em}\n\\end{flushleft}"
+as_latex(eqCost) |> cat()
+#> \begin{flushleft}
+#> \subsection*{\textbf{eqCost} -- \textit{total cost}} 
+#> \quad$\textbf{eqCost}$
+#> \begin{equation*}
+#> \begin{adjustbox}{max width=\textwidth}
+#> $\begin{aligned}
+#> &\bm{\mathit{vCost}}_{} = \sum_{\texttt{tech}, \texttt{region}} \mathsf{pCapCost}_{\texttt{tech}}  \cdot  \bm{\mathit{vCap}}_{\texttt{tech},\texttt{region}}  +  \mathsf{pVarCost}_{\texttt{tech}}  \cdot  \bm{\mathit{vGen}}_{\texttt{tech},\texttt{region}} \\
+#> \end{aligned}$
+#> \end{adjustbox}
+#> \end{equation*}
+#> \vspace{1em}
+#> \end{flushleft}
 ```
 
 ## The model
@@ -345,8 +356,10 @@ json <- model_to_json(toy)
 back <- model_from_json(json)
 identical(names(back$equations), names(toy$equations))
 #> [1] TRUE
-as_gams(back$equations$eqDemand)
-#> [1] "eqDemand[region]$mR[region]..\n  sum(tech, vGen[tech,region]) =g=\n  pDemand[region];"
+as_gams(back$equations$eqDemand) |> cat()
+#> eqDemand[region]$mR[region]..
+#>   sum(tech, vGen[tech,region]) =g=
+#>   pDemand[region];
 ```
 
 [`save_model()`](https://optimal2050.github.io/multimod/r/reference/save_model.md)

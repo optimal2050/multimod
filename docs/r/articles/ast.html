@@ -261,10 +261,10 @@ take the name and the index symbols, given as <code><a href="../reference/ast_di
 <p>Rendering is a method on the node, so an expression can be checked
 before it is used:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/as_gams.html">as_gams</a></span><span class="op">(</span><span class="va">limit</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "pAvail[tech,region] * vCap[tech,region]"</span></span>
-<span><span class="fu"><a href="../reference/as_latex.html">as_latex</a></span><span class="op">(</span><span class="va">limit</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "\\mathsf{pAvail}_{\\texttt{tech},\\texttt{region}}  \\cdot  \\bm{\\mathit{vCap}}_{\\texttt{tech},\\texttt{region}}"</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/as_gams.html">as_gams</a></span><span class="op">(</span><span class="va">limit</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; pAvail[tech,region] * vCap[tech,region]</span></span>
+<span><span class="fu"><a href="../reference/as_latex.html">as_latex</a></span><span class="op">(</span><span class="va">limit</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; \mathsf{pAvail}_{\texttt{tech},\texttt{region}}  \cdot  \bm{\mathit{vCap}}_{\texttt{tech},\texttt{region}}</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="equations">Equations<a class="anchor" aria-label="anchor" href="#equations"></a>
@@ -303,8 +303,19 @@ generated.</p>
 <span><span class="co">#&gt;   relation:  &gt;= </span></span>
 <span><span class="co">#&gt;   lhs:  sum([tech]vGen[tech,region]) </span></span>
 <span><span class="co">#&gt;   rhs:  pDemand[region]</span></span>
-<span><span class="fu"><a href="../reference/as_latex.html">as_latex</a></span><span class="op">(</span><span class="va">eqCost</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "\\begin{flushleft}\n\\subsection*{\\textbf{eqCost} -- \\textit{total cost}} \n\\quad$\\textbf{eqCost}$\n\\begin{equation*}\n\\begin{adjustbox}{max width=\\textwidth}\n$\\begin{aligned}\n&amp;\\bm{\\mathit{vCost}}_{} = \\sum_{\\texttt{tech}, \\texttt{region}} \\mathsf{pCapCost}_{\\texttt{tech}}  \\cdot  \\bm{\\mathit{vCap}}_{\\texttt{tech},\\texttt{region}}  +  \\mathsf{pVarCost}_{\\texttt{tech}}  \\cdot  \\bm{\\mathit{vGen}}_{\\texttt{tech},\\texttt{region}} \\\\\n\\end{aligned}$\n\\end{adjustbox}\n\\end{equation*}\n\\vspace{1em}\n\\end{flushleft}"</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/as_latex.html">as_latex</a></span><span class="op">(</span><span class="va">eqCost</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; \begin{flushleft}</span></span>
+<span><span class="co">#&gt; \subsection*{\textbf{eqCost} -- \textit{total cost}} </span></span>
+<span><span class="co">#&gt; \quad$\textbf{eqCost}$</span></span>
+<span><span class="co">#&gt; \begin{equation*}</span></span>
+<span><span class="co">#&gt; \begin{adjustbox}{max width=\textwidth}</span></span>
+<span><span class="co">#&gt; $\begin{aligned}</span></span>
+<span><span class="co">#&gt; &amp;\bm{\mathit{vCost}}_{} = \sum_{\texttt{tech}, \texttt{region}} \mathsf{pCapCost}_{\texttt{tech}}  \cdot  \bm{\mathit{vCap}}_{\texttt{tech},\texttt{region}}  +  \mathsf{pVarCost}_{\texttt{tech}}  \cdot  \bm{\mathit{vGen}}_{\texttt{tech},\texttt{region}} \\</span></span>
+<span><span class="co">#&gt; \end{aligned}$</span></span>
+<span><span class="co">#&gt; \end{adjustbox}</span></span>
+<span><span class="co">#&gt; \end{equation*}</span></span>
+<span><span class="co">#&gt; \vspace{1em}</span></span>
+<span><span class="co">#&gt; \end{flushleft}</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="the-model">The model<a class="anchor" aria-label="anchor" href="#the-model"></a>
@@ -406,8 +417,10 @@ model structure.</p>
 <span><span class="va">back</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/model_from_json.html">model_from_json</a></span><span class="op">(</span><span class="va">json</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">back</span><span class="op">$</span><span class="va">equations</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">toy</span><span class="op">$</span><span class="va">equations</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span>
-<span><span class="fu"><a href="../reference/as_gams.html">as_gams</a></span><span class="op">(</span><span class="va">back</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqDemand</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "eqDemand[region]$mR[region]..\n  sum(tech, vGen[tech,region]) =g=\n  pDemand[region];"</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/as_gams.html">as_gams</a></span><span class="op">(</span><span class="va">back</span><span class="op">$</span><span class="va">equations</span><span class="op">$</span><span class="va">eqDemand</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; eqDemand[region]$mR[region]..</span></span>
+<span><span class="co">#&gt;   sum(tech, vGen[tech,region]) =g=</span></span>
+<span><span class="co">#&gt;   pDemand[region];</span></span></code></pre></div>
 <p><code><a href="../reference/save_model.html">save_model()</a></code> and <code><a href="../reference/load_model.html">load_model()</a></code> write a model
 as a workspace directory with its data tables in CSV or Arrow files; see
 the <a href="model_workspace.html">Model workspace and data</a>

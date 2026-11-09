@@ -65,9 +65,9 @@ Any equation of the model renders to GAMS, JuMP and Pyomo:
 
 ```{r translate}
 meet <- m$equations$meet
-cat(as_gams(meet))
-cat(as_jump(meet, model = m))
-cat(as_pyomo(meet, model = m))
+as_gams(meet) |> cat()
+as_jump(meet, model = m) |> cat()
+as_pyomo(meet, model = m) |> cat()
 ```
 
 `read_gams()` reads the linear subset of GAMS in the same way. A single
@@ -80,7 +80,7 @@ cap <- mm_equation(
   "eqCapTotal.. sum((tech, region), vCap(tech, region)) =l= 2000;",
   lang = "gams"
 )
-cat(as_gmpl(cap, model = toy))
+as_gmpl(cap, model = toy) |> cat()
 ```
 
 ## Structure and redundancy
@@ -126,7 +126,7 @@ whole model as a LaTeX document. The demand balance of `toy`:
 eq <- toy$equations$eqDemand
 lhs <- as_latex(eq$lhs)
 rhs <- as_latex(eq$rhs)
-lhs
+lhs |> cat()
 ```
 
 ```{r latex-show, echo = FALSE, results = "asis"}

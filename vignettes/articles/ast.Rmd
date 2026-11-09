@@ -134,8 +134,8 @@ Rendering is a method on the node, so an expression can be checked before it
 is used:
 
 ```{r render-expression}
-as_gams(limit)
-as_latex(limit)
+as_gams(limit) |> cat()
+as_latex(limit) |> cat()
 ```
 
 ## Equations
@@ -169,7 +169,7 @@ eqCost <- new_equation("eqCost", desc = "total cost",
   relation = "==")
 
 eqDemand
-as_latex(eqCost)
+as_latex(eqCost) |> cat()
 ```
 
 ## The model
@@ -247,7 +247,7 @@ implementations of the model structure.
 json <- model_to_json(toy)
 back <- model_from_json(json)
 identical(names(back$equations), names(toy$equations))
-as_gams(back$equations$eqDemand)
+as_gams(back$equations$eqDemand) |> cat()
 ```
 
 `save_model()` and `load_model()` write a model as a workspace directory with

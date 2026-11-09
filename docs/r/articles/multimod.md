@@ -75,17 +75,17 @@ Any equation of the model renders to GAMS, JuMP and Pyomo:
 ``` r
 
 meet <- m$equations$meet
-cat(as_gams(meet))
+as_gams(meet) |> cat()
 #> meet[r]..
 #>   sum(t, gen[t,r]) =g=
 #>   Demand[r];
-cat(as_jump(meet, model = m))
+as_jump(meet, model = m) |> cat()
 #> @constraint(
 #>     model,
 #>     meet[r in REGION],
 #>     sum(gen[t, r] for t in TECH) >= get(Demand, r, DemandDef)
 #> )
-cat(as_pyomo(meet, model = m))
+as_pyomo(meet, model = m) |> cat()
 #> def _meet_rule(model, r):
 #>     _expr = sum(model.gen[t, r] for t in model.TECH) >= model.Demand[r]
 #>     if _expr is True or _expr is False:
@@ -108,7 +108,7 @@ cap <- mm_equation(
   "eqCapTotal.. sum((tech, region), vCap(tech, region)) =l= 2000;",
   lang = "gams"
 )
-cat(as_gmpl(cap, model = toy))
+as_gmpl(cap, model = toy) |> cat()
 #> s.t. eqCapTotal: sum{t in tech, r in region}(vCap[t,r]) <= 2000;
 ```
 
@@ -194,8 +194,8 @@ writes the whole model as a LaTeX document. The demand balance of `toy`:
 eq <- toy$equations$eqDemand
 lhs <- as_latex(eq$lhs)
 rhs <- as_latex(eq$rhs)
-lhs
-#> [1] "\\sum_{\\texttt{tech}} \\bm{\\mathit{vGen}}_{\\texttt{tech},\\texttt{region}}"
+lhs |> cat()
+#> \sum_{\texttt{tech}} \bm{\mathit{vGen}}_{\texttt{tech},\texttt{region}}
 ```
 
 ``` math
