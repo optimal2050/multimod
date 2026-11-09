@@ -191,27 +191,29 @@ print.ast_comparison <- function(x, ...) {
 #'
 #' @param ast1 First AST object
 #' @param ast2 Second AST object
+#' @param verbose Print the report? Defaults to the option
+#'   `multimod.verbose` (`TRUE`).
 #'
-#' @return Result from compare::compare()
+#' @return Invisibly, the result of `compare::compare()`.
 #'
 #' @export
-compare_ast_simple <- function(ast1, ast2) {
+compare_ast_simple <- function(ast1, ast2, verbose = getOption("multimod.verbose", TRUE)) {
   if (!requireNamespace("compare", quietly = TRUE)) {
     stop("Package 'compare' is required. Install with: install.packages('compare')")
   }
 
   result <- compare::compare(ast1, ast2,
-    allowAll = TRUE, # Allow different classes to be compared
-    ignoreEnvironments = TRUE
+    allowAll = TRUE # Allow different classes to be compared
   )
 
   # Extract meaningful differences
-  if (!result$result) {
+  if (verbose && !result$result) {
     cat("ASTs differ:\n")
     print(result$tM) # Transformation matrix showing differences
     cat("\nDetailed comparison:\n")
     print(result)
-  } else {
+  } else if (verbose) {
     cat("ASTs are identical\n")
   }
+  invisible(result)
 }

@@ -13,6 +13,6 @@
 Data frame or NULL
 }
 \description{
-Handles CSV, Arrow, and Feather formats
+Handles CSV and Arrow IPC files (\code{.arrow}, and \code{.feather} from other tools)
 }
 \keyword{internal}

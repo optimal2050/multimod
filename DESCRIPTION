@@ -41,7 +41,7 @@ Imports:
     tools,
     utils
 Suggests:
-    arrow,
+    arrow (>= 9.0.0),
     visNetwork,
     R6,
     highs,

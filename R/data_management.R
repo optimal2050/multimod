@@ -73,7 +73,8 @@ set_data_path <- function(obj, path) {
 #' Detect Arrow data format
 #'
 #' @param path Path to data directory or file
-#' @return Character format name: "parquet", "feather", "ipc", "csv", or NULL
+#' @return Character format name: "parquet", "ipc", "csv", or NULL. Files
+#'   named `.feather` are Arrow IPC files and detected as "ipc".
 #'
 #' @keywords internal
 detect_arrow_format <- function(path) {
@@ -89,7 +90,7 @@ detect_arrow_format <- function(path) {
       return("parquet")
     }
     if (any(grepl("\\.feather$", files))) {
-      return("feather")
+      return("ipc")
     }
     if (any(grepl("\\.arrow$", files))) {
       return("ipc")
@@ -106,7 +107,7 @@ detect_arrow_format <- function(path) {
       return("parquet")
     }
     if (any(grepl("[.]feather$", files))) {
-      return("feather")
+      return("ipc")
     }
     if (any(grepl("[.]arrow$", files))) {
       return("ipc")
@@ -121,7 +122,7 @@ detect_arrow_format <- function(path) {
     return("parquet")
   }
   if (grepl("\\.feather$", path)) {
-    return("feather")
+    return("ipc")
   }
   if (grepl("\\.arrow$", path)) {
     return("ipc")
@@ -158,7 +159,7 @@ load_arrow_data <- function(path, format = NULL, collect = TRUE) {
   # Open dataset based on format
   ds <- tryCatch(
     {
-      if (format %in% c("parquet", "feather", "ipc", "csv")) {
+      if (format %in% c("parquet", "ipc", "csv")) {
         arrow::open_dataset(path, format = format)
       } else {
         stop("Unsupported format: ", format)
@@ -187,7 +188,7 @@ load_arrow_data <- function(path, format = NULL, collect = TRUE) {
 #'
 #' @param data Data frame or data.table to save
 #' @param path Path to save to
-#' @param format Format: "parquet", "feather", "ipc", "csv"
+#' @param format Format: "parquet", "ipc" (Arrow IPC) or "csv"
 #' @param overwrite Logical. Overwrite existing data?
 #'
 #' @return Invisibly, `path`.
@@ -206,14 +207,12 @@ save_arrow_data <- function(data, path, format = "parquet", overwrite = FALSE) {
   # Write based on format
   if (format == "parquet") {
     arrow::write_dataset(data, data_dir, format = "parquet")
-  } else if (format == "feather") {
-    arrow::write_dataset(data, data_dir, format = "feather")
   } else if (format == "ipc") {
     arrow::write_dataset(data, data_dir, format = "ipc")
   } else if (format == "csv") {
     arrow::write_dataset(data, data_dir, format = "csv")
   } else {
-    stop("Unsupported format: ", format)
+    stop("Unsupported format: ", format, " (use \"parquet\", \"ipc\" or \"csv\")")
   }
 
   invisible(path)
@@ -323,7 +322,7 @@ load_mapping <- function(model, mapping_name) {
 #'
 #' @param model Multimod model
 #' @param param_name Name of parameter to save
-#' @param format Data format: "parquet", "feather", "ipc", "csv"
+#' @param format Data format: "parquet", "ipc" (Arrow IPC) or "csv"
 #' @param keep_in_memory Keep data in memory after saving?
 #' @return Modified model
 #'
@@ -386,7 +385,7 @@ save_parameter <- function(model, param_name, format = "parquet", keep_in_memory
 #'
 #' @param model Multimod model
 #' @param mapping_name Name of mapping to save
-#' @param format Data format: "parquet", "feather", "ipc", "csv"
+#' @param format Data format: "parquet", "ipc" (Arrow IPC) or "csv"
 #' @param keep_in_memory Keep data in memory after saving?
 #' @return Modified model
 #'
@@ -525,6 +524,8 @@ add_set_data <- function(model, set_name, members) {
 #'
 #' @param model Multimod model
 #' @param load_data Logical. Load data from disk if needed?
+#' @param verbose Report the sets populated? Defaults to the option
+#'   `multimod.verbose` (`TRUE`).
 #' @return Modified model with set data populated
 #'
 #' @details
@@ -532,10 +533,10 @@ add_set_data <- function(model, set_name, members) {
 #' and parameters. Useful when model already has data loaded.
 #'
 #' @export
-populate_sets_from_data <- function(model, load_data = FALSE) {
+populate_sets_from_data <- function(model, load_data = FALSE, verbose = getOption("multimod.verbose", TRUE)) {
   stopifnot(inherits(model, "multimod") || inherits(model, "mm_model"))
 
-  cat("Populating sets from model data...\n")
+  if (verbose) cat("Populating sets from model data...\n")
 
   # Initialize set data storage
   set_members <- list()
@@ -603,11 +604,11 @@ populate_sets_from_data <- function(model, load_data = FALSE) {
     if (length(members) > 0) {
       model$sets[[set_name]]$data <- sort(members)
       n_populated <- n_populated + 1
-      cat("  ", set_name, ":", length(members), "members\n")
+      if (verbose) cat("  ", set_name, ":", length(members), "members\n")
     }
   }
 
-  cat("Populated", n_populated, "of", length(model$sets), "sets\n")
+  if (verbose) cat("Populated", n_populated, "of", length(model$sets), "sets\n")
   model
 }
 

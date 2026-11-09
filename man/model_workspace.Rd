@@ -34,7 +34,7 @@ Functions for creating, managing, saving, and loading multimod model workspaces 
 \item \strong{parquet} - default; zstd level 3. The smallest for model
 data (set members and mappings are dictionary-encoded before
 compression) and read by every Arrow implementation
-\item \strong{ipc} - Arrow IPC/Feather (.arrow extension); faster to
+\item \strong{ipc} - Arrow IPC (.arrow extension); faster to
 read, several times larger on categorical data
 \item \strong{csv} - Universal, human-readable
 }

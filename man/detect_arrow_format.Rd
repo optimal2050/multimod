@@ -10,7 +10,8 @@ detect_arrow_format(path)
 \item{path}{Path to data directory or file}
 }
 \value{
-Character format name: "parquet", "feather", "ipc", "csv", or NULL
+Character format name: "parquet", "ipc", "csv", or NULL. Files
+named \code{.feather} are Arrow IPC files and detected as "ipc".
 }
 \description{
 Detect Arrow data format

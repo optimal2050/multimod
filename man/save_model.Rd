@@ -23,7 +23,7 @@ save_model(
 \item{path}{Path to save the model files}
 
 \item{format}{Character. Data format: "parquet" (default), "ipc" (Arrow
-IPC/Feather), or "csv"}
+IPC), or "csv"}
 
 \item{compression}{Compression method to use (\code{"zstd"})}
 

@@ -2900,7 +2900,7 @@ import_gmpl_data <- function(model,
             param_dir <- file.path(model_path, param_name)
             dir.create(param_dir, recursive = TRUE, showWarnings = FALSE)
             arrow_file <- file.path(param_dir, "data.arrow")
-            arrow::write_feather(param_data, arrow_file)
+            arrow::write_ipc_file(param_data, arrow_file)
             model$parameters[[param_name]]$data <- arrow_file
             if (verbose) {
               cat("    ", param_name, ": ", nrow(param_data), " rows -> ", arrow_file, "\n", sep = "")

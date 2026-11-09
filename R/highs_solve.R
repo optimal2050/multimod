@@ -537,7 +537,7 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
       format = format
     )
   }
-  # dim_names rides along inside parquet/feather but is lost by CSV, so write it
+  # dim_names rides along inside parquet/Arrow IPC but is lost by CSV, so write it
   # explicitly too - otherwise a csv bundle cannot be mapped back to symbols
   .write_dim_names(attr(col_index, "dim_names"), index_dir, base)
   codes_path <- file.path(index_dir, paste0(base, "_codes.csv"))

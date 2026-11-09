@@ -10,7 +10,8 @@ quick_compare(
   key_col = "name",
   n = 10,
   tolerance = 1e-09,
-  ignore.case = FALSE
+  ignore.case = FALSE,
+  verbose = getOption("multimod.verbose", TRUE)
 )
 }
 \arguments{
@@ -25,6 +26,9 @@ quick_compare(
 \item{tolerance}{Numeric tolerance for comparing numeric columns (default: 1e-9)}
 
 \item{ignore.case}{Logical; if TRUE, perform case-insensitive comparison for character columns (default: FALSE)}
+
+\item{verbose}{Print the report? Defaults to the option
+\code{multimod.verbose} (\code{TRUE}).}
 }
 \value{
 Invisibly, the list returned by \code{\link[=compare_dataframes]{compare_dataframes()}} (elements

@@ -161,7 +161,7 @@ test_that("write_energyrt_output writes one file per variable, nonzeros only", {
   )
 
   # each file carries that variable's own dimension names, not i1..iN
-  act <- arrow::read_feather(file.path(d, "vTechAct.arrow"))
+  act <- arrow::read_ipc_file(file.path(d, "vTechAct.arrow"))
   expect_equal(names(act), c("tech", "region", "year", "timeslice", "value"))
   expect_type(act$year, "integer") # energyRt stores year as int
   expect_true(all(act$value != 0)) # nonzeros only

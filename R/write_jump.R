@@ -777,7 +777,7 @@ write_jump_internal <- function(model, file = NULL, model_dir = NULL, solver_dir
         # Create dataframe with set members in first column
         df <- data.frame(member = as.character(set_data), stringsAsFactors = FALSE)
         .need_pkg("arrow", "writing set data for JuMP")
-        arrow::write_feather(df, file.path(set_subdir, "data.arrow"))
+        arrow::write_ipc_file(df, file.path(set_subdir, "data.arrow"))
       }
     }
   }

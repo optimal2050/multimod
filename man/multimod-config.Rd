@@ -38,7 +38,7 @@ multimod_config_read(global = FALSE)
 
 multimod_config_path(global = FALSE)
 
-multimod_config_show()
+multimod_config_show(verbose = getOption("multimod.verbose", TRUE))
 }
 \arguments{
 \item{path}{Character path to the solver executable. If \code{NULL}, clears the setting.}
@@ -56,6 +56,9 @@ Defaults to \code{"multimod"}.}
 \code{multimod_config_path()}: when \code{TRUE}, the per-user file under
 \code{tools::R_user_dir("multimod", "config")} comes first; when \code{FALSE}
 (default), \code{.multimod.yml} in the working directory.}
+
+\item{verbose}{For \code{multimod_config_show()}: print the summary? Defaults to the option
+\code{multimod.verbose} (\code{TRUE}).}
 }
 \value{
 \itemize{

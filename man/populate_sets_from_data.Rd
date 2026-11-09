@@ -4,12 +4,19 @@
 \alias{populate_sets_from_data}
 \title{Populate sets from model's own mappings and parameters}
 \usage{
-populate_sets_from_data(model, load_data = FALSE)
+populate_sets_from_data(
+  model,
+  load_data = FALSE,
+  verbose = getOption("multimod.verbose", TRUE)
+)
 }
 \arguments{
 \item{model}{Multimod model}
 
 \item{load_data}{Logical. Load data from disk if needed?}
+
+\item{verbose}{Report the sets populated? Defaults to the option
+\code{multimod.verbose} (\code{TRUE}).}
 }
 \value{
 Modified model with set data populated

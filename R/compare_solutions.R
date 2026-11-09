@@ -443,7 +443,7 @@ compare_solution <- function(
 
 #' Internal: Load variable data from file
 #'
-#' Handles CSV, Arrow, and Feather formats
+#' Handles CSV and Arrow IPC files (`.arrow`, and `.feather` from other tools)
 #'
 #' @param file_path Path to data file
 #' @return Data frame or NULL
@@ -469,7 +469,7 @@ compare_solution <- function(
         }
       } else if (ext == "feather") {
         if (requireNamespace("arrow", quietly = TRUE)) {
-          data <- arrow::read_feather(file_path, mmap = FALSE)
+          data <- arrow::read_ipc_file(file_path, mmap = FALSE)
           return(as.data.frame(data))
         } else {
           warning("Package 'arrow' required to read .feather files")

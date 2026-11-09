@@ -129,8 +129,8 @@ the folded table when the model is folded.
 The data files are plain CSV or Arrow and need nothing from multimod:
 
 ```python
-import pyarrow.feather as feather
-demand = feather.read_feather("ws/parameters/pDemand/data.arrow")
+import pyarrow.ipc as ipc
+demand = ipc.open_file("ws/parameters/pDemand/data.arrow").read_pandas()
 ```
 
 ```julia

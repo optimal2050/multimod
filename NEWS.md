@@ -123,6 +123,9 @@ of June 2025, which read GAMS and rendered models to LaTeX and back to GAMS.
   `multimod_config_show()`. `multimod_config_write()` writes a configuration
   file to the path it is given.
 * `mm_check_python()` reports whether the configured interpreter is usable.
+* The comparison helpers, `multimod_config_show()` and
+  `populate_sets_from_data()` print only when `verbose` is `TRUE`; its
+  default is the option `multimod.verbose` (`TRUE`).
 * The `glpsol` executable is taken from the 'glpsol' package when it is
   installed.
 
@@ -139,6 +142,11 @@ of June 2025, which read GAMS and rendered models to LaTeX and back to GAMS.
 
 ## Bug fixes
 
+* Arrow IPC files are written with `write_ipc_file()` and read with
+  `read_ipc_file()`, so arrow >= 26 no longer warns that `write_feather()`
+  and `read_feather()` are superseded; arrow >= 9.0.0 is required. The
+  format is called `"ipc"` throughout, and `"feather"` is no longer a
+  format value.
 * `read_gams()` parses a sum over several indices, numbers in scientific
   notation with a signed exponent, and decimal literals in equation bodies.
 * `read_gams()` reads several symbols declared on one line

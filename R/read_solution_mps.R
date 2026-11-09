@@ -9,7 +9,7 @@
 # (symbol, index tuple), and these functions apply it.
 #
 # The output is deliberately written in the layout energyRt's `read_solution()`
-# already consumes (one feather file per variable, dim-named columns plus
+# already consumes (one Arrow IPC file per variable, dim-named columns plus
 # `value`, nonzeros only), so nothing downstream has to change.
 # =============================================================================
 
@@ -828,7 +828,7 @@ write_solution <- function(solution, dir,
     p <- switch(format,
       arrow = {
         f <- file.path(dir, paste0(nm, ".arrow"))
-        arrow::write_feather(df, f, compression = .arrow_codec("lz4", fallback = NULL))
+        arrow::write_ipc_file(df, f, compression = .arrow_codec("lz4", fallback = NULL))
         f
       },
       parquet = {
@@ -860,7 +860,7 @@ write_solution <- function(solution, dir,
 #'
 #' @param solution The list returned by [read_mps_solution()] or [solve_highs()].
 #' @param dir Output directory; created if absent.
-#' @param format `"arrow"` (feather, lz4 - what energyRt writes), `"csv"` or
+#' @param format `"arrow"` (Arrow IPC, lz4 - what energyRt writes), `"csv"` or
 #'   `"parquet"`.
 #' @param variables Optional character vector limiting which variables to write.
 #'
@@ -960,7 +960,7 @@ write_energyrt_output <- function(solution, dir,
 
 #' Persist per-symbol dimension names next to the index tables
 #'
-#' `dim_names` rides along as an attribute in parquet/feather but is lost by
+#' `dim_names` rides along as an attribute in parquet/Arrow IPC but is lost by
 #' CSV, so it is also written as a small long table. That keeps the exported
 #' bundle self-describing whichever format was chosen.
 #' @keywords internal

@@ -16,7 +16,7 @@ write_energyrt_output(
 
 \item{dir}{Output directory; created if absent.}
 
-\item{format}{\code{"arrow"} (feather, lz4 - what energyRt writes), \code{"csv"} or
+\item{format}{\code{"arrow"} (Arrow IPC, lz4 - what energyRt writes), \code{"csv"} or
 \code{"parquet"}.}
 
 \item{variables}{Optional character vector limiting which variables to write.}

@@ -10,6 +10,8 @@
 #' @param label2 Label for second dataframe (default: "df2")
 #' @param tolerance Numeric tolerance for comparing numeric columns (default: 1e-9)
 #' @param ignore.case Logical; if TRUE, perform case-insensitive comparison for character columns (default: FALSE)
+#' @param verbose Print the report? Defaults to the option
+#'   `multimod.verbose` (`TRUE`).
 #'
 #' @return List with components:
 #'   - only_in_1: Rows only in df1
@@ -23,7 +25,8 @@ compare_dataframes <- function(df1, df2, key_col = NULL,
                                compare_cols = NULL,
                                label1 = "df1", label2 = "df2",
                                tolerance = 1e-9,
-                               ignore.case = FALSE) {
+                               ignore.case = FALSE,
+                               verbose = getOption("multimod.verbose", TRUE)) {
   df1_work <- df1
   df2_work <- df2
 
@@ -44,18 +47,18 @@ compare_dataframes <- function(df1, df2, key_col = NULL,
         stop("Unable to auto-detect key columns: dataframes do not share any columns")
       }
       key_col <- common_columns[1]
-      cat(sprintf("Auto-detected key column (forced to first shared column): %s\n", key_col))
+      if (verbose) cat(sprintf("Auto-detected key column (forced to first shared column): %s\n", key_col))
     } else {
       dropped_keys <- setdiff(candidate_keys, shared_candidates)
       key_col <- shared_candidates
       if (length(dropped_keys) > 0) {
-        cat(sprintf(
+        if (verbose) cat(sprintf(
           "Auto-detected key columns (removed non-shared columns: %s): %s\n",
           paste(dropped_keys, collapse = ", "),
           paste(key_col, collapse = ", ")
         ))
       } else {
-        cat(sprintf("Auto-detected key columns: %s\n", paste(key_col, collapse = ", ")))
+        if (verbose) cat(sprintf("Auto-detected key columns: %s\n", paste(key_col, collapse = ", ")))
       }
     }
   }
@@ -109,14 +112,14 @@ compare_dataframes <- function(df1, df2, key_col = NULL,
   only_in_2 <- key_info2$display[match(only_in_internal_2, keys2)]
   in_both <- key_info1$display[match(in_both_internal, keys1)]
 
-  cat(sprintf("=== Comparing DataFrames ===\n"))
-  cat(sprintf("%s: %d rows\n", label1, nrow(df1_work)))
-  cat(sprintf("%s: %d rows\n", label2, nrow(df2_work)))
-  cat(sprintf("\n"))
-  cat(sprintf("Only in %s: %d\n", label1, length(only_in_1)))
-  cat(sprintf("Only in %s: %d\n", label2, length(only_in_2)))
-  cat(sprintf("In both: %d\n", length(in_both)))
-  cat(sprintf("\n"))
+  if (verbose) cat(sprintf("=== Comparing DataFrames ===\n"))
+  if (verbose) cat(sprintf("%s: %d rows\n", label1, nrow(df1_work)))
+  if (verbose) cat(sprintf("%s: %d rows\n", label2, nrow(df2_work)))
+  if (verbose) cat(sprintf("\n"))
+  if (verbose) cat(sprintf("Only in %s: %d\n", label1, length(only_in_1)))
+  if (verbose) cat(sprintf("Only in %s: %d\n", label2, length(only_in_2)))
+  if (verbose) cat(sprintf("In both: %d\n", length(in_both)))
+  if (verbose) cat(sprintf("\n"))
 
   # If compare_cols not specified, use all columns except key
   if (is.null(compare_cols)) {
@@ -147,7 +150,7 @@ compare_dataframes <- function(df1, df2, key_col = NULL,
     cols_to_compare <- if (length(in_both_internal) == 0) character(0) else compare_cols
     for (col in cols_to_compare) {
       if (!(col %in% names(df1_subset)) || !(col %in% names(df2_subset))) {
-        cat(sprintf("Warning: Column '%s' not in both dataframes\n", col))
+        if (verbose) cat(sprintf("Warning: Column '%s' not in both dataframes\n", col))
         next
       }
 
@@ -168,7 +171,7 @@ compare_dataframes <- function(df1, df2, key_col = NULL,
         result_df[[label2]] <- df2_subset[[col]][diffs]
 
         differences[[col]] <- result_df
-        cat(sprintf("Column '%s': %d differences\n", col, length(which(diffs))))
+        if (verbose) cat(sprintf("Column '%s': %d differences\n", col, length(which(diffs))))
       }
     }
   }
@@ -199,7 +202,7 @@ compare_dataframes <- function(df1, df2, key_col = NULL,
     summary = summary_text
   )
 
-  cat(sprintf("\n%s\n", summary_text))
+  if (verbose) cat(sprintf("\n%s\n", summary_text))
 
   invisible(result)
 }
@@ -213,34 +216,38 @@ compare_dataframes <- function(df1, df2, key_col = NULL,
 #' @param n Number of examples to show (default: 10)
 #' @param tolerance Numeric tolerance for comparing numeric columns (default: 1e-9)
 #' @param ignore.case Logical; if TRUE, perform case-insensitive comparison for character columns (default: FALSE)
+#' @param verbose Print the report? Defaults to the option
+#'   `multimod.verbose` (`TRUE`).
 #' @return Invisibly, the list returned by [compare_dataframes()] (elements
 #'   `only_in_1`, `only_in_2`, `in_both`, `differences`, `summary`).
 #'
 #' @export
-quick_compare <- function(df1, df2, key_col = "name", n = 10, tolerance = 1e-9, ignore.case = FALSE) {
+quick_compare <- function(df1, df2, key_col = "name", n = 10, tolerance = 1e-9, ignore.case = FALSE,
+                          verbose = getOption("multimod.verbose", TRUE)) {
   result <- compare_dataframes(df1, df2,
     key_col = key_col,
     label1 = "df1", label2 = "df2",
     tolerance = tolerance,
-    ignore.case = ignore.case
+    ignore.case = ignore.case,
+    verbose = verbose
   )
 
-  cat("\n=== Examples ===\n")
+  if (verbose) cat("\n=== Examples ===\n")
 
   if (length(result$only_in_1) > 0) {
-    cat(sprintf("\nFirst %d rows only in df1:\n", min(n, length(result$only_in_1))))
-    print(head(df1[df1[[key_col]] %in% result$only_in_1, ], n))
+    if (verbose) cat(sprintf("\nFirst %d rows only in df1:\n", min(n, length(result$only_in_1))))
+    if (verbose) print(head(df1[df1[[key_col]] %in% result$only_in_1, ], n))
   }
 
   if (length(result$only_in_2) > 0) {
-    cat(sprintf("\nFirst %d rows only in df2:\n", min(n, length(result$only_in_2))))
-    print(head(df2[df2[[key_col]] %in% result$only_in_2, ], n))
+    if (verbose) cat(sprintf("\nFirst %d rows only in df2:\n", min(n, length(result$only_in_2))))
+    if (verbose) print(head(df2[df2[[key_col]] %in% result$only_in_2, ], n))
   }
 
   if (length(result$differences) > 0) {
     for (col_name in names(result$differences)[seq_len(min(3, length(result$differences)))]) {
-      cat(sprintf("\nFirst differences in column '%s':\n", col_name))
-      print(head(result$differences[[col_name]], n))
+      if (verbose) cat(sprintf("\nFirst differences in column '%s':\n", col_name))
+      if (verbose) print(head(result$differences[[col_name]], n))
     }
   }
 
@@ -260,6 +267,8 @@ quick_compare <- function(df1, df2, key_col = "name", n = 10, tolerance = 1e-9, 
 #' @param tolerance Numeric tolerance for comparing numeric columns (default: 1e-9)
 #' @param ignore.case Logical; if TRUE, perform case-insensitive comparison (default: FALSE)
 #' @param key_col Column name(s) to use as key (default: NULL = auto-detect). If NULL, uses all columns except "value"
+#' @param verbose Print the report? Defaults to the option
+#'   `multimod.verbose` (`TRUE`).
 #' @param ... Additional arguments passed to compare_dataframes
 #'
 #' @return List with components:
@@ -273,7 +282,7 @@ quick_compare <- function(df1, df2, key_col = "name", n = 10, tolerance = 1e-9, 
 #' @export
 compare_csv_files <- function(path1, path2, pattern = "\\.csv$",
                               tolerance = 1e-9, ignore.case = FALSE,
-                              key_col = NULL, ...) {
+                              key_col = NULL, verbose = getOption("multimod.verbose", TRUE), ...) {
   # Check that directories exist
   if (!dir.exists(path1)) {
     stop(sprintf("Directory does not exist: %s", path1))
@@ -286,32 +295,32 @@ compare_csv_files <- function(path1, path2, pattern = "\\.csv$",
   files1 <- list.files(path1, pattern = pattern, full.names = FALSE)
   files2 <- list.files(path2, pattern = pattern, full.names = FALSE)
 
-  cat(sprintf("=== Comparing CSV Files ===\n"))
-  cat(sprintf("Path 1: %s (%d files)\n", path1, length(files1)))
-  cat(sprintf("Path 2: %s (%d files)\n", path2, length(files2)))
-  cat(sprintf("\n"))
+  if (verbose) cat(sprintf("=== Comparing CSV Files ===\n"))
+  if (verbose) cat(sprintf("Path 1: %s (%d files)\n", path1, length(files1)))
+  if (verbose) cat(sprintf("Path 2: %s (%d files)\n", path2, length(files2)))
+  if (verbose) cat(sprintf("\n"))
 
   # Find files only in one or the other
   only_in_path1 <- setdiff(files1, files2)
   only_in_path2 <- setdiff(files2, files1)
   in_both <- intersect(files1, files2)
 
-  cat(sprintf("Only in path1: %d\n", length(only_in_path1)))
+  if (verbose) cat(sprintf("Only in path1: %d\n", length(only_in_path1)))
   if (length(only_in_path1) > 0) {
     for (f in only_in_path1) {
-      cat(sprintf("  - %s\n", f))
+      if (verbose) cat(sprintf("  - %s\n", f))
     }
   }
 
-  cat(sprintf("Only in path2: %d\n", length(only_in_path2)))
+  if (verbose) cat(sprintf("Only in path2: %d\n", length(only_in_path2)))
   if (length(only_in_path2) > 0) {
     for (f in only_in_path2) {
-      cat(sprintf("  - %s\n", f))
+      if (verbose) cat(sprintf("  - %s\n", f))
     }
   }
 
-  cat(sprintf("In both: %d\n", length(in_both)))
-  cat(sprintf("\n"))
+  if (verbose) cat(sprintf("In both: %d\n", length(in_both)))
+  if (verbose) cat(sprintf("\n"))
 
   # Compare files that exist in both directories
   comparisons <- list()
@@ -319,7 +328,7 @@ compare_csv_files <- function(path1, path2, pattern = "\\.csv$",
   different_files <- character()
   if (length(in_both) > 0) {
     for (file in in_both) {
-      cat(sprintf("=== Comparing: %s ===\n", file))
+      if (verbose) cat(sprintf("=== Comparing: %s ===\n", file))
 
       # Read CSV files
       df1 <- tryCatch(
@@ -327,7 +336,7 @@ compare_csv_files <- function(path1, path2, pattern = "\\.csv$",
           read.csv(file.path(path1, file), stringsAsFactors = FALSE)
         },
         error = function(e) {
-          cat(sprintf("Error reading %s from path1: %s\n", file, e$message))
+          if (verbose) cat(sprintf("Error reading %s from path1: %s\n", file, e$message))
           NULL
         }
       )
@@ -337,7 +346,7 @@ compare_csv_files <- function(path1, path2, pattern = "\\.csv$",
           read.csv(file.path(path2, file), stringsAsFactors = FALSE)
         },
         error = function(e) {
-          cat(sprintf("Error reading %s from path2: %s\n", file, e$message))
+          if (verbose) cat(sprintf("Error reading %s from path2: %s\n", file, e$message))
           NULL
         }
       )
@@ -351,6 +360,7 @@ compare_csv_files <- function(path1, path2, pattern = "\\.csv$",
           label2 = "path2",
           tolerance = tolerance,
           ignore.case = ignore.case,
+          verbose = verbose,
           ...
         )
         has_differences <-
@@ -361,32 +371,32 @@ compare_csv_files <- function(path1, path2, pattern = "\\.csv$",
         if (has_differences) {
           comparisons[[file]] <- comp_result
           different_files <- c(different_files, file)
-          cat(sprintf("Differences recorded for %s\n", file))
+          if (verbose) cat(sprintf("Differences recorded for %s\n", file))
         } else {
           identical_files <- c(identical_files, file)
-          cat("No differences detected; skipping storage.\n")
+          if (verbose) cat("No differences detected; skipping storage.\n")
         }
       }
 
-      cat("\n")
+      if (verbose) cat("\n")
     }
   }
 
   # Overall summary
-  cat(sprintf("=== Summary ===\n"))
-  cat(sprintf("Files only in path1: %d\n", length(only_in_path1)))
-  cat(sprintf("Files only in path2: %d\n", length(only_in_path2)))
-  cat(sprintf("Files compared: %d\n", length(in_both)))
+  if (verbose) cat(sprintf("=== Summary ===\n"))
+  if (verbose) cat(sprintf("Files only in path1: %d\n", length(only_in_path1)))
+  if (verbose) cat(sprintf("Files only in path2: %d\n", length(only_in_path2)))
+  if (verbose) cat(sprintf("Files compared: %d\n", length(in_both)))
 
   n_identical <- length(identical_files)
   n_different <- length(different_files)
 
-  cat(sprintf("  - Identical: %d\n", n_identical))
-  cat(sprintf("  - Different: %d\n", n_different))
+  if (verbose) cat(sprintf("  - Identical: %d\n", n_identical))
+  if (verbose) cat(sprintf("  - Different: %d\n", n_different))
   if (n_different > 0) {
-    cat("Files with differences:\n")
+    if (verbose) cat("Files with differences:\n")
     for (f in different_files) {
-      cat(sprintf("  - %s\n", f))
+      if (verbose) cat(sprintf("  - %s\n", f))
     }
   }
 

@@ -11,7 +11,7 @@ save_arrow_data(data, path, format = "parquet", overwrite = FALSE)
 
 \item{path}{Path to save to}
 
-\item{format}{Format: "parquet", "feather", "ipc", "csv"}
+\item{format}{Format: "parquet", "ipc" (Arrow IPC) or "csv"}
 
 \item{overwrite}{Logical. Overwrite existing data?}
 }

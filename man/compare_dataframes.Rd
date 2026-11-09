@@ -12,7 +12,8 @@ compare_dataframes(
   label1 = "df1",
   label2 = "df2",
   tolerance = 1e-09,
-  ignore.case = FALSE
+  ignore.case = FALSE,
+  verbose = getOption("multimod.verbose", TRUE)
 )
 }
 \arguments{
@@ -33,6 +34,9 @@ Can be a character vector for composite keys}
 \item{tolerance}{Numeric tolerance for comparing numeric columns (default: 1e-9)}
 
 \item{ignore.case}{Logical; if TRUE, perform case-insensitive comparison for character columns (default: FALSE)}
+
+\item{verbose}{Print the report? Defaults to the option
+\code{multimod.verbose} (\code{TRUE}).}
 }
 \value{
 List with components:

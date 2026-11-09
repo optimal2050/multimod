@@ -11,6 +11,7 @@ compare_csv_files(
   tolerance = 1e-09,
   ignore.case = FALSE,
   key_col = NULL,
+  verbose = getOption("multimod.verbose", TRUE),
   ...
 )
 }
@@ -26,6 +27,9 @@ compare_csv_files(
 \item{ignore.case}{Logical; if TRUE, perform case-insensitive comparison (default: FALSE)}
 
 \item{key_col}{Column name(s) to use as key (default: NULL = auto-detect). If NULL, uses all columns except "value"}
+
+\item{verbose}{Print the report? Defaults to the option
+\code{multimod.verbose} (\code{TRUE}).}
 
 \item{...}{Additional arguments passed to compare_dataframes}
 }

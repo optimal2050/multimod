@@ -408,8 +408,13 @@ multimod_config_path <- function(global = FALSE) {
 }
 
 #' @rdname multimod-config
+#' @param verbose For `multimod_config_show()`: print the summary? Defaults to the option
+#'   `multimod.verbose` (`TRUE`).
 #' @export
-multimod_config_show <- function() {
+multimod_config_show <- function(verbose = getOption("multimod.verbose", TRUE)) {
+  if (!verbose) {
+    return(invisible(NULL))
+  }
   cat("Current multimod configuration:\n\n")
 
   cat("Python:\n")

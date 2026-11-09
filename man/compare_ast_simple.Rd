@@ -4,15 +4,18 @@
 \alias{compare_ast_simple}
 \title{Compare AST objects using compare package with custom handling}
 \usage{
-compare_ast_simple(ast1, ast2)
+compare_ast_simple(ast1, ast2, verbose = getOption("multimod.verbose", TRUE))
 }
 \arguments{
 \item{ast1}{First AST object}
 
 \item{ast2}{Second AST object}
+
+\item{verbose}{Print the report? Defaults to the option
+\code{multimod.verbose} (\code{TRUE}).}
 }
 \value{
-Result from compare::compare()
+Invisibly, the result of \code{compare::compare()}.
 }
 \description{
 Alternative comparison using the compare package. Simpler but may be

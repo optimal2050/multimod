@@ -24,7 +24,7 @@
 #'   \item \strong{parquet} - default; zstd level 3. The smallest for model
 #'     data (set members and mappings are dictionary-encoded before
 #'     compression) and read by every Arrow implementation
-#'   \item \strong{ipc} - Arrow IPC/Feather (.arrow extension); faster to
+#'   \item \strong{ipc} - Arrow IPC (.arrow extension); faster to
 #'     read, several times larger on categorical data
 #'   \item \strong{csv} - Universal, human-readable
 #' }
@@ -192,7 +192,7 @@ NULL
 #' @param model A multimod model object
 #' @param path Path to save the model files
 #' @param format Character. Data format: "parquet" (default), "ipc" (Arrow
-#'   IPC/Feather), or "csv"
+#'   IPC), or "csv"
 #' @param compression Compression method to use (`"zstd"`)
 #' @param compression_level Compression level; zstd 1-22, default 3. Levels
 #'   up to 12 give the same size on model data; 15 is a third smaller on
@@ -1093,7 +1093,7 @@ get_data <- function(model, name, type = c("parameter", "mapping", "set", "varia
     }
     file_path <- paste0(path, ".arrow")
     codec <- .arrow_codec(compression, fallback = "lz4")
-    arrow::write_feather(
+    arrow::write_ipc_file(
       as.data.frame(data),
       file_path,
       compression = codec,
@@ -1146,7 +1146,7 @@ get_data <- function(model, name, type = c("parameter", "mapping", "set", "varia
       if (requireNamespace("arrow", quietly = TRUE)) {
         # mmap = FALSE: a memory-mapped file stays locked on Windows while the
         # returned data frame lives, so it could not be replaced or removed
-        return(as.data.frame(arrow::read_feather(file_path, mmap = FALSE)))
+        return(as.data.frame(arrow::read_ipc_file(file_path, mmap = FALSE)))
       }
     }
   }
