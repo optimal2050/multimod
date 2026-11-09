@@ -426,12 +426,6 @@ the data from the workspace at run time, so data can change without
 regenerating the model.</p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">jl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/write_jump.html">write_jump</a></span><span class="op">(</span><span class="va">toy</span>, model_dir <span class="op">=</span> <span class="va">ws</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =</span></span>
-<span><span class="co">#&gt; chunk_size, : write_feather(version = 2) has been superseded by</span></span>
-<span><span class="co">#&gt; write_ipc_file().</span></span>
-<span><span class="co">#&gt; Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =</span></span>
-<span><span class="co">#&gt; chunk_size, : write_feather(version = 2) has been superseded by</span></span>
-<span><span class="co">#&gt; write_ipc_file().</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grep</a></span><span class="op">(</span><span class="st">"^@variable|^@objective"</span>, <span class="va">jl</span>, value <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>, sep <span class="op">=</span> <span class="st">"\n"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; @variable(model, vCap[mTR] &gt;= 0)  # installed capacity, kW</span></span>
 <span><span class="co">#&gt; @variable(model, vGen[mTR] &gt;= 0)  # generation, MWh</span></span>

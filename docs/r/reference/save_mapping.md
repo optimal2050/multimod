@@ -20,7 +20,7 @@ save_mapping(model, mapping_name, format = "parquet", keep_in_memory = FALSE)
 
 - format:
 
-  Data format: "parquet", "feather", "ipc", "csv"
+  Data format: "parquet", "ipc" (Arrow IPC) or "csv"
 
 - keep_in_memory:
 

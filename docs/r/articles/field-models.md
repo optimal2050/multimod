@@ -208,45 +208,6 @@ c(objective = g$objective, status = g$status)
 ``` r
 
 write_jump(m, model_dir = ws)
-#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
-#> chunk_size, : write_feather(version = 2) has been superseded by
-#> write_ipc_file().
-#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
-#> chunk_size, : write_feather(version = 2) has been superseded by
-#> write_ipc_file().
-#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
-#> chunk_size, : write_feather(version = 2) has been superseded by
-#> write_ipc_file().
-#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
-#> chunk_size, : write_feather(version = 2) has been superseded by
-#> write_ipc_file().
-#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
-#> chunk_size, : write_feather(version = 2) has been superseded by
-#> write_ipc_file().
-#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
-#> chunk_size, : write_feather(version = 2) has been superseded by
-#> write_ipc_file().
-#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
-#> chunk_size, : write_feather(version = 2) has been superseded by
-#> write_ipc_file().
-#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
-#> chunk_size, : write_feather(version = 2) has been superseded by
-#> write_ipc_file().
-#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
-#> chunk_size, : write_feather(version = 2) has been superseded by
-#> write_ipc_file().
-#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
-#> chunk_size, : write_feather(version = 2) has been superseded by
-#> write_ipc_file().
-#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
-#> chunk_size, : write_feather(version = 2) has been superseded by
-#> write_ipc_file().
-#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
-#> chunk_size, : write_feather(version = 2) has been superseded by
-#> write_ipc_file().
-#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
-#> chunk_size, : write_feather(version = 2) has been superseded by
-#> write_ipc_file().
 j <- solve_jump(m, ws, verbose = FALSE)
 #> Loading solutions from: solvers/jump/solution
 c(objective = j$objective, status = j$status)

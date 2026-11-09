@@ -46,7 +46,7 @@ multimod_config_read(global = FALSE)
 
 multimod_config_path(global = FALSE)
 
-multimod_config_show()
+multimod_config_show(verbose = getOption("multimod.verbose", TRUE))
 ```
 
 ## Arguments
@@ -79,6 +79,11 @@ multimod_config_show()
   when `TRUE`, the per-user file under
   `tools::R_user_dir("multimod", "config")` comes first; when `FALSE`
   (default), `.multimod.yml` in the working directory.
+
+- verbose:
+
+  For `multimod_config_show()`: print the summary? Defaults to the
+  option `multimod.verbose` (`TRUE`).
 
 ## Value
 
@@ -116,7 +121,7 @@ if (requireNamespace("yaml", quietly = TRUE)) {
   )
   readLines(f)
 }
-#> Configuration written to: C:\Users\admin\AppData\Local\Temp\Rtmpo9uBqT\filec2ec653643e6.yml
+#> Configuration written to: C:\Users\admin\AppData\Local\Temp\RtmpOuni4X\file31547d9332ba.yml
 #> [1] "julia:"        "  path: julia"
 
 # \donttest{

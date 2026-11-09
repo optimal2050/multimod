@@ -88,31 +88,31 @@ It saves variable values in the same directory structure as input data.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     using DataFrames</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     using CSV</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     using Arrow</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     if !isdir(output_dir)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>         mkpath(output_dir)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     end</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     println("\nSaving solution to: ", output_dir)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     # Determine file extension</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     ext = data_format == "csv" ? ".csv" : ".arrow"</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     # Save each variable</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     for (var_name, var_obj) in object_dict(model)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>         if !(var_obj isa AbstractArray{VariableRef})</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>             continue</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>         end</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>         # Get variable values</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>         var_vals = value.(var_obj)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>         # Convert to DataFrame based on dimensions</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>         if var_obj isa DenseAxisArray</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>             # Get indices</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>             indices = axes(var_obj)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>             n_dims = length(indices)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>             </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>             if n_dims == 0</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                 # Scalar variable</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                 df = DataFrame(value = [var_vals])</span>
@@ -120,14 +120,14 @@ It saves variable values in the same directory structure as input data.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                 # Multi-dimensional variable</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                 idx_names = [Symbol("dim$i") for i in 1:n_dims]</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                 rows = []</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                 for idx in Iterators.product(indices...)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                     val = var_vals[idx...]</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                     if abs(val) &gt; 1e-10  # Only save non-zero values</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                         push!(rows, (idx..., val))</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                     end</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                 end</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                 if !isempty(rows)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                     df = DataFrame(rows, vcat(idx_names, :value))</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                 else</span>
@@ -138,30 +138,30 @@ It saves variable values in the same directory structure as input data.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>             # Default handling</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>             df = DataFrame(value = [var_vals])</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>         end</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>         # Save to file</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>         if !isempty(df)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>             var_dir = joinpath(output_dir, string(var_name))</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>             mkpath(var_dir)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>             out_file = joinpath(var_dir, "data" * ext)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>             </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>             if ext == ".csv"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                 CSV.write(out_file, df)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>             else</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                 Arrow.write(out_file, df)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>             end</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>             </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>             println("  Saved ", string(var_name), ": ", nrow(df), " values")</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>         end</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     end</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     println("Solution saved successfully\n")</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> end</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> # Save solution after solving</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> if termination_status(model) == MOI.OPTIMAL || </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> if termination_status(model) == MOI.OPTIMAL ||</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    termination_status(model) == MOI.LOCALLY_SOLVED</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     run_name = Dates.format(now(), "yyyy-mm-dd_HHMMSS")</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     solution_dir = joinpath(@__DIR__, "..", "..", "solutions", run_name)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     save_solution(model, solution_dir, DATA_FORMAT)</span>

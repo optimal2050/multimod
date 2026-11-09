@@ -53,7 +53,7 @@ workspaces on disk.
   members and mappings are dictionary-encoded before compression) and
   read by every Arrow implementation
 
-- **ipc** - Arrow IPC/Feather (.arrow extension); faster to read,
-  several times larger on categorical data
+- **ipc** - Arrow IPC (.arrow extension); faster to read, several times
+  larger on categorical data
 
 - **csv** - Universal, human-readable

@@ -61,30 +61,6 @@ package, and the generated Julia and Python read them as readily as CSV.
 
 ws_ipc <- tempfile("toy-ipc-")
 save_model(toy, ws_ipc, format = "ipc", verbose = FALSE)
-#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
-#> chunk_size, : write_feather(version = 2) has been superseded by
-#> write_ipc_file().
-#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
-#> chunk_size, : write_feather(version = 2) has been superseded by
-#> write_ipc_file().
-#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
-#> chunk_size, : write_feather(version = 2) has been superseded by
-#> write_ipc_file().
-#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
-#> chunk_size, : write_feather(version = 2) has been superseded by
-#> write_ipc_file().
-#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
-#> chunk_size, : write_feather(version = 2) has been superseded by
-#> write_ipc_file().
-#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
-#> chunk_size, : write_feather(version = 2) has been superseded by
-#> write_ipc_file().
-#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
-#> chunk_size, : write_feather(version = 2) has been superseded by
-#> write_ipc_file().
-#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
-#> chunk_size, : write_feather(version = 2) has been superseded by
-#> write_ipc_file().
 list.files(file.path(ws_ipc, "parameters"), recursive = TRUE)
 #> [1] "parameters.csv"      "pAvail/data.arrow"   "pCapCost/data.arrow"
 #> [4] "pDemand/data.arrow"  "pVarCost/data.arrow"
@@ -205,8 +181,8 @@ folded.
 The data files are plain CSV or Arrow and need nothing from multimod:
 
 ``` python
-import pyarrow.feather as feather
-demand = feather.read_feather("ws/parameters/pDemand/data.arrow")
+import pyarrow.ipc as ipc
+demand = ipc.open_file("ws/parameters/pDemand/data.arrow").read_pandas()
 ```
 
 ``` julia
@@ -223,7 +199,7 @@ cat(readLines(file.path(ws, "metadata.json")), sep = "\n")
 #> {
 #>   "name": "toy",
 #>   "desc": "two-region capacity expansion toy model",
-#>   "saved": "2026-11-08 22:14:13",
+#>   "saved": "2026-11-09 18:43:19",
 #>   "format": "csv",
 #>   "structure": "rds",
 #>   "compression": null,

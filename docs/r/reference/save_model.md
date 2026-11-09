@@ -31,8 +31,8 @@ save_model(
 
 - format:
 
-  Character. Data format: "parquet" (default), "ipc" (Arrow
-  IPC/Feather), or "csv"
+  Character. Data format: "parquet" (default), "ipc" (Arrow IPC), or
+  "csv"
 
 - compression:
 

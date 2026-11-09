@@ -14,6 +14,7 @@ compare_csv_files(
   tolerance = 1e-09,
   ignore.case = FALSE,
   key_col = NULL,
+  verbose = getOption("multimod.verbose", TRUE),
   ...
 )
 ```
@@ -44,6 +45,10 @@ compare_csv_files(
 
   Column name(s) to use as key (default: NULL = auto-detect). If NULL,
   uses all columns except "value"
+
+- verbose:
+
+  Print the report? Defaults to the option `multimod.verbose` (`TRUE`).
 
 - ...:
 

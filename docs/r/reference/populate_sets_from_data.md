@@ -5,7 +5,11 @@ Populate sets from model's own mappings and parameters
 ## Usage
 
 ``` r
-populate_sets_from_data(model, load_data = FALSE)
+populate_sets_from_data(
+  model,
+  load_data = FALSE,
+  verbose = getOption("multimod.verbose", TRUE)
+)
 ```
 
 ## Arguments
@@ -17,6 +21,11 @@ populate_sets_from_data(model, load_data = FALSE)
 - load_data:
 
   Logical. Load data from disk if needed?
+
+- verbose:
+
+  Report the sets populated? Defaults to the option `multimod.verbose`
+  (`TRUE`).
 
 ## Value
 

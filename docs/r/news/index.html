@@ -134,6 +134,7 @@
 <ul><li>Interpreter and solver paths resolve from R options, environment variables, a configuration file and detection, in that order; see <code><a href="../reference/multimod-config.html">multimod_config_show()</a></code>. <code><a href="../reference/multimod-config.html">multimod_config_write()</a></code> writes a configuration file to the path it is given.</li>
 <li>
 <code><a href="../reference/mm_check_python.html">mm_check_python()</a></code> reports whether the configured interpreter is usable.</li>
+<li>The comparison helpers, <code><a href="../reference/multimod-config.html">multimod_config_show()</a></code> and <code><a href="../reference/populate_sets_from_data.html">populate_sets_from_data()</a></code> print only when <code>verbose</code> is <code>TRUE</code>; its default is the option <code>multimod.verbose</code> (<code>TRUE</code>).</li>
 <li>The <code>glpsol</code> executable is taken from the ‘glpsol’ package when it is installed.</li>
 </ul></div>
 <div class="section level4">
@@ -145,7 +146,8 @@
 </div>
 <div class="section level3">
 <h3 id="bug-fixes-0-6-0">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-6-0"></a></h3>
-<ul><li>
+<ul><li>Arrow IPC files are written with <code>write_ipc_file()</code> and read with <code>read_ipc_file()</code>, so arrow &gt;= 26 no longer warns that <code>write_feather()</code> and <code>read_feather()</code> are superseded; arrow &gt;= 9.0.0 is required. The format is called <code>"ipc"</code> throughout, and <code>"feather"</code> is no longer a format value.</li>
+<li>
 <code><a href="../reference/read_gams.html">read_gams()</a></code> parses a sum over several indices, numbers in scientific notation with a signed exponent, and decimal literals in equation bodies.</li>
 <li>
 <code><a href="../reference/read_gams.html">read_gams()</a></code> reads several symbols declared on one line (<code>set tech, region;</code>), and an equation header without a <code>$</code> condition.</li>

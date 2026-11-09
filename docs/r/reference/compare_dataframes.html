@@ -69,7 +69,8 @@
 <span>  label1 <span class="op">=</span> <span class="st">"df1"</span>,</span>
 <span>  label2 <span class="op">=</span> <span class="st">"df2"</span>,</span>
 <span>  tolerance <span class="op">=</span> <span class="fl">1e-09</span>,</span>
-<span>  ignore.case <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span>  ignore.case <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  verbose <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">getOption</a></span><span class="op">(</span><span class="st">"multimod.verbose"</span>, <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -109,6 +110,11 @@ Can be a character vector for composite keys</p></dd>
 
 <dt id="arg-ignore-case">ignore.case<a class="anchor" aria-label="anchor" href="#arg-ignore-case"></a></dt>
 <dd><p>Logical; if TRUE, perform case-insensitive comparison for character columns (default: FALSE)</p></dd>
+
+
+<dt id="arg-verbose">verbose<a class="anchor" aria-label="anchor" href="#arg-verbose"></a></dt>
+<dd><p>Print the report? Defaults to the option
+<code>multimod.verbose</code> (<code>TRUE</code>).</p></dd>
 
 </dl></div>
     <div class="section level2">

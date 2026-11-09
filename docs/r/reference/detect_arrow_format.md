@@ -16,4 +16,5 @@ detect_arrow_format(path)
 
 ## Value
 
-Character format name: "parquet", "feather", "ipc", "csv", or NULL
+Character format name: "parquet", "ipc", "csv", or NULL. Files named
+`.feather` are Arrow IPC files and detected as "ipc".

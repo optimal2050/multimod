@@ -141,30 +141,6 @@ them as readily as CSV.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ws_ipc</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span><span class="st">"toy-ipc-"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/save_model.html">save_model</a></span><span class="op">(</span><span class="va">toy</span>, <span class="va">ws_ipc</span>, format <span class="op">=</span> <span class="st">"ipc"</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =</span></span>
-<span><span class="co">#&gt; chunk_size, : write_feather(version = 2) has been superseded by</span></span>
-<span><span class="co">#&gt; write_ipc_file().</span></span>
-<span><span class="co">#&gt; Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =</span></span>
-<span><span class="co">#&gt; chunk_size, : write_feather(version = 2) has been superseded by</span></span>
-<span><span class="co">#&gt; write_ipc_file().</span></span>
-<span><span class="co">#&gt; Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =</span></span>
-<span><span class="co">#&gt; chunk_size, : write_feather(version = 2) has been superseded by</span></span>
-<span><span class="co">#&gt; write_ipc_file().</span></span>
-<span><span class="co">#&gt; Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =</span></span>
-<span><span class="co">#&gt; chunk_size, : write_feather(version = 2) has been superseded by</span></span>
-<span><span class="co">#&gt; write_ipc_file().</span></span>
-<span><span class="co">#&gt; Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =</span></span>
-<span><span class="co">#&gt; chunk_size, : write_feather(version = 2) has been superseded by</span></span>
-<span><span class="co">#&gt; write_ipc_file().</span></span>
-<span><span class="co">#&gt; Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =</span></span>
-<span><span class="co">#&gt; chunk_size, : write_feather(version = 2) has been superseded by</span></span>
-<span><span class="co">#&gt; write_ipc_file().</span></span>
-<span><span class="co">#&gt; Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =</span></span>
-<span><span class="co">#&gt; chunk_size, : write_feather(version = 2) has been superseded by</span></span>
-<span><span class="co">#&gt; write_ipc_file().</span></span>
-<span><span class="co">#&gt; Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =</span></span>
-<span><span class="co">#&gt; chunk_size, : write_feather(version = 2) has been superseded by</span></span>
-<span><span class="co">#&gt; write_ipc_file().</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.files</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">ws_ipc</span>, <span class="st">"parameters"</span><span class="op">)</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "parameters.csv"      "pAvail/data.arrow"   "pCapCost/data.arrow"</span></span>
 <span><span class="co">#&gt; [4] "pDemand/data.arrow"  "pVarCost/data.arrow"</span></span></code></pre></div>
@@ -264,8 +240,8 @@ folded.</p>
 </h2>
 <p>The data files are plain CSV or Arrow and need nothing from
 multimod:</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="im">import</span> pyarrow.feather <span class="im">as</span> feather</span>
-<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>demand <span class="op">=</span> feather.read_feather(<span class="st">"ws/parameters/pDemand/data.arrow"</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="im">import</span> pyarrow.ipc <span class="im">as</span> ipc</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>demand <span class="op">=</span> ipc.open_file(<span class="st">"ws/parameters/pDemand/data.arrow"</span>).read_pandas()</span></code></pre></div>
 <div class="sourceCode" id="cb11"><pre class="sourceCode julia"><code class="sourceCode julia"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="im">using</span> <span class="bu">Arrow</span>, <span class="bu">DataFrames</span></span>
 <span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a>demand <span class="op">=</span> <span class="fu">DataFrame</span>(Arrow.<span class="fu">Table</span>(<span class="st">"ws/parameters/pDemand/data.arrow"</span>))</span></code></pre></div>
 <p><code>metadata.json</code> lists the counts and the format so a
@@ -275,7 +251,7 @@ reader can orient itself without R.</p>
 <span><span class="co">#&gt; {</span></span>
 <span><span class="co">#&gt;   "name": "toy",</span></span>
 <span><span class="co">#&gt;   "desc": "two-region capacity expansion toy model",</span></span>
-<span><span class="co">#&gt;   "saved": "2026-11-08 22:14:13",</span></span>
+<span><span class="co">#&gt;   "saved": "2026-11-09 18:43:19",</span></span>
 <span><span class="co">#&gt;   "format": "csv",</span></span>
 <span><span class="co">#&gt;   "structure": "rds",</span></span>
 <span><span class="co">#&gt;   "compression": null,</span></span>

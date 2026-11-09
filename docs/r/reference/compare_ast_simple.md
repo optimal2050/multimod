@@ -6,7 +6,7 @@ more verbose for complex AST structures.
 ## Usage
 
 ``` r
-compare_ast_simple(ast1, ast2)
+compare_ast_simple(ast1, ast2, verbose = getOption("multimod.verbose", TRUE))
 ```
 
 ## Arguments
@@ -19,6 +19,11 @@ compare_ast_simple(ast1, ast2)
 
   Second AST object
 
+- verbose:
+
+  Print the report? Defaults to the option `multimod.verbose` (`TRUE`).
+
 ## Value
 
-Result from compare::compare()
+Invisibly, the result of
+[`compare::compare()`](https://rdrr.io/pkg/compare/man/compare.html).

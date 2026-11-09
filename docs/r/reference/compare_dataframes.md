@@ -13,7 +13,8 @@ compare_dataframes(
   label1 = "df1",
   label2 = "df2",
   tolerance = 1e-09,
-  ignore.case = FALSE
+  ignore.case = FALSE,
+  verbose = getOption("multimod.verbose", TRUE)
 )
 ```
 
@@ -53,6 +54,10 @@ compare_dataframes(
 
   Logical; if TRUE, perform case-insensitive comparison for character
   columns (default: FALSE)
+
+- verbose:
+
+  Print the report? Defaults to the option `multimod.verbose` (`TRUE`).
 
 ## Value
 

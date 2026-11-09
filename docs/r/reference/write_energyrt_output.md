@@ -33,7 +33,7 @@ write_energyrt_output(
 
 - format:
 
-  `"arrow"` (feather, lz4 - what energyRt writes), `"csv"` or
+  `"arrow"` (Arrow IPC, lz4 - what energyRt writes), `"csv"` or
   `"parquet"`.
 
 - variables:

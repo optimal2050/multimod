@@ -74,6 +74,7 @@ differences for files that exist in both.</p>
 <span>  tolerance <span class="op">=</span> <span class="fl">1e-09</span>,</span>
 <span>  ignore.case <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  key_col <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  verbose <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">getOption</a></span><span class="op">(</span><span class="st">"multimod.verbose"</span>, <span class="cn">TRUE</span><span class="op">)</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -104,6 +105,11 @@ differences for files that exist in both.</p>
 
 <dt id="arg-key-col">key_col<a class="anchor" aria-label="anchor" href="#arg-key-col"></a></dt>
 <dd><p>Column name(s) to use as key (default: NULL = auto-detect). If NULL, uses all columns except "value"</p></dd>
+
+
+<dt id="arg-verbose">verbose<a class="anchor" aria-label="anchor" href="#arg-verbose"></a></dt>
+<dd><p>Print the report? Defaults to the option
+<code>multimod.verbose</code> (<code>TRUE</code>).</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>

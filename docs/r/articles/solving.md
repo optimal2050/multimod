@@ -380,12 +380,6 @@ change without regenerating the model.
 ``` r
 
 jl <- write_jump(toy, model_dir = ws)
-#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
-#> chunk_size, : write_feather(version = 2) has been superseded by
-#> write_ipc_file().
-#> Warning in write_ipc_impl(x = x, sink = sink, version = version, chunk_size =
-#> chunk_size, : write_feather(version = 2) has been superseded by
-#> write_ipc_file().
 cat(grep("^@variable|^@objective", jl, value = TRUE), sep = "\n")
 #> @variable(model, vCap[mTR] >= 0)  # installed capacity, kW
 #> @variable(model, vGen[mTR] >= 0)  # generation, MWh

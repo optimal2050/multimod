@@ -20,7 +20,7 @@ save_arrow_data(data, path, format = "parquet", overwrite = FALSE)
 
 - format:
 
-  Format: "parquet", "feather", "ipc", "csv"
+  Format: "parquet", "ipc" (Arrow IPC) or "csv"
 
 - overwrite:
 

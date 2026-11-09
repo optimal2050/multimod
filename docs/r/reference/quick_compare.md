@@ -11,7 +11,8 @@ quick_compare(
   key_col = "name",
   n = 10,
   tolerance = 1e-09,
-  ignore.case = FALSE
+  ignore.case = FALSE,
+  verbose = getOption("multimod.verbose", TRUE)
 )
 ```
 
@@ -41,6 +42,10 @@ quick_compare(
 
   Logical; if TRUE, perform case-insensitive comparison for character
   columns (default: FALSE)
+
+- verbose:
+
+  Print the report? Defaults to the option `multimod.verbose` (`TRUE`).
 
 ## Value
 

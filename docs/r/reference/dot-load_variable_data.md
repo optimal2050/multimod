@@ -1,6 +1,7 @@
 # Internal: Load variable data from file
 
-Handles CSV, Arrow, and Feather formats
+Handles CSV and Arrow IPC files (`.arrow`, and `.feather` from other
+tools)
 
 ## Usage
 
