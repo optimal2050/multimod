@@ -92,8 +92,8 @@ Declarations take the bare name (\code{Set()}, \code{Parameter()}, \code{Variabl
 different objects - see \code{\link[=ast_schema]{ast_schema()}}.
 }
 \examples{
-Set("tech")                      # a declaration
-SetRef("tech")                   # a reference
+Set("tech") # a declaration
+SetRef("tech") # a reference
 Expression("*", Symbol("a"), Symbol("b"))
 }
 \seealso{

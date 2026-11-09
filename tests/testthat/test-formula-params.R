@@ -18,7 +18,7 @@ fml_model <- c(
 test_that("the matrix backend computes a formula parameter itself", {
   skip_if_not_installed("highs")
   m <- read_gmpl(fml_model)
-  expect_equal(NROW(m$parameters$derived$data), 0L)   # formula only, no data
+  expect_equal(NROW(m$parameters$derived$data), 0L) # formula only, no data
 
   # spend the budget on the largest derived value: 2 * 5 = 10
   expect_equal(solve_highs(m, attach = FALSE)$objective, 10, tolerance = 1e-9)
@@ -38,7 +38,8 @@ test_that("a formula over an empty index set is not refused", {
     "s.t. budget: sum{l in L} x[l] <= 1;",
     "data;",
     "set L := ;",
-    "end;"))
+    "end;"
+  ))
   expect_equal(length(m$sets$L$data), 0L)
   expect_silent(multimod:::.mx_materialise_formulas(m))
 })
@@ -56,9 +57,14 @@ test_that("GAMS writes a computed parameter as an assignment", {
   m <- read_gmpl(fml_model)
   f <- m$parameters$derived$formula
   skip_if(is.null(f), "reader kept no formula")
-  out <- as_gams(if (inherits(f, "ast_formula")) f else
-    new_ast_formula(target = "derived", field = "value", expr = f,
-                    index_vars = get_dim_names(m$parameters$derived$dims)))
+  out <- as_gams(if (inherits(f, "ast_formula")) {
+    f
+  } else {
+    new_ast_formula(
+      target = "derived", field = "value", expr = f,
+      index_vars = get_dim_names(m$parameters$derived$dims)
+    )
+  })
   # GAMS has no inline `:=`; a computed parameter is declared then assigned
   expect_match(out, "^derived\\(")
   expect_match(out, "=")
@@ -71,6 +77,8 @@ test_that("the GAMS writer emits a computed-parameters section", {
   expect_true(any(grepl("computed parameters", src, fixed = TRUE)))
   expect_true(any(grepl("^derived\\(", src)))
   # the assignment comes after the declarations, so the names already exist
-  expect_gt(grep("computed parameters", src, fixed = TRUE)[1],
-            grep("^parameters$", src)[1])
+  expect_gt(
+    grep("computed parameters", src, fixed = TRUE)[1],
+    grep("^parameters$", src)[1]
+  )
 })

@@ -54,6 +54,8 @@ a parameter object
 Create a multimod parameter
 }
 \examples{
-new_parameter("pDemand", desc = "annual demand, MWh", dims = "region",
-              data = data.frame(region = c("north", "south"), value = c(1000, 600)))
+new_parameter("pDemand",
+  desc = "annual demand, MWh", dims = "region",
+  data = data.frame(region = c("north", "south"), value = c(1000, 600))
+)
 }

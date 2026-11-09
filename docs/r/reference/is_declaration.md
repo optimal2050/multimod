@@ -38,8 +38,8 @@ Prefer this to `inherits(x, "multimod")`, which says what the marker
 ## Examples
 
 ``` r
-is_declaration(new_set("tech"))   # TRUE
+is_declaration(new_set("tech")) # TRUE
 #> [1] TRUE
-is_declaration(ast_set("tech"))   # FALSE
+is_declaration(ast_set("tech")) # FALSE
 #> [1] FALSE
 ```

@@ -35,7 +35,6 @@ Imports:
     rlang,
     purrr,
     digest,
-    magrittr,
     jsonlite,
     methods,
     stats,

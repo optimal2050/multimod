@@ -31,8 +31,8 @@ or `NA_character_` if `x` is not an AST node or its class is unknown.
 ``` r
 schema_type(ast_symbol("t"))
 #> [1] "symbol"
-schema_type(ast_set("tech"))   # a reference
+schema_type(ast_set("tech")) # a reference
 #> [1] "set_ref"
-schema_type(new_set("tech"))   # a declaration
+schema_type(new_set("tech")) # a declaration
 #> [1] "set_decl"
 ```

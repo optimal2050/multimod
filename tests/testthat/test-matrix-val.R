@@ -4,8 +4,10 @@
 # as_jump translated but as_matrix refused.
 
 test_that(".mx_env_name resolves short aliases and alias groups", {
-  ctx <- list(model = list(index_aliases = c(year = "y", region = "r"),
-                           aliases = list(c("year", "yearp"))))
+  ctx <- list(model = list(
+    index_aliases = c(year = "y", region = "r"),
+    aliases = list(c("year", "yearp"))
+  ))
   env <- data.frame(year = "2030", region = "AL")
 
   expect_identical(multimod:::.mx_env_name(ctx, env, "year"), "year")
@@ -20,9 +22,11 @@ test_that("val() evaluates numeric member labels and refuses others", {
   ctx$model <- list(index_aliases = c(year = "y"))
   ctx$codes <- multimod:::.mx_new_codes()
   # members are bound as integer codes of the context's dictionary
-  env <- data.table::data.table(.k = 1:3,
-                                year = multimod:::.mx_code(ctx, c("2030", "2040", "2050")),
-                                tech = multimod:::.mx_code(ctx, c("A", "B", "C")))
+  env <- data.table::data.table(
+    .k = 1:3,
+    year = multimod:::.mx_code(ctx, c("2030", "2040", "2050")),
+    tech = multimod:::.mx_code(ctx, c("A", "B", "C"))
+  )
   # parser shape: value is the argument list, each argument a named node
   node_of <- function(nm) list(name = "val", value = list(list(name = nm)))
 
@@ -30,24 +34,30 @@ test_that("val() evaluates numeric member labels and refuses others", {
   expect_equal(out$coef, c(2030, 2040, 2050))
   expect_equal(out$.k, 1:3)
 
-  expect_error(multimod:::.mx_eval_val(node_of("tech"), env, ctx),
-               "not numeric")
-  expect_error(multimod:::.mx_eval_val(node_of("zzz"), env, ctx),
-               "unbound")
+  expect_error(
+    multimod:::.mx_eval_val(node_of("tech"), env, ctx),
+    "not numeric"
+  )
+  expect_error(
+    multimod:::.mx_eval_val(node_of("zzz"), env, ctx),
+    "unbound"
+  )
 })
 
 test_that("decimal literals parse as constants, not dot-access", {
-  symbols <- list(sets = character(), parameters = character(),
-                  variables = character(), mappings = character(),
-                  aliases = character())
+  symbols <- list(
+    sets = character(), parameters = character(),
+    variables = character(), mappings = character(),
+    aliases = character()
+  )
   n <- multimod:::parse_gams_expr("3201.97612928635", symbols)
   expect_true(inherits(n, "constant") || identical(n$type, "constant") ||
-                isTRUE(all.equal(n$value, 3201.97612928635)))
+    isTRUE(all.equal(n$value, 3201.97612928635)))
   # genuine dot-access still becomes val(<object>), with the REAL object
   d <- multimod:::parse_gams_expr("year.val", symbols)
   expect_identical(tolower(d$name), "val")
   ob <- d$value
   if (is.list(ob) && is.null(ob$name) && length(ob)) ob <- ob[[1]]
   expect_true(identical(ob$name, "year") ||
-                identical(as.character(ob), "year"))
+    identical(as.character(ob), "year"))
 })

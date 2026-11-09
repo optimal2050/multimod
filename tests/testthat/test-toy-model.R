@@ -42,11 +42,13 @@ test_that("the toy renders to valid MathProg: iterators for ast_sum(), 1-D domai
   out <- suppressWarnings(write_gmpl(toy, model_dir = td))
   x <- readLines(out$model)
   expect_true(any(grepl("sum{t in tech, r in region}", x, fixed = TRUE)))
-  expect_true(any(grepl("eqDemand{r in mR}", x, fixed = TRUE)))   # not "{(r) in mR}"
+  expect_true(any(grepl("eqDemand{r in mR}", x, fixed = TRUE))) # not "{(r) in mR}"
   expect_false(any(grepl("sum{}", x, fixed = TRUE)))
   skip_if_not_installed("glpsol")
-  r <- glpsol::glpsol_run(c("-m", out$model, "-d", out$data), echo = FALSE,
-                          wd = dirname(out$model))
+  r <- glpsol::glpsol_run(c("-m", out$model, "-d", out$data),
+    echo = FALSE,
+    wd = dirname(out$model)
+  )
   expect_identical(r$status, 0L)
   expect_true(any(grepl("1.980000000e+05", r$log, fixed = TRUE)))
 })
@@ -65,10 +67,12 @@ test_that("as_gams renders every node the other writers render", {
   # into the middle of an equation.
   expect_equal(
     as_gams(ast_setmin(index = ast_dims("YEAR"), value = ast_symbol("yy"))),
-    "smin(YEAR, yy)")
+    "smin(YEAR, yy)"
+  )
   expect_equal(
     as_gams(ast_setmax(index = ast_dims("YEAR"), value = ast_symbol("yy"))),
-    "smax(YEAR, yy)")
+    "smax(YEAR, yy)"
+  )
   expect_equal(as_gams(ast_shift("y", -1)), "y-1")
   expect_equal(as_gams(ast_shift("y", 2)), "y+2")
 

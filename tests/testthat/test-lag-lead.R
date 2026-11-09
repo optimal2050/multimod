@@ -19,8 +19,11 @@ test_that("GAMS round-trips both forms", {
   m <- example_models$toy
   syms <- build_symbols_list(m)
   eq <- parse_gams_equation(
-    list(name = "eqL", dims = list(), desc = "",
-         gams = "vCost =e= vCap(tech,region)"), syms)
+    list(
+      name = "eqL", dims = list(), desc = "",
+      gams = "vCost =e= vCap(tech,region)"
+    ), syms
+  )
   expect_s3_class(eq, "mm_equation")
 
   lin <- parse_gams_expr("y-1", syms, character())
@@ -60,18 +63,25 @@ test_that("the matrix backend resolves a lag by position, and drops it off the e
     "end;",
     "data;",
     "set L := a b c;",
-    "end;"))
+    "end;"
+  ))
   expect_equal(m$sets$L$data, c("a", "b", "c"))
 
   # a reference carrying a lag resolves to the earlier member's column
   ci <- build_col_index(m)
   ctx <- new.env(parent = emptyenv())
-  ctx$model <- m; ctx$col_index <- ci; ctx$col_cache <- list()
+  ctx$model <- m
+  ctx$col_index <- ci
+  ctx$col_cache <- list()
   ctx$codes <- multimod:::.mx_new_codes()
-  ctx$param_cache <- list(); ctx$map_cache <- list(); ctx$set_cache <- list()
+  ctx$param_cache <- list()
+  ctx$map_cache <- list()
+  ctx$set_cache <- list()
   # the evaluator binds members as integer codes of the context's dictionary
-  env <- data.table::data.table(.k = 1:3,
-                                l = multimod:::.mx_code(ctx, c("a", "b", "c")))
+  env <- data.table::data.table(
+    .k = 1:3,
+    l = multimod:::.mx_code(ctx, c("a", "b", "c"))
+  )
 
   lagged <- ast_variable("x", dims = ast_dims(ast_shift("l", -1)))
   tm <- multimod:::.mx_eval(lagged, env, ctx)
@@ -95,16 +105,22 @@ test_that("a positional lag works on a sparse set, where arithmetic would not", 
     "end;",
     "data;",
     "set Y := 2025 2026 2030;",
-    "end;"))
+    "end;"
+  ))
   ci <- build_col_index(m)
   ctx <- new.env(parent = emptyenv())
-  ctx$model <- m; ctx$col_index <- ci; ctx$col_cache <- list()
+  ctx$model <- m
+  ctx$col_index <- ci
+  ctx$col_cache <- list()
   ctx$codes <- multimod:::.mx_new_codes()
-  ctx$param_cache <- list(); ctx$map_cache <- list(); ctx$set_cache <- list()
+  ctx$param_cache <- list()
+  ctx$map_cache <- list()
+  ctx$set_cache <- list()
   env <- data.table::data.table(.k = 1L, y = multimod:::.mx_code(ctx, "2030"))
 
   tm <- multimod:::.mx_eval(
-    ast_variable("v", dims = ast_dims(ast_shift("y", -1))), env, ctx)
+    ast_variable("v", dims = ast_dims(ast_shift("y", -1))), env, ctx
+  )
   expect_equal(nrow(tm), 1L)
   # the column it landed on is v for 2026
   expect_equal(ci$i1[ci$j == tm$j[1]], "2026")

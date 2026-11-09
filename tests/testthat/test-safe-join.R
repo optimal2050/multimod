@@ -23,12 +23,13 @@ record_joins <- function(model) {
       rec$out <- c(rec$out, nrow(out))
       out
     },
-    .package = "multimod")
+    .package = "multimod"
+  )
   list(lp = lp, n = rec$n, out = rec$out)
 }
 
 test_that("no binding join builds far more rows than it keeps", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   r <- record_joins(example_models$energyRt$multimod)
   expect_gt(length(r$n), 0)
@@ -38,7 +39,7 @@ test_that("no binding join builds far more rows than it keeps", {
 })
 
 test_that("a chunked build gives the identical matrix", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   m <- example_models$energyRt$multimod
   lp1 <- model_to_lp(m)
@@ -51,7 +52,7 @@ test_that("a chunked build gives the identical matrix", {
 })
 
 test_that("a body gate binds the index and a summation alias is not a filter", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   m <- example_models$energyRt$multimod
   span <- data.table::as.data.table(get_data(m, "mTechSpan", type = "mapping"))

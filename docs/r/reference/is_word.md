@@ -23,12 +23,12 @@ if the corresponding string consists only of letters, `FALSE` otherwise.
 ## Examples
 
 ``` r
-is_word("alpha")     # TRUE
+is_word("alpha") # TRUE
 #> [1] TRUE
-is_word("123")       # FALSE
+is_word("123") # FALSE
 #> [1] FALSE
-is_word("var_1")     # FALSE
+is_word("var_1") # FALSE
 #> [1] FALSE
-is_word(c("a", "B", "C3"))  # TRUE, TRUE, FALSE
+is_word(c("a", "B", "C3")) # TRUE, TRUE, FALSE
 #> [1]  TRUE  TRUE FALSE
 ```

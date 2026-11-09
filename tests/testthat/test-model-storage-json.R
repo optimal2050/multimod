@@ -30,11 +30,13 @@ test_that("save_model(structure = 'json') writes model.json and load_model reads
   expect_identical(names(m2$variables), names(m$variables))
   for (p in names(m$parameters)) {
     expect_equal(nrow(m2$parameters[[p]]$data), nrow(m$parameters[[p]]$data),
-                 label = p)
+      label = p
+    )
   }
   for (k in names(m$mappings)) {
     expect_equal(nrow(m2$mappings[[k]]$data), nrow(m$mappings[[k]]$data),
-                 label = k)
+      label = k
+    )
   }
   ref <- solve_highs(m, attach = FALSE)
   got <- solve_highs(m2, attach = FALSE)
@@ -79,7 +81,8 @@ test_that("canonical = TRUE gives the same matrix whatever the producer's order"
   }
   for (k in names(m$mappings)) {
     expect_equal(mb2$mappings[[k]]$data, ma$mappings[[k]]$data,
-                 ignore_attr = TRUE, label = k)
+      ignore_attr = TRUE, label = k
+    )
   }
   fa <- file.path(a, "model.mps")
   fb <- file.path(b, "model.mps")

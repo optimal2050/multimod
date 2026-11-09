@@ -24,9 +24,15 @@
 #' @keywords internal
 #' @noRd
 .domain_name <- function(domain) {
-  if (is.null(domain)) return(NA_character_)
-  if (is.character(domain)) return(if (length(domain)) domain[1] else NA_character_)
-  if (!is.null(domain$name)) return(domain$name)
+  if (is.null(domain)) {
+    return(NA_character_)
+  }
+  if (is.character(domain)) {
+    return(if (length(domain)) domain[1] else NA_character_)
+  }
+  if (!is.null(domain$name)) {
+    return(domain$name)
+  }
   NA_character_
 }
 
@@ -48,7 +54,9 @@
     return(rule_tuples_coded(model, mp$rule, codes))
   }
   d <- get_data(model, domain_name, type = "mapping")
-  if (is.null(d)) return(data.table::data.table())
+  if (is.null(d)) {
+    return(data.table::data.table())
+  }
   data.table::as.data.table(d)
 }
 
@@ -69,13 +77,17 @@
 #' @noRd
 .dims_tuples <- function(model, dims) {
   nms <- tryCatch(get_dim_names(dims), error = function(e) character())
-  if (!length(nms) || anyNA(nms) || !all(nzchar(nms))) return(NULL)
+  if (!length(nms) || anyNA(nms) || !all(nzchar(nms))) {
+    return(NULL)
+  }
 
   members <- vector("list", length(nms))
   for (i in seq_along(nms)) {
     d <- tryCatch(get_data(model, nms[i], type = "set"), error = function(e) NULL)
     v <- if (is.data.frame(d)) d[[1]] else d
-    if (is.null(v) || !length(v)) return(data.table::data.table())
+    if (is.null(v) || !length(v)) {
+      return(data.table::data.table())
+    }
     members[[i]] <- as.character(v)
   }
 
@@ -84,8 +96,11 @@
   # unique names and the real ones are restored on the block afterwards.
   grid <- do.call(
     data.table::CJ,
-    c(stats::setNames(members, make.unique(nms)),
-      list(sorted = FALSE, unique = FALSE)))
+    c(
+      stats::setNames(members, make.unique(nms)),
+      list(sorted = FALSE, unique = FALSE)
+    )
+  )
   data.table::setattr(grid, "mm_dim_names", nms)
   grid
 }
@@ -144,8 +159,10 @@
 .stack_index <- function(pieces, key_col, extra_cols, codes = NULL) {
   pieces <- pieces[!vapply(pieces, is.null, TRUE)]
   if (!length(pieces)) {
-    stop("No symbols contributed any ", key_col,
-         ": every domain mapping was empty.")
+    stop(
+      "No symbols contributed any ", key_col,
+      ": every domain mapping was empty."
+    )
   }
   arity <- max(vapply(
     pieces, function(p) sum(grepl("^i[0-9]+$", names(p))), integer(1)
@@ -159,7 +176,8 @@
   data.table::set(out, j = key_col, value = seq_len(nrow(out)))
   # `name` is absent when the blocks were built with names = FALSE
   data.table::setcolorder(out, intersect(
-    c(key_col, "symbol", "name", idx, extra_cols), names(out)))
+    c(key_col, "symbol", "name", idx, extra_cols), names(out)
+  ))
   out[]
 }
 
@@ -217,9 +235,9 @@ build_col_index <- function(model, verbose = FALSE, names = TRUE, codes = FALSE,
       # a MathProg variable became a single scalar column.
       tp <- .dims_tuples(model, v$dims)
       if (is.null(tp)) {
-        blk <- .scalar_block(nm, names = names)   # genuinely scalar
+        blk <- .scalar_block(nm, names = names) # genuinely scalar
       } else {
-        if (!nrow(tp)) {                          # a set with no members
+        if (!nrow(tp)) { # a set with no members
           if (verbose) message(sprintf("  %-30s %8d  (empty set)", nm, 0L))
           next
         }
@@ -229,7 +247,7 @@ build_col_index <- function(model, verbose = FALSE, names = TRUE, codes = FALSE,
       }
     } else {
       tp <- .domain_tuples(model, dn, codes)
-      if (!nrow(tp)) {                            # empty map -> no columns at all
+      if (!nrow(tp)) { # empty map -> no columns at all
         if (verbose) message(sprintf("  %-30s %8d  (empty map %s)", nm, 0L, dn))
         next
       }
@@ -237,7 +255,7 @@ build_col_index <- function(model, verbose = FALSE, names = TRUE, codes = FALSE,
     }
     dim_names[[nm]] <- attr(blk, "dim_names")
     ex <- exclude[[nm]]
-    if (isTRUE(ex)) {                           # a scalar substituted: no column
+    if (isTRUE(ex)) { # a scalar substituted: no column
       if (verbose) message(sprintf("  %-30s %8d  (substituted)", nm, 0L))
       next
     }
@@ -248,7 +266,9 @@ build_col_index <- function(model, verbose = FALSE, names = TRUE, codes = FALSE,
       data.table::setattr(blk, "dim_names", dim_names[[nm]])
       if (n_in - nrow(blk) != nrow(ex)) {
         stop("build_col_index: ", nrow(ex) - (n_in - nrow(blk)), " tuple(s) to substitute ",
-             "are not columns of '", nm, "'.", call. = FALSE)
+          "are not columns of '", nm, "'.",
+          call. = FALSE
+        )
       }
       if (verbose) message(sprintf("  %-30s %8d  (%d substituted)", nm, nrow(blk), nrow(ex)))
       if (!nrow(blk)) next
@@ -280,11 +300,18 @@ build_col_index <- function(model, verbose = FALSE, names = TRUE, codes = FALSE,
 #' @keywords internal
 #' @noRd
 .index_codes <- function(codes) {
-  if (isFALSE(codes) || is.null(codes)) return(NULL)
-  if (isTRUE(codes)) return(.mx_new_codes())
-  if (.mx_is_codes(codes)) return(codes)
+  if (isFALSE(codes) || is.null(codes)) {
+    return(NULL)
+  }
+  if (isTRUE(codes)) {
+    return(.mx_new_codes())
+  }
+  if (.mx_is_codes(codes)) {
+    return(codes)
+  }
   stop("codes must be FALSE, TRUE or the `codes` attribute of an index table.",
-       call. = FALSE)
+    call. = FALSE
+  )
 }
 
 #' Build the LP row index
@@ -339,9 +366,9 @@ build_row_index <- function(model, verbose = FALSE, names = TRUE, codes = FALSE,
     if (is.na(dn)) {
       tp <- .dims_tuples(model, e$dims)
       if (is.null(tp)) {
-        blk <- .scalar_block(nm, names = names)   # genuinely scalar
+        blk <- .scalar_block(nm, names = names) # genuinely scalar
       } else {
-        if (!nrow(tp)) {                          # a set with no members
+        if (!nrow(tp)) { # a set with no members
           if (verbose) message(sprintf("  %-30s %8d  (empty set)", nm, 0L))
           next
         }
@@ -357,14 +384,16 @@ build_row_index <- function(model, verbose = FALSE, names = TRUE, codes = FALSE,
         blk <- blk[keep]
         data.table::setattr(blk, "dim_names", attr(tp, "mm_dim_names"))
         if (verbose) {
-          message(sprintf("  %-30s %8d  (%d of %d pass the condition)",
-                          nm, nrow(blk), nrow(blk), n_in))
+          message(sprintf(
+            "  %-30s %8d  (%d of %d pass the condition)",
+            nm, nrow(blk), nrow(blk), n_in
+          ))
         }
         if (!nrow(blk)) next
       }
     } else {
       tp <- .domain_tuples(model, dn, codes)
-      if (!nrow(tp)) {                            # empty map -> no rows at all
+      if (!nrow(tp)) { # empty map -> no rows at all
         if (verbose) message(sprintf("  %-30s %8d  (empty map %s)", nm, 0L, dn))
         next
       }
@@ -378,7 +407,9 @@ build_row_index <- function(model, verbose = FALSE, names = TRUE, codes = FALSE,
       data.table::setattr(blk, "dim_names", dim_names[[nm]])
       if (n_in - nrow(blk) != nrow(sk)) {
         stop("build_row_index: ", nrow(sk) - (n_in - nrow(blk)), " tuple(s) to substitute ",
-             "are not rows of '", nm, "'.", call. = FALSE)
+          "are not rows of '", nm, "'.",
+          call. = FALSE
+        )
       }
       if (verbose) message(sprintf("  %-30s %8d  (%d substituted)", nm, nrow(blk), nrow(sk)))
       if (!nrow(blk)) next

@@ -51,13 +51,19 @@ NULL
       sets_data <- data.frame(
         name = names(active_sets),
         n_elements = sapply(active_sets, function(s) {
-          if (!is.null(s$data)) return(length(s$data))
-          if (!is.null(s$members)) return(length(s$members))
-          return(0L)
+          if (!is.null(s$data)) {
+            return(length(s$data))
+          }
+          if (!is.null(s$members)) {
+            return(length(s$members))
+          }
+          0L
         }),
         desc = sapply(active_sets, function(s) {
-          if (!is.null(s$desc) && length(s$desc) > 0) return(s$desc[1])
-          return("")
+          if (!is.null(s$desc) && length(s$desc) > 0) {
+            return(s$desc[1])
+          }
+          ""
         }),
         stringsAsFactors = FALSE
       )
@@ -76,21 +82,31 @@ NULL
       mappings_data <- data.frame(
         name = names(active_mappings),
         n_rows = sapply(active_mappings, function(m) {
-          if (!is.null(m$data)) return(nrow(m$data))
-          return(0L)
+          if (!is.null(m$data)) {
+            return(nrow(m$data))
+          }
+          0L
         }),
         n_cols = sapply(active_mappings, function(m) {
-          if (!is.null(m$data)) return(ncol(m$data))
-          return(0L)
+          if (!is.null(m$data)) {
+            return(ncol(m$data))
+          }
+          0L
         }),
         dims = sapply(active_mappings, function(m) {
-          if (!is.null(m$dims)) return(paste(m$dims, collapse = ","))
-          if (!is.null(m$data)) return(paste(names(m$data), collapse = ","))
-          return("")
+          if (!is.null(m$dims)) {
+            return(paste(m$dims, collapse = ","))
+          }
+          if (!is.null(m$data)) {
+            return(paste(names(m$data), collapse = ","))
+          }
+          ""
         }),
         desc = sapply(active_mappings, function(m) {
-          if (!is.null(m$desc) && length(m$desc) > 0) return(m$desc[1])
-          return("")
+          if (!is.null(m$desc) && length(m$desc) > 0) {
+            return(m$desc[1])
+          }
+          ""
         }),
         stringsAsFactors = FALSE
       )
@@ -109,12 +125,16 @@ NULL
       params_data <- data.frame(
         name = names(active_params),
         n_rows = sapply(active_params, function(p) {
-          if (!is.null(p$data)) return(nrow(p$data))
-          return(0L)
+          if (!is.null(p$data)) {
+            return(nrow(p$data))
+          }
+          0L
         }),
         n_cols = sapply(active_params, function(p) {
-          if (!is.null(p$data)) return(ncol(p$data))
-          return(0L)
+          if (!is.null(p$data)) {
+            return(ncol(p$data))
+          }
+          0L
         }),
         dims = sapply(active_params, function(p) {
           # Always use actual column names from data (excluding 'value' column)
@@ -127,28 +147,30 @@ NULL
           if (!is.null(p$dims) && length(p$dims) > 0) {
             return(paste(p$dims, collapse = ","))
           }
-          return("")
+          ""
         }),
         default_value = sapply(active_params, function(p) {
-          if (is.null(p$defVal)) return(NA_character_)
-          
+          if (is.null(p$defVal)) {
+            return(NA_character_)
+          }
+
           # Handle ast_formula - convert to R code string
           if (inherits(p$defVal, "ast_formula")) {
             return(paste0("<formula: ", as_r(p$defVal$expr), ">"))
           }
-          
+
           # Handle other AST - convert to R code string
           if (inherits(p$defVal, "ast")) {
             return(paste0("<expr: ", as_r(p$defVal), ">"))
           }
-          
+
           # Handle scalar values
           if (is.numeric(p$defVal) || is.character(p$defVal) || is.logical(p$defVal)) {
             return(as.character(p$defVal))
           }
-          
+
           # Fallback for other types
-          return(NA_character_)
+          NA_character_
         }),
         desc = mapply(function(p, nm) {
           sanitize_description(p$desc, nm)
@@ -223,16 +245,16 @@ NULL
 #'   head(get_data(m_light, "pTechOlife"))
 #' }
 save_model <- function(
-    model,
-    path,
-    format = c("parquet", "ipc", "csv"),
-    compression = "zstd",
-    compression_level = 3,
-    overwrite = TRUE,
-    keep_in_memory = TRUE,
-    save_structure = TRUE,
-    structure = c("rds", "json", "both"),
-    verbose = TRUE
+  model,
+  path,
+  format = c("parquet", "ipc", "csv"),
+  compression = "zstd",
+  compression_level = 3,
+  overwrite = TRUE,
+  keep_in_memory = TRUE,
+  save_structure = TRUE,
+  structure = c("rds", "json", "both"),
+  verbose = TRUE
 ) {
   format <- match.arg(format)
   structure <- match.arg(structure)
@@ -456,11 +478,11 @@ save_model <- function(
 #' # Load structure only (for inspection)
 #' m_light <- load_model(ws, load_data = FALSE, verbose = FALSE)
 load_model <- function(
-    path,
-    load_data = TRUE,
-    load_structure = TRUE,
-    canonical = FALSE,
-    verbose = TRUE
+  path,
+  load_data = TRUE,
+  load_structure = TRUE,
+  canonical = FALSE,
+  verbose = TRUE
 ) {
   if (!dir.exists(path)) {
     stop("Model directory not found: ", path)
@@ -475,15 +497,18 @@ load_model <- function(
   if (verbose) cat("Loading model from:", path, "\n")
 
   # Load model structure
-  model <- if (file.exists(model_file)) readRDS(model_file) else
+  model <- if (file.exists(model_file)) {
+    readRDS(model_file)
+  } else {
     model_from_json(json_file)
+  }
 
   # Read format
   format_file <- file.path(path, "format.txt")
   if (file.exists(format_file)) {
     format <- readLines(format_file, n = 1, warn = FALSE)
   } else {
-    format <- "csv"  # Default fallback
+    format <- "csv" # Default fallback
   }
 
   # Set members: part of model.rds, left out of model.json
@@ -546,7 +571,7 @@ load_model <- function(
           }
           rule_file <- file.path(mapping_dir, "rule.json")
           if (file.exists(rule_file) && !is.null(model$mappings[[mapping_name]]) &&
-              is.null(model$mappings[[mapping_name]]$rule)) {
+            is.null(model$mappings[[mapping_name]]$rule)) {
             model$mappings[[mapping_name]]$rule <- .rule_read(rule_file)
           }
         }
@@ -603,8 +628,10 @@ update_parameter <- function(model, name, data, folded_data = NULL, auto_save = 
   }
 
   # Update data; the table given replaces any reference the symbol carried
-  .data_memo_drop(.data_memo_key(model$parameters[[name]],
-                                 get_data_path(model$parameters[[name]], model$base_path)))
+  .data_memo_drop(.data_memo_key(
+    model$parameters[[name]],
+    get_data_path(model$parameters[[name]], model$base_path)
+  ))
   .data_memo_drop(paste0("path:", file.path(model$storage$path %||% "", "parameters", name, "data")))
   model$parameters[[name]]$data <- data
   model$parameters[[name]]$misc$ref <- NULL
@@ -630,7 +657,7 @@ update_parameter <- function(model, name, data, folded_data = NULL, auto_save = 
     if (!is.null(model$storage$format)) {
       format <- model$storage$format
     } else {
-      format <- "ipc"  # Default
+      format <- "ipc" # Default
     }
 
     # Save this specific parameter to disk
@@ -700,8 +727,10 @@ update_mapping <- function(model, name, data, auto_save = FALSE) {
   }
 
   # Update data; the table given replaces any reference the symbol carried
-  .data_memo_drop(.data_memo_key(model$mappings[[name]],
-                                 get_data_path(model$mappings[[name]], model$base_path)))
+  .data_memo_drop(.data_memo_key(
+    model$mappings[[name]],
+    get_data_path(model$mappings[[name]], model$base_path)
+  ))
   .data_memo_drop(paste0("path:", file.path(model$storage$path %||% "", "mappings", name, "data")))
   model$mappings[[name]]$data <- data
   model$mappings[[name]]$misc$ref <- NULL
@@ -753,9 +782,13 @@ update_mapping <- function(model, name, data, auto_save = FALSE) {
 # silent: every parameter fell through to its scalar default and the model
 # built as a 1x1, while the import log still reported every symbol linked.
 .claims_external_data <- function(obj) {
-  if (is.null(obj)) return(FALSE)
+  if (is.null(obj)) {
+    return(FALSE)
+  }
   m <- obj$misc
-  if (is.null(m)) return(FALSE)
+  if (is.null(m)) {
+    return(FALSE)
+  }
   isTRUE(!is.null(m$path)) || isTRUE(!is.null(m$onDisk)) || identical(m$inMemory, FALSE)
 }
 
@@ -783,8 +816,12 @@ update_mapping <- function(model, name, data, auto_save = FALSE) {
 #' @keywords internal
 #' @noRd
 .ondisk_dim <- function(rec) {
-  if (is.null(rec)) return(NULL)
-  if (!is.null(rec$dim)) return(rec$dim)
+  if (is.null(rec)) {
+    return(NULL)
+  }
+  if (!is.null(rec$dim)) {
+    return(rec$dim)
+  }
   rec[["data"]]$dim
 }
 
@@ -798,7 +835,9 @@ update_mapping <- function(model, name, data, auto_save = FALSE) {
   )
   nms <- nms[nzchar(nms)]
   if (inherits(obj, "mm_parameter")) nms <- c(nms, "value")
-  if (!length(nms)) return(data.frame())
+  if (!length(nms)) {
+    return(data.frame())
+  }
   cols <- rep(list(character()), length(nms))
   if (inherits(obj, "mm_parameter")) cols[[length(cols)]] <- numeric()
   names(cols) <- nms
@@ -806,19 +845,23 @@ update_mapping <- function(model, name, data, auto_save = FALSE) {
 }
 
 .no_data_for <- function(obj, name, kind) {
-  stop(sprintf(paste0(
-    "%s '%s' declares data outside $data but none could be loaded.\n",
-    "  misc$path   : %s\n",
-    "  misc$inMemory: %s\n",
-    "Load it in memory (for an energyRt scenario, ",
-    "energyRt::multimod_import_data(..., inMemory = TRUE)) or make ",
-    "the path readable. Continuing would silently use the default value."),
-    kind, name,
-    if (is.null(obj$misc$path)) "<none>" else as.character(obj$misc$path)[1],
-    if (is.null(obj$misc$inMemory)) "<unset>" else as.character(obj$misc$inMemory)),
-    call. = FALSE)
+  stop(
+    sprintf(
+      paste0(
+        "%s '%s' declares data outside $data but none could be loaded.\n",
+        "  misc$path   : %s\n",
+        "  misc$inMemory: %s\n",
+        "Load it in memory (for an energyRt scenario, ",
+        "energyRt::multimod_import_data(..., inMemory = TRUE)) or make ",
+        "the path readable. Continuing would silently use the default value."
+      ),
+      kind, name,
+      if (is.null(obj$misc$path)) "<none>" else as.character(obj$misc$path)[1],
+      if (is.null(obj$misc$inMemory)) "<unset>" else as.character(obj$misc$inMemory)
+    ),
+    call. = FALSE
+  )
 }
-
 
 
 #' Get data from model (with optional lazy loading)
@@ -848,7 +891,9 @@ get_data <- function(model, name, type = c("parameter", "mapping", "set", "varia
 
   if (type == "set") {
     set_obj <- model$sets[[name]]
-    if (is.null(set_obj)) return(NULL)
+    if (is.null(set_obj)) {
+      return(NULL)
+    }
 
     if (!is.null(set_obj$data) && length(set_obj$data) > 0) {
       return(as.character(set_obj$data))
@@ -868,7 +913,9 @@ get_data <- function(model, name, type = c("parameter", "mapping", "set", "varia
 
   if (type == "parameter") {
     param <- model$parameters[[name]]
-    if (is.null(param)) return(NULL)
+    if (is.null(param)) {
+      return(NULL)
+    }
 
     # Check if data is in memory
     if (!is.null(param$data) && nrow(param$data) > 0) {
@@ -879,19 +926,30 @@ get_data <- function(model, name, type = c("parameter", "mapping", "set", "varia
     # a table assigned into it would not outlive this call)
     if (!is.null(model$storage$path)) {
       param_file <- file.path(model$storage$path, "parameters", name, "data")
-      data <- .data_memo_read(paste0("path:", param_file),
-                              function() .load_dataframe(param_file, model$storage$format))
-      if (!is.null(data)) return(data)
+      data <- .data_memo_read(
+        paste0("path:", param_file),
+        function() .load_dataframe(param_file, model$storage$format)
+      )
+      if (!is.null(data)) {
+        return(data)
+      }
     }
 
     # The per-object reference, which the model$storage path above does not
     # know about. get_lazy_data() resolves misc$path/onDisk properly.
     if (.claims_external_data(param)) {
       key <- .data_memo_key(param, get_data_path(param, model$base_path))
-      d <- .data_memo_read(key, function() tryCatch(get_lazy_data(param, base_path = model$base_path),
-                                                    error = function(e) NULL))
-      if (!is.null(d) && NROW(d) > 0) return(d)
-      if (.recorded_empty(param)) return(.empty_like(param))
+      d <- .data_memo_read(key, function() {
+        tryCatch(get_lazy_data(param, base_path = model$base_path),
+          error = function(e) NULL
+        )
+      })
+      if (!is.null(d) && NROW(d) > 0) {
+        return(d)
+      }
+      if (.recorded_empty(param)) {
+        return(.empty_like(param))
+      }
       .no_data_for(param, name, "Parameter")
     }
 
@@ -905,7 +963,9 @@ get_data <- function(model, name, type = c("parameter", "mapping", "set", "varia
 
   if (type == "mapping") {
     mapping <- model$mappings[[name]]
-    if (is.null(mapping)) return(NULL)
+    if (is.null(mapping)) {
+      return(NULL)
+    }
 
     # Check if data is in memory
     if (!is.null(mapping$data) && nrow(mapping$data) > 0) {
@@ -925,18 +985,29 @@ get_data <- function(model, name, type = c("parameter", "mapping", "set", "varia
 
     if (!is.null(model$storage$path)) {
       mapping_file <- file.path(model$storage$path, "mappings", name, "data")
-      data <- .data_memo_read(paste0("path:", mapping_file),
-                              function() .load_dataframe(mapping_file, model$storage$format))
-      if (!is.null(data)) return(data)
+      data <- .data_memo_read(
+        paste0("path:", mapping_file),
+        function() .load_dataframe(mapping_file, model$storage$format)
+      )
+      if (!is.null(data)) {
+        return(data)
+      }
     }
 
     # Same per-object reference the parameter branch honours above.
     if (.claims_external_data(mapping)) {
       key <- .data_memo_key(mapping, get_data_path(mapping, model$base_path))
-      d <- .data_memo_read(key, function() tryCatch(get_lazy_data(mapping, base_path = model$base_path),
-                                                    error = function(e) NULL))
-      if (!is.null(d) && NROW(d) > 0) return(d)
-      if (.recorded_empty(mapping)) return(.empty_like(mapping))
+      d <- .data_memo_read(key, function() {
+        tryCatch(get_lazy_data(mapping, base_path = model$base_path),
+          error = function(e) NULL
+        )
+      })
+      if (!is.null(d) && NROW(d) > 0) {
+        return(d)
+      }
+      if (.recorded_empty(mapping)) {
+        return(.empty_like(mapping))
+      }
       .no_data_for(mapping, name, "Mapping")
     }
 
@@ -945,7 +1016,9 @@ get_data <- function(model, name, type = c("parameter", "mapping", "set", "varia
 
   if (type == "variable") {
     variable <- model$variables[[name]]
-    if (is.null(variable)) return(NULL)
+    if (is.null(variable)) {
+      return(NULL)
+    }
 
     # Check if solution data is in memory
     if (!is.null(variable$solution) && nrow(variable$solution) > 0) {
@@ -990,13 +1063,13 @@ get_data <- function(model, name, type = c("parameter", "mapping", "set", "varia
 #'   empty.
 #' @keywords internal
 .save_dataframe <- function(
-    data,
-    path,
-    format,
-    compression = "zstd",
-    compression_level = 3,
-    verbose = FALSE,
-    label = NULL
+  data,
+  path,
+  format,
+  compression = "zstd",
+  compression_level = 3,
+  verbose = FALSE,
+  label = NULL
 ) {
   if (is.null(data) || nrow(data) == 0) {
     return(invisible(NULL))

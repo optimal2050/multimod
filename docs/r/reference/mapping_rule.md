@@ -60,10 +60,14 @@ A data.frame of character columns `rule$cols`, one row per tuple.
 
 ``` r
 pf <- data.frame(tech = c("coal", "wind"), frame = c("ANNUAL", "HOUR"))
-fs <- data.frame(frame = c("ANNUAL", "HOUR", "HOUR"),
-                 slice = c("y", "h1", "h2"))
-r <- mapping_rule(of = c("pf", "fs"), tables = list(pf = pf, fs = fs),
-                  cols = c("tech", "slice"))
+fs <- data.frame(
+  frame = c("ANNUAL", "HOUR", "HOUR"),
+  slice = c("y", "h1", "h2")
+)
+r <- mapping_rule(
+  of = c("pf", "fs"), tables = list(pf = pf, fs = fs),
+  cols = c("tech", "slice")
+)
 m <- new_mapping("mTechSlice", dims = c("tech", "slice"), rule = r)
 materialise_rule(list(), r)
 #>   tech slice

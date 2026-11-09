@@ -11,7 +11,7 @@
 # with the least recently used table dropped first.
 
 .data_cache <- new.env(parent = emptyenv())
-.data_cache$entries <- list()      # key -> list(data, bytes, last)
+.data_cache$entries <- list() # key -> list(data, bytes, last)
 .data_cache$clock <- 0
 
 .data_cache_limit <- function() {
@@ -21,7 +21,9 @@
 
 # the bytes a table holds, by column type: no walk over the values
 .data_bytes <- function(x) {
-  if (!is.data.frame(x)) return(as.numeric(utils::object.size(x)))
+  if (!is.data.frame(x)) {
+    return(as.numeric(utils::object.size(x)))
+  }
   n <- nrow(x)
   per <- vapply(x, function(col) {
     if (is.double(col)) 8 else if (is.character(col) || is.list(col)) 8 else if (is.factor(col)) 4 else 4
@@ -36,15 +38,23 @@
 #' @noRd
 .data_memo_key <- function(obj, path = NULL) {
   h <- obj$misc$ref$hash
-  if (!is.null(h) && nzchar(h)) return(paste0("hash:", h))
-  if (!is.null(path)) return(paste0("path:", normalizePath(path, winslash = "/", mustWork = FALSE)))
+  if (!is.null(h) && nzchar(h)) {
+    return(paste0("hash:", h))
+  }
+  if (!is.null(path)) {
+    return(paste0("path:", normalizePath(path, winslash = "/", mustWork = FALSE)))
+  }
   NULL
 }
 
 .data_memo_get <- function(key) {
-  if (is.null(key)) return(NULL)
+  if (is.null(key)) {
+    return(NULL)
+  }
   e <- .data_cache$entries[[key]]
-  if (is.null(e)) return(NULL)
+  if (is.null(e)) {
+    return(NULL)
+  }
   .data_cache$clock <- .data_cache$clock + 1
   e$last <- .data_cache$clock
   .data_cache$entries[[key]] <- e
@@ -52,10 +62,14 @@
 }
 
 .data_memo_put <- function(key, x) {
-  if (is.null(key) || is.null(x)) return(invisible(x))
+  if (is.null(key) || is.null(x)) {
+    return(invisible(x))
+  }
   bytes <- .data_bytes(x)
   limit <- .data_cache_limit()
-  if (bytes > limit) return(invisible(x))     # larger than the whole budget: not kept
+  if (bytes > limit) {
+    return(invisible(x))
+  } # larger than the whole budget: not kept
   .data_cache$clock <- .data_cache$clock + 1
   .data_cache$entries[[key]] <- list(data = x, bytes = bytes, last = .data_cache$clock)
   .data_memo_trim(limit)
@@ -80,7 +94,9 @@
 # read through the memo: `reader()` is called on a miss
 .data_memo_read <- function(key, reader) {
   hit <- .data_memo_get(key)
-  if (!is.null(hit)) return(hit)
+  if (!is.null(hit)) {
+    return(hit)
+  }
   x <- reader()
   if (!is.null(x) && NROW(x) > 0) .data_memo_put(key, x)
   x
@@ -115,10 +131,12 @@ clear_data_cache <- function() {
 #' @export
 data_cache_info <- function() {
   e <- .data_cache$entries
-  data.frame(key = names(e),
-             rows = vapply(e, function(x) NROW(x$data), numeric(1)),
-             bytes = vapply(e, function(x) x$bytes, numeric(1)),
-             stringsAsFactors = FALSE, row.names = NULL)
+  data.frame(
+    key = names(e),
+    rows = vapply(e, function(x) NROW(x$data), numeric(1)),
+    bytes = vapply(e, function(x) x$bytes, numeric(1)),
+    stringsAsFactors = FALSE, row.names = NULL
+  )
 }
 
 #' Bring a model's tables into memory

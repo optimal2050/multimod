@@ -79,7 +79,7 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
   where <- match.arg(where)
   if (!file.exists(file)) stop("MPS file not found: ", file)
   if (length(control) && (!is.list(control) || is.null(names(control)) ||
-                          any(!nzchar(names(control))))) {
+    any(!nzchar(names(control))))) {
     stop("`control` must be a named list of solver options.")
   }
   key <- paste(solver, where, sep = "/")
@@ -87,12 +87,14 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
     sol_file <- paste0(sub("\\.mps(\\.gz)?$", "", file, ignore.case = TRUE), ".sol")
   }
   switch(key,
-    "highs/local"       = .solve_mps_highs(file, sol_file, control, require_optimal, verbose),
+    "highs/local" = .solve_mps_highs(file, sol_file, control, require_optimal, verbose),
     "julia_highs/local" = .solve_mps_julia(file, sol_file, control, require_optimal, verbose),
-    "cuopt/local"       = .solve_mps_cuopt_local(file, sol_file, control, require_optimal, verbose, wsl = FALSE),
-    "cuopt/wsl"         = .solve_mps_cuopt_local(file, sol_file, control, require_optimal, verbose, wsl = TRUE),
-    stop("solver = '", solver, "' does not run where = '", where, "'. Available: ",
-         "highs/local, julia_highs/local, cuopt/local, cuopt/wsl.")
+    "cuopt/local" = .solve_mps_cuopt_local(file, sol_file, control, require_optimal, verbose, wsl = FALSE),
+    "cuopt/wsl" = .solve_mps_cuopt_local(file, sol_file, control, require_optimal, verbose, wsl = TRUE),
+    stop(
+      "solver = '", solver, "' does not run where = '", where, "'. Available: ",
+      "highs/local, julia_highs/local, cuopt/local, cuopt/wsl."
+    )
   )
 }
 
@@ -100,8 +102,10 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
 
 .solve_mps_highs <- function(file, sol_file, control, require_optimal, verbose) {
   if (!requireNamespace("highs", quietly = TRUE)) {
-    stop("solve_mps() needs the 'highs' package. Install it with ",
-         "install.packages(\"highs\").")
+    stop(
+      "solve_mps() needs the 'highs' package. Install it with ",
+      "install.packages(\"highs\")."
+    )
   }
   if (grepl("\\.gz$", file, ignore.case = TRUE)) {
     stop("The HiGHS reader does not accept gzipped MPS; decompress first.")
@@ -123,8 +127,10 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
 
   msg <- highs::hi_solver_status_message(s)
   if (require_optimal && !grepl("optimal", msg, ignore.case = TRUE)) {
-    stop("HiGHS finished with status '", msg, "', not optimal.\n",
-         "  Pass require_optimal = FALSE to write the solution anyway.")
+    stop(
+      "HiGHS finished with status '", msg, "', not optimal.\n",
+      "  Pass require_optimal = FALSE to write the solution anyway."
+    )
   }
 
   sol <- highs::hi_solver_get_solution(s)
@@ -133,21 +139,27 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
   m <- length(sol$row_value)
   if (file.exists(sol_file) && file.size(sol_file) > 0) {
     if (verbose) {
-      message("solved ", basename(file), ": ", msg, ", objective ",
-              format(objective, digits = 10), " -> ", sol_file)
+      message(
+        "solved ", basename(file), ": ", msg, ", objective ",
+        format(objective, digits = 10), " -> ", sol_file
+      )
     }
-    return(list(status_message = msg, objective = objective, sol_file = sol_file,
-                run_time = highs::hi_solver_get_run_time(s)))
+    return(list(
+      status_message = msg, objective = objective, sol_file = sol_file,
+      run_time = highs::hi_solver_get_run_time(s)
+    ))
   }
 
   # A HiGHS that does not write the file itself: a raw-style solution file
   # (the format read_highs_solution() parses) with positional names, as
   # write_mps() emits them; dual sections only when the duals are valid.
-  con <- file(sol_file, "wb")   # binary: LF endings, byte-stable across OSes
+  con <- file(sol_file, "wb") # binary: LF endings, byte-stable across OSes
   wr <- function(...) writeLines(c(...), con, sep = "\n")
   wr("Model status", msg, "")
-  wr("# Primal solution values", "Feasible",
-     sprintf("Objective %.17g", objective))
+  wr(
+    "# Primal solution values", "Feasible",
+    sprintf("Objective %.17g", objective)
+  )
   wr(sprintf("# Columns %d", n))
   wr(sprintf("c%d %.17g", seq_len(n) - 1L, sol$col_value))
   wr(sprintf("# Rows %d", m))
@@ -162,11 +174,15 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
   close(con)
 
   if (verbose) {
-    message("solved ", basename(file), ": ", msg, ", objective ",
-            format(objective, digits = 10), " -> ", sol_file)
+    message(
+      "solved ", basename(file), ": ", msg, ", objective ",
+      format(objective, digits = 10), " -> ", sol_file
+    )
   }
-  list(status_message = msg, objective = objective, sol_file = sol_file,
-       run_time = highs::hi_solver_get_run_time(s))
+  list(
+    status_message = msg, objective = objective, sol_file = sol_file,
+    run_time = highs::hi_solver_get_run_time(s)
+  )
 }
 
 # HiGHS through Julia --------------------------------------------------------
@@ -176,12 +192,18 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
 # temporary file.
 .julia_highs_script <- function(control) {
   setter <- function(nm, v) {
-    if (is.logical(v)) sprintf('HiGHS.Highs_setBoolOptionValue(h, "%s", %s)', nm, if (isTRUE(v)) "1" else "0")
-    else if (is.integer(v)) sprintf('HiGHS.Highs_setIntOptionValue(h, "%s", %d)', nm, v)
-    else if (is.numeric(v)) sprintf('HiGHS.Highs_setDoubleOptionValue(h, "%s", %s)', nm, format(v, digits = 17))
-    else sprintf('HiGHS.Highs_setStringOptionValue(h, "%s", "%s")', nm, as.character(v))
+    if (is.logical(v)) {
+      sprintf('HiGHS.Highs_setBoolOptionValue(h, "%s", %s)', nm, if (isTRUE(v)) "1" else "0")
+    } else if (is.integer(v)) {
+      sprintf('HiGHS.Highs_setIntOptionValue(h, "%s", %d)', nm, v)
+    } else if (is.numeric(v)) {
+      sprintf('HiGHS.Highs_setDoubleOptionValue(h, "%s", %s)', nm, format(v, digits = 17))
+    } else {
+      sprintf('HiGHS.Highs_setStringOptionValue(h, "%s", "%s")', nm, as.character(v))
+    }
   }
-  c("using HiGHS",
+  c(
+    "using HiGHS",
     "h = HiGHS.Highs_create()",
     "t0 = time()",
     "HiGHS.Highs_readModel(h, ARGS[1]) == 0 || error(\"HiGHS could not read \" * ARGS[1])",
@@ -191,19 +213,22 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
     "HiGHS.Highs_writeSolution(h, ARGS[2])",
     "st = HiGHS.Highs_getModelStatus(h)",
     "println(\"MMJULIA status=\", st, \" objective=\", HiGHS.Highs_getObjectiveValue(h), \" seconds=\", round(t1 - t0, digits = 1))",
-    "HiGHS.Highs_destroy(h)")
+    "HiGHS.Highs_destroy(h)"
+  )
 }
 
 # HiGHS' model status codes (HighsModelStatus), as Highs_getModelStatus returns them.
 .highs_model_status <- function(code) {
-  lab <- c("0" = "Not Set", "1" = "Load error", "2" = "Model error",
-           "3" = "Presolve error", "4" = "Solve error", "5" = "Postsolve error",
-           "6" = "Empty", "7" = "Optimal", "8" = "Infeasible",
-           "9" = "Primal infeasible or unbounded", "10" = "Unbounded",
-           "11" = "Bound on objective reached", "12" = "Target for objective reached",
-           "13" = "Time limit reached", "14" = "Iteration limit reached",
-           "15" = "Unknown", "16" = "Solution limit reached", "17" = "Interrupted",
-           "18" = "Memory limit reached")
+  lab <- c(
+    "0" = "Not Set", "1" = "Load error", "2" = "Model error",
+    "3" = "Presolve error", "4" = "Solve error", "5" = "Postsolve error",
+    "6" = "Empty", "7" = "Optimal", "8" = "Infeasible",
+    "9" = "Primal infeasible or unbounded", "10" = "Unbounded",
+    "11" = "Bound on objective reached", "12" = "Target for objective reached",
+    "13" = "Time limit reached", "14" = "Iteration limit reached",
+    "15" = "Unknown", "16" = "Solution limit reached", "17" = "Interrupted",
+    "18" = "Memory limit reached"
+  )
   out <- unname(lab[as.character(code)])
   ifelse(is.na(out), paste("status", code), out)
 }
@@ -215,12 +240,15 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
   if (file.exists(sol_file)) file.remove(sol_file)
   t0 <- Sys.time()
   out <- suppressWarnings(system2(get_multimod_julia(),
-                                  c(shQuote(jl), shQuote(file), shQuote(sol_file)),
-                                  stdout = TRUE, stderr = TRUE))
+    c(shQuote(jl), shQuote(file), shQuote(sol_file)),
+    stdout = TRUE, stderr = TRUE
+  ))
   if (verbose) cat(out[!grepl("^MMJULIA ", out)], sep = "\n")
   if (!file.exists(sol_file)) {
-    stop("HiGHS (Julia) wrote no solution (exit ", attr(out, "status") %||% 0L, ").\n",
-         paste(utils::tail(out, 15), collapse = "\n"))
+    stop(
+      "HiGHS (Julia) wrote no solution (exit ", attr(out, "status") %||% 0L, ").\n",
+      paste(utils::tail(out, 15), collapse = "\n")
+    )
   }
   line <- utils::tail(grep("^MMJULIA ", out, value = TRUE), 1)
   msg <- if (length(line)) .highs_model_status(sub(".*status=(\\S+) objective=.*", "\\1", line)) else NA_character_
@@ -228,8 +256,10 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
   if (require_optimal && !isTRUE(grepl("optimal", msg, ignore.case = TRUE))) {
     stop("HiGHS (Julia) finished with status '", msg, "', not optimal.")
   }
-  list(status_message = msg, objective = obj, sol_file = sol_file,
-       run_time = as.numeric(difftime(Sys.time(), t0, units = "secs")))
+  list(
+    status_message = msg, objective = obj, sol_file = sol_file,
+    run_time = as.numeric(difftime(Sys.time(), t0, units = "secs"))
+  )
 }
 
 # cuOpt ----------------------------------------------------------------------
@@ -258,10 +288,14 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
 
 # A Windows path as WSL sees it: C:/a/b -> /mnt/c/a/b.
 .wsl_path <- function(x) {
-  if (startsWith(x, "/")) return(x)
+  if (startsWith(x, "/")) {
+    return(x)
+  }
   x <- normalizePath(x, winslash = "/", mustWork = FALSE)
   drv <- regmatches(x, regexpr("^[A-Za-z]:", x))
-  if (!length(drv)) return(x)
+  if (!length(drv)) {
+    return(x)
+  }
   paste0("/mnt/", tolower(substr(drv, 1, 1)), substring(x, 3))
 }
 
@@ -272,8 +306,10 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
 
 .cuopt_cli_path <- function(control, wsl) {
   control$cuopt_cli %||%
-    Sys.getenv("MULTIMOD_CUOPT_CLI",
-               if (wsl) "cuopt_cli" else get_multimod_solver("cuopt_cli"))
+    Sys.getenv(
+      "MULTIMOD_CUOPT_CLI",
+      if (wsl) "cuopt_cli" else get_multimod_solver("cuopt_cli")
+    )
 }
 
 # The program and arguments of a run on this machine or in WSL: `cuopt_cli`,
@@ -285,10 +321,15 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
   if (!identical(control$api, "python")) {
     return(list(exe = cli, args = .cuopt_cli_args(path(file), sol, control)))
   }
-  warm_in <- if (is.null(control$warm_start)) "-" else
+  warm_in <- if (is.null(control$warm_start)) {
+    "-"
+  } else {
     path(normalizePath(control$warm_start, winslash = "/", mustWork = FALSE))
-  list(exe = .cuopt_python_path(control, cli),
-       args = c("-u", path(script), path(file), sol, path(params), warm_in, warm_out))
+  }
+  list(
+    exe = .cuopt_python_path(control, cli),
+    args = c("-u", path(script), path(file), sol, path(params), warm_in, warm_out)
+  )
 }
 
 # The Python that has cuOpt's package: `control$cuopt_python`, else
@@ -296,7 +337,9 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
 # environment's bin/), else `python3` on the PATH.
 .cuopt_python_path <- function(control, cli) {
   p <- control$cuopt_python %||% Sys.getenv("MULTIMOD_CUOPT_PYTHON", "")
-  if (nzchar(p)) return(p)
+  if (nzchar(p)) {
+    return(p)
+  }
   if (grepl("/", cli, fixed = TRUE)) file.path(dirname(cli), "python3") else "python3"
 }
 
@@ -306,8 +349,10 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
   con <- if (grepl("\\.gz$", sol_file, ignore.case = TRUE)) gzfile(sol_file, "rt") else file(sol_file, "rt")
   on.exit(close(con))
   hdr <- readLines(con, n = 10, warn = FALSE)
-  list(status = .cuopt_header(hdr, "Status"),
-       objective = suppressWarnings(as.numeric(.cuopt_header(hdr, "Objective value"))))
+  list(
+    status = .cuopt_header(hdr, "Status"),
+    objective = suppressWarnings(as.numeric(.cuopt_header(hdr, "Objective value")))
+  )
 }
 
 .check_cuopt_status <- function(h, require_optimal, where) {
@@ -340,7 +385,8 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
   if (py) {
     writeLines(.cuopt_py_source(), script)
     writeLines(as.character(jsonlite::toJSON(.cuopt_py_params(control, warm),
-                                             auto_unbox = TRUE, digits = NA)), params)
+      auto_unbox = TRUE, digits = NA
+    )), params)
   }
   solver_args <- function(sol, warm_out) {
     .cuopt_local_command(file, sol, warm_out, control, wsl, script, params)
@@ -350,9 +396,13 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
     args <- solver_args(sol_file, if (isTRUE(control$save_warm_start)) warm_file else "-")$args
     if (verbose) cat("cuOpt:", exe, paste(args, collapse = " "), "\n")
     run <- function(a) {
-      if (!is.null(wd)) return(.cuopt_run_watched(exe, a, log_file, wd, verbose))
-      system2(exe, shQuote(a), stdout = if (verbose) "" else FALSE,
-              stderr = if (verbose) "" else FALSE)
+      if (!is.null(wd)) {
+        return(.cuopt_run_watched(exe, a, log_file, wd, verbose))
+      }
+      system2(exe, shQuote(a),
+        stdout = if (verbose) "" else FALSE,
+        stderr = if (verbose) "" else FALSE
+      )
     }
     rs <- run(args)
     if (!py && rs == 0 && !file.exists(sol_file) && is.null(control$presolve)) {
@@ -378,14 +428,24 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
     # process id first: stopping wsl.exe alone may leave the solver running
     pid_file <- paste0(wsl_dir, "/solver.pid")
     run <- function(a) {
-      if (is.null(wd)) return(system2("wsl", a, stdout = if (verbose) "" else FALSE,
-                                      stderr = if (verbose) "" else FALSE))
+      if (is.null(wd)) {
+        return(system2("wsl", a,
+          stdout = if (verbose) "" else FALSE,
+          stderr = if (verbose) "" else FALSE
+        ))
+      }
       cmd <- c(user, "bash", "-c", sprintf('echo $$ > %s; exec "$0" "$@"', pid_file), a[-seq_along(user)])
       .cuopt_run_watched("wsl", cmd, log_file, wd, verbose,
-                         # cuopt_cli is a wrapper that starts the solver as its child: both go
-                         kill = function() processx::run("wsl", c(user, "bash", "-c",
-                                                                  sprintf("p=$(cat %s); pkill -P $p; kill $p", pid_file)),
-                                                         error_on_status = FALSE))
+        # cuopt_cli is a wrapper that starts the solver as its child: both go
+        kill = function() {
+          processx::run("wsl", c(
+            user, "bash", "-c",
+            sprintf("p=$(cat %s); pkill -P $p; kill $p", pid_file)
+          ),
+          error_on_status = FALSE
+          )
+        }
+      )
     }
     in_wsl <- function(f) suppressWarnings(system2("wsl", c(user, "test", "-s", f))) == 0
     rs <- run(args)
@@ -402,20 +462,24 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
     }
   }
   if (!file.exists(sol_file)) {
-    stop("cuOpt (", if (wsl) "WSL" else "local", ") wrote no solution (exit ", rs, "). ",
-         "Check that `", if (wsl) paste(c("wsl", user), collapse = " ") else "", " ", exe,
-         if (py) " -c 'import cuopt'" else " --version", "` runs and that the GPU is visible (`nvidia-smi`). Set ",
-         if (py) "control$cuopt_python" else "control$cuopt_cli", if (wsl) " / control$wsl_user" else "",
-         if (py) " or MULTIMOD_CUOPT_PYTHON" else " or MULTIMOD_CUOPT_CLI", if (wsl) " / MULTIMOD_WSL_USER" else "",
-         " where cuOpt is not on the PATH.")
+    stop(
+      "cuOpt (", if (wsl) "WSL" else "local", ") wrote no solution (exit ", rs, "). ",
+      "Check that `", if (wsl) paste(c("wsl", user), collapse = " ") else "", " ", exe,
+      if (py) " -c 'import cuopt'" else " --version", "` runs and that the GPU is visible (`nvidia-smi`). Set ",
+      if (py) "control$cuopt_python" else "control$cuopt_cli", if (wsl) " / control$wsl_user" else "",
+      if (py) " or MULTIMOD_CUOPT_PYTHON" else " or MULTIMOD_CUOPT_CLI", if (wsl) " / MULTIMOD_WSL_USER" else "",
+      " where cuOpt is not on the PATH."
+    )
   }
   if (isTRUE(control$save_warm_start) && !file.exists(warm_file)) {
     warning("cuOpt: no warm-start data was saved (see the solver log).")
   }
   h <- .cuopt_sol_header(sol_file)
   .check_cuopt_status(h, require_optimal, if (wsl) "WSL" else "local")
-  list(status_message = h$status, objective = h$objective, sol_file = sol_file,
-       run_time = as.numeric(difftime(Sys.time(), t0, units = "secs")))
+  list(
+    status_message = h$status, objective = h$objective, sol_file = sol_file,
+    run_time = as.numeric(difftime(Sys.time(), t0, units = "secs"))
+  )
 }
 
 # cuOpt's Python interface as a script: reads the matrix, applies the
@@ -424,7 +488,8 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
 # `# Objective value:`, then one `name value` line per column) whatever the
 # status, plus the warm-start data when asked.
 .cuopt_py_source <- function() {
-  c("import sys, json, pickle",
+  c(
+    "import sys, json, pickle",
     "import cuopt.linear_programming as lp",
     "mps, sol_out, params, warm_in, warm_out = sys.argv[1:6]",
     "warm_in, warm_out = ['' if w == '-' else w for w in (warm_in, warm_out)]",
@@ -454,7 +519,8 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
     "            pickle.dump(sol.get_pdlp_warm_start_data(), fh)",
     "    except Exception as e:",
     "        print('WARM_START_NOT_SAVED: %s' % e)",
-    "print('PY_STATUS: %s %.17g' % (reason, obj))")
+    "print('PY_STATUS: %s %.17g' % (reason, obj))"
+  )
 }
 
 # The cuOpt parameters of a Python-interface run, from the same control

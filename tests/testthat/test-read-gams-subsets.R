@@ -70,8 +70,10 @@ test_that("as_multimod resolves a subset by how it is used", {
 })
 
 test_that("detect_symbol_type picks set or mapping from the use", {
-  symbols <- list(sets = c("comm", "dem"), mappings = c("dem", "mFlag"),
-                  parameters = character(), variables = character())
+  symbols <- list(
+    sets = c("comm", "dem"), mappings = c("dem", "mFlag"),
+    parameters = character(), variables = character()
+  )
 
   # bare -> set, indexed -> mapping, for a name in both lists
   expect_equal(detect_symbol_type("dem", symbols, indexed = FALSE), "set")

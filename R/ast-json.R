@@ -64,13 +64,17 @@
 .attr_to_json <- function(v, skip = character()) {
   a <- attributes(v)
   a <- a[setdiff(names(a), skip)]
-  if (!length(a)) return(NULL)
+  if (!length(a)) {
+    return(NULL)
+  }
   lapply(a, .any_to_json)
 }
 
 .attr_from_json <- function(out, j) {
   a <- j[["$a"]]
-  if (is.null(a)) return(out)
+  if (is.null(a)) {
+    return(out)
+  }
   # class last: setting it first can change how later attributes are assigned
   for (nm in setdiff(names(a), "class")) attr(out, nm) <- .any_from_json(a[[nm]])
   if (!is.null(a[["class"]])) class(out) <- .any_from_json(a[["class"]])
@@ -78,25 +82,39 @@
 }
 
 .any_to_json <- function(v) {
-  if (is.null(v)) return(NULL)
-  if (is.data.frame(v)) return(c(list(`$t` = "data.frame"), .table_to_json(v)))
-  if (is.list(v)) {
-    return(list(`$t` = "list",
-                `$n` = if (is.null(names(v))) NULL else as.list(names(v)),
-                `$v` = unname(lapply(v, .any_to_json)),
-                `$a` = .attr_to_json(v, skip = c("names"))))
+  if (is.null(v)) {
+    return(NULL)
   }
-  list(`$t` = typeof(v),
-       `$v` = if (length(v)) as.list(unclass(unname(v))) else list(),
-       `$a` = .attr_to_json(v))
+  if (is.data.frame(v)) {
+    return(c(list(`$t` = "data.frame"), .table_to_json(v)))
+  }
+  if (is.list(v)) {
+    return(list(
+      `$t` = "list",
+      `$n` = if (is.null(names(v))) NULL else as.list(names(v)),
+      `$v` = unname(lapply(v, .any_to_json)),
+      `$a` = .attr_to_json(v, skip = c("names"))
+    ))
+  }
+  list(
+    `$t` = typeof(v),
+    `$v` = if (length(v)) as.list(unclass(unname(v))) else list(),
+    `$a` = .attr_to_json(v)
+  )
 }
 
 .any_from_json <- function(j) {
-  if (is.null(j)) return(NULL)
+  if (is.null(j)) {
+    return(NULL)
+  }
   t <- j[["$t"]]
-  if (is.null(t)) return(j)                       # untagged: hand back as-is
+  if (is.null(t)) {
+    return(j)
+  } # untagged: hand back as-is
   t <- as.character(t)[1]
-  if (identical(t, "data.frame")) return(.table_from_json(j))
+  if (identical(t, "data.frame")) {
+    return(.table_from_json(j))
+  }
   if (identical(t, "list")) {
     out <- lapply(j[["$v"]], .any_from_json)
     nm <- j[["$n"]]
@@ -105,7 +123,9 @@
   }
   v <- j[["$v"]]
   # an empty JSON array is a zero-length vector of the recorded type
-  if (is.null(v) || !length(v)) return(.attr_from_json(vector(t, 0L), j))
+  if (is.null(v) || !length(v)) {
+    return(.attr_from_json(vector(t, 0L), j))
+  }
   # NULLs inside an atomic vector are JSON nulls standing in for NA
   v <- lapply(v, function(e) if (is.null(e)) NA else e)
   out <- unlist(v, use.names = FALSE)
@@ -124,12 +144,15 @@
     # `row.names` is recorded only when it is not the default 1:n. Tables
     # carved out of a larger one keep their original numbering (8, 9, 10, ...)
     # and dropping it makes the round trip merely equivalent, not identical().
-    `$rn`    = {
+    `$rn` = {
       rn <- attr(d, "row.names")
-      if (identical(rn, seq_len(nrow(d))) || identical(rn, as.integer(seq_len(nrow(d))))) NULL
-      else as.list(rn)
+      if (identical(rn, seq_len(nrow(d))) || identical(rn, as.integer(seq_len(nrow(d))))) {
+        NULL
+      } else {
+        as.list(rn)
+      }
     },
-    `$cols`  = lapply(as.list(d), function(c1) {
+    `$cols` = lapply(as.list(d), function(c1) {
       c1 <- if (is.factor(c1)) as.character(c1) else c1
       lapply(seq_along(c1), function(i) if (is.na(c1[i])) NULL else c1[i])
     })
@@ -144,12 +167,13 @@
     v <- unlist(v, use.names = FALSE)
     if (is.null(v)) v <- logical(0)
     switch(types[[nm]],
-           character = as.character(v),
-           integer   = as.integer(v),
-           numeric   = as.numeric(v),
-           double    = as.numeric(v),
-           logical   = as.logical(v),
-           v)
+      character = as.character(v),
+      integer   = as.integer(v),
+      numeric   = as.numeric(v),
+      double    = as.numeric(v),
+      logical   = as.logical(v),
+      v
+    )
   })
   names(out) <- names(cols)
   n <- if (length(out)) length(out[[1]]) else 0L
@@ -168,33 +192,43 @@
 # --- one value, by its declared schema type ---------------------------------
 
 .value_to_json <- function(v, type, data_mode) {
-  if (is.null(v)) return(NULL)
+  if (is.null(v)) {
+    return(NULL)
+  }
   switch(type,
-    node          = .node_to_json(v, data_mode),
-    node_list     = unname(lapply(v, .node_to_json, data_mode = data_mode)),
-    node_or_list  = if (inherits(v, "ast")) .node_to_json(v, data_mode)
-                    else unname(lapply(v, .node_to_json, data_mode = data_mode)),
-    table         = if (identical(data_mode, "inline")) .table_to_json(v) else NULL,
+    node = .node_to_json(v, data_mode),
+    node_list = unname(lapply(v, .node_to_json, data_mode = data_mode)),
+    node_or_list = if (inherits(v, "ast")) {
+      .node_to_json(v, data_mode)
+    } else {
+      unname(lapply(v, .node_to_json, data_mode = data_mode))
+    },
+    table = if (identical(data_mode, "inline")) .table_to_json(v) else NULL,
     string_vector = if (identical(data_mode, "inline")) as.list(v) else NULL,
-    any           = .any_to_json(v),
-    v                                            # scalars pass through
+    any = .any_to_json(v),
+    v # scalars pass through
   )
 }
 
 .value_from_json <- function(j, type) {
-  if (is.null(j)) return(NULL)
+  if (is.null(j)) {
+    return(NULL)
+  }
   switch(type,
-    node          = .node_from_json(j),
-    node_list     = lapply(j, .node_from_json),
-    node_or_list  = if (!is.null(j$node)) .node_from_json(j)
-                    else lapply(j, .node_from_json),
-    table         = .table_from_json(j),
+    node = .node_from_json(j),
+    node_list = lapply(j, .node_from_json),
+    node_or_list = if (!is.null(j$node)) {
+      .node_from_json(j)
+    } else {
+      lapply(j, .node_from_json)
+    },
+    table = .table_from_json(j),
     string_vector = as.character(unlist(j, use.names = FALSE)),
-    any           = .any_from_json(j),
-    string        = as.character(unlist(j, use.names = FALSE)),
-    number        = as.numeric(unlist(j, use.names = FALSE)),
-    integer       = as.integer(unlist(j, use.names = FALSE)),
-    logical       = as.logical(unlist(j, use.names = FALSE)),
+    any = .any_from_json(j),
+    string = as.character(unlist(j, use.names = FALSE)),
+    number = as.numeric(unlist(j, use.names = FALSE)),
+    integer = as.integer(unlist(j, use.names = FALSE)),
+    logical = as.logical(unlist(j, use.names = FALSE)),
     unlist(j, use.names = FALSE)
   )
 }
@@ -205,14 +239,19 @@
   ty <- schema_type(x)
   if (is.na(ty)) {
     stop("ast_to_json: no schema entry for a node of class ",
-         paste(class(x), collapse = "/"),
-         ". Add it to R/ast-schema.R.", call. = FALSE)
+      paste(class(x), collapse = "/"),
+      ". Add it to R/ast-schema.R.",
+      call. = FALSE
+    )
   }
   sp <- .mm_schema_nodes[[ty]]
   if (isTRUE(sp$unnamed)) {
-    return(list(node = ty,
-                items = unname(lapply(unclass(x), .node_to_json,
-                                      data_mode = data_mode))))
+    return(list(
+      node = ty,
+      items = unname(lapply(unclass(x), .node_to_json,
+        data_mode = data_mode
+      ))
+    ))
   }
   out <- list(node = ty)
   # the node's OWN field order, so the round trip is identical()
@@ -220,7 +259,9 @@
     spec <- sp$fields[[fn]]
     if (is.null(spec)) {
       stop("ast_to_json: node type '", ty, "' has an undeclared field '", fn,
-           "'. Add it to R/ast-schema.R.", call. = FALSE)
+        "'. Add it to R/ast-schema.R.",
+        call. = FALSE
+      )
     }
     v <- .value_to_json(x[[fn]], spec$type, data_mode)
     # present-but-NULL must survive as JSON null, not vanish
@@ -241,11 +282,14 @@
   sp <- .mm_schema_nodes[[ty]]
   if (is.null(sp)) {
     stop("ast_from_json: unknown node type '", ty, "'. Known types: ",
-         paste(schema_node_types(), collapse = ", "), call. = FALSE)
+      paste(schema_node_types(), collapse = ", "),
+      call. = FALSE
+    )
   }
   if (isTRUE(sp$unnamed)) {
     return(structure(lapply(j$items, .node_from_json),
-                     class = .s3_class_for(ty)))
+      class = .s3_class_for(ty)
+    ))
   }
   flds <- list()
   for (fn in setdiff(names(j), "node")) {
@@ -324,36 +368,48 @@ model_to_json <- function(model, path = NULL, data = c("omit", "inline"),
   unknown <- setdiff(names(model), names(.mm_schema_model$fields))
   if (length(unknown)) {
     stop("model_to_json: the model has slot(s) the schema does not declare: ",
-         paste(unknown, collapse = ", "),
-         ".\n  Dropping them would silently change the model. Add them to ",
-         ".mm_schema_model in R/ast-schema.R.", call. = FALSE)
+      paste(unknown, collapse = ", "),
+      ".\n  Dropping them would silently change the model. Add them to ",
+      ".mm_schema_model in R/ast-schema.R.",
+      call. = FALSE
+    )
   }
-  out <- list(multimod_schema = .mm_schema_version,
-              node = "model",
-              data_inlined = identical(data, "inline"))
+  out <- list(
+    multimod_schema = .mm_schema_version,
+    node = "model",
+    data_inlined = identical(data, "inline")
+  )
   # the model's own slot order, so a round trip preserves it
   for (fn in names(model)) {
     spec <- .mm_schema_model$fields[[fn]]
     v <- model[[fn]]
-    if (is.null(v)) { out[fn] <- list(NULL); next }
+    if (is.null(v)) {
+      out[fn] <- list(NULL)
+      next
+    }
     out[[fn]] <- switch(spec$type,
       decl_list = {
         lst <- lapply(v, .node_to_json, data_mode = data)
         names(lst) <- names(v)
         lst
       },
-      any    = .any_to_json(v),
+      any = .any_to_json(v),
       string = v,
-      v)
+      v
+    )
   }
   # 17 SIGNIFICANT digits is the IEEE 754 guarantee that a double survives the
   # text round trip exactly. jsonlite's `digits = NA` ("max precision") goes
   # through as.character() and loses ~3e-15 relative - enough to make
   # coefficients differ in the last bits, which is the kind of drift that is
   # invisible until two backends disagree.
-  js <- jsonlite::toJSON(out, auto_unbox = TRUE, null = "null",
-                         digits = I(17), pretty = pretty)
-  if (is.null(path)) return(as.character(js))
+  js <- jsonlite::toJSON(out,
+    auto_unbox = TRUE, null = "null",
+    digits = I(17), pretty = pretty
+  )
+  if (is.null(path)) {
+    return(as.character(js))
+  }
   writeLines(as.character(js), path)
   invisible(as.character(js))
 }
@@ -376,29 +432,36 @@ model_from_json <- function(json) {
   v <- j$multimod_schema
   if (is.null(v)) {
     stop("model_from_json: not a multimod document (no 'multimod_schema').",
-         call. = FALSE)
+      call. = FALSE
+    )
   }
   if (!identical(as.character(v)[1], .mm_schema_version)) {
-    warning("model_from_json: document schema ", as.character(v)[1],
-            " but this multimod speaks ", .mm_schema_version, ".")
+    warning(
+      "model_from_json: document schema ", as.character(v)[1],
+      " but this multimod speaks ", .mm_schema_version, "."
+    )
   }
   out <- list()
   meta <- c("multimod_schema", "node", "data_inlined")
   for (fn in setdiff(names(j), meta)) {
     spec <- .mm_schema_model$fields[[fn]]
     if (is.null(spec)) next
-    if (is.null(j[[fn]])) { out[fn] <- list(NULL); next }
+    if (is.null(j[[fn]])) {
+      out[fn] <- list(NULL)
+      next
+    }
     out[[fn]] <- switch(spec$type,
       decl_list = {
         lst <- lapply(j[[fn]], .node_from_json)
         names(lst) <- names(j[[fn]])
         lst
       },
-      any     = .any_from_json(j[[fn]]),
-      string  = as.character(unlist(j[[fn]], use.names = FALSE)),
+      any = .any_from_json(j[[fn]]),
+      string = as.character(unlist(j[[fn]], use.names = FALSE)),
       logical = as.logical(unlist(j[[fn]], use.names = FALSE)),
-      number  = as.numeric(unlist(j[[fn]], use.names = FALSE)),
-      j[[fn]])
+      number = as.numeric(unlist(j[[fn]], use.names = FALSE)),
+      j[[fn]]
+    )
   }
   structure(out, class = c("mm_model", "multimod"))
 }
@@ -417,20 +480,26 @@ model_from_json <- function(json) {
 #' schema <- ast_json_schema()
 #' cat(substr(schema, 1, 300))
 ast_json_schema <- function(path = NULL) {
-  jtype <- function(t) switch(t,
-    string        = list(type = "string"),
-    number        = list(type = "number"),
-    integer       = list(type = "integer"),
-    logical       = list(type = "boolean"),
-    string_vector = list(type = "array", items = list(type = "string")),
-    node          = list(`$ref` = "#/$defs/node"),
-    node_list     = list(type = "array", items = list(`$ref` = "#/$defs/node")),
-    node_or_list  = list(anyOf = list(list(`$ref` = "#/$defs/node"),
-                                      list(type = "array",
-                                           items = list(`$ref` = "#/$defs/node")))),
-    table         = list(`$ref` = "#/$defs/table"),
-    list()                                   # "any": unconstrained
-  )
+  jtype <- function(t) {
+    switch(t,
+      string = list(type = "string"),
+      number = list(type = "number"),
+      integer = list(type = "integer"),
+      logical = list(type = "boolean"),
+      string_vector = list(type = "array", items = list(type = "string")),
+      node = list(`$ref` = "#/$defs/node"),
+      node_list = list(type = "array", items = list(`$ref` = "#/$defs/node")),
+      node_or_list = list(anyOf = list(
+        list(`$ref` = "#/$defs/node"),
+        list(
+          type = "array",
+          items = list(`$ref` = "#/$defs/node")
+        )
+      )),
+      table = list(`$ref` = "#/$defs/table"),
+      list() # "any": unconstrained
+    )
+  }
   defs <- list()
   for (ty in names(.mm_schema_nodes)) {
     sp <- .mm_schema_nodes[[ty]]
@@ -440,19 +509,27 @@ ast_json_schema <- function(path = NULL) {
       props[[fn]] <- jtype(sp$fields[[fn]]$type)
       if (isTRUE(sp$fields[[fn]]$required)) req <- c(req, fn)
     }
-    defs[[ty]] <- list(type = "object", properties = props,
-                       required = as.list(req))
+    defs[[ty]] <- list(
+      type = "object", properties = props,
+      required = as.list(req)
+    )
   }
-  defs$table <- list(type = "object", description =
-    "A tabular payload: $class, $types and $cols. Bulk data normally lives in the Parquet store instead.")
-  defs$node <- list(oneOf = unname(lapply(names(.mm_schema_nodes),
-                                          function(t) list(`$ref` = paste0("#/$defs/", t)))))
+  defs$table <- list(
+    type = "object", description =
+      "A tabular payload: $class, $types and $cols. Bulk data normally lives in the Parquet store instead."
+  )
+  defs$node <- list(oneOf = unname(lapply(
+    names(.mm_schema_nodes),
+    function(t) list(`$ref` = paste0("#/$defs/", t))
+  )))
   schema <- list(
     `$schema` = "https://json-schema.org/draft/2020-12/schema",
     `$id` = paste0("https://multimod.dev/schema/ast-v", .mm_schema_version, ".json"),
     title = "multimod model",
-    description = paste("Abstract syntax tree of a multimod optimization model.",
-                        "Generated from ast_schema(); do not edit by hand."),
+    description = paste(
+      "Abstract syntax tree of a multimod optimization model.",
+      "Generated from ast_schema(); do not edit by hand."
+    ),
     type = "object",
     properties = list(
       multimod_schema = list(type = "string", const = .mm_schema_version),
@@ -468,8 +545,10 @@ ast_json_schema <- function(path = NULL) {
     required = list("multimod_schema"),
     `$defs` = defs
   )
-  js <- as.character(jsonlite::toJSON(schema, auto_unbox = TRUE, pretty = TRUE,
-                                      null = "null"))
+  js <- as.character(jsonlite::toJSON(schema,
+    auto_unbox = TRUE, pretty = TRUE,
+    null = "null"
+  ))
   if (!is.null(path)) writeLines(js, path)
   js
 }

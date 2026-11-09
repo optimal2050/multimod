@@ -28,14 +28,17 @@
 perf <- function(label, expr) {
   gc(reset = TRUE, full = TRUE)
   t0 <- proc.time()[["elapsed"]]
-  on.exit({
-    el <- proc.time()[["elapsed"]] - t0
-    g <- gc(full = FALSE)
-    # gc() columns 6:7 are "max used" for cells (Ncells) and vectors (Vcells),
-    # already in MB.
-    peak_mb <- sum(g[, 6], na.rm = TRUE)
-    .perf_record(label, el, peak_mb)
-  }, add = TRUE)
+  on.exit(
+    {
+      el <- proc.time()[["elapsed"]] - t0
+      g <- gc(full = FALSE)
+      # gc() columns 6:7 are "max used" for cells (Ncells) and vectors (Vcells),
+      # already in MB.
+      peak_mb <- sum(g[, 6], na.rm = TRUE)
+      .perf_record(label, el, peak_mb)
+    },
+    add = TRUE
+  )
   force(expr)
 }
 
@@ -51,8 +54,10 @@ perf <- function(label, expr) {
 
   f <- Sys.getenv("MULTIMOD_PERF_LOG", unset = "")
   if (nzchar(f)) {
-    utils::write.table(row, f, sep = ",", row.names = FALSE,
-                       col.names = !file.exists(f), append = file.exists(f))
+    utils::write.table(row, f,
+      sep = ",", row.names = FALSE,
+      col.names = !file.exists(f), append = file.exists(f)
+    )
   }
   invisible(row)
 }
@@ -61,7 +66,9 @@ perf <- function(label, expr) {
 .perf_current_file <- function() {
   for (i in seq_len(sys.nframe())) {
     f <- tryCatch(sys.frame(i)$test_path, error = function(e) NULL)
-    if (!is.null(f)) return(basename(f))
+    if (!is.null(f)) {
+      return(basename(f))
+    }
   }
   Sys.getenv("MULTIMOD_PERF_FILE", unset = NA_character_)
 }
@@ -69,8 +76,10 @@ perf <- function(label, expr) {
 #' Everything measured so far, slowest first
 perf_summary <- function() {
   if (!length(.perf_env$rows)) {
-    return(data.frame(file = character(), label = character(),
-                      seconds = numeric(), peak_mb = numeric()))
+    return(data.frame(
+      file = character(), label = character(),
+      seconds = numeric(), peak_mb = numeric()
+    ))
   }
   d <- do.call(rbind, .perf_env$rows)
   d[order(-d$seconds), , drop = FALSE]
@@ -86,20 +95,29 @@ perf_summary <- function() {
 
 .tool_available <- function(cmd, args = "--version", timeout = 20) {
   path <- Sys.which(cmd)
-  if (!nzchar(path)) return(FALSE)
-  ok <- tryCatch({
-    out <- suppressWarnings(system2(path, args, stdout = TRUE, stderr = TRUE,
-                                    timeout = timeout))
-    st <- attr(out, "status")
-    is.null(st) || identical(as.integer(st), 0L)
-  }, error = function(e) FALSE)
+  if (!nzchar(path)) {
+    return(FALSE)
+  }
+  ok <- tryCatch(
+    {
+      out <- suppressWarnings(system2(path, args,
+        stdout = TRUE, stderr = TRUE,
+        timeout = timeout
+      ))
+      st <- attr(out, "status")
+      is.null(st) || identical(as.integer(st), 0L)
+    },
+    error = function(e) FALSE
+  )
   isTRUE(ok)
 }
 
 skip_without_tool <- function(cmd, args = "--version") {
-  testthat::skip_if(!.tool_available(cmd, args),
-                    paste0("`", cmd, "` not available (or not responding)"))
+  testthat::skip_if(
+    !.tool_available(cmd, args),
+    paste0("`", cmd, "` not available (or not responding)")
+  )
 }
 
 skip_without_glpsol <- function() skip_without_tool("glpsol", "--version")
-skip_without_julia  <- function() skip_without_tool("julia", "--version")
+skip_without_julia <- function() skip_without_tool("julia", "--version")

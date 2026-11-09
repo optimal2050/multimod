@@ -51,6 +51,8 @@ a variable object
 Create a multimod variable
 }
 \examples{
-new_variable("vGen", desc = "generation, MWh", dims = c("tech", "region"),
-             domain = "mTR", vtype = "positive", bounds = list(lo = 0))
+new_variable("vGen",
+  desc = "generation, MWh", dims = c("tech", "region"),
+  domain = "mTR", vtype = "positive", bounds = list(lo = 0)
+)
 }

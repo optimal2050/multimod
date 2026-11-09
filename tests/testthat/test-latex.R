@@ -37,7 +37,7 @@
 # =============================================================================
 
 test_that("write_latex generates valid LaTeX for basic model", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   # Load test model
   data(example_models, package = "multimod")
   demo_model <- example_models$energyRt$multimod
@@ -55,7 +55,7 @@ test_that("write_latex generates valid LaTeX for basic model", {
 })
 
 test_that("write_latex handles model_view modes correctly", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   demo_model <- example_models$energyRt$multimod
 
@@ -77,24 +77,28 @@ test_that("write_latex handles model_view modes correctly", {
 })
 
 test_that("write_latex includes data correctly", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   demo_model <- example_models$energyRt$multimod
 
   # With data (brief)
-  tex_data <- write_latex(demo_model, file = NULL,
-                         include_data = TRUE, data_detail = "brief")
+  tex_data <- write_latex(demo_model,
+    file = NULL,
+    include_data = TRUE, data_detail = "brief"
+  )
   expect_true(grepl("elements", tex_data))
   expect_true(grepl("rows", tex_data))
 
   # Without data
-  tex_no_data <- write_latex(demo_model, file = NULL,
-                            include_data = FALSE)
+  tex_no_data <- write_latex(demo_model,
+    file = NULL,
+    include_data = FALSE
+  )
   expect_true(nchar(tex_no_data) < nchar(tex_data))
 })
 
 test_that("write_latex escapes underscores in set elements", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   demo_model <- example_models$energyRt$multimod
 
@@ -108,16 +112,17 @@ test_that("write_latex escapes underscores in set elements", {
 })
 
 test_that("write_latex applies index aliases correctly", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   demo_model <- example_models$energyRt$multimod
 
   # Check if model has index_aliases
   if (!is.null(demo_model$index_aliases) &&
-      length(demo_model$index_aliases) > 0) {
-
-    tex <- write_latex(demo_model, file = NULL,
-                      use_model_aliases = TRUE)
+    length(demo_model$index_aliases) > 0) {
+    tex <- write_latex(demo_model,
+      file = NULL,
+      use_model_aliases = TRUE
+    )
 
     # Check that aliases appear
     first_alias <- names(demo_model$index_aliases)[1]
@@ -129,7 +134,7 @@ test_that("write_latex applies index aliases correctly", {
 })
 
 test_that("write_latex shows folded annotations", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   demo_model <- example_models$energyRt$multimod
 
@@ -153,7 +158,7 @@ test_that("write_latex shows folded annotations", {
 })
 
 test_that("write_latex includes optimization summary", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   demo_model <- example_models$energyRt$multimod
 
@@ -177,7 +182,7 @@ test_that("write_latex includes optimization summary", {
 })
 
 test_that("write_latex includes table of contents when requested", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   demo_model <- example_models$energyRt$multimod
 
@@ -192,7 +197,7 @@ test_that("write_latex includes table of contents when requested", {
 })
 
 test_that("write_latex includes mappings section by default", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   demo_model <- example_models$energyRt$multimod
 
@@ -206,27 +211,31 @@ test_that("write_latex includes mappings section by default", {
 })
 
 test_that("write_latex handles section visibility flags", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   demo_model <- example_models$energyRt$multimod
 
   # All sections enabled
-  tex_all <- write_latex(demo_model, file = NULL,
-                        include_sets = TRUE,
-                        include_parameters = TRUE,
-                        include_variables = TRUE,
-                        include_equations = TRUE)
+  tex_all <- write_latex(demo_model,
+    file = NULL,
+    include_sets = TRUE,
+    include_parameters = TRUE,
+    include_variables = TRUE,
+    include_equations = TRUE
+  )
   expect_true(grepl("section\\{Sets\\}", tex_all))
   expect_true(grepl("section\\{Parameters\\}", tex_all))
   expect_true(grepl("section\\{Variables\\}", tex_all))
   expect_true(grepl("section\\{Equations\\}", tex_all))
 
   # Only equations
-  tex_eq_only <- write_latex(demo_model, file = NULL,
-                            include_sets = FALSE,
-                            include_parameters = FALSE,
-                            include_variables = FALSE,
-                            include_equations = TRUE)
+  tex_eq_only <- write_latex(demo_model,
+    file = NULL,
+    include_sets = FALSE,
+    include_parameters = FALSE,
+    include_variables = FALSE,
+    include_equations = TRUE
+  )
   expect_false(grepl("section\\{Sets\\}", tex_eq_only))
   expect_false(grepl("section\\{Parameters\\}", tex_eq_only))
   expect_false(grepl("section\\{Variables\\}", tex_eq_only))
@@ -259,7 +268,7 @@ test_that("split_at_top_level_operators does not split in scientific notation", 
 })
 
 test_that("write_latex handles use_folded parameter correctly", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   demo_model <- example_models$energyRt$multimod
 
@@ -281,7 +290,7 @@ test_that("write_latex handles use_folded parameter correctly", {
 })
 
 test_that("as_latex handles parameter objects", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   demo_model <- example_models$energyRt$multimod
 
@@ -294,7 +303,7 @@ test_that("as_latex handles parameter objects", {
 })
 
 test_that("as_latex handles variable objects", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   demo_model <- example_models$energyRt$multimod
 
@@ -307,7 +316,7 @@ test_that("as_latex handles variable objects", {
 })
 
 test_that("as_latex handles equation objects", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   demo_model <- example_models$energyRt$multimod
 
@@ -341,46 +350,56 @@ test_that("write_latex generates compilable LaTeX", {
   # --disable-installer turns that wait into an error. It is MiKTeX-only, so it
   # is passed only when MiKTeX is what we found; TeX Live rejects unknown flags.
   is_miktex <- grepl("miktex", Sys.which("pdflatex"), ignore.case = TRUE)
-  args <- c("-interaction=nonstopmode", "-halt-on-error",
-            if (is_miktex) "--disable-installer",
-            "-output-directory", dirname(temp_tex), temp_tex)
+  args <- c(
+    "-interaction=nonstopmode", "-halt-on-error",
+    if (is_miktex) "--disable-installer",
+    "-output-directory", dirname(temp_tex), temp_tex
+  )
 
   # And a timeout regardless, so no future engine quirk can hang the suite.
   status <- tryCatch(
-    system2("pdflatex", args = args, stdout = FALSE, stderr = FALSE,
-            timeout = 120),
+    system2("pdflatex",
+      args = args, stdout = FALSE, stderr = FALSE,
+      timeout = 120
+    ),
     error = function(e) NA_integer_
   )
   on.exit(unlink(c(temp_tex, temp_pdf)), add = TRUE)
 
   # A timeout is environmental, never a statement about the generated LaTeX,
   # so it must not be reported as a failure of write_latex().
-  skip_if(is.na(status) || identical(as.integer(status), 124L),
-          "pdflatex timed out (missing TeX packages?)")
+  skip_if(
+    is.na(status) || identical(as.integer(status), 124L),
+    "pdflatex timed out (missing TeX packages?)"
+  )
 
   expect_true(file.exists(temp_pdf))
 })
 
 test_that("write_latex handles trimmed color parameter", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   demo_model <- example_models$energyRt$multimod
 
   model_trimmed <- trim_model(demo_model)
 
   # Default blue
-  tex_blue <- write_latex(model_trimmed, file = NULL,
-                         model_view = "full", trimmed_color = "blue")
+  tex_blue <- write_latex(model_trimmed,
+    file = NULL,
+    model_view = "full", trimmed_color = "blue"
+  )
   expect_true(grepl("textcolor\\{blue\\}", tex_blue))
 
   # Custom red
-  tex_red <- write_latex(model_trimmed, file = NULL,
-                        model_view = "full", trimmed_color = "red")
+  tex_red <- write_latex(model_trimmed,
+    file = NULL,
+    model_view = "full", trimmed_color = "red"
+  )
   expect_true(grepl("textcolor\\{red\\}", tex_red))
 })
 
 test_that("write_latex preserves model structure", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   demo_model <- example_models$energyRt$multimod
 
@@ -407,4 +426,3 @@ test_that("write_latex preserves model structure", {
     expect_true(vars_pos < eqs_pos)
   }
 })
-

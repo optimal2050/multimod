@@ -1,4 +1,3 @@
-
 #' @title Convert multimod object to GMPL/MathProg syntax
 #' @description Render a `multimod` object as a GMPL code string.
 #' @param x A `multimod` object.
@@ -14,7 +13,9 @@ as_gmpl <- function(x, ...) {
 
 #' @export
 as_gmpl.default <- function(x, ...) {
-  if (is.null(x)) return(x)
+  if (is.null(x)) {
+    return(x)
+  }
   if (length(x) == 1 && is.numeric(x)) {
     return(format(x, scientific = FALSE))
   } else if (length(x) == 1 && is.character(x)) {
@@ -49,7 +50,9 @@ ensure_dims_object <- function(dims_value) {
 }
 
 dim_binding_name <- function(entry) {
-  if (is.null(entry)) return("")
+  if (is.null(entry)) {
+    return("")
+  }
   if (inherits(entry, "shift") && !is.null(entry$symbol)) {
     return(as.character(entry$symbol)[1])
   }
@@ -137,7 +140,9 @@ as_gmpl.mm_mapping <- function(x, declaration = FALSE, desc = declaration, ...) 
 #' @export
 #' @method as_gmpl dims
 as_gmpl.dims <- function(x, use_index_aliases = TRUE, brackets = "[", ...) {
-  if (length(x) == 0) return("")
+  if (length(x) == 0) {
+    return("")
+  }
 
   # Check if we're in an equation context with dummy variables
   index_aliases <- if (use_index_aliases) getOption("multimod.index_aliases", NULL) else NULL
@@ -150,10 +155,12 @@ as_gmpl.dims <- function(x, use_index_aliases = TRUE, brackets = "[", ...) {
     if (inherits(d, "shift")) {
       return(as_gmpl(d, ...))
     }
-    
+
     set_name <- dim_binding_name(d)
     # Priority: iterator vars > dummy vars > original name
-    a <- try({(!is.null(iter_vars) && set_name %in% names(iter_vars))})
+    a <- try({
+      (!is.null(iter_vars) && set_name %in% names(iter_vars))
+    })
     if (inherits(a, "try-error")) .dev_break("as_gmpl.R:153")
     if (!is.null(iter_vars) && set_name %in% names(iter_vars)) {
       iter_vars[[set_name]]
@@ -166,7 +173,9 @@ as_gmpl.dims <- function(x, use_index_aliases = TRUE, brackets = "[", ...) {
 
   out <- paste(dim_names, collapse = ",")
 
-  if (is.null(brackets) || all(brackets == "")) return(out)
+  if (is.null(brackets) || all(brackets == "")) {
+    return(out)
+  }
   brackets <- brackets_pair(brackets)
   paste0(brackets[1], out, brackets[2])
 }
@@ -201,7 +210,7 @@ as_gmpl.mm_parameter <- function(x, declaration = FALSE, desc = declaration, ...
 
     # Check for computed parameter formula (stored as AST or ast_formula)
     formula_ast <- if (!is.null(x$formula) && inherits(x$formula, "ast_formula")) {
-      x$formula$expr  # Extract wrapped expression
+      x$formula$expr # Extract wrapped expression
     } else {
       x$formula
     }
@@ -250,50 +259,25 @@ as_gmpl.mm_parameter <- function(x, declaration = FALSE, desc = declaration, ...
     } else if (!is.null(x$defVal)) {
       # Handle ast_formula in defVal
       defval_ast <- if (inherits(x$defVal, "ast_formula")) {
-        x$defVal$expr  # Extract wrapped expression
+        x$defVal$expr # Extract wrapped expression
       } else {
         x$defVal
       }
 
       # Check if defVal has actual value (not NULL, not empty, not NA for scalars)
       has_defval <- !is.null(defval_ast) &&
-                    (inherits(defval_ast, "ast") ||
-                     (length(defval_ast) > 0 && !all(is.na(defval_ast))))
+        (inherits(defval_ast, "ast") ||
+          (length(defval_ast) > 0 && !all(is.na(defval_ast))))
 
       if (has_defval) {
-      # Parameter with default value: param Name{indexing}, [symbolic] default value;
-      # If default is an expression (AST or contains subscripts), need iterator variables
-      has_subscript <- inherits(defval_ast, "ast") ||
-                       (is.character(defval_ast) && grepl("\\[", defval_ast))
+        # Parameter with default value: param Name{indexing}, [symbolic] default value;
+        # If default is an expression (AST or contains subscripts), need iterator variables
+        has_subscript <- inherits(defval_ast, "ast") ||
+          (is.character(defval_ast) && grepl("\\[", defval_ast))
 
-      # Determine dims_str for this parameter
-      param_dims_str <- if (has_subscript && !is.null(dims_to_use) && length(dims_to_use) > 0) {
-        # Need iterator variables for expression defaults
-        dim_names <- sapply(dims_to_use, dim_binding_name)
-
-        # Use preserved iterator variables if available
-        if (!is.null(x$dims_index_aliases) && length(x$dims_index_aliases) == length(dim_names)) {
-          iter_vars <- x$dims_index_aliases
-        } else {
-          # Fallback: generate iterator variables
-          iter_vars <- sapply(dim_names, function(dname) {
-            tolower(substr(dname, 1, 1))
-          })
-          names(iter_vars) <- dim_names
-        }
-
-        # Create indexing string with iterator variables
-        index_specs <- paste(iter_vars, "in", names(iter_vars), collapse = ", ")
-        paste0("{", index_specs, "}")
-      } else {
-        dims_str  # Use plain dims_str without iterator variables
-      }
-
-      symbolic_str <- if (isTRUE(x$symbolic)) "symbolic " else ""
-      default_str <- if (inherits(defval_ast, "ast")) {
-        # AST expression - convert to GMPL
-        # Set up iterator variable context if needed
-        if (has_subscript && !is.null(dims_to_use) && length(dims_to_use) > 0) {
+        # Determine dims_str for this parameter
+        param_dims_str <- if (has_subscript && !is.null(dims_to_use) && length(dims_to_use) > 0) {
+          # Need iterator variables for expression defaults
           dim_names <- sapply(dims_to_use, dim_binding_name)
 
           # Use preserved iterator variables if available
@@ -307,32 +291,57 @@ as_gmpl.mm_parameter <- function(x, declaration = FALSE, desc = declaration, ...
             names(iter_vars) <- dim_names
           }
 
-          # Set up iterator variable context
-          old_iter_vars <- getOption("multimod.iterator_vars", list())
-          new_iter_vars <- old_iter_vars
-          for (i in seq_along(dim_names)) {
-            new_iter_vars[[dim_names[i]]] <- iter_vars[i]
-          }
-          options(multimod.iterator_vars = new_iter_vars)
-          on.exit(options(multimod.iterator_vars = old_iter_vars), add = TRUE)
+          # Create indexing string with iterator variables
+          index_specs <- paste(iter_vars, "in", names(iter_vars), collapse = ", ")
+          paste0("{", index_specs, "}")
+        } else {
+          dims_str # Use plain dims_str without iterator variables
         }
 
-        as_gmpl(defval_ast, ...)
-      } else if (is.character(defval_ast)) {
-        # Only quote if symbolic (string literal), otherwise it's an expression
-        if (isTRUE(x$symbolic)) {
-          paste0("'", defval_ast, "'")
+        symbolic_str <- if (isTRUE(x$symbolic)) "symbolic " else ""
+        default_str <- if (inherits(defval_ast, "ast")) {
+          # AST expression - convert to GMPL
+          # Set up iterator variable context if needed
+          if (has_subscript && !is.null(dims_to_use) && length(dims_to_use) > 0) {
+            dim_names <- sapply(dims_to_use, dim_binding_name)
+
+            # Use preserved iterator variables if available
+            if (!is.null(x$dims_index_aliases) && length(x$dims_index_aliases) == length(dim_names)) {
+              iter_vars <- x$dims_index_aliases
+            } else {
+              # Fallback: generate iterator variables
+              iter_vars <- sapply(dim_names, function(dname) {
+                tolower(substr(dname, 1, 1))
+              })
+              names(iter_vars) <- dim_names
+            }
+
+            # Set up iterator variable context
+            old_iter_vars <- getOption("multimod.iterator_vars", list())
+            new_iter_vars <- old_iter_vars
+            for (i in seq_along(dim_names)) {
+              new_iter_vars[[dim_names[i]]] <- iter_vars[i]
+            }
+            options(multimod.iterator_vars = new_iter_vars)
+            on.exit(options(multimod.iterator_vars = old_iter_vars), add = TRUE)
+          }
+
+          as_gmpl(defval_ast, ...)
+        } else if (is.character(defval_ast)) {
+          # Only quote if symbolic (string literal), otherwise it's an expression
+          if (isTRUE(x$symbolic)) {
+            paste0("'", defval_ast, "'")
+          } else {
+            defval_ast # Expression - no quotes
+          }
+        } else if (is.infinite(defval_ast)) {
+          # Replace Inf with configurable value
+          INF <- getOption("multimod.gmpl_inf", 1e20)
+          format(INF, scientific = FALSE)
         } else {
-          defval_ast  # Expression - no quotes
+          format(defval_ast, scientific = FALSE)
         }
-      } else if (is.infinite(defval_ast)) {
-        # Replace Inf with configurable value
-        INF <- getOption("multimod.gmpl_inf", 1e20)
-        format(INF, scientific = FALSE)
-      } else {
-        format(defval_ast, scientific = FALSE)
-      }
-      paste0("param ", x$name, param_dims_str, ", ", symbolic_str, "default ", default_str, ";", comment)
+        paste0("param ", x$name, param_dims_str, ", ", symbolic_str, "default ", default_str, ";", comment)
       } else {
         # Simple parameter declaration (no default value)
         paste0("param ", x$name, dims_str, ";", comment)
@@ -430,7 +439,7 @@ as_gmpl.mm_variable <- function(x, declaration = FALSE, desc = declaration, ...)
       if (length(parts) > 0) {
         paste0(" ", paste(parts, collapse = ", "))
       } else {
-        ""  # Free variable (no bounds written)
+        "" # Free variable (no bounds written)
       }
     } else if (!is.null(x$vtype)) {
       # Use vtype from GAMS variable declaration
@@ -441,7 +450,7 @@ as_gmpl.mm_variable <- function(x, declaration = FALSE, desc = declaration, ...)
       } else if (vtype == "binary") {
         " >= 0, <= 1"
       } else {
-        ""  # Free variable (no bounds)
+        "" # Free variable (no bounds)
       }
     } else if (!is.null(x$domain)) {
       # Fallback: Use domain type from GAMS variable declaration
@@ -450,10 +459,10 @@ as_gmpl.mm_variable <- function(x, declaration = FALSE, desc = declaration, ...)
       if (domain == "positive") {
         " >= 0"
       } else {
-        ""  # Free variable (no bounds)
+        "" # Free variable (no bounds)
       }
     } else {
-      ""  # Free variable by default (no bounds)
+      "" # Free variable by default (no bounds)
     }
     comment <- if (desc && !is.null(x$desc) && length(x$desc) > 0 && !is.na(x$desc) && nchar(x$desc) > 0) {
       paste0("  # ", x$desc)
@@ -606,7 +615,7 @@ as_gmpl.prod <- function(x, ...) {
     val <- paste0("(", val, ")")
   }
 
-  paste0("prod{", idx, "}(", val,")")
+  paste0("prod{", idx, "}(", val, ")")
 }
 
 #' @export
@@ -710,9 +719,9 @@ as_gmpl.func <- function(x, ...) {
 
   if (!is.null(x$index)) {
     idx <- as_gmpl(x$index, ...)
-    return(paste0(x$name, "(", idx, ", ", val_str, ")"))
+    paste0(x$name, "(", idx, ", ", val_str, ")")
   } else {
-    return(paste0(x$name, "(", val_str, ")"))
+    paste0(x$name, "(", val_str, ")")
   }
 }
 
@@ -760,7 +769,7 @@ as_gmpl_ord_card <- function(x, model = NULL, ...) {
   pname <- paste0(fname, toupper(substring(base, 1, 1)), substring(base, 2))
 
   if (!is.null(model) && !is.null(model$parameters) &&
-      !pname %in% names(model$parameters)) {
+    !pname %in% names(model$parameters)) {
     stop(
       "GMPL has no '", fname, "()' function, so ", fname, "(", set_name,
       ") needs a position parameter '", pname, "' declared over set '", base,
@@ -805,7 +814,7 @@ as_gmpl_sum_prod <- function(x, ...) {
     # that iterator. .gmpl_sum_index() names them and binds them for the body.
     idx_dims <- if (inherits(x$index, "dims")) x$index else ast_dims(x$index)
     if (length(idx_dims) > 0 &&
-        all(vapply(idx_dims, function(d) inherits(d, c("mm_set", "symbol")), logical(1)))) {
+      all(vapply(idx_dims, function(d) inherits(d, c("mm_set", "symbol")), logical(1)))) {
       idx <- .gmpl_sum_index(idx_dims)
     } else {
       idx <- as_gmpl(x$index, brackets = "{}", ...)
@@ -815,8 +824,8 @@ as_gmpl_sum_prod <- function(x, ...) {
   }
 
   idx_when <- x$index
-  iterator <- idx_when$then  # The set/symbol(s) being iterated (e.g., comm or [year, timeslice])
-  condition <- idx_when$condition  # The filter condition (e.g., mTechGroupComm[...])
+  iterator <- idx_when$then # The set/symbol(s) being iterated (e.g., comm or [year, timeslice])
+  condition <- idx_when$condition # The filter condition (e.g., mTechGroupComm[...])
 
   # Check if iterator is a tuple (dims object) or single symbol
   is_tuple <- inherits(iterator, "dims")
@@ -857,9 +866,9 @@ as_gmpl_sum_prod <- function(x, ...) {
 
       # Generate dummy var, avoiding ALL used names including equation-level index_aliases
       used_names <- c(
-        unlist(index_aliases, use.names = FALSE),  # Equation-level dummies
-        unlist(existing_iter_vars, use.names = FALSE),  # Other iterator dummies
-        iter_index_aliases[seq_len(i-1)]  # Already generated vars for this tuple
+        unlist(index_aliases, use.names = FALSE), # Equation-level dummies
+        unlist(existing_iter_vars, use.names = FALSE), # Other iterator dummies
+        iter_index_aliases[seq_len(i - 1)] # Already generated vars for this tuple
       )
 
       iter_index_aliases[i] <- generate_index_alias(
@@ -900,7 +909,6 @@ as_gmpl_sum_prod <- function(x, ...) {
     }
 
     return(result)
-
   } else {
     # Single iterator - existing logic
     iter_name <- if (inherits(iterator, "symbol")) {
@@ -1038,8 +1046,11 @@ as_gmpl_sum_prod <- function(x, ...) {
           when_obj <- v
         } else if (inherits(v, "expression")) {
           # Check if expression contains when in lhs or rhs
-          if (inherits(v$lhs, "when")) when_obj <- v$lhs
-          else if (inherits(v$rhs, "when")) when_obj <- v$rhs
+          if (inherits(v$lhs, "when")) {
+            when_obj <- v$lhs
+          } else if (inherits(v$rhs, "when")) {
+            when_obj <- v$rhs
+          }
         }
 
         if (!is.null(when_obj)) {
@@ -1106,8 +1117,8 @@ as_gmpl.when <- function(x, ...) {
 
   cond_dims <- ensure_dims_object(x$condition$dims)
   is_membership_filter <- inherits(x$condition, c("mm_mapping", "mm_variable", "mm_parameter")) &&
-                         !is.null(cond_dims) &&
-                         length(cond_dims) > 0
+    !is.null(cond_dims) &&
+    length(cond_dims) > 0
 
   if (is_membership_filter) {
     # Convert to sum with FORIF pattern: sum{_IF_: tuple in mapping}(expression)
@@ -1139,7 +1150,6 @@ as_gmpl.when <- function(x, ...) {
 
     # Return FORIF sum pattern
     paste0("sum{_IF_: ", condition_str, "}(", then_expr, ")")
-
   } else {
     # Regular if-then-else for boolean conditions
     then_expr <- as_gmpl(x$then, ...)
@@ -1178,7 +1188,7 @@ get_op_precedence <- function(op) {
   if (op %in% names(precedence)) {
     return(precedence[[op]])
   }
-  return(10)  # Unknown operators get highest precedence
+  10 # Unknown operators get highest precedence
 }
 
 #' @export
@@ -1264,13 +1274,13 @@ as_gmpl.expression <- function(x, parent_op = NULL, parent_precedence = 0, ...) 
   # Example: a / (b[x]) not a / b[x] which could be (a/b)[x]
   rhs_dims <- ensure_dims_object(x$rhs$dims)
   if (identical(op_value, "/") && inherits(x$rhs, c("symbol", "mm_parameter", "mm_variable")) &&
-      !is.null(rhs_dims) && length(rhs_dims) > 0 && !grepl("^\\(", rhs)) {
+    !is.null(rhs_dims) && length(rhs_dims) > 0 && !grepl("^\\(", rhs)) {
     rhs <- paste0("(", rhs, ")")
   }
 
   # Operator normalization
   op <- op_value
-  if (op == "**") op <- "^"  # GMPL uses ^ not **
+  if (op == "**") op <- "^" # GMPL uses ^ not **
   if (op == "==") op <- "="
   if (op == "!=") op <- "<>"
 
@@ -1287,7 +1297,7 @@ as_gmpl.unary <- function(x, ...) {
   stopifnot(inherits(x, "unary"))
   op <- x$op
   # Note: unary nodes store operand in $rhs, not $expr
-  operand <- if (!is.null(x$rhs)) x$rhs else x$expr  # fallback for old code
+  operand <- if (!is.null(x$rhs)) x$rhs else x$expr # fallback for old code
   if (op == "-") {
     paste0("-", as_gmpl(operand, ...))
   } else if (op == "not") {
@@ -1312,7 +1322,7 @@ as_gmpl.mm_equation <- function(x, model = NULL, is_objective = FALSE, obj_info 
   # We need the equation dims and optionally the domain mapping
   index_tuple <- ""
   if ((!is.null(domain_dims_obj) && length(domain_dims_obj) > 0) ||
-      (!is.null(dims_obj) && length(dims_obj) > 0)) {
+    (!is.null(dims_obj) && length(dims_obj) > 0)) {
     # Extract set names from dims
     # Priority: use domain$dims if available (contains aliases as used in equation body)
     # Otherwise fall back to equation$dims (base set names)
@@ -1323,9 +1333,13 @@ as_gmpl.mm_equation <- function(x, model = NULL, is_objective = FALSE, obj_info 
     }
 
     set_names <- sapply(dims_source, function(d) {
-      if (inherits(d, "symbol")) d$name
-      else if (inherits(d, "mm_set")) d$name
-      else as.character(d)
+      if (inherits(d, "symbol")) {
+        d$name
+      } else if (inherits(d, "mm_set")) {
+        d$name
+      } else {
+        as.character(d)
+      }
     })
 
     # Use equation-specific index variables if available (from original GMPL)
@@ -1434,15 +1448,17 @@ as_gmpl.mm_equation <- function(x, model = NULL, is_objective = FALSE, obj_info 
 
   # GMPL doesn't use special relation symbols, just regular operators
   rel <- switch(x$relation,
-                "==" = "=",
-                "<=" = "<=",
-                ">=" = ">=",
-                stop("Unsupported relation: ", x$relation)
+    "==" = "=",
+    "<=" = "<=",
+    ">=" = ">=",
+    stop("Unsupported relation: ", x$relation)
   )
 
   # Build the constraint string
-  constraint_str <- paste0("s.t. ", eqname, index_tuple, ": ",
-         lhs, " ", rel, " ", rhs, ";")
+  constraint_str <- paste0(
+    "s.t. ", eqname, index_tuple, ": ",
+    lhs, " ", rel, " ", rhs, ";"
+  )
 
   # Post-process: resolve aliases if requested
   resolve_aliases <- getOption("multimod.resolve_aliases", TRUE)
@@ -1482,9 +1498,8 @@ as_gmpl.mm_equation <- function(x, model = NULL, is_objective = FALSE, obj_info 
     }
   }
 
-  return(constraint_str)
+  constraint_str
 }
-
 
 
 # Iterator specification of a sum/prod index: "t in tech, r in region".
@@ -1500,8 +1515,10 @@ as_gmpl.mm_equation <- function(x, model = NULL, is_objective = FALSE, obj_info 
   miss <- !nzchar(vars)
   if (any(miss)) {
     old <- getOption("multimod.iterator_vars", list())
-    taken <- c(unlist(old, use.names = FALSE),
-               unlist(getOption("multimod.index_aliases", list()), use.names = FALSE))
+    taken <- c(
+      unlist(old, use.names = FALSE),
+      unlist(getOption("multimod.index_aliases", list()), use.names = FALSE)
+    )
     gen <- unname(default_index_aliases(sets[miss]))
     gen <- make.unique(c(taken, gen), sep = "_")[length(taken) + seq_along(gen)]
     vars[miss] <- gen
@@ -1509,7 +1526,8 @@ as_gmpl.mm_equation <- function(x, model = NULL, is_objective = FALSE, obj_info 
     for (i in which(miss)) new[[sets[i]]] <- vars[i]
     options(multimod.iterator_vars = new)
     do.call(on.exit, list(bquote(options(multimod.iterator_vars = .(old))), add = TRUE),
-            envir = envir)
+      envir = envir
+    )
   }
   paste(vars, "in", sets, collapse = ", ")
 }
@@ -1517,6 +1535,9 @@ as_gmpl.mm_equation <- function(x, model = NULL, is_objective = FALSE, obj_info 
 # "(t,r) in mTR" for a tuple, "r in mR" for a single index: MathProg does not
 # accept parentheses around a one-element tuple.
 .gmpl_tuple_in <- function(dim_list, set_name) {
-  if (length(dim_list) == 1L) paste0(dim_list, " in ", set_name)
-  else paste0("(", paste(dim_list, collapse = ","), ") in ", set_name)
+  if (length(dim_list) == 1L) {
+    paste0(dim_list, " in ", set_name)
+  } else {
+    paste0("(", paste(dim_list, collapse = ","), ") in ", set_name)
+  }
 }

@@ -35,20 +35,22 @@ should_enable_progress_trim <- function(model,
   if (!requireNamespace("progressr", quietly = TRUE)) {
     return(FALSE)
   }
-  
+
   # Count total model elements
-  n_elements <- length(model$sets) + length(model$parameters) + 
-                length(model$mappings) + length(model$variables) + 
-                length(model$equations)
-  
-  if (n_elements > element_threshold) return(TRUE)
-  
+  n_elements <- length(model$sets) + length(model$parameters) +
+    length(model$mappings) + length(model$variables) +
+    length(model$equations)
+
+  if (n_elements > element_threshold) {
+    return(TRUE)
+  }
+
   # Check total data size
   total_rows <- sum(vapply(model$parameters, function(p) {
     if (!is.null(p$data)) nrow(p$data) else 0L
   }, integer(1)))
-  
-  return(total_rows > row_threshold)
+
+  total_rows > row_threshold
 }
 
 #' Trim a model to the elements its data uses
@@ -77,7 +79,7 @@ should_enable_progress_trim <- function(model,
 trim_model <- function(model, strategy = "unused", verbose = TRUE, .progress = "auto") {
   stopifnot(inherits(model, c("mm_model", "multimod", "model_structure")))
   stopifnot(strategy %in% c("unused", "aggressive"))
-  
+
   # Determine if progress should be enabled
   use_progress <- FALSE
   if (.progress == "auto") {
@@ -85,56 +87,56 @@ trim_model <- function(model, strategy = "unused", verbose = TRUE, .progress = "
   } else if (isTRUE(.progress)) {
     use_progress <- requireNamespace("progressr", quietly = TRUE)
   }
-  
+
   if (use_progress) {
     progressr::with_progress({
       # 4 main phases
       p <- progressr::progressor(steps = 4)
-      
+
       if (verbose) message("Starting model trimming...")
-      
+
       # Phase 1: Mark empty data
       p("Phase 1: Identifying empty data")
       if (verbose) message("  Phase 1: Identifying empty sets, parameters, and mappings...")
       model <- mark_empty_data(model, verbose = verbose)
-      
+
       # Phase 2: Mark variables with empty domains
       p("Phase 2: Identifying empty variables")
       if (verbose) message("  Phase 2: Identifying variables with empty domains...")
       model <- mark_empty_variables(model, verbose = verbose)
-      
+
       # Phase 3: Mark equations with empty domains or variables
       p("Phase 3: Identifying empty equations")
       if (verbose) message("  Phase 3: Identifying equations with empty domains...")
       model <- mark_empty_equations(model, verbose = verbose)
-      
+
       # Phase 4: Untrim required elements
       p("Phase 4: Verifying required elements")
       if (verbose) message("  Phase 4: Verifying required elements...")
       model <- untrim_required_elements(model, verbose = verbose)
-      
+
       model
     })
   } else {
     if (verbose) message("Starting model trimming...")
-    
+
     # Phase 1: Mark empty data
     if (verbose) message("  Phase 1: Identifying empty sets, parameters, and mappings...")
     model <- mark_empty_data(model, verbose = verbose)
-    
+
     # Phase 2: Mark variables with empty domains
     if (verbose) message("  Phase 2: Identifying variables with empty domains...")
     model <- mark_empty_variables(model, verbose = verbose)
-    
+
     # Phase 3: Mark equations with empty domains or variables
     if (verbose) message("  Phase 3: Identifying equations with empty domains...")
     model <- mark_empty_equations(model, verbose = verbose)
-    
+
     # Phase 4: Untrim required elements
     if (verbose) message("  Phase 4: Verifying required elements...")
     model <- untrim_required_elements(model, verbose = verbose)
   }
-  
+
   # Sync trimmed flags to folded structures if they exist
   # This ensures trim_model() works correctly regardless of whether
   # it's called before or after fold_model()
@@ -142,7 +144,7 @@ trim_model <- function(model, strategy = "unused", verbose = TRUE, .progress = "
     for (eq_name in names(model$equations)) {
       if (!is.null(model$folded_equations[[eq_name]])) {
         # Copy trim flag from original to folded equation
-        model$folded_equations[[eq_name]]$trimmed <- 
+        model$folded_equations[[eq_name]]$trimmed <-
           isTRUE(model$equations[[eq_name]]$trimmed)
       }
     }
@@ -150,13 +152,13 @@ trim_model <- function(model, strategy = "unused", verbose = TRUE, .progress = "
       message("  Synced trim flags to folded equations")
     }
   }
-  
+
   # Note: Variables and parameters don't need syncing because folding
   # doesn't create separate folded_variables or folded_parameters lists
-  
+
   # Collect NET trim statistics (after Phase 4 untrimming)
   model$misc$trim_summary <- collect_trim_stats(model)
-  
+
   # Calculate total NET trimmed elements
   net_trimmed_counts <- c(
     sets = if (!is.null(model$misc$trim_summary$sets)) model$misc$trim_summary$sets$trimmed else 0,
@@ -165,13 +167,13 @@ trim_model <- function(model, strategy = "unused", verbose = TRUE, .progress = "
     variables = if (!is.null(model$misc$trim_summary$variables)) model$misc$trim_summary$variables$trimmed else 0,
     equations = if (!is.null(model$misc$trim_summary$equations)) model$misc$trim_summary$equations$trimmed else 0
   )
-  
+
   total_net_trimmed <- sum(net_trimmed_counts)
-  
+
   # Set trimmed flag based on whether ANY elements remain trimmed
   model$misc$trimmed <- total_net_trimmed > 0
   model$misc$trim_strategy <- strategy
-  
+
   if (verbose) {
     # Report NET trim counts
     message("\n=== NET Trim Results (after Phase 4) ===")
@@ -181,7 +183,7 @@ trim_model <- function(model, strategy = "unused", verbose = TRUE, .progress = "
     message(sprintf("  Variables trimmed:  %d", net_trimmed_counts["variables"]))
     message(sprintf("  Equations trimmed:  %d", net_trimmed_counts["equations"]))
     message(sprintf("  TOTAL trimmed:      %d", total_net_trimmed))
-    
+
     if (total_net_trimmed == 0) {
       message("\nModel has not been trimmed (all elements are required).")
     } else {
@@ -189,8 +191,8 @@ trim_model <- function(model, strategy = "unused", verbose = TRUE, .progress = "
       message("\n", summary)
     }
   }
-  
-  return(model)
+
+  model
 }
 
 #' Mark sets, parameters, and mappings with empty data
@@ -211,7 +213,9 @@ mark_empty_data <- function(model, verbose = FALSE) {
   dual <- dual_registered_symbols(model)
   dual_has_data <- function(nm) {
     s <- model$sets[[nm]]$data
-    if (!is.null(model$mappings[[nm]]$rule)) return(TRUE)
+    if (!is.null(model$mappings[[nm]]$rule)) {
+      return(TRUE)
+    }
     m <- model$mappings[[nm]]$data
     (!is.null(s) && length(s) > 0) || (!is.null(m) && nrow(m) > 0)
   }
@@ -228,7 +232,7 @@ mark_empty_data <- function(model, verbose = FALSE) {
       }
     }
   }
-  
+
   # Check parameters
   if (!is.null(model$parameters) && length(model$parameters) > 0) {
     for (param_name in names(model$parameters)) {
@@ -242,12 +246,12 @@ mark_empty_data <- function(model, verbose = FALSE) {
       }
     }
   }
-  
+
   # Check mappings
   if (!is.null(model$mappings) && length(model$mappings) > 0) {
     for (mapping_name in names(model$mappings)) {
       mapping_obj <- model$mappings[[mapping_name]]
-      if (!is.null(mapping_obj$rule)) next     # a rule is enumerated on demand, never trimmed
+      if (!is.null(mapping_obj$rule)) next # a rule is enumerated on demand, never trimmed
       if (is.null(mapping_obj$data) || nrow(mapping_obj$data) == 0) {
         if (mapping_name %in% dual && dual_has_data(mapping_name)) next
         model$mappings[[mapping_name]]$trimmed <- TRUE
@@ -256,12 +260,12 @@ mark_empty_data <- function(model, verbose = FALSE) {
       }
     }
   }
-  
+
   if (verbose && n_trimmed > 0) {
     message("    Total empty data elements: ", n_trimmed)
   }
-  
-  return(model)
+
+  model
 }
 
 #' Mark variables with empty domains
@@ -276,15 +280,15 @@ mark_empty_variables <- function(model, verbose = FALSE) {
   if (is.null(model$variables) || length(model$variables) == 0) {
     return(model)
   }
-  
+
   n_trimmed <- 0
-  
+
   for (var_name in names(model$variables)) {
     var_obj <- model$variables[[var_name]]
-    
+
     # Skip if already trimmed
     if (isTRUE(var_obj$trimmed)) next
-    
+
     # Check if variable has a domain mapping
     if (!is.null(var_obj$domain) && length(var_obj$domain) > 0) {
       # Domain is a mapping name - extract it
@@ -294,9 +298,9 @@ mark_empty_variables <- function(model, verbose = FALSE) {
       } else if (!is.character(domain_name)) {
         domain_name <- as.character(domain_name)
       }
-      
-      if (is.character(domain_name) && length(domain_name) == 1 && 
-          domain_name %in% names(model$mappings) && !is.null(model$mappings[[domain_name]])) {
+
+      if (is.character(domain_name) && length(domain_name) == 1 &&
+        domain_name %in% names(model$mappings) && !is.null(model$mappings[[domain_name]])) {
         mapping_obj <- model$mappings[[domain_name]]
         if (isTRUE(mapping_obj$trimmed)) {
           model$variables[[var_name]]$trimmed <- TRUE
@@ -306,11 +310,11 @@ mark_empty_variables <- function(model, verbose = FALSE) {
         }
       }
     }
-    
+
     # Check each dimension (set) of the variable
     if (!is.null(var_obj$dims)) {
       dims <- get_dim_names(var_obj$dims)
-      
+
       for (dim_name in dims) {
         if (!is.null(model$sets[[dim_name]])) {
           set_obj <- model$sets[[dim_name]]
@@ -324,12 +328,12 @@ mark_empty_variables <- function(model, verbose = FALSE) {
       }
     }
   }
-  
+
   if (verbose && n_trimmed > 0) {
     message("    Total variables with empty domains: ", n_trimmed)
   }
-  
-  return(model)
+
+  model
 }
 
 #' Mark equations with empty domains or all variables trimmed
@@ -342,15 +346,15 @@ mark_empty_equations <- function(model, verbose = FALSE) {
   if (is.null(model$equations) || length(model$equations) == 0) {
     return(model)
   }
-  
+
   n_trimmed <- 0
-  
+
   for (eq_name in names(model$equations)) {
     eq_obj <- model$equations[[eq_name]]
-    
+
     # Skip if already trimmed
     if (isTRUE(eq_obj$trimmed)) next
-    
+
     # Check if equation has a domain mapping
     if (!is.null(eq_obj$domain) && length(eq_obj$domain) > 0) {
       # Extract domain name - handle different formats
@@ -360,9 +364,9 @@ mark_empty_equations <- function(model, verbose = FALSE) {
       } else if (!is.character(domain_name)) {
         domain_name <- as.character(domain_name)
       }
-      
-      if (is.character(domain_name) && length(domain_name) == 1 && 
-          domain_name %in% names(model$mappings) && !is.null(model$mappings[[domain_name]])) {
+
+      if (is.character(domain_name) && length(domain_name) == 1 &&
+        domain_name %in% names(model$mappings) && !is.null(model$mappings[[domain_name]])) {
         mapping_obj <- model$mappings[[domain_name]]
         if (isTRUE(mapping_obj$trimmed)) {
           model$equations[[eq_name]]$trimmed <- TRUE
@@ -372,11 +376,11 @@ mark_empty_equations <- function(model, verbose = FALSE) {
         }
       }
     }
-    
+
     # Check each dimension (set) of the equation
     if (!is.null(eq_obj$dims)) {
       dims <- get_dim_names(eq_obj$dims)
-      
+
       for (dim_name in dims) {
         if (!is.null(model$sets[[dim_name]])) {
           set_obj <- model$sets[[dim_name]]
@@ -389,7 +393,7 @@ mark_empty_equations <- function(model, verbose = FALSE) {
         }
       }
     }
-    
+
     # Check if all variables in equation are trimmed
     vars_in_eq <- extract_variables_from_equation(eq_obj)
     if (length(vars_in_eq) > 0) {
@@ -397,9 +401,9 @@ mark_empty_equations <- function(model, verbose = FALSE) {
         if (!is.null(model$variables[[v]])) {
           return(isTRUE(model$variables[[v]]$trimmed))
         }
-        return(FALSE)
+        FALSE
       }))
-      
+
       if (all_vars_trimmed) {
         model$equations[[eq_name]]$trimmed <- TRUE
         n_trimmed <- n_trimmed + 1
@@ -407,12 +411,12 @@ mark_empty_equations <- function(model, verbose = FALSE) {
       }
     }
   }
-  
+
   if (verbose && n_trimmed > 0) {
     message("    Total equations with empty domains: ", n_trimmed)
   }
-  
-  return(model)
+
+  model
 }
 
 #' Extract variable names from equation AST
@@ -425,7 +429,7 @@ extract_variables_from_equation <- function(eq_obj) {
     extract_ast_names(eq_obj$lhs, types = "variable"),
     extract_ast_names(eq_obj$rhs, types = "variable")
   )
-  return(unique(vars))
+  unique(vars)
 }
 
 #' Extract parameter names from equation AST
@@ -438,7 +442,7 @@ extract_parameters_from_equation <- function(eq_obj) {
     extract_ast_names(eq_obj$lhs, types = "parameter"),
     extract_ast_names(eq_obj$rhs, types = "parameter")
   )
-  return(unique(params))
+  unique(params)
 }
 
 #' Extract mapping names from equation AST
@@ -451,7 +455,7 @@ extract_mappings_from_equation <- function(eq_obj) {
     extract_ast_names(eq_obj$lhs, types = "mapping"),
     extract_ast_names(eq_obj$rhs, types = "mapping")
   )
-  return(unique(mappings))
+  unique(mappings)
 }
 
 #' Untrim elements still needed by non-trimmed equations
@@ -467,28 +471,28 @@ untrim_required_elements <- function(model, verbose = FALSE) {
   if (is.null(model$equations) || length(model$equations) == 0) {
     return(model)
   }
-  
+
   n_untrimmed <- 0
-  
+
   # Collect all variables, parameters, mappings, and sets from non-trimmed equations
   required_vars <- character(0)
   required_params <- character(0)
   required_mappings <- character(0)
   required_sets <- character(0)
-  
+
   for (eq_name in names(model$equations)) {
     eq_obj <- model$equations[[eq_name]]
-    
+
     # Skip trimmed equations
     if (isTRUE(eq_obj$trimmed)) next
-    
+
     # Collect variables and parameters from equation expression
     required_vars <- c(required_vars, extract_variables_from_equation(eq_obj))
     required_params <- c(required_params, extract_parameters_from_equation(eq_obj))
-    
+
     # Collect mappings from conditional expressions (if ... in mapping)
     required_mappings <- c(required_mappings, extract_mappings_from_equation(eq_obj))
-    
+
     # Collect mappings from equation domain
     if (!is.null(eq_obj$domain)) {
       domain_names <- if (is.list(eq_obj$domain)) {
@@ -498,7 +502,7 @@ untrim_required_elements <- function(model, verbose = FALSE) {
       }
       required_mappings <- c(required_mappings, domain_names)
     }
-    
+
     # Collect mappings from dims (dimension restrictions)
     if (!is.null(eq_obj$dims) && length(eq_obj$dims) > 0) {
       for (dim in eq_obj$dims) {
@@ -508,7 +512,7 @@ untrim_required_elements <- function(model, verbose = FALSE) {
       }
     }
   }
-  
+
   required_vars <- unique(required_vars)
   required_params <- unique(required_params)
   # Remove empty strings and NAs
@@ -517,7 +521,7 @@ untrim_required_elements <- function(model, verbose = FALSE) {
   required_mappings <- unique(required_mappings)
   # Remove empty strings and NAs
   required_mappings <- required_mappings[!is.na(required_mappings) & nzchar(required_mappings)]
-  
+
   # Collect sets used by non-trimmed variables
   if (!is.null(model$variables)) {
     for (var_name in names(model$variables)) {
@@ -527,7 +531,7 @@ untrim_required_elements <- function(model, verbose = FALSE) {
       }
     }
   }
-  
+
   # Collect sets used by non-trimmed parameters OR parameters about to be untrimmed
   if (!is.null(model$parameters)) {
     for (param_name in names(model$parameters)) {
@@ -551,7 +555,7 @@ untrim_required_elements <- function(model, verbose = FALSE) {
       }
     }
   }
-  
+
   # Collect sets used by non-trimmed mappings OR mappings about to be untrimmed
   if (!is.null(model$mappings) && length(model$mappings) > 0) {
     for (mapping_name in names(model$mappings)) {
@@ -573,65 +577,65 @@ untrim_required_elements <- function(model, verbose = FALSE) {
       }
     }
   }
-  
+
   required_sets <- unique(required_sets)
   # Remove empty strings and NAs
   required_sets <- required_sets[!is.na(required_sets) & nzchar(required_sets)]
-  
+
   # Untrim required variables
   if (!is.null(model$variables) && length(required_vars) > 0) {
     for (var_name in required_vars) {
-      if (!is.null(model$variables[[var_name]]) && 
-          isTRUE(model$variables[[var_name]]$trimmed)) {
+      if (!is.null(model$variables[[var_name]]) &&
+        isTRUE(model$variables[[var_name]]$trimmed)) {
         model$variables[[var_name]]$trimmed <- FALSE
         n_untrimmed <- n_untrimmed + 1
         if (verbose) message("    Untrimmed variable (used in equation): ", var_name)
       }
     }
   }
-  
+
   # Untrim required parameters
   if (!is.null(model$parameters) && length(required_params) > 0) {
     for (param_name in required_params) {
-      if (!is.null(model$parameters[[param_name]]) && 
-          isTRUE(model$parameters[[param_name]]$trimmed)) {
+      if (!is.null(model$parameters[[param_name]]) &&
+        isTRUE(model$parameters[[param_name]]$trimmed)) {
         model$parameters[[param_name]]$trimmed <- FALSE
         n_untrimmed <- n_untrimmed + 1
         if (verbose) message("    Untrimmed parameter (used in equation): ", param_name)
       }
     }
   }
-  
+
   # Untrim required mappings
   if (!is.null(model$mappings) && length(model$mappings) > 0 && length(required_mappings) > 0) {
     for (mapping_name in required_mappings) {
-      if (mapping_name %in% names(model$mappings) && 
-          !is.null(model$mappings[[mapping_name]]) && 
-          isTRUE(model$mappings[[mapping_name]]$trimmed)) {
+      if (mapping_name %in% names(model$mappings) &&
+        !is.null(model$mappings[[mapping_name]]) &&
+        isTRUE(model$mappings[[mapping_name]]$trimmed)) {
         model$mappings[[mapping_name]]$trimmed <- FALSE
         n_untrimmed <- n_untrimmed + 1
         if (verbose) message("    Untrimmed mapping (used in equation domain): ", mapping_name)
       }
     }
   }
-  
+
   # Untrim required sets
   if (!is.null(model$sets) && length(required_sets) > 0) {
     for (set_name in required_sets) {
-      if (!is.null(model$sets[[set_name]]) && 
-          isTRUE(model$sets[[set_name]]$trimmed)) {
+      if (!is.null(model$sets[[set_name]]) &&
+        isTRUE(model$sets[[set_name]]$trimmed)) {
         model$sets[[set_name]]$trimmed <- FALSE
         n_untrimmed <- n_untrimmed + 1
         if (verbose) message("    Untrimmed set (used in dimension): ", set_name)
       }
     }
   }
-  
+
   if (verbose && n_untrimmed > 0) {
     message("    Total elements untrimmed: ", n_untrimmed)
   }
-  
-  return(model)
+
+  model
 }
 
 #' Remove variables not appearing in any non-trimmed equation
@@ -646,7 +650,7 @@ remove_unused_variables <- function(model, verbose = FALSE) {
   if (is.null(model$variables) || length(model$variables) == 0) {
     return(model)
   }
-  
+
   if (is.null(model$equations) || length(model$equations) == 0) {
     # No equations - trim all variables
     for (var_name in names(model$variables)) {
@@ -657,7 +661,7 @@ remove_unused_variables <- function(model, verbose = FALSE) {
     }
     return(model)
   }
-  
+
   # Collect all variables appearing in non-trimmed equations
   used_vars <- character(0)
   for (eq_name in names(model$equations)) {
@@ -667,7 +671,7 @@ remove_unused_variables <- function(model, verbose = FALSE) {
     }
   }
   used_vars <- unique(used_vars)
-  
+
   # Mark unused variables
   n_trimmed <- 0
   for (var_name in names(model$variables)) {
@@ -677,12 +681,12 @@ remove_unused_variables <- function(model, verbose = FALSE) {
       if (verbose) message("    Trimmed unused variable: ", var_name)
     }
   }
-  
+
   if (verbose && n_trimmed > 0) {
     message("    Total unused variables: ", n_trimmed)
   }
-  
-  return(model)
+
+  model
 }
 
 #' Collect trimming statistics
@@ -698,7 +702,7 @@ collect_trim_stats <- function(model) {
     variables = list(total = 0, trimmed = 0, names = character(0)),
     equations = list(total = 0, trimmed = 0, names = character(0))
   )
-  
+
   # Count sets
   if (!is.null(model$sets) && length(model$sets) > 0) {
     stats$sets$total <- length(model$sets)
@@ -706,7 +710,7 @@ collect_trim_stats <- function(model) {
     stats$sets$trimmed <- sum(trimmed)
     stats$sets$names <- names(model$sets)[trimmed]
   }
-  
+
   # Count parameters
   if (!is.null(model$parameters) && length(model$parameters) > 0) {
     stats$parameters$total <- length(model$parameters)
@@ -714,7 +718,7 @@ collect_trim_stats <- function(model) {
     stats$parameters$trimmed <- sum(trimmed)
     stats$parameters$names <- names(model$parameters)[trimmed]
   }
-  
+
   # Count mappings
   if (!is.null(model$mappings) && length(model$mappings) > 0) {
     stats$mappings$total <- length(model$mappings)
@@ -722,7 +726,7 @@ collect_trim_stats <- function(model) {
     stats$mappings$trimmed <- sum(trimmed)
     stats$mappings$names <- names(model$mappings)[trimmed]
   }
-  
+
   # Count variables
   if (!is.null(model$variables) && length(model$variables) > 0) {
     stats$variables$total <- length(model$variables)
@@ -730,7 +734,7 @@ collect_trim_stats <- function(model) {
     stats$variables$trimmed <- sum(trimmed)
     stats$variables$names <- names(model$variables)[trimmed]
   }
-  
+
   # Count equations
   if (!is.null(model$equations) && length(model$equations) > 0) {
     stats$equations$total <- length(model$equations)
@@ -738,8 +742,8 @@ collect_trim_stats <- function(model) {
     stats$equations$trimmed <- sum(trimmed)
     stats$equations$names <- names(model$equations)[trimmed]
   }
-  
-  return(stats)
+
+  stats
 }
 
 #' Check if model or object is trimmed
@@ -758,9 +762,9 @@ collect_trim_stats <- function(model) {
 #' @export
 is_trimmed <- function(x) {
   if (inherits(x, "model_structure") || inherits(x, "mm_model")) {
-    return(isTRUE(x$misc$trimmed))
+    isTRUE(x$misc$trimmed)
   } else {
-    return(isTRUE(x$trimmed))
+    isTRUE(x$trimmed)
   }
 }
 
@@ -787,52 +791,64 @@ is_trimmed <- function(x) {
 #' @export
 is_trimmed_any <- function(model, include_equations = TRUE) {
   stopifnot(inherits(model, "model_structure") || inherits(model, "mm_model"))
-  
+
   # Check sets
   if (!is.null(model$sets) && length(model$sets) > 0) {
     for (set_obj in model$sets) {
-      if (isTRUE(set_obj$trimmed)) return(TRUE)
+      if (isTRUE(set_obj$trimmed)) {
+        return(TRUE)
+      }
     }
   }
-  
+
   # Check parameters
   if (!is.null(model$parameters) && length(model$parameters) > 0) {
     for (param_obj in model$parameters) {
-      if (isTRUE(param_obj$trimmed)) return(TRUE)
+      if (isTRUE(param_obj$trimmed)) {
+        return(TRUE)
+      }
     }
   }
-  
+
   # Check mappings
   if (!is.null(model$mappings) && length(model$mappings) > 0) {
     for (map_obj in model$mappings) {
-      if (isTRUE(map_obj$trimmed)) return(TRUE)
+      if (isTRUE(map_obj$trimmed)) {
+        return(TRUE)
+      }
     }
   }
-  
+
   # Check variables
   if (!is.null(model$variables) && length(model$variables) > 0) {
     for (var_obj in model$variables) {
-      if (isTRUE(var_obj$trimmed)) return(TRUE)
+      if (isTRUE(var_obj$trimmed)) {
+        return(TRUE)
+      }
     }
   }
-  
+
   # Check equations (optional)
   if (include_equations) {
     if (!is.null(model$equations) && length(model$equations) > 0) {
       for (eq_obj in model$equations) {
-        if (isTRUE(eq_obj$trimmed)) return(TRUE)
+        if (isTRUE(eq_obj$trimmed)) {
+          return(TRUE)
+        }
       }
     }
-    
+
     # Check folded_equations if present
     if (!is.null(model$folded_equations) && length(model$folded_equations) > 0) {
       for (eq_obj in model$folded_equations) {
-        if (isTRUE(eq_obj$trimmed)) return(TRUE)
+        if (isTRUE(eq_obj$trimmed)) {
+          return(TRUE)
+        }
       }
     }
   }
-  
-  return(FALSE)
+
+  FALSE
 }
 
 #' Get trim summary statistics
@@ -851,7 +867,7 @@ is_trimmed_any <- function(model, include_equations = TRUE) {
 #' @export
 get_trim_summary <- function(model, format = c("list", "data.frame", "text")) {
   format <- match.arg(format)
-  
+
   if (!is_trimmed(model)) {
     if (format == "text") {
       return("Model has not been trimmed (all elements are required).")
@@ -859,13 +875,13 @@ get_trim_summary <- function(model, format = c("list", "data.frame", "text")) {
       return(NULL)
     }
   }
-  
+
   stats <- model$misc$trim_summary
-  
+
   # Check which element types are trimmed
   has_data_trimmed <- is_trimmed_any(model, include_equations = FALSE)
   eq_trimmed <- if (!is.null(stats$equations)) stats$equations$trimmed else 0
-  
+
   # Provide context-specific message for text format
   if (format == "text") {
     if (!has_data_trimmed && eq_trimmed > 0) {
@@ -876,11 +892,11 @@ get_trim_summary <- function(model, format = c("list", "data.frame", "text")) {
       ))
     }
   }
-  
+
   if (format == "list") {
     return(stats)
   }
-  
+
   if (format == "data.frame") {
     df <- data.frame(
       element_type = character(0),
@@ -890,14 +906,14 @@ get_trim_summary <- function(model, format = c("list", "data.frame", "text")) {
       percent_trimmed = numeric(0),
       stringsAsFactors = FALSE
     )
-    
+
     for (type in c("sets", "parameters", "mappings", "variables", "equations")) {
       if (!is.null(stats[[type]])) {
         total <- stats[[type]]$total
         trimmed <- stats[[type]]$trimmed
         remaining <- total - trimmed
         pct <- if (total > 0) round(100 * trimmed / total, 1) else 0
-        
+
         df <- rbind(df, data.frame(
           element_type = type,
           total = total,
@@ -908,31 +924,31 @@ get_trim_summary <- function(model, format = c("list", "data.frame", "text")) {
         ))
       }
     }
-    
+
     return(df)
   }
-  
+
   if (format == "text") {
     lines <- c(
       "Model Trimming Summary",
       "======================"
     )
-    
+
     for (type in c("sets", "parameters", "mappings", "variables", "equations")) {
       if (!is.null(stats[[type]])) {
         total <- stats[[type]]$total
         trimmed <- stats[[type]]$trimmed
         remaining <- total - trimmed
         pct <- if (total > 0) round(100 * trimmed / total, 1) else 0
-        
+
         lines <- c(lines, sprintf(
           "%s: %d/%d trimmed (%.1f%%), %d remaining",
           type, trimmed, total, pct, remaining
         ))
       }
     }
-    
-    return(paste(lines, collapse = "\n"))
+
+    paste(lines, collapse = "\n")
   }
 }
 
@@ -962,52 +978,52 @@ get_trim_summary <- function(model, format = c("list", "data.frame", "text")) {
 #' @export
 untrim_model <- function(model, elements = "all") {
   stopifnot(inherits(model, c("mm_model", "model_structure")))
-  
+
   if ("all" %in% elements) {
     elements <- c("sets", "parameters", "mappings", "variables", "equations")
   }
-  
+
   # Untrim sets
   if ("sets" %in% elements && !is.null(model$sets)) {
     for (set_name in names(model$sets)) {
       model$sets[[set_name]]$trimmed <- NULL
     }
   }
-  
+
   # Untrim parameters
   if ("parameters" %in% elements && !is.null(model$parameters)) {
     for (param_name in names(model$parameters)) {
       model$parameters[[param_name]]$trimmed <- NULL
     }
   }
-  
+
   # Untrim mappings
   if ("mappings" %in% elements && !is.null(model$mappings)) {
     for (mapping_name in names(model$mappings)) {
       model$mappings[[mapping_name]]$trimmed <- NULL
     }
   }
-  
+
   # Untrim variables
   if ("variables" %in% elements && !is.null(model$variables)) {
     for (var_name in names(model$variables)) {
       model$variables[[var_name]]$trimmed <- NULL
     }
   }
-  
+
   # Untrim equations
   if ("equations" %in% elements && !is.null(model$equations)) {
     for (eq_name in names(model$equations)) {
       model$equations[[eq_name]]$trimmed <- NULL
     }
   }
-  
+
   # Clear model-level trim metadata
   if ("all" %in% elements || length(elements) == 5) {
     model$misc$trimmed <- NULL
     model$misc$trim_summary <- NULL
     model$misc$trim_strategy <- NULL
   }
-  
-  return(model)
+
+  model
 }

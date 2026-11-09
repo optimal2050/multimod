@@ -18,7 +18,7 @@ brackets_pair <- function(x) {
     return(c(x[1], x[2]))
   }
   if (nchar(x) == 2) {
-    return(c(substr(x, 1, 1), substr(x, 2, 2)))
+    c(substr(x, 1, 1), substr(x, 2, 2))
   } else if (nchar(x) == 1) {
     switch(x,
       "[" = c("[", "]"),
@@ -35,10 +35,11 @@ brackets_pair <- function(x) {
       c(x, x) # return the same character twice
     )
   } else {
-    stop("x must have one or two characters, ",
-         "try using length of two for special cases.")
+    stop(
+      "x must have one or two characters, ",
+      "try using length of two for special cases."
+    )
   }
-
 }
 
 #' Wrap text with brackets
@@ -50,9 +51,11 @@ brackets_pair <- function(x) {
 #' @export
 wrap_brackets <- function(x, brackets = NULL, ...) {
   stopifnot(length(x) == 1)
-  if (is_empty(x)) return(x)
+  if (is_empty(x)) {
+    return(x)
+  }
   brackets <- brackets_pair(brackets)
-  return(paste0(brackets[1], x, brackets[2]))
+  paste0(brackets[1], x, brackets[2])
 }
 
 # as.character ####
@@ -66,10 +69,11 @@ wrap_brackets <- function(x, brackets = NULL, ...) {
 #' @export
 #' @method as.character expression
 as.character.expression <- function(x, brackets = NULL, max_char = 50, ...) {
-  out <- paste0(as.character(x$lhs, max_char = NULL),
-                " ", x$op, " ",
-                as.character(x$rhs, max_char = NULL)
-                )
+  out <- paste0(
+    as.character(x$lhs, max_char = NULL),
+    " ", x$op, " ",
+    as.character(x$rhs, max_char = NULL)
+  )
   if (length(out) > 1) {
     # roughly - use the first element
     out <- out[1]
@@ -77,10 +81,12 @@ as.character.expression <- function(x, brackets = NULL, max_char = 50, ...) {
   if (!is_empty(max_char) && sum(nchar(out)) > max_char) {
     out <- paste0(substr(out, 1, max_char), "...")
   }
-  if (is_empty(brackets)) return(out)
+  if (is_empty(brackets)) {
+    return(out)
+  }
   brackets <- brackets_pair(brackets)
   out <- paste0(brackets[1], out, brackets[2])
-  return(out)
+  out
 }
 
 #' @export
@@ -144,22 +150,30 @@ as.character.mm_set <- function(x, ...) {
 #' @export
 #' @method as.character dims
 as.character.dims <- function(x, brackets = "[", ...) {
-  if (length(x) == 0) return("")
+  if (length(x) == 0) {
+    return("")
+  }
   out <- paste(vapply(x, function(y) {
-    if (!is.null(y$name)) return(as.character(y$name)[1])
+    if (!is.null(y$name)) {
+      return(as.character(y$name)[1])
+    }
     # A lag or lead carries `symbol` and `offset` instead of a name, and in
     # subscript position both are wanted: `y-1`, not `y`.
     if (!is.null(y$symbol)) {
       off <- y$offset
-      if (is.null(off) || off == 0) return(as.character(y$symbol)[1])
+      if (is.null(off) || off == 0) {
+        return(as.character(y$symbol)[1])
+      }
       return(paste0(y$symbol, if (off > 0) "+" else "-", abs(off)))
     }
     dim_entry_to_name(y)
   }, character(1)), collapse = ",")
-  if (is.null(brackets) || all(brackets == "")) return(out)
+  if (is.null(brackets) || all(brackets == "")) {
+    return(out)
+  }
   brackets <- brackets_pair(brackets)
   out <- paste0(brackets[1], out, brackets[2])
-  return(out)
+  out
 }
 
 #' @export
@@ -171,14 +185,16 @@ as.character.when <- function(x, ...) {
 #' @export
 #' @method as.character sum
 as.character.sum <- function(x, max_char = 50, ...) {
-  out <- paste0("sum(",
-                as.character(x$index, max_char = NULL),
-                as.character(x$value, max_char = NULL),
-                ")")
+  out <- paste0(
+    "sum(",
+    as.character(x$index, max_char = NULL),
+    as.character(x$value, max_char = NULL),
+    ")"
+  )
   if (!is_empty(max_char) && sum(nchar(out)) > max_char) {
     out <- paste0(substr(out, 1, max_char), "...")
   }
-  return(out)
+  out
 }
 
 #' @export
@@ -199,9 +215,8 @@ as.character.func <- function(x, ...) {
 
   if (!is.null(x$index)) {
     idx <- as.character(x$index, ...)
-    return(paste0(x$name, "(", idx, ", ", val_str, ")"))
+    paste0(x$name, "(", idx, ", ", val_str, ")")
   } else {
-    return(paste0(x$name, "(", val_str, ")"))
+    paste0(x$name, "(", val_str, ")")
   }
 }
-

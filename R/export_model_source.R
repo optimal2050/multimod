@@ -63,8 +63,10 @@ export_model_source <- function(dataset = c("energyrt"),
   }
 
   if (verbose) {
-    message("Export complete: ", length(files), " file(s) written to ",
-            normalizePath(dir, mustWork = FALSE))
+    message(
+      "Export complete: ", length(files), " file(s) written to ",
+      normalizePath(dir, mustWork = FALSE)
+    )
   }
 
   invisible(files)
@@ -85,8 +87,10 @@ export_energyrt <- function(dir, formats, overwrite, verbose) {
   # save_model(overwrite = TRUE) would wipe the solver directories with it.
   if (!file.exists(file.path(dir, "model.rds"))) {
     if (length(list.files(dir, all.files = TRUE, no.. = TRUE)) > 0) {
-      stop(dir, " is not empty and holds no model workspace (model.rds); ",
-           "choose an empty directory.")
+      stop(
+        dir, " is not empty and holds no model workspace (model.rds); ",
+        "choose an empty directory."
+      )
     }
     save_model(model, dir, format = "csv", verbose = FALSE)
     files <- c(files, file.path(dir, "model.rds"))

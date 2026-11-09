@@ -2,12 +2,18 @@
 # Rule mappings: tuples defined by joins, enumerated on demand
 # =============================================================================
 
-pf <- data.frame(tech = c("coal", "wind", "pv"), frame = c("ANNUAL", "HOUR", "HOUR"),
-                 stringsAsFactors = FALSE)
-fs <- data.frame(frame = c("ANNUAL", "HOUR", "HOUR"), slice = c("y", "h1", "h2"),
-                 stringsAsFactors = FALSE)
-want_ts <- data.frame(tech = c("coal", "wind", "wind", "pv", "pv"),
-                      slice = c("y", "h1", "h2", "h1", "h2"), stringsAsFactors = FALSE)
+pf <- data.frame(
+  tech = c("coal", "wind", "pv"), frame = c("ANNUAL", "HOUR", "HOUR"),
+  stringsAsFactors = FALSE
+)
+fs <- data.frame(
+  frame = c("ANNUAL", "HOUR", "HOUR"), slice = c("y", "h1", "h2"),
+  stringsAsFactors = FALSE
+)
+want_ts <- data.frame(
+  tech = c("coal", "wind", "wind", "pv", "pv"),
+  slice = c("y", "h1", "h2", "h1", "h2"), stringsAsFactors = FALSE
+)
 
 as_set <- function(d) {
   d <- as.data.frame(lapply(d, as.character), stringsAsFactors = FALSE)
@@ -31,9 +37,11 @@ lp_signature <- function(lp) {
   trip <- trip[order(trip$row, trip$col), ]
   rownames(trip) <- NULL
   cols <- data.frame(col = cl, lo = lp$col_lo, up = lp$col_up, obj = lp$obj)
-  cols <- cols[order(cols$col), ]; rownames(cols) <- NULL
+  cols <- cols[order(cols$col), ]
+  rownames(cols) <- NULL
   rows <- data.frame(row = rl, lo = lp$row_lo, up = lp$row_up)
-  rows <- rows[order(rows$row), ]; rownames(rows) <- NULL
+  rows <- rows[order(rows$row), ]
+  rownames(rows) <- NULL
   list(trip = trip, cols = cols, rows = rows)
 }
 
@@ -44,19 +52,26 @@ test_that("a rule joins, gates, subtracts and projects", {
 
   # a gate keeps the matching tuples, a subtraction drops them
   hour_only <- data.frame(slice = c("h1", "h2"), stringsAsFactors = FALSE)
-  g <- mapping_rule(of = c("pf", "fs"), gate = "ho", tables = list(pf = pf, fs = fs, ho = hour_only),
-                    cols = c("tech", "slice"))
+  g <- mapping_rule(
+    of = c("pf", "fs"), gate = "ho", tables = list(pf = pf, fs = fs, ho = hour_only),
+    cols = c("tech", "slice")
+  )
   expect_equal(as_set(materialise_rule(list(), g)), as_set(want_ts[want_ts$slice != "y", ]))
-  d <- mapping_rule(of = c("pf", "fs"), minus = "ho", tables = list(pf = pf, fs = fs, ho = hour_only),
-                    cols = c("tech", "slice"))
+  d <- mapping_rule(
+    of = c("pf", "fs"), minus = "ho", tables = list(pf = pf, fs = fs, ho = hour_only),
+    cols = c("tech", "slice")
+  )
   expect_equal(as_set(materialise_rule(list(), d)), as_set(want_ts[want_ts$slice == "y", ]))
 
   # the hash follows the content
-  pf2 <- pf; pf2$frame[1] <- "HOUR"
+  pf2 <- pf
+  pf2$frame[1] <- "HOUR"
   r2 <- mapping_rule(of = c("pf", "fs"), tables = list(pf = pf2, fs = fs), cols = c("tech", "slice"))
   expect_false(identical(r$hash, r2$hash))
-  expect_identical(r$hash, mapping_rule(of = c("pf", "fs"), tables = list(pf = pf, fs = fs),
-                                        cols = c("tech", "slice"))$hash)
+  expect_identical(r$hash, mapping_rule(
+    of = c("pf", "fs"), tables = list(pf = pf, fs = fs),
+    cols = c("tech", "slice")
+  )$hash)
 
   # errors: an unknown leaf, a column in no table
   bad <- mapping_rule(of = c("pf", "nowhere"), tables = list(pf = pf), cols = "tech")
@@ -98,8 +113,10 @@ test_that("new_mapping() carries a rule; validate() checks it against the dims",
 
 test_that("get_data() and the writers' loader enumerate a rule; trim never drops one", {
   m <- example_models$toy
-  m$mappings$mTR <- new_mapping("mTR", desc = m$mappings$mTR$desc, dims = c("tech", "region"),
-                                rule = mapping_rule(of = c("tech", "region")))
+  m$mappings$mTR <- new_mapping("mTR",
+    desc = m$mappings$mTR$desc, dims = c("tech", "region"),
+    rule = mapping_rule(of = c("tech", "region"))
+  )
   want <- as_set(example_models$toy$mappings$mTR$data)
   expect_equal(as_set(get_data(m, "mTR", type = "mapping")), want)
   expect_equal(as_set(.mapping_data(m, "mTR")), want)
@@ -113,8 +130,10 @@ test_that("get_data() and the writers' loader enumerate a rule; trim never drops
 
 test_that("a rule is written beside the mapping and read back", {
   m <- example_models$toy
-  m$mappings$mTR <- new_mapping("mTR", dims = c("tech", "region"),
-                                rule = mapping_rule(of = c("tech", "region")))
+  m$mappings$mTR <- new_mapping("mTR",
+    dims = c("tech", "region"),
+    rule = mapping_rule(of = c("tech", "region"))
+  )
   dir <- tempfile("rule-ws-")
   saved <- save_model(m, dir, verbose = FALSE)
   f <- file.path(dir, "mappings", "mTR", "rule.json")
@@ -124,8 +143,10 @@ test_that("a rule is written beside the mapping and read back", {
   expect_identical(back$hash, m$mappings$mTR$rule$hash)
   loaded <- load_model(dir, verbose = FALSE)
   expect_identical(loaded$mappings$mTR$rule$hash, m$mappings$mTR$rule$hash)
-  expect_equal(as_set(get_data(loaded, "mTR", type = "mapping")),
-               as_set(example_models$toy$mappings$mTR$data))
+  expect_equal(
+    as_set(get_data(loaded, "mTR", type = "mapping")),
+    as_set(example_models$toy$mappings$mTR$data)
+  )
   # with embedded tables
   r <- mapping_rule(of = c("pf", "fs"), tables = list(pf = pf, fs = fs), cols = c("tech", "slice"))
   f2 <- tempfile(fileext = ".json")
@@ -151,19 +172,24 @@ test_that("a rule-defined domain gives the same LP up to a permutation, on both 
   skip_if_not_installed("highs")
   base <- example_models$toy
   m <- base
-  m$mappings$mTR <- new_mapping("mTR", desc = base$mappings$mTR$desc, dims = c("tech", "region"),
-                                rule = mapping_rule(of = c("tech", "region")))
+  m$mappings$mTR <- new_mapping("mTR",
+    desc = base$mappings$mTR$desc, dims = c("tech", "region"),
+    rule = mapping_rule(of = c("tech", "region"))
+  )
   want <- lp_signature(model_to_lp(base, verbose = FALSE))
   got <- lp_signature(model_to_lp(m, verbose = FALSE))
   expect_equal(got, want)
-  nat <- withr::with_options(list(multimod.engine = "native"),
-                             lp_signature(model_to_lp(m, verbose = FALSE)))
+  nat <- withr::with_options(
+    list(multimod.engine = "native"),
+    lp_signature(model_to_lp(m, verbose = FALSE))
+  )
   expect_equal(nat, want)
   expect_equal(solve_highs(m, attach = FALSE)$objective, 198000, tolerance = 1e-9)
 
   # the streamed route: coded index tables from the rule, same optimum, a
   # decodable bundle
-  dir <- tempfile("rule-mps-"); dir.create(dir)
+  dir <- tempfile("rule-mps-")
+  dir.create(dir)
   f <- file.path(dir, "m.mps")
   withr::with_options(list(multimod.engine = "native"), write_mps(m, f, stream = TRUE))
   r <- solve_mps(f)
@@ -183,21 +209,30 @@ test_that("a rule with hidden join columns reproduces the energyRt model's LP an
   # one-to-one, so the enumeration must be made unique
   m <- base
   m$mappings$meqTradeCapFlow <- new_mapping(
-    "meqTradeCapFlow", desc = base$mappings$meqTradeCapFlow$desc,
+    "meqTradeCapFlow",
+    desc = base$mappings$meqTradeCapFlow$desc,
     dims = c("trade", "comm", "year", "timeslice"),
-    rule = mapping_rule(of = c("meqBalLo", "mvTradeIr")))
-  expect_equal(as_set(get_data(m, "meqTradeCapFlow", type = "mapping")),
-               as_set(base$mappings$meqTradeCapFlow$data))
+    rule = mapping_rule(of = c("meqBalLo", "mvTradeIr"))
+  )
+  expect_equal(
+    as_set(get_data(m, "meqTradeCapFlow", type = "mapping")),
+    as_set(base$mappings$meqTradeCapFlow$data)
+  )
   want <- lp_signature(model_to_lp(base, verbose = FALSE))
   got <- lp_signature(model_to_lp(m, verbose = FALSE))
   expect_equal(got, want)
-  nat <- withr::with_options(list(multimod.engine = "native"),
-                             lp_signature(model_to_lp(m, verbose = FALSE)))
+  nat <- withr::with_options(
+    list(multimod.engine = "native"),
+    lp_signature(model_to_lp(m, verbose = FALSE))
+  )
   expect_equal(nat, want)
-  dir <- tempfile("rule-utopia-"); dir.create(dir)
+  dir <- tempfile("rule-utopia-")
+  dir.create(dir)
   f <- file.path(dir, "u.mps")
-  withr::with_options(list(multimod.engine = "native"),
-                      write_mps(m, f, stream = TRUE, presolve = TRUE))
+  withr::with_options(
+    list(multimod.engine = "native"),
+    write_mps(m, f, stream = TRUE, presolve = TRUE)
+  )
   r <- solve_mps(f)
   expect_equal(r$objective, 46398.4234209742, tolerance = 1e-9)
   sol <- read_mps_solution(r$sol_file, index_dir = dir)

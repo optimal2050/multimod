@@ -12,13 +12,12 @@ render_html <- function(node, title = "Multimod AST Equation", fontsize = "120%"
     ),
     htmltools::tags$body(
       htmltools::tags$h2(title),
-      htmltools::tags$div(style = paste("font-size:", fontsize, ";"),
-                          htmltools::HTML(paste0("$$", latex_str, "$$"))
+      htmltools::tags$div(
+        style = paste("font-size:", fontsize, ";"),
+        htmltools::HTML(paste0("$$", latex_str, "$$"))
       )
     )
   )
 
   htmltools::browsable(html)
 }
-
-

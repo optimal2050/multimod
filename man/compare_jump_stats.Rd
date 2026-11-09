@@ -32,13 +32,24 @@ model generation changes.
 # the statistics files of two JuMP runs; solve_jump() writes them
 d1 <- file.path(tempfile("jump1-"), "solvers", "jump")
 d2 <- file.path(tempfile("jump2-"), "solvers", "jump")
-dir.create(d1, recursive = TRUE); dir.create(d2, recursive = TRUE)
-write.csv(data.frame(name = c("eqDemand", "eqCap"), count = c(4, 6),
-                     nnz_total = c(8, 12)),
-          file.path(d1, "constraint_stats.csv"), row.names = FALSE)
-write.csv(data.frame(name = c("eqDemand", "eqCap"), count = c(4, 6),
-                     nnz_total = c(8, 14)),
-          file.path(d2, "constraint_stats.csv"), row.names = FALSE)
+dir.create(d1, recursive = TRUE)
+dir.create(d2, recursive = TRUE)
+write.csv(
+  data.frame(
+    name = c("eqDemand", "eqCap"), count = c(4, 6),
+    nnz_total = c(8, 12)
+  ),
+  file.path(d1, "constraint_stats.csv"),
+  row.names = FALSE
+)
+write.csv(
+  data.frame(
+    name = c("eqDemand", "eqCap"), count = c(4, 6),
+    nnz_total = c(8, 14)
+  ),
+  file.path(d2, "constraint_stats.csv"),
+  row.names = FALSE
+)
 
 comp <- compare_jump_stats(d1, d2, verbose = FALSE)
 comp$nnz_differences

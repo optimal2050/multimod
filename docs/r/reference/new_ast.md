@@ -44,6 +44,6 @@ An object of class `ast` and subclass `set`.
 ## Examples
 
 ``` r
-ast_set("b")                     # standalone set
+ast_set("b") # standalone set
 #> <AST set> b
 ```

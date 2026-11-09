@@ -28,7 +28,7 @@ test_that("read_gmpl() parses a small MathProg model with data under schema vali
   expect_s3_class(m, "mm_model")
   expect_setequal(names(m$sets), c("TECH", "REGION"))
   expect_setequal(names(m$parameters), c("cost", "demand", "avail"))
-  expect_true("gen" %in% names(m$variables))   # plus the objective variable
+  expect_true("gen" %in% names(m$variables)) # plus the objective variable
   expect_true(all(c("meet", "cap") %in% names(m$equations)))
   expect_identical(get_dim_names(m$variables$gen$dims), c("TECH", "REGION"))
   expect_equal(nrow(m$parameters$cost$data), 2)
@@ -41,15 +41,21 @@ test_that("read_gmpl() parses a small MathProg model with data under schema vali
 
 osemosys_dir <- Sys.getenv("MULTIMOD_OSEMOSYS_DIR", unset = "")
 skip_if_no_osemosys <- function() {
-  testthat::skip_if(!nzchar(osemosys_dir) || !dir.exists(osemosys_dir),
-                    "MULTIMOD_OSEMOSYS_DIR not set")
-  testthat::skip_if_not(file.exists(file.path(osemosys_dir, "src", "osemosys.txt")),
-                        "OSeMOSYS clone has no src/osemosys.txt")
+  testthat::skip_if(
+    !nzchar(osemosys_dir) || !dir.exists(osemosys_dir),
+    "MULTIMOD_OSEMOSYS_DIR not set"
+  )
+  testthat::skip_if_not(
+    file.exists(file.path(osemosys_dir, "src", "osemosys.txt")),
+    "OSeMOSYS clone has no src/osemosys.txt"
+  )
 }
 
 read_osemosys <- function() {
-  suppressWarnings(read_gmpl(file.path(osemosys_dir, "src", "osemosys.txt"),
-                             file.path(osemosys_dir, "tests", "utopia.txt")))
+  suppressWarnings(read_gmpl(
+    file.path(osemosys_dir, "src", "osemosys.txt"),
+    file.path(osemosys_dir, "tests", "utopia.txt")
+  ))
 }
 
 test_that("OSeMOSYS (UTOPIA) parses, validates and renders", {
@@ -77,7 +83,9 @@ test_that("OSeMOSYS (UTOPIA) parses, validates and renders", {
   # default is rendered inline
   expect_true(any(grepl("get(DiscountRate, r, DiscountRateDef)", data_jl, fixed = TRUE)))
   expect_true(any(grepl("get(DiscountRateIdv, (r, t), get(DiscountRate, r, DiscountRateDef))",
-                        data_jl, fixed = TRUE)))
+    data_jl,
+    fixed = TRUE
+  )))
 })
 
 test_that("OSeMOSYS (UTOPIA) solves through JuMP to the published objective", {
@@ -123,22 +131,23 @@ test_that("an iterated operator keeps `*` and `/` inside the summation", {
   decl <- c("set L;", "param w{l in L};", "var x{l in L} >= 0;")
   lhs_of <- function(form) {
     m <- suppressWarnings(as_multimod(read_gmpl(
-      c(decl, paste0("s.t. e: ", form, " <= 1;"), "end;"))))
+      c(decl, paste0("s.t. e: ", form, " <= 1;"), "end;")
+    )))
     as_gams(m$equations$e$lhs)
   }
 
-  expect_equal(lhs_of("sum{l in L} x[l] * w[l]"),   "sum(L, x[L] * w[L])")
+  expect_equal(lhs_of("sum{l in L} x[l] * w[l]"), "sum(L, x[L] * w[L])")
   expect_equal(lhs_of("sum{l in L} (x[l] * w[l])"), "sum(L, x[L] * w[L])")
-  expect_equal(lhs_of("sum{l in L} w[l] * x[l]"),   "sum(L, w[L] * x[L])")
-  expect_equal(lhs_of("sum{l in L} x[l] / w[l]"),   "sum(L, x[L] / w[L])")
-  expect_equal(lhs_of("prod{l in L} x[l] * w[l]"),  "prod(L, x[L] * w[L])")
+  expect_equal(lhs_of("sum{l in L} w[l] * x[l]"), "sum(L, w[L] * x[L])")
+  expect_equal(lhs_of("sum{l in L} x[l] / w[l]"), "sum(L, x[L] / w[L])")
+  expect_equal(lhs_of("prod{l in L} x[l] * w[l]"), "prod(L, x[L] * w[L])")
 
   # `+` and `-` end the scope, so the trailing term stays outside
-  expect_equal(lhs_of("sum{l in L} x[l] + w[l]"),   "sum(L, x[L]) + w[L]")
-  expect_equal(lhs_of("sum{l in L} x[l] - w[l]"),   "sum(L, x[L]) - w[L]")
+  expect_equal(lhs_of("sum{l in L} x[l] + w[l]"), "sum(L, x[L]) + w[L]")
+  expect_equal(lhs_of("sum{l in L} x[l] - w[l]"), "sum(L, x[L]) - w[L]")
 
   # a factor in front of the sum is not swallowed by it
-  expect_equal(lhs_of("2 * sum{l in L} x[l]"),      "2 * sum(L, x[L])")
+  expect_equal(lhs_of("2 * sum{l in L} x[l]"), "2 * sum(L, x[L])")
 })
 
 test_that("commas separate data items, as MathProg allows", {
@@ -156,7 +165,8 @@ test_that("commas separate data items, as MathProg allows", {
     "  a  1, 2",
     "  b  3, 4",
     "  c  5, 6;",
-    "end;"))
+    "end;"
+  ))
   expect_equal(m$sets$L$data, c("a", "b", "c"))
   expect_equal(m$sets$M$data, c("p", "q"))
   expect_equal(m$parameters$w$data$value, c(1, 2, 10))
@@ -174,7 +184,8 @@ test_that("a model file may carry its own data section", {
     "data;",
     "set L := a b c;",
     "param w := a 1 b 2 c 10;",
-    "end;"))
+    "end;"
+  ))
   # an inline data section stands in for `data_file`, so the result is a model
   expect_s3_class(m, "mm_model")
   expect_equal(m$sets$L$data, c("a", "b", "c"))
@@ -188,7 +199,8 @@ test_that("a bare index set keeps its dimensions", {
     "param z{L, M};",
     "var x{L} >= 0;",
     "s.t. budget: sum{l in L} x[l] <= 1;",
-    "end;"))))
+    "end;"
+  ))))
   # `param w{L}` is `param w{l in L}` with the index left implicit
   expect_equal(get_dim_names(m$parameters$w$dims), "L")
   expect_equal(get_dim_names(m$parameters$z$dims), c("L", "M"))
@@ -211,7 +223,8 @@ test_that("a model declared over plain sets reaches the matrix backend", {
     "data;",
     "set L := a b c;",
     "param w := a 1 b 2 c 10;",
-    "end;"))
+    "end;"
+  ))
   ci <- build_col_index(m)
   expect_equal(nrow(ci[ci$symbol == "x", ]), 3L)
   expect_equal(solve_highs(m, attach = FALSE)$objective, 10, tolerance = 1e-9)
@@ -226,7 +239,8 @@ test_that("an equation restricted by a condition keeps only the rows that pass",
     "data;",
     "set L := a b c;",
     "param w := a 1 b 2 c 10;",
-    "end;"))
+    "end;"
+  ))
   # the condition holds for b and c only, so the equation contributes 2 rows
   ri <- build_row_index(m)
   expect_equal(sum(ri$symbol == "cap"), 2L)

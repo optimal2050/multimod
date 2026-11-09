@@ -15,15 +15,18 @@ get_network_data <- function(x, alias_map = NULL, show_dims = TRUE) {
   edges <- list()
   # Recursive builder for expressions
   walk_ast <- function(expr, parent_id = NULL, label_prx = NULL) {
-
-    if (is_empty(expr)) return(NULL)
+    if (is_empty(expr)) {
+      return(NULL)
+    }
     if (!is.null(alias_map) && expr$name %in% names(alias_map)) {
       expr$name <- alias_map[[expr$name]]
     }
 
     ntype <- node_type(expr)
     if (ntype == "dims") {
-      if (!show_dims) return(NULL)
+      if (!show_dims) {
+        return(NULL)
+      }
       label <- with_dims("", expr, show_dims = show_dims)
     } else if (ntype == "sum") {
       label <- "sum"
@@ -137,7 +140,7 @@ get_network_data <- function(x, alias_map = NULL, show_dims = TRUE) {
       }
     }
 
-    return(my_id)
+    my_id
   }
 
   # Build node of AST or LHS of equation
@@ -169,8 +172,7 @@ get_network_data <- function(x, alias_map = NULL, show_dims = TRUE) {
   nodes_df <- do.call(rbind, nodes)
   edges_df <- do.call(rbind, edges)
 
-  return(list(nodes = nodes_df, edges = edges_df))
-
+  list(nodes = nodes_df, edges = edges_df)
 }
 
 #' Convert a multimod ast or equation to a visNetwork object
@@ -197,7 +199,6 @@ as_visNetwork.ast <- function(x,
                               alias_map = NULL,
                               show_dims = TRUE,
                               ...) {
-
   if (!requireNamespace("visNetwork", quietly = TRUE)) {
     stop("Please install 'visNetwork' package.")
   }

@@ -20,8 +20,12 @@
 #' @keywords internal
 #' @noRd
 .mx_ast_vars <- function(node) {
-  if (is.null(node) || !is.list(node)) return(list())
-  if (identical(.mx_cls(node), "variable")) return(list(node))
+  if (is.null(node) || !is.list(node)) {
+    return(list())
+  }
+  if (identical(.mx_cls(node), "variable")) {
+    return(list(node))
+  }
   out <- list()
   for (el in node) if (is.list(el)) out <- c(out, .mx_ast_vars(el))
   out
@@ -52,7 +56,9 @@
 #' @keywords internal
 #' @noRd
 .mx_subst_prepare <- function(model, equations, codes) {
-  if (!length(equations)) return(NULL)
+  if (!length(equations)) {
+    return(NULL)
+  }
   ctx0 <- new.env(parent = emptyenv())
   ctx0$model <- model
   spec <- list()
@@ -69,13 +75,15 @@
     scalar <- is.na(dn) && !length(dims)
     if (is.na(dn) && !scalar) stop("substitute: '", en, "' has no domain mapping.", call. = FALSE)
     tp <- if (scalar) NULL else .domain_tuples(model, dn, codes)
-    if (!scalar && !nrow(tp)) next          # no rows: nothing to substitute
+    if (!scalar && !nrow(tp)) next # no rows: nothing to substitute
     vars <- c(.mx_ast_vars(eq$lhs), .mx_ast_vars(eq$rhs))
     vn <- vapply(vars, function(v) v$name, character(1))
     # an occurrence indexed by exactly the domain
     exact <- vapply(seq_along(vars), function(k) {
       v <- vars[[k]]
-      if (vn[k] %in% names(spec) || .mx_has_shift(v)) return(FALSE)
+      if (vn[k] %in% names(spec) || .mx_has_shift(v)) {
+        return(FALSE)
+      }
       r <- .mx_bound_names(.mx_ref_dims(v), dims, ctx0)
       length(r) == length(dims) && !anyDuplicated(r) && setequal(r, dims)
     }, logical(1))
@@ -99,8 +107,10 @@
     if (length(pick) > 1L) pick <- .mx_subst_pick(model, eq, dn, pick)
     if (length(pick) != 1L) {
       stop("substitute: '", en, "' does not define one variable over its domain ",
-           "(candidates: ", if (length(pick)) paste(pick, collapse = ", ") else "none",
-           ").", call. = FALSE)
+        "(candidates: ", if (length(pick)) paste(pick, collapse = ", ") else "none",
+        ").",
+        call. = FALSE
+      )
     }
     cand <- which(exact & vn == pick & (literal | !length(recursive)))[1]
     v <- vars[[cand]]
@@ -108,7 +118,9 @@
     b <- .mx_var_bounds(model$variables[[x]])
     if (is.finite(b$up) || !(b$lo == 0 || b$lo == -Inf) || b$vtype %in% c("binary", "integer")) {
       stop("substitute: '", x, "' (defined by '", en, "') must be continuous with ",
-           "a lower bound of 0 or none and no upper bound.", call. = FALSE)
+        "a lower bound of 0 or none and no upper bound.",
+        call. = FALSE
+      )
     }
     if (scalar) {
       keys <- NULL
@@ -126,8 +138,10 @@
       rkeys <- data.table::setDT(stats::setNames(rcols, paste0("i", seq_along(rcols))))
       n <- nrow(keys)
     }
-    spec[[x]] <- list(var = x, eq = en, keys = keys, rkeys = rkeys, n = n, lo = b$lo,
-                      recursive = length(recursive) > 0L, kept = 0L)
+    spec[[x]] <- list(
+      var = x, eq = en, keys = keys, rkeys = rkeys, n = n, lo = b$lo,
+      recursive = length(recursive) > 0L, kept = 0L
+    )
   }
   spec
 }
@@ -140,8 +154,12 @@
   own <- pick[vapply(pick, function(v) {
     identical(.domain_name(model$variables[[v]]$domain), dn)
   }, logical(1))]
-  if (length(own) == 1L) return(own)
-  if (identical(.mx_cls(eq$lhs), "variable") && eq$lhs$name %in% pick) return(eq$lhs$name)
+  if (length(own) == 1L) {
+    return(own)
+  }
+  if (identical(.mx_cls(eq$lhs), "variable") && eq$lhs$name %in% pick) {
+    return(eq$lhs$name)
+  }
   pick
 }
 
@@ -168,10 +186,14 @@
 #' @noRd
 .mx_subst_restrict <- function(model, subst, codes, verbose = FALSE) {
   rec <- names(subst)[vapply(subst, function(s) isTRUE(s$recursive) && s$lo == 0, logical(1))]
-  if (!length(rec)) return(subst)
+  if (!length(rec)) {
+    return(subst)
+  }
   ztol <- as.numeric(getOption("multimod.zero_tol", 1e-12))
-  ci0 <- build_col_index(model, names = FALSE, codes = codes,
-                         exclude = .mx_subst_exclude(subst))
+  ci0 <- build_col_index(model,
+    names = FALSE, codes = codes,
+    exclude = .mx_subst_exclude(subst)
+  )
   ctx0 <- .mx_new_ctx(model, ci0, codes, "error", subst)
   lo <- as.numeric(ci0$lo)
   ncol0 <- nrow(ci0)
@@ -189,8 +211,10 @@
     if (!length(bad)) next
     keep <- setdiff(seq_len(sp$n), bad)
     if (verbose) {
-      message(sprintf("  %-24s %d of %d tuples keep their row and column (the definition does not imply %s >= 0)",
-                      x, length(bad), sp$n, x))
+      message(sprintf(
+        "  %-24s %d of %d tuples keep their row and column (the definition does not imply %s >= 0)",
+        x, length(bad), sp$n, x
+      ))
     }
     if (!length(keep)) {
       subst[[x]] <- NULL
@@ -222,7 +246,9 @@
 #' @keywords internal
 #' @noRd
 .mx_rename_env <- function(x, f) {
-  if (!is.list(x)) return(x)
+  if (!is.list(x)) {
+    return(x)
+  }
   for (k in seq_along(x)) {
     nmk <- names(x)[k]
     el <- x[[k]]
@@ -250,7 +276,9 @@
 #' @noRd
 .mx_subst_def <- function(nm, ctx) {
   def <- ctx$subst_def[[nm]]
-  if (!is.null(def)) return(def)
+  if (!is.null(def)) {
+    return(def)
+  }
   if (nm %in% ctx$subst_busy) {
     stop("substitute: the definitions are cyclic through '", nm, "'.", call. = FALSE)
   }
@@ -270,11 +298,15 @@
   rhs <- .mx_lower(eq$rhs, dims, L)
   if (L$fail || is.null(lhs) || is.null(rhs)) {
     stop("substitute: '", sp$eq, "' is not covered by the native lowering (",
-         L$why %||% "unknown", ").", call. = FALSE)
+      L$why %||% "unknown", ").",
+      call. = FALSE
+    )
   }
-  rhs <- lapply(rhs, function(t) { t$sign <- -t$sign; t })
+  rhs <- lapply(rhs, function(t) {
+    t$sign <- -t$sign
+    t
+  })
   terms <- c(lhs, rhs)
-  vid <- paste0("v:", nm)
   isx <- vapply(terms, function(t) {
     any(vapply(t$steps, function(s) identical(s$op, "var") && isTRUE(s$defined), logical(1)))
   }, logical(1))
@@ -285,7 +317,9 @@
   ops <- vapply(xt$steps, function(s) s$op, character(1))
   if (!all(ops %in% c("factor", "var"))) {
     stop("substitute: the coefficient of '", nm, "' in '", sp$eq,
-         "' must be a number per row.", call. = FALSE)
+      "' must be a number per row.",
+      call. = FALSE
+    )
   }
   vs <- xt$steps[[which(ops == "var")]]
   xenv <- if (length(vs$on)) {
@@ -293,7 +327,10 @@
   } else {
     character()
   }
-  inv <- lapply(xt$steps[ops == "factor"], function(s) { s$invert <- !isTRUE(s$invert); s })
+  inv <- lapply(xt$steps[ops == "factor"], function(s) {
+    s$invert <- !isTRUE(s$invert)
+    s
+  })
   others <- lapply(terms[!isx], function(t) {
     t$sign <- -t$sign * xt$sign
     t$steps <- c(t$steps, inv)
@@ -315,7 +352,8 @@
   n <- sp$n
   ex <- .mx_executor(ctx, def$tables)
   plan <- list(rows = "rows", row_keys = def$xenv, terms = def$terms)
-  tt <- list(); cc <- list()
+  tt <- list()
+  cc <- list()
   for (p in seq_len(max(1L, ceiling(n / chunk)))) {
     r <- seq.int((p - 1L) * chunk + 1L, min(p * chunk, n))
     if (!length(r) || n == 0L) break
@@ -368,11 +406,14 @@
   if (any(W$kc == W$k)) {
     k1 <- W$k[W$kc == W$k][1]
     stop("substitute: '", nm, "' refers to itself at the same tuple in '", sp$eq,
-         "' (", tuple(k1), ").", call. = FALSE)
+      "' (", tuple(k1), ").",
+      call. = FALSE
+    )
   }
   # the levels of the placeholder graph
   lev <- rep(NA_integer_, n)
-  has_out <- logical(n); has_out[W$k] <- TRUE
+  has_out <- logical(n)
+  has_out[W$k] <- TRUE
   lev[!has_out] <- 0L
   todo <- which(has_out)
   L <- 0L
@@ -384,8 +425,9 @@
     ready <- setdiff(todo, blocked)
     if (!length(ready)) {
       stop("substitute: the definition of '", nm, "' in '", sp$eq, "' is cyclic ",
-           "(", length(todo), " tuples refer to each other in a loop, e.g. ", tuple(todo[1]), ").",
-           call. = FALSE)
+        "(", length(todo), " tuples refer to each other in a loop, e.g. ", tuple(todo[1]), ").",
+        call. = FALSE
+      )
     }
     lev[ready] <- L
     todo <- blocked
@@ -396,27 +438,39 @@
   if (nrow(cc)) cc <- cc[, list(value = sum(value)), by = "k"]
   Tl <- G[k %in% which(lev == 0L)]
   Cl <- cc[k %in% which(lev == 0L)]
-  T_all <- list(Tl); C_all <- list(Cl)
-  done_T <- Tl; done_C <- Cl
+  T_all <- list(Tl)
+  C_all <- list(Cl)
+  done_T <- Tl
+  done_C <- Cl
   for (l in seq_len(L)) {
     ks <- which(lev == l)
     wl <- W[k %in% ks]
-    tj <- done_T[wl, on = c(k = "kc"), allow.cartesian = TRUE, nomatch = NULL,
-                 list(k = i.k, j = j, coef = coef * i.w)]
+    tj <- done_T[wl,
+      on = c(k = "kc"), allow.cartesian = TRUE, nomatch = NULL,
+      list(k = i.k, j = j, coef = coef * i.w)
+    ]
     Tl <- data.table::rbindlist(list(G[k %in% ks], tj))
     Tl <- Tl[, list(coef = sum(coef)), by = c("k", "j")][abs(coef) >= ztol]
-    cj <- if (nrow(done_C)) done_C[wl, on = c(k = "kc"), allow.cartesian = TRUE, nomatch = NULL,
-                                   list(k = i.k, value = value * i.w)] else NULL
+    cj <- if (nrow(done_C)) {
+      done_C[wl,
+        on = c(k = "kc"), allow.cartesian = TRUE, nomatch = NULL,
+        list(k = i.k, value = value * i.w)
+      ]
+    } else {
+      NULL
+    }
     Cl <- data.table::rbindlist(list(cc[k %in% ks], cj))
     if (nrow(Cl)) Cl <- Cl[, list(value = sum(value)), by = "k"][abs(value) >= ztol]
-    T_all[[l + 1L]] <- Tl; C_all[[l + 1L]] <- Cl
-    done_T <- data.table::rbindlist(list(done_T, Tl)); done_C <- data.table::rbindlist(list(done_C, Cl))
+    T_all[[l + 1L]] <- Tl
+    C_all[[l + 1L]] <- Cl
+    done_T <- data.table::rbindlist(list(done_T, Tl))
+    done_C <- data.table::rbindlist(list(done_C, Cl))
   }
-  T <- data.table::rbindlist(T_all)[abs(coef) >= ztol]
+  tab <- data.table::rbindlist(T_all)[abs(coef) >= ztol]
   C <- data.table::rbindlist(C_all)
   if (nrow(C)) C <- C[abs(value) >= ztol]
-  data.table::setorder(T, k, j)
-  list(T = T, C = C, levels = L)
+  data.table::setorder(tab, k, j)
+  list(T = tab, C = C, levels = L)
 }
 
 #' A reference to a substituted variable, lowered
@@ -430,10 +484,16 @@
   ctx <- L$ctx
   nm <- node$name
   ref <- .mx_bound_names(.mx_ref_dims(node), bound, ctx)
-  if (!all(ref %in% bound)) return(.mx_lower_fail(L, "var:unbound"))
+  if (!all(ref %in% bound)) {
+    return(.mx_lower_fail(L, "var:unbound"))
+  }
   def <- .mx_subst_def(nm, ctx)
-  if (length(ref) != length(def$xenv)) return(.mx_lower_fail(L, "var:arity"))
-  if (isTRUE(ctx$subst[[nm]]$recursive)) return(.mx_subst_ref_mat(node, ref, bound, .mx_subst_mat(nm, ctx), L))
+  if (length(ref) != length(def$xenv)) {
+    return(.mx_lower_fail(L, "var:arity"))
+  }
+  if (isTRUE(ctx$subst[[nm]]$recursive)) {
+    return(.mx_subst_ref_mat(node, ref, bound, .mx_subst_mat(nm, ctx), L))
+  }
   for (id in names(def$tables)) {
     if (is.null(L$tables[[id]])) L$tables[[id]] <- def$tables[[id]]
   }
@@ -447,8 +507,10 @@
     # definition holds everywhere
     gid <- paste0("d:", nm)
     if (is.null(L$tables[[gid]])) L$tables[[gid]] <- as.list(ctx$subst[[nm]]$keys)
-    gate <- list(op = "gate", table = gid,
-                 on = stats::setNames(paste0("i", seq_along(ref)), ref))
+    gate <- list(
+      op = "gate", table = gid,
+      on = stats::setNames(paste0("i", seq_along(ref)), ref)
+    )
     out <- lapply(out, function(t) {
       t$steps <- c(list(gate), t$steps)
       t
@@ -472,9 +534,11 @@
   idx <- paste0("i", seq_along(ref))
   tid <- paste0("D:", nm)
   if (is.null(L$tables[[tid]])) {
-    T <- mat$T
-    L$tables[[tid]] <- c(stats::setNames(lapply(sp$keys, function(v) v[T$k]), idx),
-                         list(jj = as.integer(T$j), c = as.numeric(T$coef)))
+    tab <- mat$T
+    L$tables[[tid]] <- c(
+      stats::setNames(lapply(sp$keys, function(v) v[tab$k]), idx),
+      list(jj = as.integer(tab$j), c = as.numeric(tab$coef))
+    )
   }
   ctx$subst_n <- (ctx$subst_n %||% 0L) + 1L
   jn <- paste0("jj~", ctx$subst_n)
@@ -483,17 +547,21 @@
   out <- list(.mx_term(list(
     list(op = "expand", table = tid, on = on_k, bind = stats::setNames("jj", jn)),
     list(op = "factor", expr = list(kind = "param", table = tid, on = on_kj, column = "c", default = 0)),
-    list(op = "var", table = tid, on = on_kj, column = "jj"))))
+    list(op = "var", table = tid, on = on_kj, column = "jj")
+  )))
   C <- mat$C
   if (nrow(C)) {
     cid <- paste0("K:", nm)
     if (is.null(L$tables[[cid]])) {
-      L$tables[[cid]] <- c(stats::setNames(lapply(sp$keys, function(v) v[C$k]), idx),
-                           list(value = as.numeric(C$value)))
+      L$tables[[cid]] <- c(
+        stats::setNames(lapply(sp$keys, function(v) v[C$k]), idx),
+        list(value = as.numeric(C$value))
+      )
     }
     out[[2L]] <- .mx_term(list(
       list(op = "gate", table = cid, on = on_k),
-      list(op = "factor", expr = list(kind = "param", table = cid, on = on_k, column = "value", default = 0))))
+      list(op = "factor", expr = list(kind = "param", table = cid, on = on_k, column = "value", default = 0))
+    ))
   }
   c(out, .mx_lower_var_lookup(node, bound, L))
 }
@@ -561,13 +629,19 @@
     }
     if (bad > 0) {
       stop("substitute: the definition of '", x, "' (", sp$eq, ") does not imply its ",
-           "lower bound of 0 (", bad, " negative coefficients or free columns).", call. = FALSE)
+        "lower bound of 0 (", bad, " negative coefficients or free columns).",
+        call. = FALSE
+      )
     }
-    man[[x]] <- data.frame(variable = x, equation = sp$eq, rows = n, nnz = nnz,
-                           arity = length(sp$keys), stringsAsFactors = FALSE)
+    man[[x]] <- data.frame(
+      variable = x, equation = sp$eq, rows = n, nnz = nnz,
+      arity = length(sp$keys), stringsAsFactors = FALSE
+    )
     if (verbose) {
-      message(sprintf("  substituted %-24s by %-24s %d tuples, %d terms, %.1fs", x, sp$eq, n, nnz,
-                      as.numeric(difftime(Sys.time(), t0, units = "secs"))))
+      message(sprintf(
+        "  substituted %-24s by %-24s %d tuples, %d terms, %.1fs", x, sp$eq, n, nnz,
+        as.numeric(difftime(Sys.time(), t0, units = "secs"))
+      ))
     }
   }
   utils::write.csv(do.call(rbind, man), file.path(dir, "manifest.csv"), row.names = FALSE)
@@ -593,7 +667,9 @@
       add[[length(add) + 1L]] <- kk
     }
   }
-  if (!length(add)) return(primal)
+  if (!length(add)) {
+    return(primal)
+  }
   data.table::rbindlist(c(list(primal), add), use.names = TRUE, fill = TRUE)
 }
 
@@ -613,8 +689,10 @@
 .mx_subst_parts <- function(x, dir, format, val) {
   ext <- c(parquet = ".parquet", ipc = ".arrow", csv = ".csv")[[format]]
   vdir <- file.path(dir, x)
-  tags <- sort(sub(paste0("^keys-(.*)\\", ext, "$"), "\\1",
-                   list.files(vdir, pattern = paste0("^keys-.*\\", ext, "$"))))
+  tags <- sort(sub(
+    paste0("^keys-(.*)\\", ext, "$"), "\\1",
+    list.files(vdir, pattern = paste0("^keys-.*\\", ext, "$"))
+  ))
   lapply(tags, function(tag) {
     kk <- data.table::setDT(.load_dataframe(file.path(vdir, paste0("keys-", tag)), format))
     k0 <- kk$k[1] - 1L
@@ -646,14 +724,21 @@
   if (nonzero_only) parts <- lapply(parts, function(p) p[which(p$value != 0)])
   blk <- data.table::rbindlist(parts, use.names = TRUE)
   rm(parts)
-  if (!nrow(blk)) return(NULL)
-  if (!length(dn)) return(data.frame(value = as.numeric(blk$value)))
+  if (!nrow(blk)) {
+    return(NULL)
+  }
+  if (!length(dn)) {
+    return(data.frame(value = as.numeric(blk$value)))
+  }
   idx <- paste0("i", seq_along(dn))
   out <- as.data.frame(blk[, idx, with = FALSE])
   names(out) <- dn
   for (cl in dn) {
-    if (is.factor(out[[cl]])) out[[cl]] <- as.character(out[[cl]])
-    else if (!is.null(lv) && is.integer(out[[cl]])) out[[cl]] <- lv[out[[cl]]]
+    if (is.factor(out[[cl]])) {
+      out[[cl]] <- as.character(out[[cl]])
+    } else if (!is.null(lv) && is.integer(out[[cl]])) {
+      out[[cl]] <- lv[out[[cl]]]
+    }
   }
   for (cl in intersect(c("year", "yearp", "yeare", "yearn", "year2"), dn)) {
     out[[cl]] <- suppressWarnings(as.integer(out[[cl]]))
@@ -699,15 +784,23 @@ objective_chain <- function(model, stop_dims = NULL) {
   out <- character()
   seen <- character()
   walk <- function(v) {
-    if (v %in% seen) return(invisible())
+    if (v %in% seen) {
+      return(invisible())
+    }
     seen <<- c(seen, v)
     en <- defs[[v]]
-    if (is.null(en)) return(invisible())
+    if (is.null(en)) {
+      return(invisible())
+    }
     # a variable some constraint other than a definition refers to is part
     # of the LP's structure and keeps its columns
-    if (!all(setdiff(refs[[v]], en) %in% unlist(defs))) return(invisible())
+    if (!all(setdiff(refs[[v]], en) %in% unlist(defs))) {
+      return(invisible())
+    }
     eq <- model$equations[[en]]
-    if (length(stop_dims) && any(.mx_eq_dims(eq) %in% stop_dims)) return(invisible())
+    if (length(stop_dims) && any(.mx_eq_dims(eq) %in% stop_dims)) {
+      return(invisible())
+    }
     for (r in .mx_ast_vars(eq$rhs)) walk(r$name)
     out <<- c(out, en)
   }
@@ -722,8 +815,10 @@ objective_chain <- function(model, stop_dims = NULL) {
   refs <- list()
   for (en in names(model$equations)) {
     eq <- model$equations[[en]]
-    vs <- unique(vapply(c(.mx_ast_vars(eq$lhs), .mx_ast_vars(eq$rhs)),
-                        function(v) v$name, character(1)))
+    vs <- unique(vapply(
+      c(.mx_ast_vars(eq$lhs), .mx_ast_vars(eq$rhs)),
+      function(v) v$name, character(1)
+    ))
     for (v in vs) refs[[v]] <- c(refs[[v]], en)
   }
   refs

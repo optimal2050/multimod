@@ -1,4 +1,3 @@
-
 # internal functions ####
 
 #' Build a list of symbols from model_info
@@ -19,7 +18,8 @@ build_symbols_list <- function(model_info) {
   symbols <- list(
     sets = names(model_info$sets), # !!! Add aliases
     aliases = unlist(
-      lapply(model_info$aliases, function(x) ifelse(length(x) > 1, x[-1], x))),
+      lapply(model_info$aliases, function(x) ifelse(length(x) > 1, x[-1], x))
+    ),
     mappings = names(model_info$mappings),
     parameters = names(model_info$parameters),
     variables = names(model_info$variables),
@@ -46,17 +46,19 @@ build_symbols_list <- function(model_info) {
 }
 
 detect_symbol_type <- function(
-    name, symbols,
-    known_funcs = c("log", "exp", "abs", "sqrt"),
-    known_func_indexed = c("sum", "prod", "smin", "smax", "sand", "sor"),
-    default = "symbol",
-    rename = FALSE,
-    indexed = NA
+  name, symbols,
+  known_funcs = c("log", "exp", "abs", "sqrt"),
+  known_func_indexed = c("sum", "prod", "smin", "smax", "sand", "sor"),
+  default = "symbol",
+  rename = FALSE,
+  indexed = NA
 ) {
   lname <- tolower(name)
 
   check_case <- function(x, type) {
-    if (is.null(x)) return(FALSE)
+    if (is.null(x)) {
+      return(FALSE)
+    }
     x_lower <- tolower(x)
     match_idx <- match(lname, x_lower, nomatch = 0)
     if (match_idx > 0) {
@@ -69,13 +71,13 @@ detect_symbol_type <- function(
       }
       return(TRUE)
     }
-    return(FALSE)
+    FALSE
   }
 
   if (check_case(symbols$variables, "variable")) {
-    return("variable")
+    "variable"
   } else if (check_case(symbols$parameters, "parameter")) {
-    return("parameter")
+    "parameter"
   } else if (isFALSE(indexed) && check_case(symbols$sets, "set")) {
     # A GAMS subset is declared `sub(parent)` and is BOTH a set and, where it
     # gates an expression, a mapping. Which one a given occurrence is cannot be
@@ -84,17 +86,17 @@ detect_symbol_type <- function(
     # a name registered in both lists resolves the way it is written. With
     # `indexed = NA` (callers that do not track it) mappings keep priority,
     # which is the long-standing order.
-    return("set")
+    "set"
   } else if (check_case(symbols$mappings, "mapping")) {
-    return("mapping")
+    "mapping"
   } else if (check_case(symbols$sets, "set")) {
-    return("set")
+    "set"
   } else if (lname %in% tolower(known_func_indexed)) {
-    return("func_indexed")
+    "func_indexed"
   } else if (lname %in% tolower(known_funcs)) {
-    return("func")
+    "func"
   } else {
-    return(default)
+    default
   }
 }
 
@@ -123,15 +125,14 @@ infer_vtype_from_bounds <- function(lo = NULL, up = NULL, integer = FALSE) {
   is_pos_inf <- function(x) is.null(x) || isTRUE(x == Inf)
 
   if (is_zero(lo) && is_one(up)) {
-    return("binary")
+    "binary"
   } else if (is_zero(lo) && is_pos_inf(up)) {
-    return("positive")
+    "positive"
   } else if (integer) {
-    return("integer")
+    "integer"
   } else if (is.null(lo) && is.null(up)) {
-    return("free")
+    "free"
   } else {
-    return(NULL)  # ambiguous or custom-bounded
+    NULL # ambiguous or custom-bounded
   }
 }
-

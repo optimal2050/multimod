@@ -34,5 +34,5 @@ Constructs a set object used as an index domain for other symbols
 (e.g., mappings, parameters, variables, equations).
 }
 \examples{
-ast_set("b")                     # standalone set
+ast_set("b") # standalone set
 }

@@ -24,8 +24,8 @@ Prefer this to \code{inherits(x, "multimod")}, which says what the marker \emph{
 rather than what it \emph{means}.
 }
 \examples{
-is_declaration(new_set("tech"))   # TRUE
-is_declaration(ast_set("tech"))   # FALSE
+is_declaration(new_set("tech")) # TRUE
+is_declaration(ast_set("tech")) # FALSE
 }
 \seealso{
 \code{\link[=ast_schema]{ast_schema()}}, \code{\link[=schema_type]{schema_type()}}

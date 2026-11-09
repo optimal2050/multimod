@@ -37,9 +37,11 @@
 #' # control$watchdog <- w   (or FALSE to turn it off)
 cuopt_watchdog <- function(poll = 30, runaway = 1e20, runaway_n = 5,
                            stall_window = 1800, stall_iter = 5e5, stall_factor = 2) {
-  structure(list(poll = poll, runaway = runaway, runaway_n = runaway_n,
-                 stall_window = stall_window, stall_iter = stall_iter,
-                 stall_factor = stall_factor), class = "cuopt_watchdog")
+  structure(list(
+    poll = poll, runaway = runaway, runaway_n = runaway_n,
+    stall_window = stall_window, stall_iter = stall_iter,
+    stall_factor = stall_factor
+  ), class = "cuopt_watchdog")
 }
 
 #' @export
@@ -54,7 +56,9 @@ print.cuopt_watchdog <- function(x, ...) {
 .cuopt_watchdog_resolve <- function(control, local = TRUE) {
   w <- control$watchdog
   if (is.null(w)) w <- getOption("multimod.cuopt_watchdog", cuopt_watchdog())
-  if (is.null(w) || isFALSE(w)) return(NULL)
+  if (is.null(w) || isFALSE(w)) {
+    return(NULL)
+  }
   if (!inherits(w, "cuopt_watchdog")) w <- do.call(cuopt_watchdog, as.list(w))
   if (local && !requireNamespace("processx", quietly = TRUE)) {
     message("cuOpt watchdog off: the 'processx' package is not installed.")
@@ -67,18 +71,26 @@ print.cuopt_watchdog <- function(x, ...) {
 #   Iter  Primal Obj.  Dual Obj.  Gap  Primal Res.  Dual Res.  Time
 .cuopt_log_iters <- function(lines) {
   x <- grep("^\\s*[0-9]+\\s+[-+]?[0-9.]+e[-+][0-9]+\\s", lines, value = TRUE)
-  if (!length(x)) return(NULL)
+  if (!length(x)) {
+    return(NULL)
+  }
   m <- strsplit(trimws(x), "\\s+")
   m <- do.call(rbind, m[lengths(m) == 7L])
-  if (is.null(m)) return(NULL)
+  if (is.null(m)) {
+    return(NULL)
+  }
   num <- function(v) suppressWarnings(as.numeric(sub("s$", "", v)))
-  data.frame(iter = num(m[, 1]), pobj = num(m[, 2]), dobj = num(m[, 3]), gap = num(m[, 4]),
-             pres = num(m[, 5]), dres = num(m[, 6]), time = num(m[, 7]))
+  data.frame(
+    iter = num(m[, 1]), pobj = num(m[, 2]), dobj = num(m[, 3]), gap = num(m[, 4]),
+    pres = num(m[, 5]), dres = num(m[, 6]), time = num(m[, 7])
+  )
 }
 
 # The verdict on the log so far: NULL (carry on) or the reason to stop.
 .cuopt_watchdog_verdict <- function(it, w) {
-  if (is.null(it) || nrow(it) < 2) return(NULL)
+  if (is.null(it) || nrow(it) < 2) {
+    return(NULL)
+  }
   last <- it[nrow(it), ]
   if (is.finite(w$runaway) && is.finite(w$runaway_n)) {
     big <- pmax(abs(it$pobj), abs(it$dobj), na.rm = TRUE) > w$runaway
@@ -86,29 +98,40 @@ print.cuopt_watchdog <- function(x, ...) {
     r <- rle(big)
     k <- utils::tail(r$lengths, 1)
     if (utils::tail(big, 1) && k >= w$runaway_n) {
-      return(sprintf("objective beyond %g for %d log lines (primal %.3g, dual %.3g)",
-                     w$runaway, k, last$pobj, last$dobj))
+      return(sprintf(
+        "objective beyond %g for %d log lines (primal %.3g, dual %.3g)",
+        w$runaway, k, last$pobj, last$dobj
+      ))
     }
   }
   if (is.finite(w$stall_factor)) {
     stalled <- function(inside) {
-      before <- it[!inside, , drop = FALSE]; now <- it[inside, , drop = FALSE]
-      if (!nrow(before) || !nrow(now)) return(FALSE)
+      before <- it[!inside, , drop = FALSE]
+      now <- it[inside, , drop = FALSE]
+      if (!nrow(before) || !nrow(now)) {
+        return(FALSE)
+      }
       b <- function(v) suppressWarnings(min(v, na.rm = TRUE))
-      all(c(b(now$pres) > b(before$pres) / w$stall_factor,
-            b(now$dres) > b(before$dres) / w$stall_factor,
-            b(now$gap) > b(before$gap) / w$stall_factor))
+      all(c(
+        b(now$pres) > b(before$pres) / w$stall_factor,
+        b(now$dres) > b(before$dres) / w$stall_factor,
+        b(now$gap) > b(before$gap) / w$stall_factor
+      ))
     }
     if (is.finite(w$stall_window) && last$time - it$time[1] >= w$stall_window &&
-        stalled(it$time > last$time - w$stall_window)) {
-      return(sprintf("no progress by a factor %g in the last %g s (primal res %.3g, dual res %.3g, gap %.3g)",
-                     w$stall_factor, w$stall_window, last$pres, last$dres, last$gap))
+      stalled(it$time > last$time - w$stall_window)) {
+      return(sprintf(
+        "no progress by a factor %g in the last %g s (primal res %.3g, dual res %.3g, gap %.3g)",
+        w$stall_factor, w$stall_window, last$pres, last$dres, last$gap
+      ))
     }
     if (is.finite(w$stall_iter) && last$iter - it$iter[1] >= w$stall_iter &&
-        stalled(it$iter > last$iter - w$stall_iter)) {
-      return(sprintf("no progress by a factor %g in the last %s iterations (primal res %.3g, dual res %.3g, gap %.3g)",
-                     w$stall_factor, format(w$stall_iter, big.mark = ",", scientific = FALSE),
-                     last$pres, last$dres, last$gap))
+      stalled(it$iter > last$iter - w$stall_iter)) {
+      return(sprintf(
+        "no progress by a factor %g in the last %s iterations (primal res %.3g, dual res %.3g, gap %.3g)",
+        w$stall_factor, format(w$stall_iter, big.mark = ",", scientific = FALSE),
+        last$pres, last$dres, last$gap
+      ))
     }
   }
   NULL
@@ -137,9 +160,10 @@ print.cuopt_watchdog <- function(x, ...) {
   }
   if (!is.null(reason)) {
     stop("cuOpt stopped by the watchdog: ", reason, ". Log: ", log_file, "\n",
-         paste(utils::tail(lines, 5), collapse = "\n"),
-         "\nChange or turn off with control$watchdog = cuopt_watchdog(...) / FALSE.",
-         call. = FALSE)
+      paste(utils::tail(lines, 5), collapse = "\n"),
+      "\nChange or turn off with control$watchdog = cuopt_watchdog(...) / FALSE.",
+      call. = FALSE
+    )
   }
   p$get_exit_status()
 }

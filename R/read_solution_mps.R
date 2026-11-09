@@ -37,8 +37,10 @@ read_highs_solution <- function(file, require_optimal = TRUE) {
 
   status <- .hi_sol_status(ln)
   if (require_optimal && !grepl("optimal", status, ignore.case = TRUE)) {
-    stop("HiGHS solution status is '", status, "', not optimal.\n",
-         "  Pass require_optimal = FALSE to read it anyway.")
+    stop(
+      "HiGHS solution status is '", status, "', not optimal.\n",
+      "  Pass require_optimal = FALSE to read it anyway."
+    )
   }
 
   primal <- .hi_sol_section(ln, "# Primal solution values")
@@ -59,7 +61,9 @@ read_highs_solution <- function(file, require_optimal = TRUE) {
 #' @noRd
 .hi_sol_status <- function(ln) {
   i <- match("Model status", ln)
-  if (is.na(i)) return(NA_character_)
+  if (is.na(i)) {
+    return(NA_character_)
+  }
   nxt <- ln[(i + 1):length(ln)]
   nxt <- nxt[nzchar(nxt)]
   if (!length(nxt)) NA_character_ else nxt[1]
@@ -70,7 +74,9 @@ read_highs_solution <- function(file, require_optimal = TRUE) {
 #' @noRd
 .hi_sol_section <- function(ln, header) {
   start <- match(header, ln)
-  if (is.na(start)) return(list(columns = NULL, rows = NULL))
+  if (is.na(start)) {
+    return(list(columns = NULL, rows = NULL))
+  }
   # the section ends at the next top-level "# " header
   later <- grep("^# ", ln)
   later <- later[later > start]
@@ -81,8 +87,10 @@ read_highs_solution <- function(file, require_optimal = TRUE) {
     length(ln)
   }
   blk <- ln[start:end]
-  list(columns = .hi_sol_block(blk, "# Columns"),
-       rows    = .hi_sol_block(blk, "# Rows"))
+  list(
+    columns = .hi_sol_block(blk, "# Columns"),
+    rows = .hi_sol_block(blk, "# Rows")
+  )
 }
 
 #' One `# Columns <n>` / `# Rows <n>` block of `name value` pairs
@@ -90,7 +98,9 @@ read_highs_solution <- function(file, require_optimal = TRUE) {
 #' @noRd
 .hi_sol_block <- function(blk, marker) {
   i <- grep(paste0("^", marker, "\\b"), blk)
-  if (!length(i)) return(NULL)
+  if (!length(i)) {
+    return(NULL)
+  }
   i <- i[1]
   n <- suppressWarnings(as.integer(sub(paste0("^", marker, "\\s+"), "", blk[i])))
   if (is.na(n) || n < 0L) {
@@ -101,9 +111,11 @@ read_highs_solution <- function(file, require_optimal = TRUE) {
   }
   body <- blk[(i + 1):min(i + n, length(blk))]
   if (length(body) < n) {
-    stop("Solution file is truncated: '", marker, "' declares ", n,
-         " entries but only ", length(body), " are present.\n",
-         "  A partial download must not be read as a partial solution.")
+    stop(
+      "Solution file is truncated: '", marker, "' declares ", n,
+      " entries but only ", length(body), " are present.\n",
+      "  A partial download must not be read as a partial solution."
+    )
   }
   parts <- strsplit(body, "[[:space:]]+")
   nm <- vapply(parts, function(p) p[1], character(1))
@@ -113,10 +125,12 @@ read_highs_solution <- function(file, require_optimal = TRUE) {
   # header slides into the block and parses as a bogus `name value` pair.
   bad <- which(startsWith(nm, "#") | is.na(vl))
   if (length(bad)) {
-    stop("Solution file is malformed or truncated: '", marker, "' declares ", n,
-         " entries but entry ", bad[1], " reads '", body[bad[1]], "'.
+    stop(
+      "Solution file is malformed or truncated: '", marker, "' declares ", n,
+      " entries but entry ", bad[1], " reads '", body[bad[1]], "'.
 ",
-         "  A partial download must not be read as a partial solution.")
+      "  A partial download must not be read as a partial solution."
+    )
   }
 
   data.table::data.table(name = nm, value = vl)
@@ -134,8 +148,10 @@ read_highs_solution <- function(file, require_optimal = TRUE) {
     data.table::set(out, j = "dual", value = NA_real_)
   } else {
     if (nrow(du) != nrow(pr)) {
-      stop("Solution file has ", nrow(pr), " primal and ", nrow(du),
-           " dual ", what, " entries; they must agree.")
+      stop(
+        "Solution file has ", nrow(pr), " primal and ", nrow(du),
+        " dual ", what, " entries; they must agree."
+      )
     }
     data.table::set(out, j = "dual", value = du$value)
   }
@@ -178,7 +194,7 @@ read_cuopt_solution <- function(file, require_optimal = TRUE) {
   top <- readLines(con, n = 50L, warn = FALSE)
   n_hdr <- 0L
   while (n_hdr < length(top) &&
-         (startsWith(top[n_hdr + 1L], "#") || !nzchar(trimws(top[n_hdr + 1L])))) {
+    (startsWith(top[n_hdr + 1L], "#") || !nzchar(trimws(top[n_hdr + 1L])))) {
     n_hdr <- n_hdr + 1L
   }
   hdr <- grep("^#", top[seq_len(n_hdr)], value = TRUE)
@@ -186,9 +202,11 @@ read_cuopt_solution <- function(file, require_optimal = TRUE) {
   obj <- suppressWarnings(as.numeric(.cuopt_header(hdr, "Objective value")))
 
   if (require_optimal &&
-      (is.na(status) || !grepl("optimal", status, ignore.case = TRUE))) {
-    stop("cuOpt solution status is '", status, "', not optimal.\n",
-         "  Pass require_optimal = FALSE to read it anyway.")
+    (is.na(status) || !grepl("optimal", status, ignore.case = TRUE))) {
+    stop(
+      "cuOpt solution status is '", status, "', not optimal.\n",
+      "  Pass require_optimal = FALSE to read it anyway."
+    )
   }
 
   if (n_hdr >= length(top)) stop("cuOpt solution file has no values: ", file)
@@ -200,26 +218,37 @@ read_cuopt_solution <- function(file, require_optimal = TRUE) {
     on.exit(unlink(plain), add = TRUE)
     .gunzip_to(file, plain)
   }
-  body <- data.table::fread(plain, skip = n_hdr, header = FALSE, fill = TRUE,
-                            sep = " ", colClasses = list(character = 1L),
-                            blank.lines.skip = TRUE, showProgress = FALSE)
+  body <- data.table::fread(plain,
+    skip = n_hdr, header = FALSE, fill = TRUE,
+    sep = " ", colClasses = list(character = 1L),
+    blank.lines.skip = TRUE, showProgress = FALSE
+  )
   body <- body[!startsWith(body[[1]], "#")]
   if (!nrow(body)) stop("cuOpt solution file has no values: ", file)
   nm <- body[[1]]
-  vl <- if (ncol(body) >= 2) suppressWarnings(as.numeric(body[[2]])) else
+  vl <- if (ncol(body) >= 2) {
+    suppressWarnings(as.numeric(body[[2]]))
+  } else {
     rep(NA_real_, nrow(body))
+  }
   bad <- which(is.na(vl))
   if (ncol(body) > 2) bad <- sort(unique(c(bad, which(nzchar(body[[3]])))))
   if (length(bad)) {
-    stop("cuOpt solution file is malformed: entry ", bad[1], " reads '",
-         trimws(paste(unlist(body[bad[1]]), collapse = " ")), "'.\n",
-         "  A partial download must not be read as a partial solution.")
+    stop(
+      "cuOpt solution file is malformed: entry ", bad[1], " reads '",
+      trimws(paste(unlist(body[bad[1]]), collapse = " ")), "'.\n",
+      "  A partial download must not be read as a partial solution."
+    )
   }
 
-  list(status = status, objective = obj,
-       columns = data.table::data.table(name = nm, primal = vl,
-                                        dual = NA_real_),
-       rows = NULL)
+  list(
+    status = status, objective = obj,
+    columns = data.table::data.table(
+      name = nm, primal = vl,
+      dual = NA_real_
+    ),
+    rows = NULL
+  )
 }
 
 #' Decompress a gzip file to another file, in blocks
@@ -243,7 +272,9 @@ read_cuopt_solution <- function(file, require_optimal = TRUE) {
 #' @noRd
 .cuopt_header <- function(hdr, key) {
   i <- grep(paste0("^#\\s*", key, "\\s*:"), hdr)
-  if (!length(i)) return(NA_character_)
+  if (!length(i)) {
+    return(NA_character_)
+  }
   trimws(sub(paste0("^#\\s*", key, "\\s*:"), "", hdr[i[1]]))
 }
 
@@ -259,8 +290,9 @@ read_solver_solution <- function(file, solver = c("auto", "highs", "cuopt"),
   solver <- match.arg(solver)
   if (identical(solver, "auto")) solver <- .sniff_solution(file)
   switch(solver,
-         cuopt = read_cuopt_solution(file, require_optimal),
-         highs = read_highs_solution(file, require_optimal))
+    cuopt = read_cuopt_solution(file, require_optimal),
+    highs = read_highs_solution(file, require_optimal)
+  )
 }
 
 #' Which solver wrote a solution file
@@ -278,11 +310,17 @@ read_solver_solution <- function(file, solver = c("auto", "highs", "cuopt"),
   }
   on.exit(close(con), add = TRUE)
   head_ln <- trimws(readLines(con, n = 20, warn = FALSE))
-  if (any(grepl("^#\\s*Status\\s*:", head_ln))) return("cuopt")
-  if (any(head_ln == "Model status")) return("highs")
-  stop("Cannot tell which solver wrote '", file, "': expected a cuOpt ",
-       "'# Status:' line or a HiGHS 'Model status' line in the first 20 ",
-       "lines. Pass solver = ... explicitly.")
+  if (any(grepl("^#\\s*Status\\s*:", head_ln))) {
+    return("cuopt")
+  }
+  if (any(head_ln == "Model status")) {
+    return("highs")
+  }
+  stop(
+    "Cannot tell which solver wrote '", file, "': expected a cuOpt ",
+    "'# Status:' line or a HiGHS 'Model status' line in the first 20 ",
+    "lines. Pass solver = ... explicitly."
+  )
 }
 
 # --- mapping positions back to symbols ---------------------------------------
@@ -359,33 +397,56 @@ read_mps_solution <- function(sol, index_dir = NULL, col_index = NULL,
   if ("name" %in% names(ci)) {
     # a matrix written with names (another writer's labels): the index
     # carries each column's label, and values are placed by name
-    data.table::set(primal, j = "value",
-                    value = .place_by_name(ci$name, sol$columns$name,
-                                           sol$columns$primal, "column"))
-    data.table::set(primal, j = "reduced_cost",
-                    value = .place_by_name(ci$name, sol$columns$name,
-                                           sol$columns$dual, "column"))
+    data.table::set(primal,
+      j = "value",
+      value = .place_by_name(
+        ci$name, sol$columns$name,
+        sol$columns$primal, "column"
+      )
+    )
+    data.table::set(primal,
+      j = "reduced_cost",
+      value = .place_by_name(
+        ci$name, sol$columns$name,
+        sol$columns$dual, "column"
+      )
+    )
   } else if ("jred" %in% names(ci)) {
     # a reduced LP (lp_presolve()): the solution covers the kept
     # columns; the eliminated ones are rebuilt from their references
     jred <- ci$jred
     n_red <- sum(!is.na(jred))
     data.table::set(primal, j = "value", value = .expand_eliminated(
-      .place_by_position(sol$columns$name, sol$columns$primal, n_red, "c",
-                         "column"), jred, elim))
+      .place_by_position(
+        sol$columns$name, sol$columns$primal, n_red, "c",
+        "column"
+      ), jred, elim
+    ))
     data.table::set(primal, j = "reduced_cost", value = .expand_eliminated(
-      .place_by_position(sol$columns$name, sol$columns$dual, n_red, "c",
-                         "column"), jred, elim, fill_eliminated = FALSE))
+      .place_by_position(
+        sol$columns$name, sol$columns$dual, n_red, "c",
+        "column"
+      ), jred, elim,
+      fill_eliminated = FALSE
+    ))
     data.table::set(primal, j = "jred", value = NULL)
   } else {
-    data.table::set(primal, j = "value",
-                    value = .place_by_position(sol$columns$name,
-                                               sol$columns$primal,
-                                               nrow(ci), "c", "column"))
-    data.table::set(primal, j = "reduced_cost",
-                    value = .place_by_position(sol$columns$name,
-                                               sol$columns$dual,
-                                               nrow(ci), "c", "column"))
+    data.table::set(primal,
+      j = "value",
+      value = .place_by_position(
+        sol$columns$name,
+        sol$columns$primal,
+        nrow(ci), "c", "column"
+      )
+    )
+    data.table::set(primal,
+      j = "reduced_cost",
+      value = .place_by_position(
+        sol$columns$name,
+        sol$columns$dual,
+        nrow(ci), "c", "column"
+      )
+    )
   }
   sb <- attr(col_index, "subst")
   if (!is.null(sb) && substituted == "expand") primal <- .mx_subst_decode(primal, sb$dir, sb$format)
@@ -399,10 +460,14 @@ read_mps_solution <- function(sol, index_dir = NULL, col_index = NULL,
     data.table::set(dual, j = "value", value = NA_real_)
     data.table::set(dual, j = "marginal", value = NA_real_)
   } else if ("name" %in% names(ri)) {
-    data.table::set(dual, j = "value",
-                    value = .place_by_name(ri$name, sol$rows$name, sol$rows$primal, "row"))
-    data.table::set(dual, j = "marginal",
-                    value = .place_by_name(ri$name, sol$rows$name, sol$rows$dual, "row"))
+    data.table::set(dual,
+      j = "value",
+      value = .place_by_name(ri$name, sol$rows$name, sol$rows$primal, "row")
+    )
+    data.table::set(dual,
+      j = "marginal",
+      value = .place_by_name(ri$name, sol$rows$name, sol$rows$dual, "row")
+    )
   } else {
     rv <- .place_by_position(sol$rows$name, sol$rows$primal, n_rows, "r", "row")
     rmg <- .place_by_position(sol$rows$name, sol$rows$dual, n_rows, "r", "row")
@@ -424,9 +489,11 @@ read_mps_solution <- function(sol, index_dir = NULL, col_index = NULL,
   # index tables
   offset <- attr(col_index, "objective")$offset
   objective <- if (is.null(offset) || is.na(offset)) sol$objective else sol$objective + offset
-  list(objective = objective, status = sol$status,
-       primal = primal, dual = dual,
-       col_index = col_index, row_index = row_index)
+  list(
+    objective = objective, status = sol$status,
+    primal = primal, dual = dual,
+    col_index = col_index, row_index = row_index
+  )
 }
 
 #' Place values into index order by their parsed position
@@ -441,27 +508,34 @@ read_mps_solution <- function(sol, index_dir = NULL, col_index = NULL,
 # `c123` -> 123; NA where the name does not start with the prefix
 .position_of <- function(names_vec, prefix) {
   pos <- suppressWarnings(
-    as.integer(substr(names_vec, nchar(prefix) + 1L, nchar(names_vec))))
+    as.integer(substr(names_vec, nchar(prefix) + 1L, nchar(names_vec)))
+  )
   pos[!startsWith(names_vec, prefix)] <- NA_integer_
   pos
 }
 
 .place_by_position <- function(names_vec, values, n_index, prefix, what) {
   if (length(names_vec) != n_index) {
-    stop("Solution has ", length(names_vec), " ", what, "s but the index table",
-         " has ", n_index, ". They must describe the same model.")
+    stop(
+      "Solution has ", length(names_vec), " ", what, "s but the index table",
+      " has ", n_index, ". They must describe the same model."
+    )
   }
   pos <- .position_of(names_vec, prefix)
   bad <- which(is.na(pos) | pos < 0L | pos >= n_index)
   if (length(bad)) {
-    stop("Solution ", what, " name '", names_vec[bad[1]], "' is not a ",
-         prefix, "<position> in 0..", n_index - 1L, ".\n",
-         "  The solution does not correspond to the index tables.")
+    stop(
+      "Solution ", what, " name '", names_vec[bad[1]], "' is not a ",
+      prefix, "<position> in 0..", n_index - 1L, ".\n",
+      "  The solution does not correspond to the index tables."
+    )
   }
   if (anyDuplicated(pos)) {
     d <- pos[anyDuplicated(pos)]
-    stop("Solution ", what, " position ", d, " appears more than once; the ",
-         "file does not describe one value per ", what, ".")
+    stop(
+      "Solution ", what, " position ", d, " appears more than once; the ",
+      "file does not describe one value per ", what, "."
+    )
   }
   out <- rep(NA_real_, n_index)
   out[pos + 1L] <- values
@@ -477,18 +551,24 @@ read_mps_solution <- function(sol, index_dir = NULL, col_index = NULL,
 #' @keywords internal
 #' @noRd
 .place_by_name <- function(index_names, sol_names, values, what) {
-  if (is.null(sol_names) || !length(sol_names)) return(rep(NA_real_, length(index_names)))
+  if (is.null(sol_names) || !length(sol_names)) {
+    return(rep(NA_real_, length(index_names)))
+  }
   if (anyDuplicated(sol_names)) {
-    stop("Solution ", what, " '", sol_names[anyDuplicated(sol_names)],
-         "' appears more than once; the file does not describe one value per ",
-         what, ".")
+    stop(
+      "Solution ", what, " '", sol_names[anyDuplicated(sol_names)],
+      "' appears more than once; the file does not describe one value per ",
+      what, "."
+    )
   }
   m <- match(index_names, sol_names)
   miss <- which(is.na(m))
   if (length(miss)) {
-    stop(length(miss), " ", what, "(s) of the index are not in the solution, ",
-         "e.g. '", index_names[miss[1]], "'.\n",
-         "  The solution does not correspond to the index tables.")
+    stop(
+      length(miss), " ", what, "(s) of the index are not in the solution, ",
+      "e.g. '", index_names[miss[1]], "'.\n",
+      "  The solution does not correspond to the index tables."
+    )
   }
   values[m]
 }
@@ -501,15 +581,19 @@ read_mps_solution <- function(sol, index_dir = NULL, col_index = NULL,
 #' @noRd
 .check_positions <- function(names_vec, n_index, prefix, what) {
   if (length(names_vec) != n_index) {
-    stop("Solution has ", length(names_vec), " ", what, "s but the index table",
-         " has ", n_index, ". They must describe the same model.")
+    stop(
+      "Solution has ", length(names_vec), " ", what, "s but the index table",
+      " has ", n_index, ". They must describe the same model."
+    )
   }
   pos <- .position_of(names_vec, prefix)
   if (anyNA(pos) || !identical(pos, seq_len(n_index) - 1L)) {
     bad <- which(is.na(pos) | pos != (seq_len(n_index) - 1L))[1]
-    stop("Solution ", what, " names are not the expected positional sequence",
-         " (first mismatch at position ", bad, ": '", names_vec[bad], "').\n",
-         "  The solution does not correspond to the index tables.")
+    stop(
+      "Solution ", what, " names are not the expected positional sequence",
+      " (first mismatch at position ", bad, ": '", names_vec[bad], "').\n",
+      "  The solution does not correspond to the index tables."
+    )
   }
   invisible(TRUE)
 }
@@ -522,8 +606,10 @@ read_mps_solution <- function(sol, index_dir = NULL, col_index = NULL,
     cand <- list.files(index_dir, pattern = "_col_index")
     cand <- unique(sub("_col_index.*$", "", cand))
     if (length(cand) != 1L) {
-      stop("Cannot infer the index basename in '", index_dir, "': found ",
-           length(cand), " candidates. Pass base = ...")
+      stop(
+        "Cannot infer the index basename in '", index_dir, "': found ",
+        length(cand), " candidates. Pass base = ..."
+      )
     }
     base <- cand
   }
@@ -568,8 +654,10 @@ read_mps_solution <- function(sol, index_dir = NULL, col_index = NULL,
   el_path <- file.path(index_dir, paste0(base, "_eliminated"))
   el <- if ("jred" %in% names(ci)) .load_dataframe(el_path, format) else NULL
   if ("jred" %in% names(ci) && is.null(el)) {
-    stop("Index tables for '", base, "' describe a reduced LP but the ",
-         "eliminated-column table is missing in ", index_dir)
+    stop(
+      "Index tables for '", base, "' describe a reduced LP but the ",
+      "eliminated-column table is missing in ", index_dir
+    )
   }
   if (!is.null(el)) {
     data.table::setattr(ci, "eliminated", data.table::as.data.table(el))
@@ -598,7 +686,9 @@ read_mps_solution <- function(sol, index_dir = NULL, col_index = NULL,
   keep <- if (is.null(rows)) which(tbl[["symbol"]] == sym) else rows
   blk <- tbl[keep]
   if (nonzero_only) blk <- blk[which(blk[["value"]] != 0)]
-  if (!nrow(blk)) return(NULL)
+  if (!nrow(blk)) {
+    return(NULL)
+  }
   dn <- dim_names[[sym]]
   if (is.null(dn) || !length(dn)) {
     return(data.frame(value = blk$value))
@@ -610,8 +700,11 @@ read_mps_solution <- function(sol, index_dir = NULL, col_index = NULL,
   # dictionary in the `codes` attribute (or as factors, from a CSV bundle)
   lv <- attr(tbl, "codes")
   for (cl in dn) {
-    if (is.factor(out[[cl]])) out[[cl]] <- as.character(out[[cl]])
-    else if (!is.null(lv) && is.integer(out[[cl]])) out[[cl]] <- lv[out[[cl]]]
+    if (is.factor(out[[cl]])) {
+      out[[cl]] <- as.character(out[[cl]])
+    } else if (!is.null(lv) && is.integer(out[[cl]])) {
+      out[[cl]] <- lv[out[[cl]]]
+    }
   }
   # energyRt stores year-like indices as integers
   for (cl in intersect(c("year", "yearp", "yeare", "yearn", "year2"), dn)) {
@@ -631,7 +724,9 @@ read_mps_solution <- function(sol, index_dir = NULL, col_index = NULL,
 #' @noRd
 .symbol_rows <- function(symbol) {
   n <- length(symbol)
-  if (!n) return(list())
+  if (!n) {
+    return(list())
+  }
   # a factor's runs are found on its codes, without materialising labels
   if (is.factor(symbol)) {
     r <- rle(as.integer(symbol))
@@ -643,8 +738,11 @@ read_mps_solution <- function(sol, index_dir = NULL, col_index = NULL,
   starts <- ends - r$lengths + 1L
   runs <- split(seq_along(r$values), factor(r$values, levels = unique(r$values)))
   lapply(runs, function(k) {
-    if (length(k) == 1L) seq.int(starts[k], ends[k]) else
+    if (length(k) == 1L) {
+      seq.int(starts[k], ends[k])
+    } else {
       unlist(lapply(k, function(i) seq.int(starts[i], ends[i])), use.names = FALSE)
+    }
   })
 }
 
@@ -688,9 +786,11 @@ write_solution <- function(solution, dir,
   dim_names <- attr(primal, "dim_names")
   if (is.null(dim_names)) dim_names <- attr(solution$col_index, "dim_names")
   if (is.null(dim_names)) {
-    stop("No dim_names available: the index table lost them (CSV does not ",
-         "preserve attributes). Re-write the index with format = 'parquet', ",
-         "or keep the companion *_dim_names.csv written by write_mps().")
+    stop(
+      "No dim_names available: the index table lost them (CSV does not ",
+      "preserve attributes). Re-write the index with format = 'parquet', ",
+      "or keep the companion *_dim_names.csv written by write_mps()."
+    )
   }
   dir.create(dir, recursive = TRUE, showWarnings = FALSE)
 
@@ -708,11 +808,14 @@ write_solution <- function(solution, dir,
   for (nm in syms) {
     df <- if (!is.null(rows_of[[nm]])) {
       .solution_by_variable(primal, nm, dim_names,
-                            nonzero_only = nonzero_only, rows = rows_of[[nm]])
+        nonzero_only = nonzero_only, rows = rows_of[[nm]]
+      )
     }
     if (nm %in% deferred) {
-      sub <- .mx_subst_frame(nm, sb, primal$value, dim_names[[nm]], attr(primal, "codes"),
-                             nonzero_only)
+      sub <- .mx_subst_frame(
+        nm, sb, primal$value, dim_names[[nm]], attr(primal, "codes"),
+        nonzero_only
+      )
       if (!is.null(sub)) {
         for (cl in dim_names[[nm]]) {
           members[[cl]] <- unique(c(members[[cl]], as.character(unique(sub[[cl]]))))
@@ -721,9 +824,8 @@ write_solution <- function(solution, dir,
       df <- if (is.null(df)) sub else if (is.null(sub)) df else rbind(df, sub)
       rm(sub)
     }
-    if (is.null(df)) next                      # all zero: omitted
-    p <- switch(
-      format,
+    if (is.null(df)) next # all zero: omitted
+    p <- switch(format,
       arrow = {
         f <- file.path(dir, paste0(nm, ".arrow"))
         arrow::write_feather(df, f, compression = .arrow_codec("lz4", fallback = NULL))
@@ -771,16 +873,20 @@ write_energyrt_output <- function(solution, dir,
   format <- match.arg(format)
   # the per-variable tables are multimod's own layout; everything below is the
   # extra scaffolding energyRt::read_solution() additionally requires
-  written <- write_solution(solution, dir, format = format,
-                            variables = variables, nonzero_only = TRUE)
+  written <- write_solution(solution, dir,
+    format = format,
+    variables = variables, nonzero_only = TRUE
+  )
   kept <- attr(written, "variables")
   dim_names <- attr(written, "dim_names")
 
   vl <- file.path(dir, "variable_list.csv")
   writeLines(c("value", kept), vl)
 
-  meta <- c(.write_raw_data_set(solution$primal, dim_names, dir, attr(written, "members")),
-            .write_solution_log(solution, dir))
+  meta <- c(
+    .write_raw_data_set(solution$primal, dim_names, dir, attr(written, "members")),
+    .write_solution_log(solution, dir)
+  )
   invisible(c(vl, as.character(written), meta))
 }
 
@@ -812,7 +918,9 @@ write_energyrt_output <- function(solution, dir,
       members[[dn[k]]] <- unique(c(members[[dn[k]]], as.character(v)))
     }
   }
-  if (!length(members)) return(character())
+  if (!length(members)) {
+    return(character())
+  }
   out <- do.call(rbind, lapply(names(members), function(s) {
     data.frame(set = s, value = members[[s]], stringsAsFactors = FALSE)
   }))
@@ -841,7 +949,8 @@ write_energyrt_output <- function(solution, dir,
     paste0('"solver status",', shQuote(st %||% "unknown"), ',"', now, '"'),
     paste0('"solution status",', as.integer(ok), ',"', now, '"'),
     paste0('"objective",', format(solution$objective %||% NA_real_,
-                                  digits = 17), ',"', now, '"'),
+      digits = 17
+    ), ',"', now, '"'),
     paste0('"done",,"', now, '"')
   ), f)
   f
@@ -857,15 +966,23 @@ write_energyrt_output <- function(solution, dir,
 #' @keywords internal
 #' @noRd
 .write_dim_names <- function(dim_names, dir, base) {
-  if (is.null(dim_names) || !length(dim_names)) return(invisible(NULL))
+  if (is.null(dim_names) || !length(dim_names)) {
+    return(invisible(NULL))
+  }
   rows <- lapply(names(dim_names), function(s) {
     d <- dim_names[[s]]
-    if (is.null(d) || !length(d)) return(NULL)
-    data.frame(symbol = s, position = seq_along(d), dim = d,
-               stringsAsFactors = FALSE)
+    if (is.null(d) || !length(d)) {
+      return(NULL)
+    }
+    data.frame(
+      symbol = s, position = seq_along(d), dim = d,
+      stringsAsFactors = FALSE
+    )
   })
   rows <- do.call(rbind, rows[!vapply(rows, is.null, TRUE)])
-  if (is.null(rows)) return(invisible(NULL))
+  if (is.null(rows)) {
+    return(invisible(NULL))
+  }
   f <- file.path(dir, paste0(base, "_dim_names.csv"))
   utils::write.csv(rows, f, row.names = FALSE)
   invisible(f)
@@ -876,13 +993,17 @@ write_energyrt_output <- function(solution, dir,
 #' @noRd
 .write_codes <- function(levels, path) {
   utils::write.csv(data.frame(code = seq_along(levels), label = levels, stringsAsFactors = FALSE),
-                   path, row.names = FALSE)
+    path,
+    row.names = FALSE
+  )
   invisible(path)
 }
 
 .read_codes <- function(dir, base) {
   f <- file.path(dir, paste0(base, "_codes.csv"))
-  if (!file.exists(f)) return(NULL)
+  if (!file.exists(f)) {
+    return(NULL)
+  }
   d <- utils::read.csv(f, stringsAsFactors = FALSE, colClasses = c("integer", "character"))
   if (!nrow(d) || !identical(d$code, seq_len(nrow(d)))) stop("The member dictionary ", f, " is not in code order.")
   d$label
@@ -893,9 +1014,13 @@ write_energyrt_output <- function(solution, dir,
 #' @noRd
 .read_dim_names <- function(dir, base) {
   f <- file.path(dir, paste0(base, "_dim_names.csv"))
-  if (!file.exists(f)) return(NULL)
+  if (!file.exists(f)) {
+    return(NULL)
+  }
   d <- utils::read.csv(f, stringsAsFactors = FALSE)
-  if (!nrow(d)) return(NULL)
+  if (!nrow(d)) {
+    return(NULL)
+  }
   d <- d[order(d$symbol, d$position), ]
   split(d$dim, d$symbol)
 }
@@ -905,18 +1030,29 @@ write_energyrt_output <- function(solution, dir,
 #' @keywords internal
 #' @noRd
 .write_objective <- function(objective, path) {
-  utils::write.csv(data.frame(symbol = objective$symbol, sense = objective$sense,
-                              offset = as.numeric(objective$offset),
-                              flattened = isTRUE(objective$flattened),
-                              stringsAsFactors = FALSE),
-                   path, row.names = FALSE)
+  utils::write.csv(
+    data.frame(
+      symbol = objective$symbol, sense = objective$sense,
+      offset = as.numeric(objective$offset),
+      flattened = isTRUE(objective$flattened),
+      stringsAsFactors = FALSE
+    ),
+    path,
+    row.names = FALSE
+  )
 }
 
 .read_objective <- function(dir, base) {
   f <- file.path(dir, paste0(base, "_objective.csv"))
-  if (!file.exists(f)) return(NULL)
+  if (!file.exists(f)) {
+    return(NULL)
+  }
   d <- utils::read.csv(f, stringsAsFactors = FALSE)
-  if (!nrow(d)) return(NULL)
-  list(symbol = d$symbol[1], sense = d$sense[1], offset = as.numeric(d$offset[1]),
-       flattened = isTRUE(d$flattened[1]))
+  if (!nrow(d)) {
+    return(NULL)
+  }
+  list(
+    symbol = d$symbol[1], sense = d$sense[1], offset = as.numeric(d$offset[1]),
+    flattened = isTRUE(d$flattened[1])
+  )
 }

@@ -52,8 +52,8 @@
 #' @seealso [ast_schema()], [new_set()], [ast_set()]
 #' @name multimod-constructors
 #' @examples
-#' Set("tech")                      # a declaration
-#' SetRef("tech")                   # a reference
+#' Set("tech") # a declaration
+#' SetRef("tech") # a reference
 #' Expression("*", Symbol("a"), Symbol("b"))
 NULL
 
@@ -171,6 +171,6 @@ Where <- function(...) ast_where(...)
 #' @seealso [ast_schema()], [schema_type()]
 #' @export
 #' @examples
-#' is_declaration(new_set("tech"))   # TRUE
-#' is_declaration(ast_set("tech"))   # FALSE
+#' is_declaration(new_set("tech")) # TRUE
+#' is_declaration(ast_set("tech")) # FALSE
 is_declaration <- function(x) inherits(x, "multimod") && inherits(x, "ast")

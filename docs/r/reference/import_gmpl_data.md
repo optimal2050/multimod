@@ -72,7 +72,9 @@ get_data(model, "Demand")
 
 # Or import pre-parsed data, saving it as CSV in a model directory
 data <- read_gmpl_data(data_text)
-model <- import_gmpl_data(model, gmpl_data = data,
-                          model_path = tempfile("gmpl-data-"),
-                          format = "csv")
+model <- import_gmpl_data(model,
+  gmpl_data = data,
+  model_path = tempfile("gmpl-data-"),
+  format = "csv"
+)
 ```

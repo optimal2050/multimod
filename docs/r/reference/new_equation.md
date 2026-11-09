@@ -79,7 +79,8 @@ An `mm_equation` object.
 
 ``` r
 lhs <- ast_variable("vTechOut", dims = c("tech", "region"))
-rhs <- ast_expression("*",
+rhs <- ast_expression(
+  "*",
   ast_parameter("pTechEff", dims = c("tech")),
   ast_variable("vTechInp", dims = c("tech", "region"))
 )

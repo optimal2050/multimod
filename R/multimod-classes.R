@@ -9,7 +9,7 @@
 #' @examples
 #' new_set("tech", desc = "generation technologies", data = c("coal", "gas", "wind"))
 new_set <- function(name, desc = NULL, subset_of = NULL,
-                             data = NULL) {
+                    data = NULL) {
   stopifnot(is.character(name), length(name) == 1)
 
   obj <- structure(
@@ -49,17 +49,19 @@ new_set <- function(name, desc = NULL, subset_of = NULL,
 #'   region = c("north", "south"),
 #'   stringsAsFactors = FALSE
 #' )
-#' new_mapping("mTR", desc = "technology x region pairs",
-#'             dims = c("tech", "region"), data = pairs)
+#' new_mapping("mTR",
+#'   desc = "technology x region pairs",
+#'   dims = c("tech", "region"), data = pairs
+#' )
 new_mapping <- function(name,
-                                 desc = NULL,
-                                 subset_of = NULL,
-                                 dims = NULL,
-                                 active_dims = NULL,
-                                 data = NULL,
-                                 auto_fold = FALSE,
-                                 symbols = NULL,
-                                 rule = NULL) {
+                        desc = NULL,
+                        subset_of = NULL,
+                        dims = NULL,
+                        active_dims = NULL,
+                        data = NULL,
+                        auto_fold = FALSE,
+                        symbols = NULL,
+                        rule = NULL) {
   stopifnot(is.character(name), length(name) == 1)
   obj <- structure(
     list(
@@ -105,21 +107,24 @@ new_mapping <- function(name,
 #' @returns a parameter object
 #' @export
 #' @examples
-#' new_parameter("pDemand", desc = "annual demand, MWh", dims = "region",
-#'               data = data.frame(region = c("north", "south"), value = c(1000, 600)))
+#' new_parameter("pDemand",
+#'   desc = "annual demand, MWh", dims = "region",
+#'   data = data.frame(region = c("north", "south"), value = c(1000, 600))
+#' )
 new_parameter <- function(
-    name,
-    desc = NULL,
-    dims,
-    active_dims = NULL,
-    data = NULL,
-    defVal = NULL,
-    defInt = NULL,
-    symbolic = FALSE,
-    formula = NULL,
-    comment = NULL,
-    auto_fold = FALSE,
-    symbols = NULL) {
+  name,
+  desc = NULL,
+  dims,
+  active_dims = NULL,
+  data = NULL,
+  defVal = NULL,
+  defInt = NULL,
+  symbolic = FALSE,
+  formula = NULL,
+  comment = NULL,
+  auto_fold = FALSE,
+  symbols = NULL
+) {
   if (is.null(active_dims)) {
     if (auto_fold) {
       # dims_folded <- fold_param_dims(data, dims)
@@ -170,21 +175,24 @@ new_parameter <- function(
 #' @returns a variable object
 #' @export
 #' @examples
-#' new_variable("vGen", desc = "generation, MWh", dims = c("tech", "region"),
-#'              domain = "mTR", vtype = "positive", bounds = list(lo = 0))
+#' new_variable("vGen",
+#'   desc = "generation, MWh", dims = c("tech", "region"),
+#'   domain = "mTR", vtype = "positive", bounds = list(lo = 0)
+#' )
 new_variable <- function(
-    name,
-    desc = NULL,
-    dims,
-    active_dims = NULL,
-    domain = NULL,
-    vtype = NULL,
-    bounds = NULL,
-    comment = NULL,
-    data = NULL, # mapping parameter/set
-    # domain = "continuous",
-    auto_fold = FALSE,
-    symbols = NULL) {
+  name,
+  desc = NULL,
+  dims,
+  active_dims = NULL,
+  domain = NULL,
+  vtype = NULL,
+  bounds = NULL,
+  comment = NULL,
+  data = NULL, # mapping parameter/set
+  # domain = "continuous",
+  auto_fold = FALSE,
+  symbols = NULL
+) {
   # stopifnot(domain %in% c("continuous", "integer", "binary"))
 
   if (is.null(active_dims)) {
@@ -243,7 +251,8 @@ new_variable <- function(
 #'
 #' @examples
 #' lhs <- ast_variable("vTechOut", dims = c("tech", "region"))
-#' rhs <- ast_expression("*",
+#' rhs <- ast_expression(
+#'   "*",
 #'   ast_parameter("pTechEff", dims = c("tech")),
 #'   ast_variable("vTechInp", dims = c("tech", "region"))
 #' )
@@ -257,16 +266,17 @@ new_variable <- function(
 #' )
 #' print(eq)
 new_equation <- function(
-    name,
-    desc = NULL,
-    dims,
-    lhs,
-    rhs,
-    relation = "==",
-    domain = NULL,
-    comment = NULL,
-    dims_index_aliases = NULL,
-    symbols = NULL) {
+  name,
+  desc = NULL,
+  dims,
+  lhs,
+  rhs,
+  relation = "==",
+  domain = NULL,
+  comment = NULL,
+  dims_index_aliases = NULL,
+  symbols = NULL
+) {
   stopifnot(relation %in% c("==", "<=", ">="))
   stopifnot(inherits(lhs, "ast"), inherits(rhs, "ast"))
 
@@ -280,7 +290,7 @@ new_equation <- function(
       lhs = lhs,
       relation = relation,
       rhs = rhs,
-      dims_index_aliases = dims_index_aliases  # Store equation-specific iterator vars
+      dims_index_aliases = dims_index_aliases # Store equation-specific iterator vars
     ),
     class = c("mm_equation", "multimod", "ast")
   )
@@ -291,18 +301,18 @@ new_equation <- function(
 }
 
 new_model_structure <- function(
-    name = NULL,
-    desc = NULL,
-    sets = list(),
-    mappings = list(),
-    aliases = list(),
-    parameters = list(),
-    variables = list(),
-    equations = list(),
-    objectives = list(),  # List of objective metadata (can have multiple)
-    models = list(),      # List of model definitions: list(name = c(equation_names))
-    source = NULL,
-    language = NULL
+  name = NULL,
+  desc = NULL,
+  sets = list(),
+  mappings = list(),
+  aliases = list(),
+  parameters = list(),
+  variables = list(),
+  equations = list(),
+  objectives = list(), # List of objective metadata (can have multiple)
+  models = list(), # List of model definitions: list(name = c(equation_names))
+  source = NULL,
+  language = NULL
 ) {
   structure(
     list(
@@ -314,8 +324,8 @@ new_model_structure <- function(
       parameters = parameters,
       variables  = variables,
       equations  = equations,
-      objectives = objectives,  # Plural - can have multiple objectives
-      models     = models,      # Track model definitions and solve statements
+      objectives = objectives, # Plural - can have multiple objectives
+      models     = models, # Track model definitions and solve statements
       source     = source, # File path or string
       # source     = tryCatch(normalizePath(source, winslash = "/"),
       #                       error = function(e) {NULL}),
@@ -346,32 +356,38 @@ new_model_structure <- function(
 #' @export
 #' @examples
 #' region <- new_set("region", desc = "model regions", data = c("north", "south"))
-#' demand <- new_parameter("pDemand", desc = "annual demand, MWh", dims = "region",
-#'                         data = data.frame(region = c("north", "south"),
-#'                                           value = c(1000, 600)))
-#' m <- new_model(name = "tiny", desc = "one set and one parameter",
-#'                sets = list(region = region),
-#'                parameters = list(pDemand = demand))
+#' demand <- new_parameter("pDemand",
+#'   desc = "annual demand, MWh", dims = "region",
+#'   data = data.frame(
+#'     region = c("north", "south"),
+#'     value = c(1000, 600)
+#'   )
+#' )
+#' m <- new_model(
+#'   name = "tiny", desc = "one set and one parameter",
+#'   sets = list(region = region),
+#'   parameters = list(pDemand = demand)
+#' )
 #' m
 new_model <- function(
-    name = NULL,
-    desc = NULL,
-    sets = list(),
-    aliases = list(),
-    mappings = list(),
-    parameters = list(),
-    variables = list(),
-    equations = list(),
-    inMemory = TRUE,
-    base_path = NULL,
-    metadata = list(),
-    ...
+  name = NULL,
+  desc = NULL,
+  sets = list(),
+  aliases = list(),
+  mappings = list(),
+  parameters = list(),
+  variables = list(),
+  equations = list(),
+  inMemory = TRUE,
+  base_path = NULL,
+  metadata = list(),
+  ...
 ) {
   metadata <- metadata %||% list()
-    if (!is.null(metadata$language) && is.null(metadata$source_language)) {
-      metadata$source_language <- metadata$language
-    }
-    metadata$language <- NULL
+  if (!is.null(metadata$language) && is.null(metadata$source_language)) {
+    metadata$source_language <- metadata$language
+  }
+  metadata$language <- NULL
 
   model <- structure(
     list(
@@ -397,6 +413,3 @@ new_model <- function(
 
   model
 }
-
-
-

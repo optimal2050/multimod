@@ -16,14 +16,16 @@
 EXPECTED_OBJECTIVE <- 46398.4234209742
 
 fixture <- function() {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   example_models$energyRt$multimod
 }
 
 # walk every AST node in an object
 each_node <- function(x, f) {
-  if (!is.list(x) || is.data.frame(x)) return(invisible())
+  if (!is.list(x) || is.data.frame(x)) {
+    return(invisible())
+  }
   if (inherits(x, "ast")) f(x)
   for (e in x) each_node(e, f)
   invisible()
@@ -31,8 +33,10 @@ each_node <- function(x, f) {
 
 # a true round trip: through JSON TEXT, not just the intermediate list
 json_rt <- function(x, data = "inline") {
-  txt <- jsonlite::toJSON(ast_to_json(x, data = data), auto_unbox = TRUE,
-                          null = "null", digits = I(17))
+  txt <- jsonlite::toJSON(ast_to_json(x, data = data),
+    auto_unbox = TRUE,
+    null = "null", digits = I(17)
+  )
   ast_from_json(jsonlite::fromJSON(txt, simplifyVector = FALSE))
 }
 
@@ -49,11 +53,13 @@ test_that("every node in the packaged model resolves to a schema type", {
 })
 
 test_that("no node carries a field the schema does not declare", {
-  sc <- ast_schema()$nodes            # hoisted; rebuilding it per node is slow
+  sc <- ast_schema()$nodes # hoisted; rebuilding it per node is slow
   probs <- character()
   each_node(fixture(), function(n) {
     sp <- sc[[schema_type(n)]]
-    if (isTRUE(sp$unnamed)) return()
+    if (isTRUE(sp$unnamed)) {
+      return()
+    }
     extra <- setdiff(names(n), names(sp$fields))
     if (length(extra)) {
       probs <<- c(probs, paste0(schema_type(n), "$", extra))
@@ -83,7 +89,7 @@ test_that("every node in the packaged model round-trips identically", {
       bad <<- c(bad, schema_type(node))
     }
   })
-  expect_gt(n, 10000L)                 # the walk really did visit the model
+  expect_gt(n, 10000L) # the walk really did visit the model
   expect_equal(unique(bad), character())
 })
 
@@ -104,7 +110,7 @@ test_that("the round-tripped model assembles the identical matrix", {
 
   expect_equal(dim(lp2$A), dim(lp1$A))
   expect_equal(length(lp2$A@x), length(lp1$A@x))
-  expect_identical(lp2$A@x, lp1$A@x)          # identical, not all.equal
+  expect_identical(lp2$A@x, lp1$A@x) # identical, not all.equal
   expect_identical(lp2$row_lo, lp1$row_lo)
   expect_identical(lp2$row_up, lp1$row_up)
   expect_identical(lp2$col_lo, lp1$col_lo)
@@ -141,20 +147,24 @@ test_that("aliases survive, because the matrix depends on them", {
 test_that("doubles survive the text round trip bit-for-bit", {
   # jsonlite's `digits = NA` loses ~3e-15 relative; 17 significant digits is
   # the IEEE 754 guarantee
-  x <- c(1/3, pi, 143.13413443434343, 1e-17, 123456789.123456789)
+  x <- c(1 / 3, pi, 143.13413443434343, 1e-17, 123456789.123456789)
   # a DECLARATION - only declarations carry data, which is the whole point of
   # the split; `ast_parameter()` makes a reference and is rightly refused
-  p <- new_parameter("p", dims = ast_dims(ast_set("i")),
-                     data = data.frame(i = seq_along(x), value = x))
+  p <- new_parameter("p",
+    dims = ast_dims(ast_set("i")),
+    data = data.frame(i = seq_along(x), value = x)
+  )
   expect_identical(json_rt(p)$data$value, x)
 })
 
 test_that("a classed atomic survives (POSIXct, named vectors)", {
   p <- new_parameter("p", dims = ast_dims(ast_set("i")))
-  p$misc <- list(stamp = as.POSIXct("2026-09-08 21:53:42", tz = "UTC"),
-                 named = c(a = 1L, b = 2L),
-                 flag  = TRUE,
-                 empty = character(0))
+  p$misc <- list(
+    stamp = as.POSIXct("2026-09-08 21:53:42", tz = "UTC"),
+    named = c(a = 1L, b = 2L),
+    flag = TRUE,
+    empty = character(0)
+  )
   q <- json_rt(p)
   expect_identical(q$misc$stamp, p$misc$stamp)
   expect_identical(q$misc$named, p$misc$named)
@@ -165,7 +175,7 @@ test_that("present-but-NULL is distinguished from absent", {
   # equation$comment is present and NULL on all 152 equations; if the round
   # trip dropped it the node would no longer be identical()
   n <- ast_symbol("x")
-  n$extra_absent <- NULL              # assigning NULL removes it
+  n$extra_absent <- NULL # assigning NULL removes it
   expect_false("extra_absent" %in% names(n))
 
   e <- fixture()$equations[[1]]
@@ -178,7 +188,7 @@ test_that("present-but-NULL is distinguished from absent", {
 
 test_that("row.names of a subset table survive", {
   d <- data.frame(a = 1:10, value = as.numeric(1:10))
-  d <- d[4:8, ]                        # row.names become 4..8
+  d <- d[4:8, ] # row.names become 4..8
   p <- new_parameter("p", dims = ast_dims(ast_set("a")), data = d)
   expect_identical(json_rt(p)$data, d)
 })
@@ -187,12 +197,14 @@ test_that("row.names of a subset table survive", {
 
 test_that("data is omitted by default and kept on request", {
   m <- fixture()
-  nm <- names(Filter(function(p) is.data.frame(p$data) && nrow(p$data) > 0,
-                     m$parameters))[1]
+  nm <- names(Filter(
+    function(p) is.data.frame(p$data) && nrow(p$data) > 0,
+    m$parameters
+  ))[1]
   skip_if(is.na(nm))
   p <- m$parameters[[nm]]
 
-  expect_null(ast_to_json(p)$data)                     # default: omit
+  expect_null(ast_to_json(p)$data) # default: omit
   expect_false(is.null(ast_to_json(p, data = "inline")$data))
 
   # structure is unaffected by the choice

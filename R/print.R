@@ -54,8 +54,10 @@ print.dims <- function(x, brackets = "[", ...) {
 #' @method print expression
 print.expression <- function(x, max_char = 50, ...) {
   cat("<AST expression> ", x$op, "\n", sep = "")
-  cat("  lhs :\n"); print(x$lhs, max_char = max_char, ...)
-  cat("  rhs:\n"); print(x$rhs, max_char = max_char, ...)
+  cat("  lhs :\n")
+  print(x$lhs, max_char = max_char, ...)
+  cat("  rhs:\n")
+  print(x$rhs, max_char = max_char, ...)
 }
 
 #' @export
@@ -109,9 +111,12 @@ print.constant <- function(x, ...) {
 #' @method print when
 print.when <- function(x, ...) {
   cat("<AST when> ", x$op, "\n", sep = "")
-  cat("  condition:\n"); print(x$condition)
-  cat("  then :\n"); print(x$then)
-  cat("  otherwise :\n"); print(x$otherwise)
+  cat("  condition:\n")
+  print(x$condition)
+  cat("  then :\n")
+  print(x$then)
+  cat("  otherwise :\n")
+  print(x$otherwise)
 }
 
 #' @export
@@ -168,7 +173,8 @@ print.func <- function(x, ...) {
   cat("<func>\n")
   cat("  name:   ", x$name, "\n")
   if (!is.null(x$index)) {
-    cat("  index:  "); print(x$index)
+    cat("  index:  ")
+    print(x$index)
   }
   cat("  value:  ")
   if (is.list(x$value)) {

@@ -84,6 +84,6 @@ if (requireNamespace("highs", quietly = TRUE)) {
 }
 #> WARNING: Column names are not present, or contain duplicates: using names with prefix "c", beginning with suffix 0
 #> WARNING: Row    names are not present, or contain duplicates: using names with prefix "r", beginning with suffix 0
-#> Writing the model to C:\Users\admin\AppData\Local\Temp\Rtmp8QjY7E\mps-e76c431d44ec/toy.mps
+#> Writing the model to C:\Users\admin\AppData\Local\Temp\Rtmpo9uBqT\mps-c2ec33f27c1d/toy.mps
 #> [1] "objective" "status"    "primal"    "dual"      "col_index" "row_index"
 ```

@@ -10,8 +10,10 @@
 golden_root <- testthat::test_path("..", "..", "specs", "goldens")
 
 skip_if_no_goldens <- function() {
-  skip_if_not(dir.exists(file.path(golden_root, "matrix")),
-              "specs/goldens/matrix not available (source checkout only)")
+  skip_if_not(
+    dir.exists(file.path(golden_root, "matrix")),
+    "specs/goldens/matrix not available (source checkout only)"
+  )
 }
 
 expect_golden_tables <- function(lp, dir, tol = 1e-12) {
@@ -58,8 +60,10 @@ test_that("the toy model reproduces its matrix golden", {
   skip_if_no_goldens()
   lp <- model_to_lp(example_models$toy, verbose = FALSE)
   expect_golden_tables(lp, file.path(golden_root, "matrix", "toy"))
-  expect_golden_tables(lp_presolve(lp, verbose = FALSE),
-                       file.path(golden_root, "matrix", "toy", "presolve"))
+  expect_golden_tables(
+    lp_presolve(lp, verbose = FALSE),
+    file.path(golden_root, "matrix", "toy", "presolve")
+  )
 })
 
 test_that("the energyRt model reproduces its matrix golden", {
@@ -77,11 +81,15 @@ test_that("a local large model reproduces its golden when configured", {
   skip_on_cran()
   skip_if_no_goldens()
   dir <- Sys.getenv("MULTIMOD_GOLDEN_MODEL_DIR", "")
-  skip_if(!nzchar(dir) || !dir.exists(file.path(dir, "goldens", "matrix")),
-          "MULTIMOD_GOLDEN_MODEL_DIR not set or without goldens")
+  skip_if(
+    !nzchar(dir) || !dir.exists(file.path(dir, "goldens", "matrix")),
+    "MULTIMOD_GOLDEN_MODEL_DIR not set or without goldens"
+  )
   m <- load_model(dir)
   lp <- model_to_lp(m, verbose = FALSE)
   expect_golden_tables(lp, file.path(dir, "goldens", "matrix"))
-  expect_golden_tables(lp_presolve(lp, verbose = FALSE),
-                       file.path(dir, "goldens", "matrix", "presolve"))
+  expect_golden_tables(
+    lp_presolve(lp, verbose = FALSE),
+    file.path(dir, "goldens", "matrix", "presolve")
+  )
 })

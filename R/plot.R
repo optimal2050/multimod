@@ -21,18 +21,18 @@ plot.ast <- function(x, ...) {
     id <- new_id()
 
     label <- switch(node_type(node),
-                    expression = node$op,
-                    variable   = paste0("v: ", node$name),
-                    parameter  = paste0("p: ", node$name),
-                    constant   = as.character(node$value),
-                    symbol     = node$value,
-                    relation   = node$relation,
-                    condition  = "$",
-                    sum        = paste0("sum(", node$index, ")"),
-                    prod       = paste0("prod(", node$index, ")"),
-                    mapping    = paste0("map: ", node$name),
-                    set        = paste0("set: ", node$name),
-                    paste0("?", node_type(node))
+      expression = node$op,
+      variable   = paste0("v: ", node$name),
+      parameter  = paste0("p: ", node$name),
+      constant   = as.character(node$value),
+      symbol     = node$value,
+      relation   = node$relation,
+      condition  = "$",
+      sum        = paste0("sum(", node$index, ")"),
+      prod       = paste0("prod(", node$index, ")"),
+      mapping    = paste0("map: ", node$name),
+      set        = paste0("set: ", node$name),
+      paste0("?", node_type(node))
     )
 
     nodes[[length(nodes) + 1]] <<- data.frame(id = id, label = label, group = node_type(node), stringsAsFactors = FALSE)
@@ -76,7 +76,6 @@ plot.ast <- function(x, ...) {
 }
 
 
-
 # Plot method for AST
 plot_d.ast <- function(x, ...) {
   if (!requireNamespace("DiagrammeR", quietly = TRUE)) {
@@ -90,12 +89,13 @@ plot_d.ast <- function(x, ...) {
   walk_ast <- function(node) {
     node_id <- paste0("n", node_counter <<- node_counter + 1)
     label <- switch(node_type(node),
-                    "expression" = node$op,
-                    "variable" = paste0(node$name, "[", paste(node$dims, collapse = ","), "]"),
-                    "parameter" = paste0(node$name, "[", paste(node$dims, collapse = ","), "]"),
-                    "constant" = as.character(node$value),
-                    "symbol" = node$value,
-                    node_type(node))
+      "expression" = node$op,
+      "variable" = paste0(node$name, "[", paste(node$dims, collapse = ","), "]"),
+      "parameter" = paste0(node$name, "[", paste(node$dims, collapse = ","), "]"),
+      "constant" = as.character(node$value),
+      "symbol" = node$value,
+      node_type(node)
+    )
     dot_nodes <<- c(dot_nodes, sprintf("%s [label = \"%s\"]", node_id, label))
 
     if (node_type(node) == "expression") {
@@ -109,11 +109,13 @@ plot_d.ast <- function(x, ...) {
 
   walk_ast(x)
 
-  dot_code <- paste0("digraph AST {\n",
-                     "node [shape=box];\n",
-                     paste(dot_nodes, collapse = "\n"), "\n",
-                     paste(dot_edges, collapse = "\n"), "\n",
-                     "}")
+  dot_code <- paste0(
+    "digraph AST {\n",
+    "node [shape=box];\n",
+    paste(dot_nodes, collapse = "\n"), "\n",
+    paste(dot_edges, collapse = "\n"), "\n",
+    "}"
+  )
 
   DiagrammeR::grViz(dot_code)
 }
@@ -126,11 +128,3 @@ with_dims <- function(name, dims, brackets = c("[", "]"), collapse = ",",
   dims_str <- as.character(dims, brackets = brackets)
   paste0(name, dims_str)
 }
-
-
-
-
-
-
-
-

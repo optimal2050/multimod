@@ -67,7 +67,8 @@ mm_equation <- function(model, text, desc = "",
 
   if (lang == "jump") {
     return(parse_jump_equation(text, build_symbols_list(model),
-                               model = model, desc = desc))
+      model = model, desc = desc
+    ))
   }
 
   if (lang == "gams") {
@@ -78,16 +79,22 @@ mm_equation <- function(model, text, desc = "",
       stop("Could not read the equation header:\n  ", parts$header, call. = FALSE)
     }
     return(parse_gams_equation(
-      list(name = hdr$name, dims = hdr$dims, desc = desc,
-           domain = hdr$condition, gams = parts$body),
-      build_symbols_list(model)))
+      list(
+        name = hdr$name, dims = hdr$dims, desc = desc,
+        domain = hdr$condition, gams = parts$body
+      ),
+      build_symbols_list(model)
+    ))
   }
 
   spec <- .split_gmpl_statement(text)
   eq <- parse_gmpl_equation_to_ast(
-    list(name = spec$name, dims = spec$dims, desc = desc,
-         condition = spec$condition, sense = spec$sense, body = spec$body),
-    build_symbols_list(model))
+    list(
+      name = spec$name, dims = spec$dims, desc = desc,
+      condition = spec$condition, sense = spec$sense, body = spec$body
+    ),
+    build_symbols_list(model)
+  )
   # `condition` is the `{... : filter}` test; the indexing set is the domain
   # mapping, which the MathProg reader does not carry and which the matrix
   # route needs, so attach it here.
@@ -102,10 +109,13 @@ mm_equation <- function(model, text, desc = "",
   at <- regexpr("..", s, fixed = TRUE)
   if (at < 0L) {
     stop("Not an equation statement - no '..' between header and body:\n  ", s,
-         call. = FALSE)
+      call. = FALSE
+    )
   }
-  list(header = trimws(substr(s, 1L, at - 1L)),
-       body   = trimws(substr(s, at + 2L, nchar(s))))
+  list(
+    header = trimws(substr(s, 1L, at - 1L)),
+    body = trimws(substr(s, at + 2L, nchar(s)))
+  )
 }
 
 # Split "s.t. name{indexing}: lhs <op> rhs;" into the fields the AST builder
@@ -114,13 +124,14 @@ mm_equation <- function(model, text, desc = "",
 .split_gmpl_statement <- function(txt) {
   s <- .one_line(txt)
   low <- tolower(s)
-  if (startsWith(low, "s.t. "))      s <- trimws(substring(s, 6L))
+  if (startsWith(low, "s.t. ")) s <- trimws(substring(s, 6L))
   if (startsWith(low, "subject to ")) s <- trimws(substring(s, 12L))
 
   at <- regexpr("^[A-Za-z_][A-Za-z0-9_]*", s)
   if (at < 0L) {
     stop("Not an equation statement - it does not start with a name:\n  ", s,
-         call. = FALSE)
+      call. = FALSE
+    )
   }
   name <- regmatches(s, at)
   rest <- substring(s, attr(at, "match.length") + 1L)
@@ -147,8 +158,10 @@ mm_equation <- function(model, text, desc = "",
   if (is.null(sense)) {
     stop("No relational operator (<=, >=, =) found in:\n  ", rest, call. = FALSE)
   }
-  list(name = name, dims = dims, domain = domain, condition = condition,
-       sense = sense, body = trimws(rest))
+  list(
+    name = name, dims = dims, domain = domain, condition = condition,
+    sense = sense, body = trimws(rest)
+  )
 }
 
 # The first <=, >= or = that is not inside brackets.
@@ -157,13 +170,21 @@ mm_equation <- function(model, text, desc = "",
   depth <- 0L
   for (i in seq_along(chars)) {
     ch <- chars[i]
-    if (ch %in% c("(", "[", "{")) depth <- depth + 1L
-    else if (ch %in% c(")", "]", "}")) depth <- depth - 1L
-    else if (depth == 0L && ch %in% c("<", ">", "=")) {
+    if (ch %in% c("(", "[", "{")) {
+      depth <- depth + 1L
+    } else if (ch %in% c(")", "]", "}")) {
+      depth <- depth - 1L
+    } else if (depth == 0L && ch %in% c("<", ">", "=")) {
       nxt <- if (i < length(chars)) chars[i + 1L] else ""
-      if (ch %in% c("<", ">") && nxt == "=") return(paste0(ch, "="))
-      if (ch == "=" && nxt != "=") return("=")
-      if (ch == "=" && nxt == "=") return("=")
+      if (ch %in% c("<", ">") && nxt == "=") {
+        return(paste0(ch, "="))
+      }
+      if (ch == "=" && nxt != "=") {
+        return("=")
+      }
+      if (ch == "=" && nxt == "=") {
+        return("=")
+      }
     }
   }
   NULL

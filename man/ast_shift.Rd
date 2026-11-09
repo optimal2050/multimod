@@ -26,7 +26,7 @@ Used for GAMS lag/lead operators like \code{y-1} (previous year) or \code{y+1} (
 Negative offset represents backward shift (lag), positive represents forward shift (lead).
 }
 \examples{
-ast_shift("y", -1)  # y-1 (previous year)
-ast_shift("y", 1)   # y+1 (next year)
+ast_shift("y", -1) # y-1 (previous year)
+ast_shift("y", 1) # y+1 (next year)
 ast_shift("ls", -1) # ls-1 (previous season)
 }

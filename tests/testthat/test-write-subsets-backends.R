@@ -114,7 +114,9 @@ test_that("iterator variables stay unique once subsets become sets", {
   skip_if(length(regen) == 0)
   m2 <- model
   m2$index_aliases <- ia[setdiff(names(ia), regen)]
-  m2 <- suppressWarnings(add_index_aliases(m2, index_aliases = m2$index_aliases,
-                                           overwrite = TRUE))
+  m2 <- suppressWarnings(add_index_aliases(m2,
+    index_aliases = m2$index_aliases,
+    overwrite = TRUE
+  ))
   expect_false(any(duplicated(unlist(m2$index_aliases))))
 })

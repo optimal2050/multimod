@@ -20,8 +20,8 @@ node carrying it is a declaration, one without it is a reference.
 }
 \examples{
 schema_type(ast_symbol("t"))
-schema_type(ast_set("tech"))   # a reference
-schema_type(new_set("tech"))   # a declaration
+schema_type(ast_set("tech")) # a reference
+schema_type(new_set("tech")) # a declaration
 }
 \seealso{
 \code{\link[=ast_schema]{ast_schema()}}

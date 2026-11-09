@@ -429,7 +429,6 @@ export(write_latex)
 export(write_mps)
 export(write_pyomo)
 export(write_solution)
-importFrom(magrittr,"%>%")
 importFrom(purrr,pluck_depth)
 importFrom(rlang,is_empty)
 importFrom(stats,

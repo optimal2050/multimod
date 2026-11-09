@@ -32,38 +32,42 @@
 
 test_that("Trimmed UTOPIA matches original objective - GMPL", {
   skip_on_cran()
-  
+
   data(example_models, package = "multimod")
   demo_model <- example_models$energyRt$multimod
-  
+
   # Create temp directories
   temp_original <- tempfile("original_gmpl_")
   temp_trimmed <- tempfile("trimmed_gmpl_")
   dir.create(temp_original, recursive = TRUE)
   dir.create(temp_trimmed, recursive = TRUE)
   on.exit(unlink(c(temp_original, temp_trimmed), recursive = TRUE))
-  
+
   # Save and solve original model
   save_model(demo_model, temp_original, format = "csv", verbose = FALSE)
   write_gmpl(demo_model, model_dir = temp_original)
-  result_original <- solve_gmpl(demo_model, temp_original, 
-                                 verbose = FALSE, load_results = FALSE)
-  
+  result_original <- solve_gmpl(demo_model, temp_original,
+    verbose = FALSE, load_results = FALSE
+  )
+
   # Trim model
   utopia_trimmed <- trim_model(demo_model, verbose = FALSE)
-  
+
   # Save and solve trimmed model
   save_model(utopia_trimmed, temp_trimmed, format = "csv", verbose = FALSE)
   write_gmpl(utopia_trimmed, model_dir = temp_trimmed)
   result_trimmed <- solve_gmpl(utopia_trimmed, temp_trimmed,
-                                verbose = FALSE, load_results = FALSE)
-  
+    verbose = FALSE, load_results = FALSE
+  )
+
   # Compare objectives
   expect_true(result_original$success, label = "Original model should solve successfully")
   expect_true(result_trimmed$success, label = "Trimmed model should solve successfully")
-  expect_equal(result_original$objective, result_trimmed$objective, tolerance = 1e-4,
-               label = "Trimmed model objective should match original")
-  
+  expect_equal(result_original$objective, result_trimmed$objective,
+    tolerance = 1e-4,
+    label = "Trimmed model objective should match original"
+  )
+
   # Check that trimming actually removed elements
   trim_stats <- get_trim_summary(utopia_trimmed, format = "list")
   expect_gt(trim_stats$parameters$trimmed, 0, label = "Should have trimmed some parameters")
@@ -72,23 +76,24 @@ test_that("Trimmed UTOPIA matches original objective - GMPL", {
 
 test_that("Slice-Folded UTOPIA matches original objective - GMPL", {
   skip_on_cran()
-  
+
   data(example_models, package = "multimod")
   demo_model <- example_models$energyRt$multimod
-  
+
   # Create temp directories
   temp_original <- tempfile("original_gmpl_")
   temp_folded <- tempfile("folded_gmpl_")
   dir.create(temp_original, recursive = TRUE)
   dir.create(temp_folded, recursive = TRUE)
   on.exit(unlink(c(temp_original, temp_folded), recursive = TRUE))
-  
+
   # Save and solve original model
   save_model(demo_model, temp_original, format = "csv", verbose = FALSE)
   write_gmpl(demo_model, model_dir = temp_original)
   result_original <- solve_gmpl(demo_model, temp_original,
-                                 verbose = FALSE, load_results = FALSE)
-  
+    verbose = FALSE, load_results = FALSE
+  )
+
   # Create fold specification for slice dimension only
   fold_spec <- create_fold_spec(
     demo_model,
@@ -101,22 +106,25 @@ test_that("Slice-Folded UTOPIA matches original objective - GMPL", {
     ),
     verbose = FALSE
   )
-  
+
   # Fold model
   utopia_folded <- fold_model(demo_model, fold_spec = fold_spec, verbose = FALSE)
-  
+
   # Save and solve folded model
   save_model(utopia_folded, temp_folded, format = "csv", verbose = FALSE)
   write_gmpl(utopia_folded, model_dir = temp_folded, use_folded = TRUE)
   result_folded <- solve_gmpl(utopia_folded, temp_folded,
-                               verbose = FALSE, load_results = FALSE)
-  
+    verbose = FALSE, load_results = FALSE
+  )
+
   # Compare objectives
   expect_true(result_original$success, label = "Original model should solve successfully")
   expect_true(result_folded$success, label = "Folded model should solve successfully")
-  expect_equal(result_original$objective, result_folded$objective, tolerance = 1e-4,
-               label = "Folded model objective should match original")
-  
+  expect_equal(result_original$objective, result_folded$objective,
+    tolerance = 1e-4,
+    label = "Folded model objective should match original"
+  )
+
   # Check that folding actually reduced data
   fold_stats <- fold_spec[fold_spec$can_fold, ]
   expect_gt(nrow(fold_stats), 0, label = "Should have folded some parameters")
@@ -124,23 +132,24 @@ test_that("Slice-Folded UTOPIA matches original objective - GMPL", {
 
 test_that("Fold+Trim UTOPIA matches original objective - GMPL", {
   skip_on_cran()
-  
+
   data(example_models, package = "multimod")
   demo_model <- example_models$energyRt$multimod
-  
+
   # Create temp directories
   temp_original <- tempfile("original_gmpl_")
   temp_fold_trim <- tempfile("fold_trim_gmpl_")
   dir.create(temp_original, recursive = TRUE)
   dir.create(temp_fold_trim, recursive = TRUE)
   on.exit(unlink(c(temp_original, temp_fold_trim), recursive = TRUE))
-  
+
   # Save and solve original model
   save_model(demo_model, temp_original, format = "csv", verbose = FALSE)
   write_gmpl(demo_model, model_dir = temp_original)
   result_original <- solve_gmpl(demo_model, temp_original,
-                                 verbose = FALSE, load_results = FALSE)
-  
+    verbose = FALSE, load_results = FALSE
+  )
+
   # Create comprehensive 3D fold specification (slice + region + year)
   fold_spec <- create_fold_spec(
     demo_model,
@@ -170,26 +179,28 @@ test_that("Fold+Trim UTOPIA matches original objective - GMPL", {
     ),
     verbose = FALSE
   )
-  
+
   # Fold then trim
   utopia_folded <- fold_model(demo_model, fold_spec = fold_spec, verbose = FALSE)
   utopia_fold_trim <- trim_model(utopia_folded, verbose = FALSE)
-  
+
   # Save and solve fold+trim model
   save_model(utopia_fold_trim, temp_fold_trim, format = "csv", verbose = FALSE)
   write_gmpl(utopia_fold_trim, model_dir = temp_fold_trim, use_folded = TRUE)
   result_fold_trim <- solve_gmpl(utopia_fold_trim, temp_fold_trim,
-                                  verbose = FALSE, load_results = FALSE)
-  
+    verbose = FALSE, load_results = FALSE
+  )
+
   # Compare objectives
   expect_true(result_original$success, label = "Original model should solve successfully")
   expect_true(result_fold_trim$success, label = "Fold+Trim model should solve successfully")
-  expect_equal(result_original$objective, result_fold_trim$objective, tolerance = 1e-4,
-               label = "Fold+Trim model objective should match original")
-  
+  expect_equal(result_original$objective, result_fold_trim$objective,
+    tolerance = 1e-4,
+    label = "Fold+Trim model objective should match original"
+  )
+
   # Check that both operations occurred
   trim_stats <- get_trim_summary(utopia_fold_trim, format = "list")
   expect_gt(trim_stats$parameters$trimmed, 0, label = "Should have trimmed some parameters")
   expect_gt(trim_stats$variables$trimmed, 0, label = "Should have trimmed some variables")
 })
-

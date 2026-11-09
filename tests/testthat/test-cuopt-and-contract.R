@@ -46,8 +46,10 @@ test_that("a non-optimal cuOpt status is refused unless asked for", {
   f <- withr::local_tempfile(fileext = ".sol")
   fake_cuopt(f, c(1, 2), objective = 5, status = "TimeLimit")
   expect_error(read_cuopt_solution(f), "not optimal")
-  expect_identical(read_cuopt_solution(f, require_optimal = FALSE)$status,
-                   "TimeLimit")
+  expect_identical(
+    read_cuopt_solution(f, require_optimal = FALSE)$status,
+    "TimeLimit"
+  )
 })
 
 test_that("a malformed cuOpt line errors rather than reading partially", {
@@ -62,9 +64,11 @@ test_that("the reader is chosen by sniffing the file", {
   expect_identical(read_solver_solution(cu)$status, "Optimal")
 
   hi <- withr::local_tempfile(fileext = ".sol")
-  writeLines(c("Model status", "Optimal", "",
-               "# Primal solution values", "Feasible", "Objective 3",
-               "# Columns 2", "c0 1", "c1 2", "# Rows 1", "r0 3"), hi)
+  writeLines(c(
+    "Model status", "Optimal", "",
+    "# Primal solution values", "Feasible", "Objective 3",
+    "# Columns 2", "c0 1", "c1 2", "# Rows 1", "r0 3"
+  ), hi)
   expect_equal(read_solver_solution(hi)$objective, 3)
 
   junk <- withr::local_tempfile(fileext = ".sol")
@@ -78,30 +82,37 @@ test_that("values are placed by their parsed index, not by line order", {
   # A solver that emits its columns out of order must still land each value in
   # the right slot; zipping by line order would silently transpose them.
   f <- withr::local_tempfile(fileext = ".sol")
-  fake_cuopt(f, c(30, 10, 20), objective = 1,
-             names_vec = c("c2", "c0", "c1"))
+  fake_cuopt(f, c(30, 10, 20),
+    objective = 1,
+    names_vec = c("c2", "c0", "c1")
+  )
   s <- read_cuopt_solution(f)
-  placed <- multimod:::.place_by_position(s$columns$name, s$columns$primal,
-                                          3L, "c", "column")
+  placed <- multimod:::.place_by_position(
+    s$columns$name, s$columns$primal,
+    3L, "c", "column"
+  )
   expect_equal(placed, c(10, 20, 30))
 })
 
 test_that("a duplicate or out-of-range position is an error", {
   expect_error(
     multimod:::.place_by_position(c("c0", "c0"), c(1, 2), 2L, "c", "column"),
-    "more than once")
+    "more than once"
+  )
   expect_error(
     multimod:::.place_by_position(c("c0", "c9"), c(1, 2), 2L, "c", "column"),
-    "not a c<position>")
+    "not a c<position>"
+  )
   expect_error(
     multimod:::.place_by_position(c("c0"), 1, 2L, "c", "column"),
-    "must describe the same model")
+    "must describe the same model"
+  )
 })
 
 # --- the full chain, through disk ---------------------------------------------
 
 test_that("write_mps -> disk -> read_mps_solution -> write_energyrt_output", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   skip_if_not_installed("highs")
   data(example_models, package = "multimod")
   m <- example_models$energyRt$multimod
@@ -134,7 +145,7 @@ test_that("write_mps -> disk -> read_mps_solution -> write_energyrt_output", {
   expect_true(length(list.files(out, pattern = "\\.arrow$")) > 0)
 
   vl <- readLines(file.path(out, "variable_list.csv"))
-  expect_identical(vl[1], "value")     # the literal header energyRt looks for
+  expect_identical(vl[1], "value") # the literal header energyRt looks for
 
   lg <- readLines(file.path(out, "log.csv"))
   expect_identical(lg[1], "parameter,value,time")
@@ -142,7 +153,8 @@ test_that("write_mps -> disk -> read_mps_solution -> write_energyrt_output", {
   expect_true(any(grepl('"done"', lg, fixed = TRUE)))
 
   rds <- utils::read.csv(file.path(out, "raw_data_set.csv"),
-                         stringsAsFactors = FALSE)
+    stringsAsFactors = FALSE
+  )
   expect_identical(names(rds), c("set", "value"))
   # every dimension a written variable uses must have its set listed, or that
   # column reads back as all NA without complaint
@@ -152,7 +164,7 @@ test_that("write_mps -> disk -> read_mps_solution -> write_energyrt_output", {
 })
 
 test_that("a non-optimal solution is not logged as solved", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   skip_if_not_installed("highs")
   data(example_models, package = "multimod")
   m <- example_models$energyRt$multimod
@@ -161,11 +173,15 @@ test_that("a non-optimal solution is not logged as solved", {
 
   d <- withr::local_tempdir()
   f <- file.path(d, "capped.sol")
-  fake_cuopt(f, ref$primal$value, objective = ref$objective,
-             status = "TimeLimit")
+  fake_cuopt(f, ref$primal$value,
+    objective = ref$objective,
+    status = "TimeLimit"
+  )
 
-  s <- read_mps_solution(f, col_index = lp$col_index, row_index = lp$row_index,
-                         require_optimal = FALSE)
+  s <- read_mps_solution(f,
+    col_index = lp$col_index, row_index = lp$row_index,
+    require_optimal = FALSE
+  )
   out <- file.path(d, "output")
   write_energyrt_output(s, out)
 
@@ -180,7 +196,9 @@ test_that("read_cuopt_solution reads a gzipped file through a block-wise decompr
   f <- tempfile(fileext = ".sol")
   fake_cuopt(f, c(0, 1.5, 42), objective = 36880.2354212843493)
   gz <- paste0(f, ".gz")
-  con <- gzfile(gz, "wb"); writeLines(readLines(f), con); close(con)
+  con <- gzfile(gz, "wb")
+  writeLines(readLines(f), con)
+  close(con)
   a <- read_cuopt_solution(f)
   b <- read_cuopt_solution(gz)
   expect_equal(b, a)

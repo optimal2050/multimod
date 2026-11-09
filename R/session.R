@@ -56,7 +56,6 @@
       solution = NULL,
       #' @field opts Shared options forwarded to each step.
       opts = NULL,
-
       initialize = function(model = NULL, verbose = FALSE,
                             on_duplicate = c("error", "last", "first"),
                             chunk_rows = 1000000L, control = list()) {
@@ -73,13 +72,15 @@
       # Build the LP, or reuse the one already built. `force = TRUE` rebuilds.
       build_lp = function(force = FALSE, ...) {
         if (is.null(self$model)) stop("No model on the session.", call. = FALSE)
-        if (!is.null(self$lp) && !force) return(invisible(self))
+        if (!is.null(self$lp) && !force) {
+          return(invisible(self))
+        }
         self$lp <- model_to_lp(self$model,
-                               on_duplicate = self$opts$on_duplicate,
-                               verbose = self$opts$verbose, ...)
+          on_duplicate = self$opts$on_duplicate,
+          verbose = self$opts$verbose, ...
+        )
         invisible(self)
       },
-
       check_numbers = function(...) {
         self$build_lp()
         private$last_numbers <- check_matrix_numbers(self$lp, ...)
@@ -88,12 +89,13 @@
 
       # The report from the last check_numbers(), or NULL.
       numbers = function() private$last_numbers,
-
       solve = function(attach = FALSE, ...) {
         self$build_lp()
-        self$solution <- solve_highs(self$model, lp = self$lp, attach = attach,
-                                     control = self$opts$control,
-                                     verbose = self$opts$verbose, ...)
+        self$solution <- solve_highs(self$model,
+          lp = self$lp, attach = attach,
+          control = self$opts$control,
+          verbose = self$opts$verbose, ...
+        )
         # solve_highs(attach = TRUE) returns a MODIFIED COPY of the model. The
         # functional API makes the caller re-bind it; a session can simply
         # adopt it, which is the one ergonomic win that needs care.
@@ -102,26 +104,28 @@
         }
         invisible(self)
       },
-
       write_mps = function(file, ...) {
         self$build_lp()
-        private$paths <- write_mps(self$model, file, lp = self$lp,
-                                   verbose = self$opts$verbose, ...)
+        private$paths <- write_mps(self$model, file,
+          lp = self$lp,
+          verbose = self$opts$verbose, ...
+        )
         invisible(self)
       },
 
       # Paths written by the last write_mps(), or NULL.
       mps_paths = function() private$paths,
-
       read_solution = function(sol, ...) {
         if (is.null(self$lp)) {
           stop("Read back needs the index tables: build_lp() or write_mps() ",
-               "first, or call read_mps_solution() directly with index_dir.",
-               call. = FALSE)
+            "first, or call read_mps_solution() directly with index_dir.",
+            call. = FALSE
+          )
         }
         self$solution <- read_mps_solution(sol,
-                                           col_index = self$lp$col_index,
-                                           row_index = self$lp$row_index, ...)
+          col_index = self$lp$col_index,
+          row_index = self$lp$row_index, ...
+        )
         invisible(self)
       },
 
@@ -131,7 +135,8 @@
       write_output = function(dir, writer = write_solution, ...) {
         if (is.null(self$solution)) {
           stop("No solution on the session; solve() or read_solution() first.",
-               call. = FALSE)
+            call. = FALSE
+          )
         }
         private$out_files <- writer(self$solution, dir, ...)
         invisible(self)
@@ -139,17 +144,29 @@
 
       # Files written by the last write_output(), or NULL.
       output_files = function() private$out_files,
-
       print = function(...) {
         cat("<MultimodSession>\n")
-        cat("  model    :", if (is.null(self$model)) "-" else
-            sprintf("%d equations, %d variables", length(self$model$equations),
-                    length(self$model$variables)), "\n")
-        cat("  lp       :", if (is.null(self$lp)) "-" else
-            sprintf("%d rows x %d cols, %d nonzeros", nrow(self$lp$row_index),
-                    nrow(self$lp$col_index), length(self$lp$A@x)), "\n")
-        cat("  solution :", if (is.null(self$solution)) "-" else
-            sprintf("objective %.10g", self$solution$objective), "\n")
+        cat("  model    :", if (is.null(self$model)) {
+          "-"
+        } else {
+          sprintf(
+            "%d equations, %d variables", length(self$model$equations),
+            length(self$model$variables)
+          )
+        }, "\n")
+        cat("  lp       :", if (is.null(self$lp)) {
+          "-"
+        } else {
+          sprintf(
+            "%d rows x %d cols, %d nonzeros", nrow(self$lp$row_index),
+            nrow(self$lp$col_index), length(self$lp$A@x)
+          )
+        }, "\n")
+        cat("  solution :", if (is.null(self$solution)) {
+          "-"
+        } else {
+          sprintf("objective %.10g", self$solution$objective)
+        }, "\n")
         invisible(self)
       }
     ),
@@ -163,7 +180,9 @@
       # `deep = TRUE` - verified - so copy those explicitly. The LP carries two
       # data.tables (`col_index`, `row_index`) plus a sparse matrix.
       deep_clone = function(name, value) {
-        if (inherits(value, "data.table")) return(data.table::copy(value))
+        if (inherits(value, "data.table")) {
+          return(data.table::copy(value))
+        }
         if (is.list(value)) {
           return(lapply(value, function(el) {
             if (inherits(el, "data.table")) data.table::copy(el) else el
@@ -211,11 +230,14 @@ mm_session <- function(model = NULL, verbose = FALSE,
                        chunk_rows = 1000000L, control = list()) {
   if (!requireNamespace("R6", quietly = TRUE)) {
     stop("mm_session() needs the 'R6' package. install.packages(\"R6\")",
-         call. = FALSE)
+      call. = FALSE
+    )
   }
   # Built on first use so the package does not need R6 at load time.
   if (is.null(.session_cache$cls)) .session_cache$cls <- .make_session_class()
-  .session_cache$cls$new(model = model, verbose = verbose,
-                         on_duplicate = match.arg(on_duplicate),
-                         chunk_rows = chunk_rows, control = control)
+  .session_cache$cls$new(
+    model = model, verbose = verbose,
+    on_duplicate = match.arg(on_duplicate),
+    chunk_rows = chunk_rows, control = control
+  )
 }

@@ -1,5 +1,5 @@
 test_model_with_symbols <- function(lhs_symbol = "RateOfDemand",
-                                     rhs_symbol = "SpecifiedAnnualDemand") {
+                                    rhs_symbol = "SpecifiedAnnualDemand") {
   sets <- list(
     REGION = new_set("REGION"),
     FUEL = new_set("FUEL"),
@@ -123,4 +123,3 @@ test_that("validate uses global index aliases for iterators outside dims", {
   validation <- validate(model, stop_on_error = FALSE)
   expect_true(validation$valid)
 })
-

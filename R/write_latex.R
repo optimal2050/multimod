@@ -32,15 +32,15 @@ sort_model_components <- function(components, type = "sets") {
   if (is.null(components) || length(components) == 0) {
     return(components)
   }
-  
+
   component_names <- sapply(components, function(x) x$name)
-  
+
   if (type == "sets") {
     # Build hierarchy using subset_of field
     base_sets <- character()
-    subset_map <- list()  # Maps base set name to its subsets
+    subset_map <- list() # Maps base set name to its subsets
     standalone_sets <- character()
-    
+
     for (comp in components) {
       name <- comp$name
       if (!is.null(comp$subset_of) && !is.na(comp$subset_of) && comp$subset_of != "") {
@@ -59,7 +59,7 @@ sort_model_components <- function(components, type = "sets") {
         }
       }
     }
-    
+
     # Second pass: move sets from standalone to base if they have subsets
     for (name in standalone_sets) {
       if (name %in% names(subset_map)) {
@@ -67,13 +67,13 @@ sort_model_components <- function(components, type = "sets") {
         standalone_sets <- setdiff(standalone_sets, name)
       }
     }
-    
+
     # Build sorted order: standalone sets alphabetically, then base sets with their subsets
     sorted_names <- character()
-    
+
     # Add standalone sets alphabetically
     sorted_names <- c(sorted_names, sort(standalone_sets))
-    
+
     # Add base sets with their subsets, grouped and sorted
     if (length(base_sets) > 0) {
       base_sets_sorted <- sort(base_sets)
@@ -84,16 +84,15 @@ sort_model_components <- function(components, type = "sets") {
         }
       }
     }
-    
+
     # Return components in sorted order
     components[match(sorted_names, component_names)]
-    
   } else if (type %in% c("parameters", "variables")) {
     # Group by component prefix (Generator_, Line_, Link_, etc.)
     # Extract prefix before first underscore
     component_groups <- list()
     no_prefix <- character()
-    
+
     for (name in component_names) {
       if (grepl("^[A-Z][a-z]*[A-Z][a-z]*_", name)) {
         # Has component prefix like "Generator_" or "StorageUnit_"
@@ -114,22 +113,21 @@ sort_model_components <- function(components, type = "sets") {
         no_prefix <- c(no_prefix, name)
       }
     }
-    
+
     # Sort groups alphabetically, then items within groups
     sorted_names <- character()
     group_names <- sort(names(component_groups))
     for (group in group_names) {
       sorted_names <- c(sorted_names, sort(component_groups[[group]]))
     }
-    
+
     # Add items without prefix at the end
     if (length(no_prefix) > 0) {
       sorted_names <- c(sorted_names, sort(no_prefix))
     }
-    
+
     # Return components in sorted order
     components[match(sorted_names, component_names)]
-    
   } else if (type == "mappings") {
     # Simple alphabetical sort
     components[order(component_names)]
@@ -178,25 +176,25 @@ write_latex <- function(x, file, ...) {
 #' @export
 #' @method write_latex mm_equation
 write_latex.mm_equation <- function(x,
-                                 file,
-                                 append = FALSE,
-                                 standalone = !append,
-                                 preamble = NULL,
-                                 ending = NULL,
-                                 subsection_number = FALSE,
-                                 eq_substitute = list("when" = "condition"),
-                                                      # "func" = "index",
-                                                      # "sum" = "index",
-                                                      # "prod" = "index"),
-                                 alias_map = NULL,
-                                 verbose = FALSE,
-                                 ...) {
-
+                                    file,
+                                    append = FALSE,
+                                    standalone = !append,
+                                    preamble = NULL,
+                                    ending = NULL,
+                                    subsection_number = FALSE,
+                                    eq_substitute = list("when" = "condition"),
+                                    # "func" = "index",
+                                    # "sum" = "index",
+                                    # "prod" = "index"),
+                                    alias_map = NULL,
+                                    verbose = FALSE,
+                                    ...) {
   if (!is_empty(eq_substitute)) {
     # Substitute elements in the AST
     x <- remap_ast_elements(x,
-                            ast_type = eq_substitute,
-                            verbose = verbose, ...)
+      ast_type = eq_substitute,
+      verbose = verbose, ...
+    )
   }
 
   # Apply alias mapping if provided
@@ -279,46 +277,43 @@ write_latex.mm_equation <- function(x,
 #' @export
 #' @method write_latex mm_model
 write_latex.mm_model <- function(x,
-                              file = NULL,
-                              append = FALSE,
-                              preamble = NULL,
-                              ending = NULL,
-                              title = paste0("Model: ", x$name),
-                              subtitle = x$desc,
-                              author = x$authors,
-                              show_date = TRUE,
-                              # math_env = "equation",
-                              subsection_number = TRUE,
-
-                              # === PHASE 1 CORE PARAMETERS ===
-                              model_view = c("reduced", "full", "both"),
-                              include_data = TRUE,
-                              data_detail = c("brief", "detailed"),
-
-                              # === SET DISPLAY CONTROLS ===
-                              set_display_max_inline = 10,
-                              set_display_head_tail_threshold = 100,
-                              set_display_head_n = 3,
-                              set_display_tail_n = 3,
-
-                              # === EXISTING PARAMETERS ===
-                              include_toc = FALSE,
-                              include_sets = TRUE,
-                              include_aliases = TRUE,
-                              include_index_aliases = TRUE,
-                              include_parameters = TRUE,
-                              include_variables = TRUE,
-                              include_equations = TRUE,
-                              include_mappings = TRUE,
-                              eq_substitute = list("when" = "condition"),
-                              alias_map = NULL,
-                              use_model_aliases = TRUE,
-                              use_latex_names = TRUE,
-                              use_aliases_in_declarations = FALSE,
-                              folded_color = "blue",
-                              trimmed_color = "red",
-                              verbose = FALSE,
-                              ...) {
+                                 file = NULL,
+                                 append = FALSE,
+                                 preamble = NULL,
+                                 ending = NULL,
+                                 title = paste0("Model: ", x$name),
+                                 subtitle = x$desc,
+                                 author = x$authors,
+                                 show_date = TRUE,
+                                 # math_env = "equation",
+                                 subsection_number = TRUE,
+                                 # === PHASE 1 CORE PARAMETERS ===
+                                 model_view = c("reduced", "full", "both"),
+                                 include_data = TRUE,
+                                 data_detail = c("brief", "detailed"),
+                                 # === SET DISPLAY CONTROLS ===
+                                 set_display_max_inline = 10,
+                                 set_display_head_tail_threshold = 100,
+                                 set_display_head_n = 3,
+                                 set_display_tail_n = 3,
+                                 # === EXISTING PARAMETERS ===
+                                 include_toc = FALSE,
+                                 include_sets = TRUE,
+                                 include_aliases = TRUE,
+                                 include_index_aliases = TRUE,
+                                 include_parameters = TRUE,
+                                 include_variables = TRUE,
+                                 include_equations = TRUE,
+                                 include_mappings = TRUE,
+                                 eq_substitute = list("when" = "condition"),
+                                 alias_map = NULL,
+                                 use_model_aliases = TRUE,
+                                 use_latex_names = TRUE,
+                                 use_aliases_in_declarations = FALSE,
+                                 folded_color = "blue",
+                                 trimmed_color = "red",
+                                 verbose = FALSE,
+                                 ...) {
   # Auto-detect model_view default
   if (missing(model_view)) {
     is_optimized <- is_folded(x) || is_trimmed(x)
@@ -352,25 +347,26 @@ write_latex.mm_model <- function(x,
 
   # Auto-detect aliases from model if not provided
   if (is.null(alias_map) && use_model_aliases &&
-      !is.null(x$index_aliases) && length(x$index_aliases) > 0) {
+    !is.null(x$index_aliases) && length(x$index_aliases) > 0) {
     # Convert named vector to list if needed
     alias_map <- if (is.list(x$index_aliases)) x$index_aliases else as.list(x$index_aliases)
   }
   if (!is_empty(eq_substitute)) {
     # Substitute elements in the AST
     x$equations <- lapply(x$equations, remap_ast_elements,
-                            ast_type = eq_substitute,
-                            verbose = verbose, ...)
+      ast_type = eq_substitute,
+      verbose = verbose, ...
+    )
   }
 
   model <- x
-  
+
   # Build LaTeX names map from model metadata
   latex_names <- NULL
   if (use_latex_names && !is.null(model$metadata$latex_names)) {
     latex_names <- model$metadata$latex_names
   }
-  
+
   if (is.null(preamble)) {
     # Default LaTeX preamble
     preamble <- default_preamble
@@ -386,9 +382,11 @@ write_latex.mm_model <- function(x,
   if (!is.null(title)) {
     meta_block <- c(
       meta_block,
-      paste0("\\title{",
-             title,
-             paste0("\\\\\\large ", as_latex(subtitle), "}"))
+      paste0(
+        "\\title{",
+        title,
+        paste0("\\\\\\large ", as_latex(subtitle), "}")
+      )
     )
   }
   if (!is.null(author)) {
@@ -421,23 +419,27 @@ write_latex.mm_model <- function(x,
         lines <- c(lines, "\\textit{Folding reduces redundancy in model data by aggregating dimensions that have uniform values. This optimization does not affect the model equations or variables, only simplifies the parameter structure.}")
         lines <- c(lines, "\\begin{itemize}")
         if (!is.null(fold_summary$n_folded)) {
-          lines <- c(lines, sprintf("  \\item Parameters folded: %d / %d (%.1f\\%%)",
-                                    fold_summary$n_folded,
-                                    fold_summary$n_total,
-                                    100 * fold_summary$n_folded / fold_summary$n_total))
+          lines <- c(lines, sprintf(
+            "  \\item Parameters folded: %d / %d (%.1f\\%%)",
+            fold_summary$n_folded,
+            fold_summary$n_total,
+            100 * fold_summary$n_folded / fold_summary$n_total
+          ))
         }
         if (!is.null(fold_summary$parameters) && length(fold_summary$parameters) > 0) {
           lines <- c(lines, "  \\item Dimension reductions:")
           lines <- c(lines, "  \\begin{itemize}")
           for (pinfo in fold_summary$parameters) {
             safe_param <- gsub("_", "\\\\_", pinfo$parameter)
-            lines <- c(lines, sprintf("    \\item \\texttt{%s}: %s $\\rightarrow$ %s (%d $\\rightarrow$ %d rows, %s)",
-                                     safe_param,
-                                     pinfo$original_dims,
-                                     pinfo$folded_dims,
-                                     pinfo$original_rows,
-                                     pinfo$folded_rows,
-                                     pinfo$compression))
+            lines <- c(lines, sprintf(
+              "    \\item \\texttt{%s}: %s $\\rightarrow$ %s (%d $\\rightarrow$ %d rows, %s)",
+              safe_param,
+              pinfo$original_dims,
+              pinfo$folded_dims,
+              pinfo$original_rows,
+              pinfo$folded_rows,
+              pinfo$compression
+            ))
           }
           lines <- c(lines, "  \\end{itemize}")
         }
@@ -457,8 +459,10 @@ write_latex.mm_model <- function(x,
             trimmed <- trim_summary[[type]]$trimmed
             remaining <- total - trimmed
             pct <- if (total > 0) round(100 * trimmed / total, 1) else 0
-            lines <- c(lines, sprintf("  \\item %s: %d / %d trimmed (%.1f\\%%), %d remaining",
-                                     tools::toTitleCase(type), trimmed, total, pct, remaining))
+            lines <- c(lines, sprintf(
+              "  \\item %s: %d / %d trimmed (%.1f\\%%), %d remaining",
+              tools::toTitleCase(type), trimmed, total, pct, remaining
+            ))
           }
         }
         lines <- c(lines, "\\end{itemize}")
@@ -484,7 +488,7 @@ write_latex.mm_model <- function(x,
         safe_name <- gsub("_", "\\\\_", s$name)
         set_lx <- paste0("\\texttt{", safe_name, "}")
       }
-      
+
       # Add subset relationship if present
       if (!is_empty(s$subset_of)) {
         # Get parent latex name from metadata
@@ -496,7 +500,7 @@ write_latex.mm_model <- function(x,
           set_lx <- paste0(set_lx, " $\\subseteq$ \\texttt{", safe_parent, "}")
         }
       }
-      
+
       if (!is_empty(s$desc)) {
         set_lx <- paste0(set_lx, " -- ", as_latex(s$desc))
       }
@@ -541,7 +545,7 @@ write_latex.mm_model <- function(x,
 
   # Display index aliases if they exist (after aliases section)
   if (include_index_aliases && !is.null(model$index_aliases) &&
-      length(model$index_aliases) > 0) {
+    length(model$index_aliases) > 0) {
     lines <- c(lines, "", "\\section{Index Aliases}\\", "\\begin{flushleft}")
     for (idx_name in names(model$index_aliases)) {
       short_form <- model$index_aliases[[idx_name]]
@@ -560,9 +564,11 @@ write_latex.mm_model <- function(x,
       # Skip trimmed parameters if model_view is "reduced"
       if (model_view == "reduced" && isTRUE(p$trimmed)) next
 
-      p_tex <- paste0("$", as_latex(p, use_folded = use_folded, 
-                                    use_index_aliases = use_aliases_in_declarations,
-                                    model = model), "$")
+      p_tex <- paste0("$", as_latex(p,
+        use_folded = use_folded,
+        use_index_aliases = use_aliases_in_declarations,
+        model = model
+      ), "$")
       if (!is_empty(p$desc) && nzchar(p$desc) > 0) {
         p_tex <- paste0(p_tex, " -- ", as_latex(p$desc))
       }
@@ -571,10 +577,14 @@ write_latex.mm_model <- function(x,
       # Handle both data.frame and vector data formats
       data_len <- if (!is.null(p$data)) {
         if (is.data.frame(p$data)) nrow(p$data) else length(p$data)
-      } else 0
+      } else {
+        0
+      }
       if (include_data && data_detail == "brief" && data_len > 0) {
-        p_tex <- paste0(p_tex, " \\quad \\textit{(",
-                       format(data_len, big.mark = ","), " values)}")
+        p_tex <- paste0(
+          p_tex, " \\quad \\textit{(",
+          format(data_len, big.mark = ","), " values)}"
+        )
       }
 
       # Annotate trimmed if showing full model
@@ -609,9 +619,11 @@ write_latex.mm_model <- function(x,
       # Skip trimmed variables if model_view is "reduced"
       if (model_view == "reduced" && isTRUE(v$trimmed)) next
 
-      v_tex <- paste0("$", as_latex(v, use_folded = use_folded,
-                                    use_index_aliases = use_aliases_in_declarations,
-                                    model = model), "$")
+      v_tex <- paste0("$", as_latex(v,
+        use_folded = use_folded,
+        use_index_aliases = use_aliases_in_declarations,
+        model = model
+      ), "$")
       if (!is_empty(v$desc) && nzchar(v$desc) > 0) {
         v_tex <- paste0(v_tex, " -- ", as_latex(v$desc))
       }
@@ -655,8 +667,10 @@ write_latex.mm_model <- function(x,
 
       # Add row count if include_data and data_detail is "brief"
       if (include_data && data_detail == "brief" && !is.null(m$data) && nrow(m$data) > 0) {
-        m_tex <- paste0(m_tex, " \\quad \\textit{(",
-                       format(nrow(m$data), big.mark = ","), " rows)}")
+        m_tex <- paste0(
+          m_tex, " \\quad \\textit{(",
+          format(nrow(m$data), big.mark = ","), " rows)}"
+        )
       }
 
       # Annotate trimmed if showing full model
@@ -677,9 +691,10 @@ write_latex.mm_model <- function(x,
 
       if (verbose) message(eq$name)
       eq_tex <- as_latex(eq,
-                         subsection_number = subsection_number, 
-                         model = model,  # Pass model for index_aliases fallback
-                         ...)
+        subsection_number = subsection_number,
+        model = model, # Pass model for index_aliases fallback
+        ...
+      )
 
       # Annotate trimmed if showing full model
       if (model_view %in% c("full", "both") && isTRUE(eq$trimmed)) {
@@ -699,8 +714,8 @@ write_latex.mm_model <- function(x,
   # Write or return
   if (!is.null(file)) {
     writeLines(output, con = file, useBytes = TRUE)
-    return(invisible(file))
+    invisible(file)
   } else {
-    return(output)
+    output
   }
 }

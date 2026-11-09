@@ -57,7 +57,9 @@
 #' @noRd
 .mx_ref_dims <- function(node) {
   d <- node$dims
-  if (is.null(d) || length(d) == 0L) return(character())
+  if (is.null(d) || length(d) == 0L) {
+    return(character())
+  }
   vapply(d, dim_binding_name, character(1), USE.NAMES = FALSE)
 }
 
@@ -96,7 +98,9 @@
 #' @keywords internal
 #' @noRd
 .mx_code_in <- function(codes, x) {
-  if (is.integer(x) && isTRUE(attr(x, "mx_coded"))) return(x)
+  if (is.integer(x) && isTRUE(attr(x, "mx_coded"))) {
+    return(x)
+  }
   if (!is.character(x)) x <- as.character(x)
   lv <- codes$levels
   out <- data.table::chmatch(x, lv)
@@ -149,7 +153,9 @@
   if (.mx_is_codes(own)) {
     if (!identical(own, ctx$codes)) {
       stop("as_matrix: the index table is coded with a different dictionary ",
-           "than this build's.", call. = FALSE)
+        "than this build's.",
+        call. = FALSE
+      )
     }
     return(data.table::setDT(as.list(x)[c(keep, idx)]))
   }
@@ -167,7 +173,9 @@
 #' @keywords internal
 #' @noRd
 .mx_trace_open <- function(spec) {
-  if (is.null(spec)) return(NULL)
+  if (is.null(spec)) {
+    return(NULL)
+  }
   dir.create(spec$dir, recursive = TRUE, showWarnings = FALSE)
   e <- new.env(parent = emptyenv())
   e$dir <- spec$dir
@@ -182,23 +190,33 @@
 #' @noRd
 .mx_trace <- function(ctx, op, tables, spec = list()) {
   tr <- ctx$trace
-  if (is.null(tr)) return(invisible())
+  if (is.null(tr)) {
+    return(invisible())
+  }
   eq <- ctx$trace_eq
-  if (!is.null(tr$equations) && !(isTRUE(eq %in% tr$equations))) return(invisible())
+  if (!is.null(tr$equations) && !(isTRUE(eq %in% tr$equations))) {
+    return(invisible())
+  }
   tr$n <- tr$n + 1L
   tag <- sprintf("%05d", tr$n)
   for (nm in names(tables)) {
-    arrow::write_parquet(as.data.frame(tables[[nm]]),
-                         file.path(tr$dir, paste0(tag, "_", nm, ".parquet")))
+    arrow::write_parquet(
+      as.data.frame(tables[[nm]]),
+      file.path(tr$dir, paste0(tag, "_", nm, ".parquet"))
+    )
   }
-  line <- data.frame(seq = tr$n, equation = eq %||% "", op = op,
-                     tables = paste(names(tables), collapse = ";"),
-                     rows = paste(vapply(tables, nrow, 1L), collapse = ";"),
-                     spec = as.character(jsonlite::toJSON(spec, auto_unbox = TRUE)),
-                     stringsAsFactors = FALSE)
+  line <- data.frame(
+    seq = tr$n, equation = eq %||% "", op = op,
+    tables = paste(names(tables), collapse = ";"),
+    rows = paste(vapply(tables, nrow, 1L), collapse = ";"),
+    spec = as.character(jsonlite::toJSON(spec, auto_unbox = TRUE)),
+    stringsAsFactors = FALSE
+  )
   new <- !file.exists(tr$ops)
-  utils::write.table(line, tr$ops, append = !new, sep = ",", row.names = FALSE,
-                     col.names = new, qmethod = "double")
+  utils::write.table(line, tr$ops,
+    append = !new, sep = ",", row.names = FALSE,
+    col.names = new, qmethod = "double"
+  )
   invisible()
 }
 
@@ -232,11 +250,12 @@
 #' @keywords internal
 #' @noRd
 .mx_eval <- function(node, env, ctx) {
-  if (is.null(node)) return(.mx_no_terms())
+  if (is.null(node)) {
+    return(.mx_no_terms())
+  }
   cls <- sub("^mm_", "", class(node)[1])
 
-  switch(
-    cls,
+  switch(cls,
     constant   = .mx_eval_constant(node, env, ctx),
     symbol     = .mx_eval_symbol(node, env, ctx),
     setmin     = .mx_eval_extremum(node, env, ctx, min),
@@ -248,7 +267,7 @@
     unary      = .mx_eval_unary(node, env, ctx),
     when       = .mx_eval_when(node, env, ctx),
     func       = .mx_eval_func(node, env, ctx),
-    sum        = .mx_eval_sum(node, env, ctx),   # ast_sum() nodes; GAMS sums arrive as func
+    sum        = .mx_eval_sum(node, env, ctx), # ast_sum() nodes; GAMS sums arrive as func
     prod       = .mx_eval_prod(node, env, ctx),
     .mx_unsupported(node)
   )
@@ -276,15 +295,19 @@
   raw <- dim_binding_name(node)
   nm <- .mx_env_name(ctx, env, raw)
   if (!nm %in% names(env)) {
-    stop("as_matrix: index '", raw, "' is used as a value but is not bound ",
-         "here.")
+    stop(
+      "as_matrix: index '", raw, "' is used as a value but is not bound ",
+      "here."
+    )
   }
   lab <- .mx_decode(ctx, env[[nm]])
   v <- suppressWarnings(as.numeric(lab))
   if (anyNA(v)) {
-    stop("as_matrix: index '", nm, "' is used as a number, but member(s) ",
-         paste(utils::head(unique(lab[is.na(v)]), 3), collapse = ", "),
-         " are not numeric labels.")
+    stop(
+      "as_matrix: index '", nm, "' is used as a number, but member(s) ",
+      paste(utils::head(unique(lab[is.na(v)]), 3), collapse = ", "),
+      " are not numeric labels."
+    )
   }
   data.table::data.table(.k = env$.k, j = NA_integer_, coef = v)
 }
@@ -306,20 +329,23 @@
   vals <- lapply(args, function(a) {
     tm <- .mx_eval(a, env, ctx)
     if (!.mx_is_const(tm)) {
-      stop("as_matrix: '", node$name, "()' of a variable-bearing expression ",
-           "is non-linear.")
+      stop(
+        "as_matrix: '", node$name, "()' of a variable-bearing expression ",
+        "is non-linear."
+      )
     }
     v <- tm[, list(v = sum(coef)), by = ".k"]
     out <- v[data.table::data.table(.k = env$.k), on = ".k"]
     ifelse(is.na(out$v), 0, out$v)
   })
-  res <- switch(
-    nm,
+  res <- switch(nm,
     max = Reduce(pmax, vals),
     min = Reduce(pmin, vals),
     abs = abs(vals[[1]]),
-    stop("as_matrix: function '", node$name, "()' cannot be evaluated into a ",
-         "linear matrix. Supported: min, max, abs.")
+    stop(
+      "as_matrix: function '", node$name, "()' cannot be evaluated into a ",
+      "linear matrix. Supported: min, max, abs."
+    )
   )
   data.table::data.table(.k = env$.k, j = NA_integer_, coef = as.numeric(res))
 }
@@ -334,22 +360,28 @@
 .mx_eval_extremum <- function(node, env, ctx, f) {
   iters <- .mx_index_names(node$index)
   if (length(iters) != 1L) {
-    stop("as_matrix: a set minimum or maximum over ", length(iters),
-         " indices is not supported; one index is.")
+    stop(
+      "as_matrix: a set minimum or maximum over ", length(iters),
+      " indices is not supported; one index is."
+    )
   }
   isets <- .mx_index_sets(node$index)
   base <- if (iters %in% names(isets)) isets[[iters]] else iters
   members <- .mx_set_members(ctx, .mx_base_set(ctx$model, base))
   if (!length(members)) {
-    stop("as_matrix: set '", base, "' has no members, so its extremum is ",
-         "undefined.")
+    stop(
+      "as_matrix: set '", base, "' has no members, so its extremum is ",
+      "undefined."
+    )
   }
   sub <- data.table::data.table(.k = seq_along(members))
   sub[[iters]] <- members
   tm <- .mx_eval(node$value, sub, ctx)
   if (!.mx_is_const(tm)) {
-    stop("as_matrix: a set extremum over a variable-bearing expression is ",
-         "non-linear.")
+    stop(
+      "as_matrix: a set extremum over a variable-bearing expression is ",
+      "non-linear."
+    )
   }
   vals <- tm[, list(v = sum(coef)), by = ".k"]$v
   if (!length(vals) || anyNA(vals)) {
@@ -364,7 +396,9 @@
   nm <- node$name
   # a lag or lead points at a different member; resolve it before the join
   env <- .mx_shift_env(node, env, ctx)
-  if (!nrow(env)) return(.mx_no_terms())
+  if (!nrow(env)) {
+    return(.mx_no_terms())
+  }
   pp <- .mx_prep_param(nm, ctx)
 
   ref <- .mx_ref_names(.mx_ref_dims(node), env, ctx)
@@ -376,17 +410,21 @@
   }
 
   if (is.null(pp$first)) {
-    return(.mx_const(env, pp$defv))  # nothing stored: every tuple is the default
+    return(.mx_const(env, pp$defv)) # nothing stored: every tuple is the default
   }
 
   if (length(pp$cols) != length(ref)) {
-    stop("as_matrix: parameter '", nm, "' is stored with ", length(pp$cols),
-         " index column(s) but is referenced with ", length(ref), ".")
+    stop(
+      "as_matrix: parameter '", nm, "' is stored with ", length(pp$cols),
+      " index column(s) but is referenced with ", length(ref), "."
+    )
   }
   miss <- setdiff(ref, names(env))
   if (length(miss)) {
-    stop("as_matrix: parameter '", nm, "' references unbound index/indices: ",
-         paste(miss, collapse = ", "), ".")
+    stop(
+      "as_matrix: parameter '", nm, "' references unbound index/indices: ",
+      paste(miss, collapse = ", "), "."
+    )
   }
 
   if (!is.null(pp$wild)) {
@@ -395,8 +433,10 @@
 
   # a tuple may legitimately be absent -> it takes the parameter default,
   # NOT zero (energyRt stores sparsely, e.g. only the 'lo' rows of a bound)
-  .mx_trace(ctx, "lookup", list(env = env, lk = pp$lk),
-            list(on = as.list(stats::setNames(ref, pp$keys))))
+  .mx_trace(
+    ctx, "lookup", list(env = env, lk = pp$lk),
+    list(on = as.list(stats::setNames(ref, pp$keys)))
+  )
   out <- pp$lk[env, on = stats::setNames(ref, pp$keys)]
   coef <- out$value
   coef[is.na(coef)] <- pp$defv
@@ -416,7 +456,9 @@
 #' @noRd
 .mx_prep_param <- function(nm, ctx) {
   pp <- ctx$param_cache[[nm]]
-  if (!is.null(pp)) return(pp)
+  if (!is.null(pp)) {
+    return(pp)
+  }
   dat <- get_data(ctx$model, nm, type = "parameter")
   dat <- if (is.null(dat)) data.table::data.table() else data.table::as.data.table(dat)
   # An infinite stored value means "no restriction here": every energyRt
@@ -436,8 +478,10 @@
   # reference solution this backend is checked against.
   if (!is.finite(defv)) defv <- 0
 
-  pp <- list(defv = defv, first = NULL, cols = character(), keys = character(),
-             lk = NULL, wild = NULL)
+  pp <- list(
+    defv = defv, first = NULL, cols = character(), keys = character(),
+    lk = NULL, wild = NULL
+  )
   if (nrow(dat) && "value" %in% names(dat)) {
     pp$first <- as.numeric(dat$value[1])
     cols <- .mx_storage_cols(dat)
@@ -476,33 +520,39 @@
 #' @keywords internal
 #' @noRd
 .mx_dedup_param <- function(lk, keys, nm, ctx, what = "index tuple(s)") {
-  if (!anyDuplicated(lk, by = keys)) return(lk)
+  if (!anyDuplicated(lk, by = keys)) {
+    return(lk)
+  }
   nd <- lk[, .(n = length(unique(value))), by = keys]
   bad <- nd[n > 1L]
   if (nrow(bad)) {
     ex <- paste(.mx_decode(ctx, unlist(bad[1L, keys, with = FALSE])), collapse = ", ")
     pol <- ctx$on_duplicate
     if (is.null(pol) || identical(pol, "error")) {
-      stop("as_matrix: parameter '", nm, "' has ", nrow(bad),
-           " index tuple(s) stored with more than one distinct value",
-           " (e.g. ", ex, ").
+      stop(
+        "as_matrix: parameter '", nm, "' has ", nrow(bad),
+        " index tuple(s) stored with more than one distinct value",
+        " (e.g. ", ex, ").
   The lookup is ambiguous. Fix the data, or",
-           " pass on_duplicate = \"last\" to take the last value, which is",
-           " what GAMS and Pyomo do silently.")
+        " pass on_duplicate = \"last\" to take the last value, which is",
+        " what GAMS and Pyomo do silently."
+      )
     }
     # Report once per parameter: this discards data, and doing it quietly is
     # how an arbitrary choice among many candidates becomes invisible.
     if (is.null(ctx$dup_warned[[nm]])) {
       ctx$dup_warned[[nm]] <- TRUE
-      message("as_matrix: parameter '", nm, "' - ", nrow(bad),
-              " index tuple(s) had multiple distinct values; keeping the ",
-              pol, " (e.g. ", ex, ").")
+      message(
+        "as_matrix: parameter '", nm, "' - ", nrow(bad),
+        " index tuple(s) had multiple distinct values; keeping the ",
+        pol, " (e.g. ", ex, ")."
+      )
     }
   }
   if (identical(ctx$on_duplicate, "first")) {
     unique(lk, by = keys, fromLast = FALSE)
   } else {
-    unique(lk, by = keys, fromLast = TRUE)   # GAMS/Pyomo semantics
+    unique(lk, by = keys, fromLast = TRUE) # GAMS/Pyomo semantics
   }
 }
 
@@ -528,22 +578,28 @@
     if (!length(pos)) {
       v <- if (identical(ctx$on_duplicate, "first")) sub$value[1] else sub$value[nrow(sub)]
       if (length(unique(sub$value)) > 1L &&
-          (is.null(ctx$on_duplicate) || identical(ctx$on_duplicate, "error"))) {
-        stop("as_matrix: parameter '", nm, "' has more than one distinct ",
-             "all-wildcard value; the lookup is ambiguous.")
+        (is.null(ctx$on_duplicate) || identical(ctx$on_duplicate, "error"))) {
+        stop(
+          "as_matrix: parameter '", nm, "' has more than one distinct ",
+          "all-wildcard value; the lookup is ambiguous."
+        )
       }
       return(list(pos = pos, keys = character(), value = v))
     }
     if (anyDuplicated(sub, by = kp)) {
       nd <- sub[, list(n = length(unique(value))), by = kp]
       if (any(nd$n > 1L) &&
-          (is.null(ctx$on_duplicate) || identical(ctx$on_duplicate, "error"))) {
-        stop("as_matrix: parameter '", nm, "' has wildcard rows with more ",
-             "than one distinct value for the same explicit index tuple; the ",
-             "lookup is ambiguous.")
+        (is.null(ctx$on_duplicate) || identical(ctx$on_duplicate, "error"))) {
+        stop(
+          "as_matrix: parameter '", nm, "' has wildcard rows with more ",
+          "than one distinct value for the same explicit index tuple; the ",
+          "lookup is ambiguous."
+        )
       }
-      sub <- unique(sub, by = kp,
-                    fromLast = !identical(ctx$on_duplicate, "first"))
+      sub <- unique(sub,
+        by = kp,
+        fromLast = !identical(ctx$on_duplicate, "first")
+      )
     }
     data.table::setkeyv(sub, kp)
     list(pos = pos, keys = kp, sub = sub)
@@ -579,7 +635,9 @@
   nm <- node$name
   # a lag or lead points at a different column; resolve it before the join
   env <- .mx_shift_env(node, env, ctx)
-  if (!nrow(env)) return(.mx_no_terms())
+  if (!nrow(env)) {
+    return(.mx_no_terms())
+  }
   ci <- ctx$col_cache[[nm]]
   if (is.null(ci)) {
     ci <- .mx_col_coded(ctx)[symbol == nm]
@@ -592,26 +650,34 @@
   }
 
   ref <- .mx_ref_names(.mx_ref_dims(node), env, ctx)
-  if (!length(ref)) {                       # scalar variable, e.g. vObjective
+  if (!length(ref)) { # scalar variable, e.g. vObjective
     return(data.table::data.table(.k = env$.k, j = ci$j[1], coef = 1))
   }
 
   idx <- paste0("i", seq_along(ref))
   if (!all(idx %in% names(ci))) {
-    stop("as_matrix: variable '", nm, "' is referenced with ", length(ref),
-         " index/indices but its column index has fewer.")
+    stop(
+      "as_matrix: variable '", nm, "' is referenced with ", length(ref),
+      " index/indices but its column index has fewer."
+    )
   }
   miss <- setdiff(ref, names(env))
   if (length(miss)) {
-    stop("as_matrix: variable '", nm, "' references unbound index/indices: ",
-         paste(miss, collapse = ", "), ".")
+    stop(
+      "as_matrix: variable '", nm, "' references unbound index/indices: ",
+      paste(miss, collapse = ", "), "."
+    )
   }
 
   # no column there -> no term
-  .mx_trace(ctx, "lookup_j", list(env = env, lk = ci),
-            list(on = as.list(stats::setNames(ref, idx))))
+  .mx_trace(
+    ctx, "lookup_j", list(env = env, lk = ci),
+    list(on = as.list(stats::setNames(ref, idx)))
+  )
   out <- ci[env, on = stats::setNames(ref, idx), nomatch = NULL]
-  if (!nrow(out)) return(.mx_no_terms())
+  if (!nrow(out)) {
+    return(.mx_no_terms())
+  }
   data.table::data.table(.k = out$.k, j = out$j, coef = 1)
 }
 
@@ -620,7 +686,9 @@
 #' @noRd
 .mx_col_coded <- function(ctx) {
   cc <- ctx$col_coded
-  if (!is.null(cc)) return(cc)
+  if (!is.null(cc)) {
+    return(cc)
+  }
   cc <- .mx_index_coded(ctx, ctx$col_index, c("j", "symbol"))
   ctx$col_coded <- cc
   cc
@@ -636,7 +704,9 @@
     }
     return(tm)
   }
-  if (identical(node$op, "+")) return(tm)
+  if (identical(node$op, "+")) {
+    return(tm)
+  }
   stop("as_matrix: unsupported unary operator '", node$op, "'.")
 }
 
@@ -657,12 +727,21 @@
   if (op == "*") {
     l <- .mx_eval(node$lhs, env, ctx)
     r <- .mx_eval(node$rhs, env, ctx)
-    lc <- .mx_is_const(l); rc <- .mx_is_const(r)
-    if (lc && rc) return(.mx_scale(l, r, "*"))
-    if (lc) return(.mx_scale(r, l, "*"))
-    if (rc) return(.mx_scale(l, r, "*"))
-    stop("as_matrix: product of two variable-bearing expressions is non-linear ",
-         "and cannot be represented in an LP matrix.")
+    lc <- .mx_is_const(l)
+    rc <- .mx_is_const(r)
+    if (lc && rc) {
+      return(.mx_scale(l, r, "*"))
+    }
+    if (lc) {
+      return(.mx_scale(r, l, "*"))
+    }
+    if (rc) {
+      return(.mx_scale(l, r, "*"))
+    }
+    stop(
+      "as_matrix: product of two variable-bearing expressions is non-linear ",
+      "and cannot be represented in an LP matrix."
+    )
   }
 
   if (op == "/") {
@@ -686,11 +765,14 @@
     # came out as 1 and a sinking-fund denominator as 0.
     return(data.table::data.table(
       .k = env$.k, j = NA_integer_,
-      coef = .mx_reduce(l, env) ^ .mx_reduce(r, env)))
+      coef = .mx_reduce(l, env)^.mx_reduce(r, env)
+    ))
   }
 
-  stop("as_matrix: unsupported operator '", op, "' in an equation body. ",
-       "Comparison/logical operators are only valid inside a condition.")
+  stop(
+    "as_matrix: unsupported operator '", op, "' in an equation body. ",
+    "Comparison/logical operators are only valid inside a condition."
+  )
 }
 
 #' Compute the parameters a model defines by a formula
@@ -721,27 +803,38 @@
   has_fml <- function(p) !is.null(p$formula)
   # a table on disk or behind a reference counts as data
   no_data <- function(p) (is.null(p$data) || NROW(p$data) == 0L) && !.claims_external_data(p)
-  pend <- vapply(model$parameters, function(p) has_fml(p) && no_data(p),
-                 logical(1))
-  if (!any(pend)) return(model)
+  pend <- vapply(
+    model$parameters, function(p) has_fml(p) && no_data(p),
+    logical(1)
+  )
+  if (!any(pend)) {
+    return(model)
+  }
 
   out <- tryCatch(evaluate_parameters(model, verbose = verbose),
-                  error = function(e) {
-                    stop("as_matrix: could not compute the parameter(s) ",
-                         "defined by a formula (",
-                         paste(names(model$parameters)[pend], collapse = ", "),
-                         "): ", conditionMessage(e), call. = FALSE)
-                  })
+    error = function(e) {
+      stop("as_matrix: could not compute the parameter(s) ",
+        "defined by a formula (",
+        paste(names(model$parameters)[pend], collapse = ", "),
+        "): ", conditionMessage(e),
+        call. = FALSE
+      )
+    }
+  )
 
-  still <- vapply(out$parameters, function(p) has_fml(p) && no_data(p),
-                  logical(1))
+  still <- vapply(
+    out$parameters, function(p) has_fml(p) && no_data(p),
+    logical(1)
+  )
   if (any(still)) {
     stop("as_matrix: parameter(s) ",
-         paste(names(out$parameters)[still], collapse = ", "),
-         " are defined by a formula but still hold no values, so the matrix ",
-         "would be built from their scalar default instead. Compute them ",
-         "with evaluate_parameters() and check the inputs the formula ",
-         "refers to.", call. = FALSE)
+      paste(names(out$parameters)[still], collapse = ", "),
+      " are defined by a formula but still hold no values, so the matrix ",
+      "would be built from their scalar default instead. Compute them ",
+      "with evaluate_parameters() and check the inputs the formula ",
+      "refers to.",
+      call. = FALSE
+    )
   }
   out
 }
@@ -764,16 +857,22 @@
 #' @noRd
 .mx_shift_env <- function(node, env, ctx) {
   d <- node$dims
-  if (is.null(d) || !length(d)) return(env)
-  if (!any(vapply(d, function(e) inherits(e, "shift"), logical(1)))) return(env)
+  if (is.null(d) || !length(d)) {
+    return(env)
+  }
+  if (!any(vapply(d, function(e) inherits(e, "shift"), logical(1)))) {
+    return(env)
+  }
 
   out <- env
   for (e in d) {
     if (!inherits(e, "shift")) next
     nm <- .mx_env_name(ctx, out, as.character(e$symbol)[1])
-    if (!nm %in% names(out)) next        # unbound; the caller reports it
+    if (!nm %in% names(out)) next # unbound; the caller reports it
     members <- .mx_set_members(ctx, .mx_base_set(ctx$model, nm))
-    if (!length(members)) return(out[0])
+    if (!length(members)) {
+      return(out[0])
+    }
 
     pos <- match(out[[nm]], members)
     tgt <- pos + as.integer(e$offset)
@@ -782,7 +881,9 @@
     }
     ok <- !is.na(tgt) & tgt >= 1L & tgt <= length(members)
     out <- data.table::copy(out[ok])
-    if (!nrow(out)) return(out)
+    if (!nrow(out)) {
+      return(out)
+    }
     data.table::set(out, j = nm, value = members[tgt[ok]])
   }
   out
@@ -797,9 +898,12 @@
 #' @keywords internal
 #' @noRd
 .mx_ref_names <- function(ref, env, ctx) {
-  if (!length(ref)) return(ref)
+  if (!length(ref)) {
+    return(ref)
+  }
   vapply(ref, function(x) .mx_env_name(ctx, env, x), character(1),
-         USE.NAMES = FALSE)
+    USE.NAMES = FALSE
+  )
 }
 
 #' Collapse terms to one value per env row
@@ -822,13 +926,19 @@
 #' @keywords internal
 #' @noRd
 .mx_scale <- function(tm, cst, op) {
-  if (!nrow(tm)) return(.mx_no_terms())
+  if (!nrow(tm)) {
+    return(.mx_no_terms())
+  }
   # collapse the constant side to one value per env row
   cv <- cst[, .(v = sum(coef)), by = .k]
   out <- cv[tm, on = ".k"]
   v <- out$v
   v[is.na(v)] <- 0
-  cf <- switch(op, "*" = out$coef * v, "/" = out$coef / v, "^" = out$coef ^ v)
+  cf <- switch(op,
+    "*" = out$coef * v,
+    "/" = out$coef / v,
+    "^" = out$coef^v
+  )
   data.table::data.table(.k = out$.k, j = out$j, coef = cf)
 }
 
@@ -838,11 +948,16 @@
   keep <- .mx_condition(node$condition, env, ctx)
   sub <- env[keep]
   then_tm <- if (nrow(sub)) .mx_eval(node$then, sub, ctx) else .mx_no_terms()
-  if (is.null(node$otherwise)) return(then_tm)
+  if (is.null(node$otherwise)) {
+    return(then_tm)
+  }
   other <- env[!keep]
-  if (!nrow(other)) return(then_tm)
+  if (!nrow(other)) {
+    return(then_tm)
+  }
   data.table::rbindlist(
-    list(then_tm, .mx_eval(node$otherwise, other, ctx)), use.names = TRUE
+    list(then_tm, .mx_eval(node$otherwise, other, ctx)),
+    use.names = TRUE
   )
 }
 
@@ -850,10 +965,18 @@
 #' @noRd
 .mx_eval_func <- function(node, env, ctx) {
   fn <- tolower(node$name)
-  if (fn == "sum")  return(.mx_eval_sum(node, env, ctx))
-  if (fn == "prod") return(.mx_eval_prod(node, env, ctx))
-  if (fn == "ord")  return(.mx_eval_ord(node, env, ctx))
-  if (fn == "val")  return(.mx_eval_val(node, env, ctx))
+  if (fn == "sum") {
+    return(.mx_eval_sum(node, env, ctx))
+  }
+  if (fn == "prod") {
+    return(.mx_eval_prod(node, env, ctx))
+  }
+  if (fn == "ord") {
+    return(.mx_eval_ord(node, env, ctx))
+  }
+  if (fn == "val") {
+    return(.mx_eval_val(node, env, ctx))
+  }
   stop("as_matrix: unsupported function '", node$name, "'.")
 }
 
@@ -872,9 +995,11 @@
   lab <- .mx_decode(ctx, env[[set_name]])
   v <- suppressWarnings(as.numeric(lab))
   if (anyNA(v)) {
-    stop("as_matrix: val(", set_name, ") - member(s) ",
-         paste(utils::head(unique(lab[is.na(v)]), 3), collapse = ", "),
-         " are not numeric labels.")
+    stop(
+      "as_matrix: val(", set_name, ") - member(s) ",
+      paste(utils::head(unique(lab[is.na(v)]), 3), collapse = ", "),
+      " are not numeric labels."
+    )
   }
   data.table::data.table(.k = env$.k, j = NA_integer_, coef = v)
 }
@@ -884,17 +1009,23 @@
 #' @keywords internal
 #' @noRd
 .mx_env_name <- function(ctx, env, set_name) {
-  if (set_name %in% names(env)) return(set_name)
+  if (set_name %in% names(env)) {
+    return(set_name)
+  }
   ia <- ctx$model$index_aliases
   if (!is.null(ia)) {
     base <- names(ia)[ia == set_name]
-    if (length(base) && base[1] %in% names(env)) return(base[1])
+    if (length(base) && base[1] %in% names(env)) {
+      return(base[1])
+    }
   }
   if (!is.null(ctx$model$aliases)) {
     for (grp in ctx$model$aliases) {
       if (set_name %in% grp) {
         hit <- intersect(unlist(grp), names(env))
-        if (length(hit)) return(hit[1])
+        if (length(hit)) {
+          return(hit[1])
+        }
       }
     }
   }
@@ -923,18 +1054,22 @@
 #' @noRd
 .mx_eval_prod <- function(node, env, ctx) {
   inner <- .mx_sum_env(node, env, ctx)
-  if (is.null(inner) || !nrow(inner$env)) return(.mx_const(env, 1))
+  if (is.null(inner) || !nrow(inner$env)) {
+    return(.mx_const(env, 1))
+  }
   tm <- .mx_eval(node$value, inner$env, ctx)
   if (!.mx_is_const(tm)) {
     stop("as_matrix: prod() over variable-bearing terms is non-linear.")
   }
-  if (!nrow(tm)) return(.mx_const(env, 1))
-  per <- tm[, .(v = sum(coef)), by = .k]                    # value per inner row
-  per <- inner$map[per, on = ".k"]                          # attach outer row
+  if (!nrow(tm)) {
+    return(.mx_const(env, 1))
+  }
+  per <- tm[, .(v = sum(coef)), by = .k] # value per inner row
+  per <- inner$map[per, on = ".k"] # attach outer row
   agg <- per[, .(coef = prod(v)), by = .(.k = .outer)]
   out <- agg[data.table::data.table(.k = env$.k), on = ".k"]
   cf <- out$coef
-  cf[is.na(cf)] <- 1                                        # empty product = 1
+  cf[is.na(cf)] <- 1 # empty product = 1
   data.table::data.table(.k = out$.k, j = NA_integer_, coef = cf)
 }
 
@@ -942,9 +1077,13 @@
 #' @noRd
 .mx_eval_sum <- function(node, env, ctx) {
   inner <- .mx_sum_env(node, env, ctx)
-  if (is.null(inner) || !nrow(inner$env)) return(.mx_no_terms())
+  if (is.null(inner) || !nrow(inner$env)) {
+    return(.mx_no_terms())
+  }
   tm <- .mx_eval(node$value, inner$env, ctx)
-  if (!nrow(tm)) return(.mx_no_terms())
+  if (!nrow(tm)) {
+    return(.mx_no_terms())
+  }
   .mx_trace(ctx, "groupsum", list(map = inner$map, tm = tm))
   tm <- inner$map[tm, on = ".k"]
   tm[, .(coef = sum(coef)), by = .(.k = .outer, j)]
@@ -959,13 +1098,15 @@
 .mx_sum_env <- function(node, env, ctx) {
   idx <- node$index
   cond <- NULL
-  if (inherits(idx, "when")) {         # GAMS: sum(i$cond, expr)
+  if (inherits(idx, "when")) { # GAMS: sum(i$cond, expr)
     cond <- idx$condition
     idx <- idx$then
   }
-  if (is.null(cond) && !is.null(node$domain)) cond <- node$domain  # ast_sum(domain=)
+  if (is.null(cond) && !is.null(node$domain)) cond <- node$domain # ast_sum(domain=)
   iters <- .mx_index_names(idx)
-  if (!length(iters)) return(NULL)
+  if (!length(iters)) {
+    return(NULL)
+  }
 
   # A shallow rewrap: the column vectors are shared with `env` and never
   # written to; renaming and adding columns touch this table only.
@@ -1000,7 +1141,9 @@
       if (!is.null(f)) {
         cur <- f
         used[n] <- TRUE
-        if (!nrow(cur)) return(NULL)
+        if (!nrow(cur)) {
+          return(NULL)
+        }
       }
     }
     if (all(iters %in% names(cur))) break
@@ -1016,7 +1159,9 @@
     used[best$i] <- TRUE
     rest <- cands[!used]
     cur <- .mx_budget_merge(cur, best, rest, own[!used], iters, ctx)
-    if (!nrow(cur)) return(NULL)
+    if (!nrow(cur)) {
+      return(NULL)
+    }
   }
   used <- used[own]
 
@@ -1024,7 +1169,9 @@
   remaining <- setdiff(iters, names(cur))
   if (length(remaining)) {
     cur <- .mx_cross_dense(cur, remaining, ctx, sets = .mx_index_sets(idx))
-    if (is.null(cur) || !nrow(cur)) return(NULL)
+    if (is.null(cur) || !nrow(cur)) {
+      return(NULL)
+    }
   }
 
   # `.k` must exist before any condition is evaluated: evaluating a value
@@ -1036,7 +1183,9 @@
   for (n in which(!used)) {
     keep <- .mx_condition(conds[[n]], cur, ctx)
     cur <- cur[keep]
-    if (!nrow(cur)) return(NULL)
+    if (!nrow(cur)) {
+      return(NULL)
+    }
   }
 
   list(env = cur, map = cur[, .(.k, .outer)])
@@ -1046,7 +1195,9 @@
 #' @keywords internal
 #' @noRd
 .mx_flatten_and <- function(cond) {
-  if (is.null(cond)) return(list())
+  if (is.null(cond)) {
+    return(list())
+  }
   if (inherits(cond, "expression") && cond$op %in% c("and", "&", "&&")) {
     return(c(.mx_flatten_and(cond$lhs), .mx_flatten_and(cond$rhs)))
   }
@@ -1061,7 +1212,9 @@
 #' @keywords internal
 #' @noRd
 .mx_join_cond <- function(cur, cond, iters, ctx) {
-  if (!inherits(cond, "mm_mapping")) return(NULL)
+  if (!inherits(cond, "mm_mapping")) {
+    return(NULL)
+  }
   nm <- cond$name
   dat <- .mx_map_data(nm, ctx)
 
@@ -1072,16 +1225,26 @@
   # which on a large model tries to materialise billions of rows. The
   # conditions reaching here are `and`-conjuncts, so a map holding no tuples
   # makes the whole sum empty whatever it would have bound.
-  if (!nrow(dat)) return(cur[0])
+  if (!nrow(dat)) {
+    return(cur[0])
+  }
 
   ref <- .mx_ref_dims(cond)
-  if (!length(ref) || length(names(dat)) != length(ref)) return(NULL)
+  if (!length(ref) || length(names(dat)) != length(ref)) {
+    return(NULL)
+  }
 
   shared <- intersect(ref, names(cur))
   newc <- setdiff(ref, names(cur))
-  if (!length(shared)) return(NULL)          # not a filter on what we have
-  if (!length(newc)) return(NULL)            # binds nothing new - leave as a filter
-  if (!all(newc %in% iters)) return(NULL)    # would bind a non-iterator index
+  if (!length(shared)) {
+    return(NULL)
+  } # not a filter on what we have
+  if (!length(newc)) {
+    return(NULL)
+  } # binds nothing new - leave as a filter
+  if (!all(newc %in% iters)) {
+    return(NULL)
+  } # would bind a non-iterator index
 
   merge(cur, .mx_map_named(dat, ref), by = shared, allow.cartesian = TRUE)
 }
@@ -1105,11 +1268,15 @@
 #' @keywords internal
 #' @noRd
 .mx_body_gates <- function(v) {
-  if (is.null(v)) return(list())
+  if (is.null(v)) {
+    return(list())
+  }
   if (inherits(v, "when") && is.null(v$otherwise)) {
     cs <- .mx_flatten_and(v$condition)
-    return(c(Filter(function(x) inherits(x, "mm_mapping"), cs),
-             .mx_body_gates(v$then)))
+    return(c(
+      Filter(function(x) inherits(x, "mm_mapping"), cs),
+      .mx_body_gates(v$then)
+    ))
   }
   if (inherits(v, "expression") && identical(v$op, "*")) {
     return(c(.mx_body_gates(v$lhs), .mx_body_gates(v$rhs)))
@@ -1131,20 +1298,30 @@
 #' @keywords internal
 #' @noRd
 .mx_semi_join <- function(cur, cond, ctx, iters = character(), resolve = TRUE) {
-  if (!inherits(cond, "mm_mapping")) return(NULL)
+  if (!inherits(cond, "mm_mapping")) {
+    return(NULL)
+  }
   ref <- .mx_ref_dims(cond)
-  if (any(ref %in% setdiff(iters, names(cur)))) return(NULL)
+  if (any(ref %in% setdiff(iters, names(cur)))) {
+    return(NULL)
+  }
   dat <- .mx_map_data(cond$name, ctx)
   if (resolve) ref <- .mx_ref_names(ref, cur, ctx)
   if (!length(ref) || anyDuplicated(ref) || !all(ref %in% names(cur))) {
     return(NULL)
   }
-  if (!nrow(dat)) return(cur[0])
-  if (length(names(dat)) != length(ref)) return(NULL)
+  if (!nrow(dat)) {
+    return(cur[0])
+  }
+  if (length(names(dat)) != length(ref)) {
+    return(NULL)
+  }
   # the prepared table is unique over all its columns, so each row of `cur`
   # matches at most once: `which` gives the match per row, in `cur`'s order
-  .mx_trace(ctx, "semi", list(cur = cur, lk = dat),
-            list(on = as.list(stats::setNames(ref, names(dat)))))
+  .mx_trace(
+    ctx, "semi", list(cur = cur, lk = dat),
+    list(on = as.list(stats::setNames(ref, names(dat))))
+  )
   hit <- dat[cur, on = stats::setNames(ref, names(dat)), which = TRUE]
   cur[!is.na(hit)]
 }
@@ -1153,21 +1330,33 @@
 #' @keywords internal
 #' @noRd
 .mx_join_plan <- function(cur, cond, iters, ctx) {
-  if (!inherits(cond, "mm_mapping")) return(NULL)
+  if (!inherits(cond, "mm_mapping")) {
+    return(NULL)
+  }
   dat <- .mx_map_data(cond$name, ctx)
-  if (!nrow(dat)) return(list(lk = NULL, shared = character(), n = 0,
-                              name = cond$name))
+  if (!nrow(dat)) {
+    return(list(
+      lk = NULL, shared = character(), n = 0,
+      name = cond$name
+    ))
+  }
   ref <- .mx_ref_dims(cond)
-  if (!length(ref) || length(names(dat)) != length(ref)) return(NULL)
+  if (!length(ref) || length(names(dat)) != length(ref)) {
+    return(NULL)
+  }
   shared <- intersect(ref, names(cur))
   newc <- setdiff(ref, names(cur))
-  if (!length(shared) || !length(newc) || !all(newc %in% iters)) return(NULL)
+  if (!length(shared) || !length(newc) || !all(newc %in% iters)) {
+    return(NULL)
+  }
   lk <- .mx_map_named(dat, ref)
   a <- cur[, .N, by = shared]
   b <- lk[, .N, by = shared]
   m <- b[a, on = shared, nomatch = NULL]
-  list(lk = lk, shared = shared, name = cond$name,
-       n = sum(as.numeric(m$N) * as.numeric(m$i.N)))
+  list(
+    lk = lk, shared = shared, name = cond$name,
+    n = sum(as.numeric(m$N) * as.numeric(m$i.N))
+  )
 }
 
 #' Row budget for one join step (`options(multimod.join_rows = )`)
@@ -1185,7 +1374,9 @@
 #' @keywords internal
 #' @noRd
 .mx_budget_merge <- function(cur, plan, rest, resolve, iters, ctx) {
-  if (is.null(plan$lk)) return(cur[0])
+  if (is.null(plan$lk)) {
+    return(cur[0])
+  }
   budget <- .mx_join_budget()
   sh <- plan$shared
   join1 <- function(x) {
@@ -1198,7 +1389,9 @@
     }
     out
   }
-  if (plan$n <= budget) return(join1(cur))
+  if (plan$n <= budget) {
+    return(join1(cur))
+  }
   cnt <- plan$lk[, .N, by = sh]
   w <- cnt[cur[, sh, with = FALSE], on = sh]$N
   w[is.na(w)] <- 0
@@ -1206,15 +1399,19 @@
   big <- max(w)
   if (big > 2^31 - 1) {
     stop("as_matrix: joining mapping '", plan$name, "' on (",
-         paste(sh, collapse = ", "),
-         ") gives ", format(big, big.mark = ","), " rows for a single row of ",
-         "the equation, beyond R's vector limit.", call. = FALSE)
+      paste(sh, collapse = ", "),
+      ") gives ", format(big, big.mark = ","), " rows for a single row of ",
+      "the equation, beyond R's vector limit.",
+      call. = FALSE
+    )
   }
   parts <- lapply(split(seq_len(nrow(cur)), blk), function(ix) join1(cur[ix]))
   out <- data.table::rbindlist(parts, use.names = TRUE)
   if (nrow(out) > 2^31 - 1) {
     stop("as_matrix: a summation needs ", format(nrow(out), big.mark = ","),
-         " rows after filtering, beyond R's vector limit.", call. = FALSE)
+      " rows after filtering, beyond R's vector limit.",
+      call. = FALSE
+    )
   }
   out
 }
@@ -1232,20 +1429,26 @@
     if (it %in% names(cur)) next
     base <- if (!is.null(sets) && it %in% names(sets)) sets[[it]] else it
     members <- .mx_set_members(ctx, .mx_base_set(ctx$model, base))
-    if (!length(members)) return(NULL)
+    if (!length(members)) {
+      return(NULL)
+    }
     n_out <- as.numeric(nrow(cur)) * length(members)
     if (n_out > 2^31 - 1) {
-      stop("as_matrix: expanding the summation index '", it, "' densely would ",
-           "need ", format(n_out, big.mark = ","), " rows, beyond R's vector ",
-           "limit.
+      stop(
+        "as_matrix: expanding the summation index '", it, "' densely would ",
+        "need ", format(n_out, big.mark = ","), " rows, beyond R's vector ",
+        "limit.
   No mapping constrains this index, so the sum cannot be ",
-           "kept sparse. Give it a gating map, or narrow the equation domain.")
+        "kept sparse. Give it a gating map, or narrow the equation domain."
+      )
     }
     # replicate each bound row once per member of the new iterator; copy()
     # because a rep-subset is a shallow copy and set() would warn on it
     cur <- data.table::copy(cur[rep(seq_len(nrow(cur)), each = length(members))])
-    data.table::set(cur, j = it,
-                    value = rep(members, times = nrow(cur) / length(members)))
+    data.table::set(cur,
+      j = it,
+      value = rep(members, times = nrow(cur) / length(members))
+    )
   }
   cur[]
 }
@@ -1262,7 +1465,9 @@
 #' @noRd
 .mx_index_sets <- function(idx) {
   nms <- .mx_index_names(idx)
-  if (!length(nms)) return(character())
+  if (!length(nms)) {
+    return(character())
+  }
   sets <- if (inherits(idx, "dims")) {
     vapply(idx, dim_binding_name, character(1), USE.NAMES = FALSE)
   } else {
@@ -1276,7 +1481,9 @@
 #' @keywords internal
 #' @noRd
 .mx_index_names <- function(idx) {
-  if (is.null(idx)) return(character())
+  if (is.null(idx)) {
+    return(character())
+  }
   if (inherits(idx, "dims")) {
     out <- vapply(idx, dim_binding_name, character(1), USE.NAMES = FALSE)
     # A MathProg sum names its iterators - `sum{t in TECHNOLOGY}` - and the
@@ -1320,9 +1527,10 @@
   }
   if (anyDuplicated(dims)) {
     stop("as_matrix: equation '", eq$name, "' binds duplicate index name(s): ",
-         paste(unique(dims[duplicated(dims)]), collapse = ", "),
-         ". Its condition cannot be resolved without distinct iterator names.",
-         call. = FALSE)
+      paste(unique(dims[duplicated(dims)]), collapse = ", "),
+      ". Its condition cannot be resolved without distinct iterator names.",
+      call. = FALSE
+    )
   }
 
   ctx <- new.env(parent = emptyenv())
@@ -1341,7 +1549,9 @@
   keep <- .mx_condition(eq$domain, env, ctx)
   if (!is.logical(keep) || length(keep) != nrow(blk)) {
     stop("as_matrix: the condition on equation '", eq$name, "' did not reduce ",
-         "to one logical value per row.", call. = FALSE)
+      "to one logical value per row.",
+      call. = FALSE
+    )
   }
   keep & !is.na(keep)
 }
@@ -1356,10 +1566,14 @@
 #' @keywords internal
 #' @noRd
 .mx_condition <- function(node, env, ctx) {
-  if (is.null(node)) return(rep(TRUE, nrow(env)))
+  if (is.null(node)) {
+    return(rep(TRUE, nrow(env)))
+  }
   cls <- sub("^mm_", "", class(node)[1])
 
-  if (cls == "mapping") return(.mx_membership(node, env, ctx))
+  if (cls == "mapping") {
+    return(.mx_membership(node, env, ctx))
+  }
 
   if (cls == "unary" && identical(node$op, "not")) {
     return(!.mx_condition(node$rhs, env, ctx))
@@ -1376,10 +1590,15 @@
     if (op %in% c("<", "<=", ">", ">=", "=", "==", "<>", "!=")) {
       l <- .mx_numeric(node$lhs, env, ctx)
       r <- .mx_numeric(node$rhs, env, ctx)
-      return(switch(
-        op,
-        "<" = l < r, "<=" = l <= r, ">" = l > r, ">=" = l >= r,
-        "=" = l == r, "==" = l == r, "<>" = l != r, "!=" = l != r
+      return(switch(op,
+        "<" = l < r,
+        "<=" = l <= r,
+        ">" = l > r,
+        ">=" = l >= r,
+        "=" = l == r,
+        "==" = l == r,
+        "<>" = l != r,
+        "!=" = l != r
       ))
     }
     stop("as_matrix: unsupported operator '", op, "' in a condition.")
@@ -1402,11 +1621,15 @@
 #' @noRd
 .mx_map_data <- function(nm, ctx) {
   dat <- ctx$map_cache[[nm]]
-  if (!is.null(dat)) return(dat)
+  if (!is.null(dat)) {
+    return(dat)
+  }
   if (is.null(ctx$model$mappings[[nm]])) {
-    stop("as_matrix: mapping '", nm, "' is referenced but not declared in the",
-         " model.\n  A gating map that does not exist cannot be treated as",
-         " unconstrained - the sum would expand densely over every member.")
+    stop(
+      "as_matrix: mapping '", nm, "' is referenced but not declared in the",
+      " model.\n  A gating map that does not exist cannot be treated as",
+      " unconstrained - the sum would expand densely over every member."
+    )
   }
   mp <- ctx$model$mappings[[nm]]
   if (!is.null(mp$rule) && !NROW(mp$data)) {
@@ -1438,23 +1661,31 @@
 .mx_membership <- function(node, env, ctx) {
   nm <- node$name
   dat <- .mx_map_data(nm, ctx)
-  if (!nrow(dat)) return(rep(FALSE, nrow(env)))   # empty map: nothing qualifies
+  if (!nrow(dat)) {
+    return(rep(FALSE, nrow(env)))
+  } # empty map: nothing qualifies
 
   ref <- .mx_ref_names(.mx_ref_dims(node), env, ctx)
   cols <- names(dat)
   if (length(cols) != length(ref)) {
-    stop("as_matrix: mapping '", nm, "' has ", length(cols),
-         " column(s) but is referenced with ", length(ref), " index/indices.")
+    stop(
+      "as_matrix: mapping '", nm, "' has ", length(cols),
+      " column(s) but is referenced with ", length(ref), " index/indices."
+    )
   }
   miss <- setdiff(ref, names(env))
   if (length(miss)) {
-    stop("as_matrix: mapping '", nm, "' references unbound index/indices: ",
-         paste(miss, collapse = ", "), ".")
+    stop(
+      "as_matrix: mapping '", nm, "' references unbound index/indices: ",
+      paste(miss, collapse = ", "), "."
+    )
   }
 
   # unique over all columns, so each env row matches at most once
-  .mx_trace(ctx, "semi", list(cur = env, lk = dat),
-            list(on = as.list(stats::setNames(ref, cols))))
+  .mx_trace(
+    ctx, "semi", list(cur = env, lk = dat),
+    list(on = as.list(stats::setNames(ref, cols)))
+  )
   !is.na(dat[env, on = stats::setNames(ref, cols), which = TRUE])
 }
 
@@ -1478,7 +1709,9 @@
 #' @noRd
 .mx_base_set <- function(model, name) {
   if (!is.null(model$aliases)) {
-    for (grp in model$aliases) if (name %in% grp) return(grp[[1]])
+    for (grp in model$aliases) if (name %in% grp) {
+      return(grp[[1]])
+    }
   }
   name
 }
@@ -1488,10 +1721,15 @@
 #' @noRd
 .mx_set_members <- function(ctx, set_name) {
   hit <- ctx$set_cache[[set_name]]
-  if (!is.null(hit)) return(hit)
+  if (!is.null(hit)) {
+    return(hit)
+  }
   s <- ctx$model$sets[[set_name]]
-  mem <- if (is.null(s)) integer() else
+  mem <- if (is.null(s)) {
+    integer()
+  } else {
     .mx_code(ctx, as.character(extract_set_members(s)))
+  }
   ctx$set_cache[[set_name]] <- mem
   mem
 }
@@ -1531,12 +1769,17 @@ NULL
 #' @noRd
 .mx_eq_dims <- function(eq) {
   dims <- .mx_ref_dims(eq$domain)
-  if (length(dims)) return(dims)
-  decl <- if (is.null(eq$dims)) character() else
+  if (length(dims)) {
+    return(dims)
+  }
+  decl <- if (is.null(eq$dims)) {
+    character()
+  } else {
     vapply(eq$dims, dim_binding_name, character(1), USE.NAMES = FALSE)
+  }
   al <- eq$dims_index_aliases
   if (!is.null(al) && length(al) == length(decl) &&
-      all(nzchar(al)) && !anyDuplicated(unname(al))) {
+    all(nzchar(al)) && !anyDuplicated(unname(al))) {
     return(unname(al))
   }
   decl
@@ -1545,16 +1788,22 @@ NULL
 .mx_equation_env <- function(eq, rows) {
   dims <- .mx_eq_dims(eq)
   if (anyDuplicated(dims)) {
-    stop("as_matrix: equation '", eq$name, "' binds duplicate index name(s): ",
-         paste(unique(dims[duplicated(dims)]), collapse = ", "),
-         ". The domain condition should give each position a distinct name.")
+    stop(
+      "as_matrix: equation '", eq$name, "' binds duplicate index name(s): ",
+      paste(unique(dims[duplicated(dims)]), collapse = ", "),
+      ". The domain condition should give each position a distinct name."
+    )
   }
   env <- data.table::data.table(.k = rows$i)
-  if (!length(dims)) return(env)
+  if (!length(dims)) {
+    return(env)
+  }
   idx <- paste0("i", seq_along(dims))
   if (!all(idx %in% names(rows))) {
-    stop("as_matrix: row index has fewer index columns than equation '",
-         eq$name, "' declares.")
+    stop(
+      "as_matrix: row index has fewer index columns than equation '",
+      eq$name, "' declares."
+    )
   }
   for (n in seq_along(dims)) env[[dims[n]]] <- rows[[idx[n]]]
   env
@@ -1643,10 +1892,14 @@ build_triplets <- function(model, col_index = NULL, row_index = NULL,
   own <- attr(row_index, "codes")
   if (.mx_is_codes(own) && !identical(attr(col_index, "codes"), own)) {
     stop("build_triplets: the row and column index tables are coded with ",
-         "different dictionaries.", call. = FALSE)
+      "different dictionaries.",
+      call. = FALSE
+    )
   }
-  ctx <- .mx_new_ctx(model, col_index, if (.mx_is_codes(own)) own else .mx_new_codes(),
-                     on_duplicate, substitute)
+  ctx <- .mx_new_ctx(
+    model, col_index, if (.mx_is_codes(own)) own else .mx_new_codes(),
+    on_duplicate, substitute
+  )
 
   # The row index with its members coded, and each equation's row range: the
   # rows of one equation are contiguous, so a range replaces a scan of the
@@ -1654,8 +1907,11 @@ build_triplets <- function(model, col_index = NULL, row_index = NULL,
   rows_coded <- .mx_index_coded(ctx, row_index, c("i", "symbol"))
   ranges <- rows_coded[, list(from = .I[1L], to = .I[.N]), by = "symbol"]
 
-  todo <- if (is.null(equations)) ranges$symbol else
+  todo <- if (is.null(equations)) {
+    ranges$symbol
+  } else {
     intersect(equations, ranges$symbol)
+  }
 
   tri <- vector("list", length(todo))
   rhs <- vector("list", length(todo))
@@ -1677,12 +1933,16 @@ build_triplets <- function(model, col_index = NULL, row_index = NULL,
     # an equation referring to a substituted variable has no column lookup
     # for it on the definition's domain: only the lowering substitutes it
     subst_ref <- length(ctx$subst) &&
-      any(vapply(c(.mx_ast_vars(eq$lhs), .mx_ast_vars(eq$rhs)),
-                 function(v) v$name %in% names(ctx$subst), logical(1)))
+      any(vapply(
+        c(.mx_ast_vars(eq$lhs), .mx_ast_vars(eq$rhs)),
+        function(v) v$name %in% names(ctx$subst), logical(1)
+      ))
     lowered <- if (identical(engine, "native") || subst_ref) .mx_lower_equation(eq, ctx) else NULL
     if (subst_ref && is.null(lowered)) {
       stop("build_triplets: '", nm, "' refers to a substituted variable but is not covered ",
-           "by the native lowering (", ctx$lower_why[[nm]] %||% "unknown", ").", call. = FALSE)
+        "by the native lowering (", ctx$lower_why[[nm]] %||% "unknown", ").",
+        call. = FALSE
+      )
     }
     native[[nm]] <- !is.null(lowered)
 
@@ -1700,10 +1960,12 @@ build_triplets <- function(model, col_index = NULL, row_index = NULL,
         mats[[ck]] <- blk$mat
         csts[[ck]] <- blk$cst
         st <- ctx$native_stats[[nm]]
-        ctx$native_stats[[nm]] <- if (is.null(st)) blk$stats else {
+        ctx$native_stats[[nm]] <- if (is.null(st)) {
+          blk$stats
+        } else {
           all <- union(names(st), names(blk$stats))
           stats::setNames(ifelse(is.na(st[all]), 0, st[all]) +
-                            ifelse(is.na(blk$stats[all]), 0, blk$stats[all]), all)
+            ifelse(is.na(blk$stats[all]), 0, blk$stats[all]), all)
         }
         next
       }
@@ -1711,8 +1973,10 @@ build_triplets <- function(model, col_index = NULL, row_index = NULL,
       lhs <- .mx_eval(eq$lhs, env, ctx)
       rhsv <- .mx_eval(eq$rhs, env, ctx)
       if (nrow(rhsv)) {
-        rhsv <- data.table::data.table(.k = rhsv$.k, j = rhsv$j,
-                                       coef = -rhsv$coef)
+        rhsv <- data.table::data.table(
+          .k = rhsv$.k, j = rhsv$j,
+          coef = -rhsv$coef
+        )
       }
       all_tm <- data.table::rbindlist(list(lhs, rhsv), use.names = TRUE)
 
@@ -1721,22 +1985,33 @@ build_triplets <- function(model, col_index = NULL, row_index = NULL,
         mat <- mat[coef != 0]
         cst <- all_tm[is.na(j), .(rhs = -sum(coef)), by = .(i = .k)]
       } else {
-        mat <- data.table::data.table(i = integer(), j = integer(),
-                                      coef = numeric())
+        mat <- data.table::data.table(
+          i = integer(), j = integer(),
+          coef = numeric()
+        )
         cst <- data.table::data.table(i = integer(), rhs = numeric())
       }
       if (!is.null(sink)) {
-        if (inherits(sink, "mm_scan")) mm_scan_add(sink, mat$i, mat$j, mat$coef) else
+        if (inherits(sink, "mm_scan")) {
+          mm_scan_add(sink, mat$i, mat$j, mat$coef)
+        } else {
           mm_sink_write(sink, mat$i, mat$j, mat$coef)
+        }
         mat <- mat[0]
       }
       mats[[ck]] <- mat
       csts[[ck]] <- cst
     }
-    tri[[n]] <- if (n_chunks == 1L) mats[[1L]] else
+    tri[[n]] <- if (n_chunks == 1L) {
+      mats[[1L]]
+    } else {
       data.table::rbindlist(mats, use.names = TRUE)
-    rhs[[n]] <- if (n_chunks == 1L) csts[[1L]] else
+    }
+    rhs[[n]] <- if (n_chunks == 1L) {
+      csts[[1L]]
+    } else {
       data.table::rbindlist(csts, use.names = TRUE)
+    }
     # the chunk tables and intermediates of the equations done so far are
     # collected once they amount to a few million rows of work, which keeps
     # the heap near the live data instead of growing between R's own
@@ -1744,12 +2019,17 @@ build_triplets <- function(model, col_index = NULL, row_index = NULL,
     # indexes go too
     rm(mats, csts)
     gc_rows <- gc_rows + nr
-    if (gc_rows > 2000000L) { gc(FALSE); gc_rows <- 0L }
+    if (gc_rows > 2000000L) {
+      gc(FALSE)
+      gc_rows <- 0L
+    }
     if (is.finite(cache_limit) && !is.null(ctx$ex)) mm_block_trim(ctx$ex, cache_limit)
     if (verbose) {
-      message(sprintf("  %-30s rows=%-7d nnz=%-8d %.1fs", nm, nr,
-                      nrow(tri[[n]]),
-                      as.numeric(Sys.time() - t0, units = "secs")))
+      message(sprintf(
+        "  %-30s rows=%-7d nnz=%-8d %.1fs", nm, nr,
+        nrow(tri[[n]]),
+        as.numeric(Sys.time() - t0, units = "secs")
+      ))
     }
   }
 

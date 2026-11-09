@@ -79,6 +79,8 @@ write_jump(m, model_dir = ws)
 write_jump(m, model_dir = ws, solver_dir = "jump-highs")
 
 # Barrier method for large models
-write_jump(m, model_dir = ws,
-           optimizer_attributes = list(solver = "ipm", parallel = "on"))
+write_jump(m,
+  model_dir = ws,
+  optimizer_attributes = list(solver = "ipm", parallel = "on")
+)
 }

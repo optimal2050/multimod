@@ -7,23 +7,23 @@
 #'
 #' @param obj A multimod model or parameter/mapping object
 #' @return Logical. TRUE if data is in memory, FALSE if on disk
-#' 
+#'
 #' @details
 #' Checks hierarchy:
 #' 1. Object's misc$inMemory if set
 #' 2. Model's inMemory default if object is a parameter/mapping
 #' 3. TRUE by default (conservative)
-#' 
+#'
 #' @export
 is_in_memory <- function(obj) {
   # Check object's own inMemory flag
   if (!is.null(obj$misc$inMemory)) {
     return(obj$misc$inMemory)
   }
-  
+
   # For parameters/mappings, check if they have a model context
   # (would need to be passed separately or stored as attribute)
-  
+
   # Default: assume in memory (conservative)
   TRUE
 }
@@ -33,25 +33,25 @@ is_in_memory <- function(obj) {
 #' @param obj Parameter or mapping object
 #' @param base_path Optional base path to prepend for relative paths
 #' @return Character path to data directory
-#' 
+#'
 #' @export
 get_data_path <- function(obj, base_path = NULL) {
   if (is.null(obj$misc$path)) {
     return(NULL)
   }
-  
+
   path <- obj$misc$path
-  
+
   # If absolute path, return as-is
   if (grepl("^[A-Za-z]:|^/|^\\\\", path)) {
     return(path)
   }
-  
+
   # Relative path - prepend base_path if provided
   if (!is.null(base_path)) {
     path <- file.path(base_path, path)
   }
-  
+
   path
 }
 
@@ -60,7 +60,7 @@ get_data_path <- function(obj, base_path = NULL) {
 #' @param obj Parameter or mapping object
 #' @param path Character path (relative or absolute)
 #' @return Modified object
-#' 
+#'
 #' @export
 set_data_path <- function(obj, path) {
   if (is.null(obj$misc)) {
@@ -74,38 +74,62 @@ set_data_path <- function(obj, path) {
 #'
 #' @param path Path to data directory or file
 #' @return Character format name: "parquet", "feather", "ipc", "csv", or NULL
-#' 
+#'
 #' @keywords internal
 detect_arrow_format <- function(path) {
   if (!dir.exists(path) && !file.exists(path)) {
     return(NULL)
   }
-  
+
   # Check for common Arrow dataset structure (data/*.parquet)
   data_dir <- file.path(path, "data")
   if (dir.exists(data_dir)) {
     files <- list.files(data_dir)
-    if (any(grepl("\\.parquet$", files))) return("parquet")
-    if (any(grepl("\\.feather$", files))) return("feather")
-    if (any(grepl("\\.arrow$", files))) return("ipc")
-    if (any(grepl("\\.csv$", files))) return("csv")
+    if (any(grepl("\\.parquet$", files))) {
+      return("parquet")
+    }
+    if (any(grepl("\\.feather$", files))) {
+      return("feather")
+    }
+    if (any(grepl("\\.arrow$", files))) {
+      return("ipc")
+    }
+    if (any(grepl("\\.csv$", files))) {
+      return("csv")
+    }
   }
-  
+
   # A directory holding the parts directly (a version of a dataset store)
   if (dir.exists(path)) {
     files <- list.files(path)
-    if (any(grepl("[.]parquet$", files))) return("parquet")
-    if (any(grepl("[.]feather$", files))) return("feather")
-    if (any(grepl("[.]arrow$", files))) return("ipc")
-    if (any(grepl("[.]csv$", files))) return("csv")
+    if (any(grepl("[.]parquet$", files))) {
+      return("parquet")
+    }
+    if (any(grepl("[.]feather$", files))) {
+      return("feather")
+    }
+    if (any(grepl("[.]arrow$", files))) {
+      return("ipc")
+    }
+    if (any(grepl("[.]csv$", files))) {
+      return("csv")
+    }
   }
 
   # Check path itself
-  if (grepl("\\.parquet$", path)) return("parquet")
-  if (grepl("\\.feather$", path)) return("feather")
-  if (grepl("\\.arrow$", path)) return("ipc")
-  if (grepl("\\.csv$", path)) return("csv")
-  
+  if (grepl("\\.parquet$", path)) {
+    return("parquet")
+  }
+  if (grepl("\\.feather$", path)) {
+    return("feather")
+  }
+  if (grepl("\\.arrow$", path)) {
+    return("ipc")
+  }
+  if (grepl("\\.csv$", path)) {
+    return("csv")
+  }
+
   NULL
 }
 
@@ -115,33 +139,36 @@ detect_arrow_format <- function(path) {
 #' @param format Optional format specification
 #' @param collect Logical. If TRUE, collect into memory (data.table)
 #' @return Arrow dataset or data.table
-#' 
+#'
 #' @keywords internal
 #' @export
 load_arrow_data <- function(path, format = NULL, collect = TRUE) {
   if (!requireNamespace("arrow", quietly = TRUE)) {
     stop("Package 'arrow' required for on-disk data. Install with: install.packages('arrow')")
   }
-  
+
   if (is.null(format)) {
     format <- detect_arrow_format(path)
   }
-  
+
   if (is.null(format)) {
     stop("Cannot detect data format at: ", path)
   }
-  
+
   # Open dataset based on format
-  ds <- tryCatch({
-    if (format %in% c("parquet", "feather", "ipc", "csv")) {
-      arrow::open_dataset(path, format = format)
-    } else {
-      stop("Unsupported format: ", format)
+  ds <- tryCatch(
+    {
+      if (format %in% c("parquet", "feather", "ipc", "csv")) {
+        arrow::open_dataset(path, format = format)
+      } else {
+        stop("Unsupported format: ", format)
+      }
+    },
+    error = function(e) {
+      stop("Failed to open dataset at ", path, ": ", conditionMessage(e))
     }
-  }, error = function(e) {
-    stop("Failed to open dataset at ", path, ": ", conditionMessage(e))
-  })
-  
+  )
+
   if (collect) {
     df <- dplyr::collect(ds)
     # the collected tibble is this call's own: converted in place, as
@@ -151,10 +178,9 @@ load_arrow_data <- function(path, format = NULL, collect = TRUE) {
     }
     return(as.data.frame(df))
   }
-  
+
   ds
 }
-
 
 
 #' Save data to disk using Arrow
@@ -163,20 +189,20 @@ load_arrow_data <- function(path, format = NULL, collect = TRUE) {
 #' @param path Path to save to
 #' @param format Format: "parquet", "feather", "ipc", "csv"
 #' @param overwrite Logical. Overwrite existing data?
-#' 
+#'
 #' @return Invisibly, `path`.
 #' @keywords internal
 save_arrow_data <- function(data, path, format = "parquet", overwrite = FALSE) {
   if (!requireNamespace("arrow", quietly = TRUE)) {
     stop("Package 'arrow' required. Install with: install.packages('arrow')")
   }
-  
+
   # Create directory structure
   data_dir <- file.path(path, "data")
   if (!dir.exists(data_dir)) {
     dir.create(data_dir, recursive = TRUE)
   }
-  
+
   # Write based on format
   if (format == "parquet") {
     arrow::write_dataset(data, data_dir, format = "parquet")
@@ -189,7 +215,7 @@ save_arrow_data <- function(data, path, format = "parquet", overwrite = FALSE) {
   } else {
     stop("Unsupported format: ", format)
   }
-  
+
   invisible(path)
 }
 
@@ -199,21 +225,21 @@ save_arrow_data <- function(data, path, format = "parquet", overwrite = FALSE) {
 #' @param base_path Base path for relative paths
 #' @param collect Logical. Collect into memory?
 #' @return Data (data.table if collect=TRUE, Arrow dataset if FALSE)
-#' 
+#'
 #' @export
 get_lazy_data <- function(obj, base_path = NULL, collect = TRUE) {
   # If in memory, return data directly
   if (is_in_memory(obj)) {
     return(obj$data)
   }
-  
+
   # Load from disk
   path <- get_data_path(obj, base_path)
   if (is.null(path)) {
     # No path set - data should be in memory or doesn't exist
     return(NULL)
   }
-  
+
   if (!dir.exists(path) && !file.exists(path)) {
     # Only warn if object explicitly has a path set (not just NULL)
     if (!is.null(obj$data_path)) {
@@ -221,7 +247,7 @@ get_lazy_data <- function(obj, base_path = NULL, collect = TRUE) {
     }
     return(NULL)
   }
-  
+
   load_arrow_data(path, collect = collect)
 }
 
@@ -230,31 +256,31 @@ get_lazy_data <- function(obj, base_path = NULL, collect = TRUE) {
 #' @param model Multimod model
 #' @param param_name Name of parameter to load
 #' @return Modified model with parameter data loaded
-#' 
+#'
 #' @export
 load_parameter <- function(model, param_name) {
   stopifnot(inherits(model, "multimod"))
-  
+
   if (!param_name %in% names(model$parameters)) {
     stop("Parameter not found: ", param_name)
   }
-  
+
   param <- model$parameters[[param_name]]
-  
+
   # Already in memory?
   if (is_in_memory(param)) {
     message("Parameter '", param_name, "' already in memory")
     return(model)
   }
-  
+
   # Load from disk
   data <- get_lazy_data(param, base_path = model$base_path, collect = TRUE)
-  
+
   # Update parameter
   param$data <- data
   if (is.null(param$misc)) param$misc <- list()
   param$misc$inMemory <- TRUE
-  
+
   model$parameters[[param_name]] <- param
   model
 }
@@ -264,31 +290,31 @@ load_parameter <- function(model, param_name) {
 #' @param model Multimod model
 #' @param mapping_name Name of mapping to load
 #' @return Modified model with mapping data loaded
-#' 
+#'
 #' @export
 load_mapping <- function(model, mapping_name) {
   stopifnot(inherits(model, "multimod"))
-  
+
   if (!mapping_name %in% names(model$mappings)) {
     stop("Mapping not found: ", mapping_name)
   }
-  
+
   mapping <- model$mappings[[mapping_name]]
-  
+
   # Already in memory?
   if (is_in_memory(mapping)) {
     message("Mapping '", mapping_name, "' already in memory")
     return(model)
   }
-  
+
   # Load from disk
   data <- get_lazy_data(mapping, base_path = model$base_path, collect = TRUE)
-  
+
   # Update mapping
   mapping$data <- data
   if (is.null(mapping$misc)) mapping$misc <- list()
   mapping$misc$inMemory <- TRUE
-  
+
   model$mappings[[mapping_name]] <- mapping
   model
 }
@@ -300,23 +326,23 @@ load_mapping <- function(model, mapping_name) {
 #' @param format Data format: "parquet", "feather", "ipc", "csv"
 #' @param keep_in_memory Keep data in memory after saving?
 #' @return Modified model
-#' 
+#'
 #' @export
 save_parameter <- function(model, param_name, format = "parquet", keep_in_memory = FALSE) {
   stopifnot(inherits(model, "multimod"))
-  
+
   if (!param_name %in% names(model$parameters)) {
     stop("Parameter not found: ", param_name)
   }
-  
+
   param <- model$parameters[[param_name]]
-  
+
   # Get data
   if (is.null(param$data) || nrow(param$data) == 0) {
     warning("No data to save for parameter: ", param_name)
     return(model)
   }
-  
+
   # Determine path
   path <- get_data_path(param, base_path = model$base_path)
   if (is.null(path)) {
@@ -330,10 +356,10 @@ save_parameter <- function(model, param_name, format = "parquet", keep_in_memory
     # Relative path - prepend base_path
     path <- file.path(model$base_path, path)
   }
-  
+
   # Save to disk
   save_arrow_data(param$data, path, format = format)
-  
+
   # Update metadata
   if (is.null(param$misc)) param$misc <- list()
   param$misc$onDisk <- list(
@@ -343,7 +369,7 @@ save_parameter <- function(model, param_name, format = "parquet", keep_in_memory
       size = format(object.size(param$data), units = "auto")
     )
   )
-  
+
   # Free memory if requested
   if (!keep_in_memory) {
     param$data <- data.frame()
@@ -351,7 +377,7 @@ save_parameter <- function(model, param_name, format = "parquet", keep_in_memory
   } else {
     param$misc$inMemory <- TRUE
   }
-  
+
   model$parameters[[param_name]] <- param
   model
 }
@@ -363,23 +389,23 @@ save_parameter <- function(model, param_name, format = "parquet", keep_in_memory
 #' @param format Data format: "parquet", "feather", "ipc", "csv"
 #' @param keep_in_memory Keep data in memory after saving?
 #' @return Modified model
-#' 
+#'
 #' @export
 save_mapping <- function(model, mapping_name, format = "parquet", keep_in_memory = FALSE) {
   stopifnot(inherits(model, "multimod"))
-  
+
   if (!mapping_name %in% names(model$mappings)) {
     stop("Mapping not found: ", mapping_name)
   }
-  
+
   mapping <- model$mappings[[mapping_name]]
-  
+
   # Get data
   if (is.null(mapping$data) || nrow(mapping$data) == 0) {
     warning("No data to save for mapping: ", mapping_name)
     return(model)
   }
-  
+
   # Determine path
   path <- get_data_path(mapping, base_path = model$base_path)
   if (is.null(path)) {
@@ -393,10 +419,10 @@ save_mapping <- function(model, mapping_name, format = "parquet", keep_in_memory
     # Relative path - prepend base_path
     path <- file.path(model$base_path, path)
   }
-  
+
   # Save to disk
   save_arrow_data(mapping$data, path, format = format)
-  
+
   # Update metadata
   if (is.null(mapping$misc)) mapping$misc <- list()
   mapping$misc$onDisk <- list(
@@ -406,7 +432,7 @@ save_mapping <- function(model, mapping_name, format = "parquet", keep_in_memory
       size = format(object.size(mapping$data), units = "auto")
     )
   )
-  
+
   # Free memory if requested
   if (!keep_in_memory) {
     mapping$data <- data.frame()
@@ -414,7 +440,7 @@ save_mapping <- function(model, mapping_name, format = "parquet", keep_in_memory
   } else {
     mapping$misc$inMemory <- TRUE
   }
-  
+
   model$mappings[[mapping_name]] <- mapping
   model
 }
@@ -423,7 +449,7 @@ save_mapping <- function(model, mapping_name, format = "parquet", keep_in_memory
 #'
 #' @param model Multimod model
 #' @return Modified model
-#' 
+#'
 #' @export
 load_all_parameters <- function(model) {
   for (param_name in names(model$parameters)) {
@@ -436,7 +462,7 @@ load_all_parameters <- function(model) {
 #'
 #' @param model Multimod model
 #' @return Modified model
-#' 
+#'
 #' @export
 load_all_mappings <- function(model) {
   for (mapping_name in names(model$mappings)) {
@@ -451,7 +477,7 @@ load_all_mappings <- function(model) {
 #' @param format Data format
 #' @param keep_in_memory Keep data in memory after saving?
 #' @return Modified model
-#' 
+#'
 #' @export
 save_all_parameters <- function(model, format = "parquet", keep_in_memory = FALSE) {
   for (param_name in names(model$parameters)) {
@@ -466,7 +492,7 @@ save_all_parameters <- function(model, format = "parquet", keep_in_memory = FALS
 #' @param format Data format
 #' @param keep_in_memory Keep data in memory after saving?
 #' @return Modified model
-#' 
+#'
 #' @export
 save_all_mappings <- function(model, format = "parquet", keep_in_memory = FALSE) {
   for (mapping_name in names(model$mappings)) {
@@ -481,15 +507,15 @@ save_all_mappings <- function(model, format = "parquet", keep_in_memory = FALSE)
 #' @param set_name Name of set
 #' @param members Character vector of set members
 #' @return Modified model
-#' 
+#'
 #' @export
 add_set_data <- function(model, set_name, members) {
   stopifnot(inherits(model, "multimod") || inherits(model, "mm_model"))
-  
+
   if (!set_name %in% names(model$sets)) {
     stop("Set not found: ", set_name)
   }
-  
+
   model$sets[[set_name]]$data <- unique(sort(as.character(members)))
   model
 }
@@ -500,23 +526,23 @@ add_set_data <- function(model, set_name, members) {
 #' @param model Multimod model
 #' @param load_data Logical. Load data from disk if needed?
 #' @return Modified model with set data populated
-#' 
+#'
 #' @details
 #' Extracts unique members for each set from the model's own mappings
 #' and parameters. Useful when model already has data loaded.
-#' 
+#'
 #' @export
 populate_sets_from_data <- function(model, load_data = FALSE) {
   stopifnot(inherits(model, "multimod") || inherits(model, "mm_model"))
-  
+
   cat("Populating sets from model data...\n")
-  
+
   # Initialize set data storage
   set_members <- list()
   for (set_name in names(model$sets)) {
     set_members[[set_name]] <- character()
   }
-  
+
   # Extract from mappings
   if (!is.null(model$mappings) && length(model$mappings) > 0) {
     for (m in model$mappings) {
@@ -525,7 +551,7 @@ populate_sets_from_data <- function(model, load_data = FALSE) {
       } else {
         m$data
       }
-      
+
       if (!is.null(m_data) && nrow(m_data) > 0) {
         # Mappings use 'dims' not 'sets'
         m_dims <- if (!is.null(m$dims)) {
@@ -545,7 +571,7 @@ populate_sets_from_data <- function(model, load_data = FALSE) {
       }
     }
   }
-  
+
   # Extract from parameters
   if (!is.null(model$parameters) && length(model$parameters) > 0) {
     for (p in model$parameters) {
@@ -554,7 +580,7 @@ populate_sets_from_data <- function(model, load_data = FALSE) {
       } else {
         p$data
       }
-      
+
       if (!is.null(p_data) && nrow(p_data) > 0) {
         p_dims <- if (is.character(p$dims)) p$dims else as.character(p$dims)
         if (!is.null(p_dims) && length(p_dims) > 0) {
@@ -569,7 +595,7 @@ populate_sets_from_data <- function(model, load_data = FALSE) {
       }
     }
   }
-  
+
   # Update model sets with unique members
   n_populated <- 0
   for (set_name in names(set_members)) {
@@ -580,28 +606,10 @@ populate_sets_from_data <- function(model, load_data = FALSE) {
       cat("  ", set_name, ":", length(members), "members\n")
     }
   }
-  
+
   cat("Populated", n_populated, "of", length(model$sets), "sets\n")
   model
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 #' Export import log to CSV file
@@ -614,7 +622,7 @@ populate_sets_from_data <- function(model, load_data = FALSE) {
 export_import_log <- function(import_log, log_file) {
   # Flatten the log structure into a data frame
   rows <- list()
-  
+
   # Sets
   if (!is.null(import_log$sets)) {
     for (name in names(import_log$sets)) {
@@ -629,13 +637,16 @@ export_import_log <- function(import_log, log_file) {
         defVal = NA,
         n_rows = NA,
         path = NA,
-        sources = if (!is.na(entry$source_parameters[1])) 
-          paste(entry$source_parameters, collapse = "; ") else NA,
+        sources = if (!is.na(entry$source_parameters[1])) {
+          paste(entry$source_parameters, collapse = "; ")
+        } else {
+          NA
+        },
         stringsAsFactors = FALSE
       )
     }
   }
-  
+
   # Parameters
   if (!is.null(import_log$parameters)) {
     for (name in names(import_log$parameters)) {
@@ -655,7 +666,7 @@ export_import_log <- function(import_log, log_file) {
       )
     }
   }
-  
+
   # Mappings
   if (!is.null(import_log$mappings)) {
     for (name in names(import_log$mappings)) {
@@ -675,7 +686,7 @@ export_import_log <- function(import_log, log_file) {
       )
     }
   }
-  
+
   # Bounds
   if (!is.null(import_log$bounds)) {
     for (name in names(import_log$bounds)) {
@@ -709,21 +720,10 @@ export_import_log <- function(import_log, log_file) {
       )
     }
   }
-  
+
   # Combine and write
   if (length(rows) > 0) {
     log_df <- do.call(rbind, rows)
     write.csv(log_df, log_file, row.names = FALSE)
   }
 }
-
-
-
-
-
-
-
-
-
-
-

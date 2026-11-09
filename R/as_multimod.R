@@ -22,12 +22,14 @@ as_multimod.model_structure <- function(x, index_aliases = NULL, ...) {
   args <- list(...)
 
   if (!is.null(args$name)) {
-    name <- args$name; args$name <- NULL
+    name <- args$name
+    args$name <- NULL
   } else {
     name <- x$name
   }
   if (!is.null(args$desc)) {
-    desc <- args$desc; args$desc <- NULL
+    desc <- args$desc
+    args$desc <- NULL
   } else {
     desc <- x$desc
   }
@@ -41,8 +43,10 @@ as_multimod.model_structure <- function(x, index_aliases = NULL, ...) {
     # model_structure. Dropping it left every set memberless, so a writer
     # emitted no declaration for it; parsed GAMS/GMPL sets have no `$data` and
     # are unaffected.
-    new_set(name = s$name, desc = s$desc, subset_of = s$subset_of,
-            data = s$data)
+    new_set(
+      name = s$name, desc = s$desc, subset_of = s$subset_of,
+      data = s$data
+    )
   })
 
   # Reorganize aliases: combine all aliases by base set name
@@ -55,17 +59,17 @@ as_multimod.model_structure <- function(x, index_aliases = NULL, ...) {
     for (alias_pair in x$aliases) {
       # Skip if NULL or empty
       if (is.null(alias_pair) || length(alias_pair) == 0) next
-      
+
       # Convert list to character vector if needed
       if (is.list(alias_pair)) {
         alias_pair <- unlist(alias_pair, use.names = FALSE)
       }
-      
+
       # Ensure it's a character vector
       if (!is.character(alias_pair)) {
         alias_pair <- as.character(alias_pair)
       }
-      
+
       if (length(alias_pair) < 2) next
 
       # Find which existing group this belongs to (if any)
@@ -127,7 +131,7 @@ as_multimod.model_structure <- function(x, index_aliases = NULL, ...) {
       data = if (!is.null(p$data)) p$data else NULL, # optional
       defVal = p$defVal,
       symbolic = if (!is.null(p$symbolic)) p$symbolic else FALSE,
-      formula = p$formula,  # Preserve computed parameter formulas
+      formula = p$formula, # Preserve computed parameter formulas
       symbols = symbols
     )
     # Preserve dims_index_aliases for computed parameters
@@ -143,10 +147,10 @@ as_multimod.model_structure <- function(x, index_aliases = NULL, ...) {
       name = v$name,
       desc = v$desc,
       dims = v$dims,
-      domain = v$domain,    # Preserve sparse domain mapping from read_gams
-      vtype = v$vtype,      # Preserve variable type (positive, integer, binary, etc.)
-      bounds = v$bounds,    # Preserve bounds (lo, up)
-      comment = v$comment,   # Preserve *@ comment
+      domain = v$domain, # Preserve sparse domain mapping from read_gams
+      vtype = v$vtype, # Preserve variable type (positive, integer, binary, etc.)
+      bounds = v$bounds, # Preserve bounds (lo, up)
+      comment = v$comment, # Preserve *@ comment
       symbols = symbols
     )
     # Preserve dims_index_aliases for variables
@@ -158,13 +162,13 @@ as_multimod.model_structure <- function(x, index_aliases = NULL, ...) {
 
   # Convert equations with error capture
   equations <- list()
-  objectives <- list()  # Store objective metadata: list(eq_name = list(equation, variable, sense, ...))
+  objectives <- list() # Store objective metadata: list(eq_name = list(equation, variable, sense, ...))
 
   # Process objectives from model_structure
   if (!is.null(x$objectives) && length(x$objectives) > 0) {
     for (i in seq_along(x$objectives)) {
       obj_info <- x$objectives[[i]]
-      
+
       # For linopy models, objectives don't have equation matches - they're standalone
       # Pyomo (AbstractModel-first import) also provides objective *signatures* without equations.
       # Just pass through the objective info as-is.
@@ -172,7 +176,7 @@ as_multimod.model_structure <- function(x, index_aliases = NULL, ...) {
         objectives[[length(objectives) + 1]] <- obj_info
         next
       }
-      
+
       # For GAMS/GMPL models: find matching equations
       obj_var_name <- obj_info$variable
       obj_sense <- obj_info$sense
@@ -214,14 +218,14 @@ as_multimod.model_structure <- function(x, index_aliases = NULL, ...) {
           variable = obj_var_name,
           sense = obj_sense
         )
-        
+
         # Copy all additional metadata from model_structure (solver, model, gams/gmpl source)
         for (field in names(obj_info)) {
           if (!field %in% c("variable", "sense")) {
             obj_entry[[field]] <- obj_info[[field]]
           }
         }
-        
+
         objectives[[length(objectives) + 1]] <- obj_entry
       }
     }
@@ -261,14 +265,14 @@ as_multimod.model_structure <- function(x, index_aliases = NULL, ...) {
         next
       }
     }
-    
+
     # Skip placeholder equations that can't be parsed:
     # 1. Fallback constraints: "[fallback] name_lhs >= name_rhs"
     if (!is.null(eqn_info$body)) {
       if (grepl("^\\[fallback\\]", eqn_info$body)) {
         next
       }
-      
+
       # 2. Special handling for objective placeholders:
       #    "objective = [linopy objective with N terms]"
       #    Create a minimal equation for the objective even if we can't parse the full expression
@@ -296,17 +300,17 @@ as_multimod.model_structure <- function(x, index_aliases = NULL, ...) {
       {
         # Use appropriate parser based on source language
         if (!is.null(x$language) &&
-            grepl("linopy", x$language, ignore.case = TRUE)) {
-          stop("linopy equation parsing is not part of the package; ",
-               "the experimental reader lives in drafts/R/read_linopy.R")
+          grepl("linopy", x$language, ignore.case = TRUE)) {
+          stop(
+            "linopy equation parsing is not part of the package; ",
+            "the experimental reader lives in drafts/R/read_linopy.R"
+          )
         } else if (!is.null(x$language) &&
-            grepl("gmpl|glpk|mathprog", x$language, ignore.case = TRUE)) {
+          grepl("gmpl|glpk|mathprog", x$language, ignore.case = TRUE)) {
           parse_gmpl_equation_to_ast(eqn_info, symbols)
         } else if (!is.null(x$language) &&
-                  grepl("gams", x$language, ignore.case = TRUE)) {
-
+          grepl("gams", x$language, ignore.case = TRUE)) {
           parse_gams_equation(eqn_info, symbols)
-
         } else {
           stop(paste("Unrecognized modeling lagnguage", x$language))
         }
@@ -328,7 +332,7 @@ as_multimod.model_structure <- function(x, index_aliases = NULL, ...) {
   } else {
     metadata <- list()
   }
-  
+
   # Copy symbol_name_map and latex_names from model_structure if available
   if (!is.null(x$metadata$symbol_name_map)) {
     metadata$symbol_name_map <- x$metadata$symbol_name_map
@@ -374,7 +378,7 @@ as_multimod.model_structure <- function(x, index_aliases = NULL, ...) {
     parameters = parameters,
     variables = variables,
     equations = equations,
-    objectives = if (length(objectives) > 0) objectives else NULL,  # Add objectives list
+    objectives = if (length(objectives) > 0) objectives else NULL, # Add objectives list
     metadata = metadata
   ), args)
 
@@ -493,6 +497,3 @@ as_multimod.model_structure <- function(x, index_aliases = NULL, ...) {
 #     domain = var_info$domain %||% "continuous"
 #   )
 # }
-
-
-

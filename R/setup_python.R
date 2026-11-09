@@ -40,29 +40,34 @@
 #' @seealso [get_multimod_python()], [set_multimod_python()]
 #' @export
 mm_setup_python <- function(
-    env_name = "multimod",
-    packages = c("pyomo", "highspy", "pyarrow", "pandas"),
-    conda_packages = "glpk",
-    python_version = "3.14",
-    ensure_miniconda = FALSE,
-    reinstall = FALSE,
+  env_name = "multimod",
+  packages = c("pyomo", "highspy", "pyarrow", "pandas"),
+  conda_packages = "glpk",
+  python_version = "3.14",
+  ensure_miniconda = FALSE,
+  reinstall = FALSE,
   pip = TRUE,
-    ...) {
+  ...
+) {
   if (!requireNamespace("reticulate", quietly = TRUE)) {
     stop("The 'reticulate' package is required; install it before continuing.")
   }
 
   ensure_conda <- function() {
     # Check whether a conda binary is available; if not, install miniconda when allowed
-    conda_ok <- tryCatch({
-      !is.na(reticulate::conda_binary())
-    }, error = function(e) FALSE)
+    conda_ok <- tryCatch(
+      {
+        !is.na(reticulate::conda_binary())
+      },
+      error = function(e) FALSE
+    )
 
     if (!conda_ok) {
       if (!isTRUE(ensure_miniconda)) {
         stop("No Conda installation found. Install one, for instance with ",
-             "reticulate::install_miniconda(), or call mm_setup_python(ensure_miniconda = TRUE).",
-             call. = FALSE)
+          "reticulate::install_miniconda(), or call mm_setup_python(ensure_miniconda = TRUE).",
+          call. = FALSE
+        )
       }
       reticulate::install_miniconda(...)
     }
@@ -77,38 +82,44 @@ mm_setup_python <- function(
     if (env_exists && isTRUE(reinstall)) {
       reticulate::conda_remove(env_name)
     }
-    
+
     # Create environment - catch JSON parsing errors that don't affect actual creation
-    create_result <- tryCatch({
-      reticulate::conda_create(env_name, python_version = python_version)
-      TRUE
-    }, error = function(e) {
-      # Check if error is just JSON parsing issue
-      if (grepl("lexical error|invalid character inside string", e$message, ignore.case = TRUE)) {
-        # Verify environment was actually created despite the error
-        envs <- tryCatch(reticulate::conda_list()$name, error = function(e2) character())
-        if (env_name %in% envs) {
-          message("Note: Environment '", env_name, "' created successfully (ignoring JSON parse error)")
-          return(TRUE)
+    tryCatch(
+      {
+        reticulate::conda_create(env_name, python_version = python_version)
+        TRUE
+      },
+      error = function(e) {
+        # Check if error is just JSON parsing issue
+        if (grepl("lexical error|invalid character inside string", e$message, ignore.case = TRUE)) {
+          # Verify environment was actually created despite the error
+          envs <- tryCatch(reticulate::conda_list()$name, error = function(e2) character())
+          if (env_name %in% envs) {
+            message("Note: Environment '", env_name, "' created successfully (ignoring JSON parse error)")
+            return(TRUE)
+          }
         }
+        stop(e)
       }
-      stop(e)
-    })
+    )
   }
 
   if (!is.null(packages) && length(packages) > 0) {
     # Install packages - also catch JSON parsing errors
-    install_result <- tryCatch({
-      reticulate::conda_install(env_name, packages = packages, pip = pip)
-      TRUE
-    }, error = function(e) {
-      if (grepl("lexical error|invalid character inside string", e$message, ignore.case = TRUE)) {
-        message("Note: Package installation completed (ignoring JSON parse error)")
-        message("Verify packages with: reticulate::py_list_packages(envname='", env_name, "')")
-        return(TRUE)
+    tryCatch(
+      {
+        reticulate::conda_install(env_name, packages = packages, pip = pip)
+        TRUE
+      },
+      error = function(e) {
+        if (grepl("lexical error|invalid character inside string", e$message, ignore.case = TRUE)) {
+          message("Note: Package installation completed (ignoring JSON parse error)")
+          message("Verify packages with: reticulate::py_list_packages(envname='", env_name, "')")
+          return(TRUE)
+        }
+        stop(e)
       }
-      stop(e)
-    })
+    )
   }
 
   # glpsol is a binary, so it has to come through conda even when the Python
@@ -117,12 +128,14 @@ mm_setup_python <- function(
     tryCatch(
       reticulate::conda_install(env_name, packages = conda_packages, pip = FALSE),
       error = function(e) {
-        message("Note: could not install ", paste(conda_packages, collapse = ", "),
-                " via conda: ", conditionMessage(e))
-      })
+        message(
+          "Note: could not install ", paste(conda_packages, collapse = ", "),
+          " via conda: ", conditionMessage(e)
+        )
+      }
+    )
   }
 
   reticulate::use_condaenv(env_name, required = TRUE)
   invisible(env_name)
 }
-

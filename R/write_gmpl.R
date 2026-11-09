@@ -1,4 +1,3 @@
-
 #' Write a GMPL/MathProg model file from a multimod object
 #'
 #' @param model A `multimod` model object
@@ -28,17 +27,18 @@
 #' cat(head(code, 20), sep = "\n")
 write_gmpl <- function(model, file = NULL, model_dir = NULL,
                        format_expr = FALSE, include_solve = TRUE,
-                      export_vars = NULL, use_table_output = FALSE, use_folded = NULL, objective = "cost",
-                      export_data = FALSE, drop_default_values = FALSE, INF = 1e20,
-                      check = TRUE, resolve_aliases = TRUE, verbose = FALSE, export_mps = FALSE,
-                      stop_on_error = TRUE, ...) {
-
+                       export_vars = NULL, use_table_output = FALSE, use_folded = NULL, objective = "cost",
+                       export_data = FALSE, drop_default_values = FALSE, INF = 1e20,
+                       check = TRUE, resolve_aliases = TRUE, verbose = FALSE, export_mps = FALSE,
+                       stop_on_error = TRUE, ...) {
   # Validate model if requested
   if (check) {
     validation <- validate(model, verbose = verbose, stop_on_error = stop_on_error)
     if (!validation$valid) {
-      msg <- paste("Model validation failed:\n",
-                   paste(validation$errors, collapse = "\n"))
+      msg <- paste(
+        "Model validation failed:\n",
+        paste(validation$errors, collapse = "\n")
+      )
       if (stop_on_error) stop(msg)
       warning(msg)
     }
@@ -56,7 +56,7 @@ write_gmpl <- function(model, file = NULL, model_dir = NULL,
   if (is.null(use_folded)) {
     use_folded <- tryCatch(
       is_folded(model),
-      error = function(e) FALSE  # Default to FALSE if check fails
+      error = function(e) FALSE # Default to FALSE if check fails
     )
   }
 
@@ -95,8 +95,10 @@ write_gmpl <- function(model, file = NULL, model_dir = NULL,
     on.exit(options(multimod.gmpl_inf = old_inf), add = TRUE)
 
     # Write model file
-    model_code <- write_gmpl_internal(model, file = NULL, format_expr, include_solve,
-                                      export_vars, use_table_output, use_folded, objective, export_data, drop_default_values, ...)
+    model_code <- write_gmpl_internal(model,
+      file = NULL, format_expr, include_solve,
+      export_vars, use_table_output, use_folded, objective, export_data, drop_default_values, ...
+    )
     writeLines(model_code, mod_file)
 
     # Write data file
@@ -121,19 +123,20 @@ write_gmpl <- function(model, file = NULL, model_dir = NULL,
 #' @method write_gmpl mm_model
 #' @export
 write_gmpl.mm_model <- function(model, file = NULL, model_dir = NULL,
-                            format_expr = FALSE, include_solve = TRUE,
-                            export_vars = NULL, use_table_output = FALSE, use_folded = NULL, objective = "cost",
-                            export_data = FALSE, drop_default_values = FALSE, INF = 1e20,
-                            check = TRUE, resolve_aliases = TRUE, verbose = FALSE, export_mps = FALSE,
-                            stop_on_error = TRUE, ...) {
+                                format_expr = FALSE, include_solve = TRUE,
+                                export_vars = NULL, use_table_output = FALSE, use_folded = NULL, objective = "cost",
+                                export_data = FALSE, drop_default_values = FALSE, INF = 1e20,
+                                check = TRUE, resolve_aliases = TRUE, verbose = FALSE, export_mps = FALSE,
+                                stop_on_error = TRUE, ...) {
   stopifnot(inherits(model, "mm_model"))
   # Auto-detect if model is folded
   if (is.null(use_folded)) {
     use_folded <- is_folded(model)
   }
   write_gmpl_internal(model, file, format_expr, include_solve, export_vars, use_table_output, use_folded, objective, export_data, drop_default_values,
-                      model_dir = model_dir, INF = INF, check = check, resolve_aliases = resolve_aliases,
-                      verbose = verbose, export_mps = export_mps, stop_on_error = stop_on_error, ...)
+    model_dir = model_dir, INF = INF, check = check, resolve_aliases = resolve_aliases,
+    verbose = verbose, export_mps = export_mps, stop_on_error = stop_on_error, ...
+  )
 }
 
 
@@ -163,9 +166,8 @@ write_gmpl.mm_model <- function(model, file = NULL, model_dir = NULL,
 #'
 #' @keywords internal
 write_gmpl_internal <- function(model, file = NULL, format_expr = FALSE, include_solve = TRUE,
-                               export_vars = NULL, use_table_output = FALSE, use_folded = FALSE, objective = "cost",
-                               export_data = FALSE, drop_default_values = FALSE, ...) {
-
+                                export_vars = NULL, use_table_output = FALSE, use_folded = FALSE, objective = "cost",
+                                export_data = FALSE, drop_default_values = FALSE, ...) {
   lines <- character()
 
   # Header with comments
@@ -188,7 +190,8 @@ write_gmpl_internal <- function(model, file = NULL, format_expr = FALSE, include
       for (fld in c("lhs", "rhs", "domain", "dims")) {
         if (!is.null(eq[[fld]])) {
           s <- c(s, tryCatch(collect_symbols(eq[[fld]]),
-                             error = function(e) character(0)))
+            error = function(e) character(0)
+          ))
         }
       }
     }
@@ -205,9 +208,13 @@ write_gmpl_internal <- function(model, file = NULL, format_expr = FALSE, include
       next
     }
 
-    set_line <- tryCatch({
-      as_gmpl(s, declaration = TRUE, desc = TRUE)
-    }, error = function(e) NULL, warning = function(w) NULL)
+    set_line <- tryCatch(
+      {
+        as_gmpl(s, declaration = TRUE, desc = TRUE)
+      },
+      error = function(e) NULL,
+      warning = function(w) NULL
+    )
 
     if (!is.null(set_line) && is.character(set_line)) {
       lines <- c(lines, set_line)
@@ -237,13 +244,17 @@ write_gmpl_internal <- function(model, file = NULL, format_expr = FALSE, include
       # declaration of the same name does not compile, but if that side was
       # trimmed away the mapping is the only declaration left.
       if (!is.null(m$name) && m$name %in% subset_symbols &&
-          set_declared(m$name)) {
+        set_declared(m$name)) {
         next
       }
 
-      mapping_line <- tryCatch({
-        as_gmpl(m, declaration = TRUE, desc = TRUE)
-      }, error = function(e) NULL, warning = function(w) NULL)
+      mapping_line <- tryCatch(
+        {
+          as_gmpl(m, declaration = TRUE, desc = TRUE)
+        },
+        error = function(e) NULL,
+        warning = function(w) NULL
+      )
 
       if (!is.null(mapping_line) && is.character(mapping_line)) {
         lines <- c(lines, mapping_line)
@@ -260,9 +271,13 @@ write_gmpl_internal <- function(model, file = NULL, format_expr = FALSE, include
         next
       }
 
-      param_line <- tryCatch({
-        as_gmpl(p, declaration = TRUE, desc = TRUE)
-      }, error = function(e) NULL, warning = function(w) NULL)
+      param_line <- tryCatch(
+        {
+          as_gmpl(p, declaration = TRUE, desc = TRUE)
+        },
+        error = function(e) NULL,
+        warning = function(w) NULL
+      )
 
       if (!is.null(param_line) && is.character(param_line)) {
         lines <- c(lines, param_line)
@@ -300,9 +315,13 @@ write_gmpl_internal <- function(model, file = NULL, format_expr = FALSE, include
         next
       }
 
-      var_line <- tryCatch({
-        as_gmpl(v, declaration = TRUE, desc = TRUE)
-      }, error = function(e) NULL, warning = function(w) NULL)
+      var_line <- tryCatch(
+        {
+          as_gmpl(v, declaration = TRUE, desc = TRUE)
+        },
+        error = function(e) NULL,
+        warning = function(w) NULL
+      )
 
       if (!is.null(var_line) && is.character(var_line)) {
         lines <- c(lines, var_line)
@@ -453,9 +472,13 @@ write_gmpl_internal <- function(model, file = NULL, format_expr = FALSE, include
         if (inherits(dims, "dims")) {
           dim_names_vec <- vapply(seq_along(dims), function(i) {
             d <- dims[[i]]
-            if (inherits(d, "symbol")) d$name
-            else if (is.list(d) && !is.null(d$name)) d$name
-            else as.character(d)
+            if (inherits(d, "symbol")) {
+              d$name
+            } else if (is.list(d) && !is.null(d$name)) {
+              d$name
+            } else {
+              as.character(d)
+            }
           }, character(1))
         } else {
           dim_names_vec <- as.character(dims)
@@ -471,10 +494,15 @@ write_gmpl_internal <- function(model, file = NULL, format_expr = FALSE, include
         # Get domain dimension names (may include aliases)
         if (!is.null(eq$domain) && !is.null(eq$domain$dims) && length(eq$domain$dims) > 0) {
           domain_dim_names <- sapply(eq$domain$dims, function(d) {
-            if (inherits(d, "symbol")) d$name
-            else if (inherits(d, "mm_set")) d$name
-            else if (is.character(d)) d
-            else as.character(d)
+            if (inherits(d, "symbol")) {
+              d$name
+            } else if (inherits(d, "mm_set")) {
+              d$name
+            } else if (is.character(d)) {
+              d
+            } else {
+              as.character(d)
+            }
           })
         } else {
           domain_dim_names <- dim_names_vec
@@ -506,12 +534,15 @@ write_gmpl_internal <- function(model, file = NULL, format_expr = FALSE, include
           iter_spec <- paste(sprintf("%s in %s", iter_vars, dim_names_vec), collapse = ", ")
 
           # Convert domain condition to GMPL
-          domain_cond <- tryCatch({
-            as_gmpl(eq$domain, model = model)
-          }, error = function(e) {
-            # Fallback: simple condition string
-            ""
-          })
+          domain_cond <- tryCatch(
+            {
+              as_gmpl(eq$domain, model = model)
+            },
+            error = function(e) {
+              # Fallback: simple condition string
+              ""
+            }
+          )
 
           if (nchar(domain_cond) > 0) {
             count_expr <- sprintf("sum{%s: %s} 1", iter_spec, domain_cond)
@@ -557,9 +588,13 @@ write_gmpl_internal <- function(model, file = NULL, format_expr = FALSE, include
         if (inherits(dims, "dims")) {
           dim_names_vec <- vapply(seq_along(dims), function(i) {
             d <- dims[[i]]
-            if (inherits(d, "symbol")) d$name
-            else if (is.list(d) && !is.null(d$name)) d$name
-            else as.character(d)
+            if (inherits(d, "symbol")) {
+              d$name
+            } else if (is.list(d) && !is.null(d$name)) {
+              d$name
+            } else {
+              as.character(d)
+            }
           }, character(1))
         } else {
           dim_names_vec <- as.character(dims)
@@ -584,7 +619,7 @@ write_gmpl_internal <- function(model, file = NULL, format_expr = FALSE, include
 
     if (do_custom_export || use_table_output) {
       lines <- c(lines, "")
-      lines <- c(lines, '# Export results to output directory')
+      lines <- c(lines, "# Export results to output directory")
 
       # Log timestamps
       lines <- c(lines, 'printf  \'"solution status",1,"%s"\\n\', time2str(gmtime(), "%Y-%m-%d %M:%H:S %TZ") >> "solution/log.csv";')
@@ -644,9 +679,9 @@ write_gmpl_internal <- function(model, file = NULL, format_expr = FALSE, include
           if (isTRUE(s$trimmed)) {
             next
           }
-          lines <- c(lines, sprintf('for {%s in %s} {', substr(s$name, 1, 1), s$name))
+          lines <- c(lines, sprintf("for {%s in %s} {", substr(s$name, 1, 1), s$name))
           lines <- c(lines, sprintf('    printf "%s,%%s\\n", %s >> "solution/raw_data_set.csv";', s$name, substr(s$name, 1, 1)))
-          lines <- c(lines, '}')
+          lines <- c(lines, "}")
         }
       }
     }
@@ -660,7 +695,9 @@ write_gmpl_internal <- function(model, file = NULL, format_expr = FALSE, include
       # Add all variables to table export (skip trimmed)
       if (!is.null(model$variables) && length(model$variables) > 0) {
         var_names <- sapply(model$variables, function(v) {
-          if (isTRUE(v$trimmed)) return(NULL)
+          if (isTRUE(v$trimmed)) {
+            return(NULL)
+          }
           v$name
         })
         var_names <- var_names[!sapply(var_names, is.null)]
@@ -686,7 +723,7 @@ write_gmpl_internal <- function(model, file = NULL, format_expr = FALSE, include
   if (!is.null(file)) {
     writeLines(lines, con = file, useBytes = TRUE)
   } else {
-    return(lines)
+    lines
   }
 }
 
@@ -715,7 +752,9 @@ format_gmpl_expression <- function(gmpl_lines, indent = 2, ...) {
 #' @return Character vector of GMPL output code
 #' @keywords internal
 generate_variable_output <- function(var) {
-  if (is.null(var$name)) return(NULL)
+  if (is.null(var$name)) {
+    return(NULL)
+  }
 
   var_name <- var$name
   dims <- var$dims
@@ -740,9 +779,13 @@ generate_variable_output <- function(var) {
   if (inherits(dims, "dims")) {
     dim_names_vec <- vapply(seq_along(dims), function(i) {
       d <- dims[[i]]
-      if (inherits(d, "symbol")) d$name
-      else if (is.list(d) && !is.null(d$name)) d$name
-      else as.character(d)
+      if (inherits(d, "symbol")) {
+        d$name
+      } else if (is.list(d) && !is.null(d$name)) {
+        d$name
+      } else {
+        as.character(d)
+      }
     }, character(1))
   } else {
     dim_names_vec <- as.character(dims)
@@ -794,9 +837,9 @@ generate_variable_output <- function(var) {
   # Generate output code
   lines <- c(
     sprintf('printf "%s\\n" > "solution/%s.csv";', header, var_name),
-    sprintf('for{%s : %s <> 0} {', iterator, var_ref),
+    sprintf("for{%s : %s <> 0} {", iterator, var_ref),
     sprintf('  printf "%s\\n", %s >> "solution/%s.csv";', format_str, printf_args, var_name),
-    '}',
+    "}",
     ""
   )
 
@@ -820,7 +863,6 @@ generate_variable_output <- function(var) {
 #' export_code <- export_data_gmpl(m)
 #' cat(substr(export_code, 1, 400))
 export_data_gmpl <- function(model, export_dir = "data_export", drop_default_values = FALSE) {
-
   if (is.null(model$sets) || is.null(model$parameters)) {
     stop("Model must have $sets and $parameters")
   }
@@ -832,11 +874,11 @@ export_data_gmpl <- function(model, export_dir = "data_export", drop_default_val
     }
     vapply(dims, function(d) {
       if (is.list(d) && !is.null(d$name)) {
-        return(d$name)
+        d$name
       } else if (is.character(d)) {
-        return(d)
+        d
       } else {
-        return(as.character(d))
+        as.character(d)
       }
     }, character(1))
   }
@@ -862,10 +904,13 @@ export_data_gmpl <- function(model, export_dir = "data_export", drop_default_val
       csv_file <- sprintf("%s/%s.csv", export_dir, set_name)
 
       # 1D set export with header
-      lines <- c(lines,
+      lines <- c(
+        lines,
         sprintf('printf "%s\\n" > "%s";', set_name, csv_file),
-        sprintf('for {i in %s} { printf "%%s\\n", i >> "%s"; }',
-                set_name, csv_file)
+        sprintf(
+          'for {i in %s} { printf "%%s\\n", i >> "%s"; }',
+          set_name, csv_file
+        )
       )
     }
     lines <- c(lines, "")
@@ -910,11 +955,11 @@ export_data_gmpl <- function(model, export_dir = "data_export", drop_default_val
 
       if (is.null(dims) || length(dims) == 0) {
         # 0D parameter (scalar)
-        lines <- c(lines,
+        lines <- c(
+          lines,
           sprintf('printf "value\\n" > "%s";', csv_file),
           sprintf('printf "%%g\\n", %s >> "%s";', param_name, csv_file)
         )
-
       } else if (length(dims) == 1) {
         # 1D parameter
         idx_var <- "i"
@@ -924,7 +969,8 @@ export_data_gmpl <- function(model, export_dir = "data_export", drop_default_val
         # Add default value in first row with empty set column
         if (has_default) {
           default_str <- if (is.character(default_val)) default_val else sprintf("%g", default_val)
-          export_lines <- c(export_lines,
+          export_lines <- c(
+            export_lines,
             sprintf('printf ",%s\\n" >> "%s";', default_str, csv_file)
           )
         }
@@ -936,12 +982,14 @@ export_data_gmpl <- function(model, export_dir = "data_export", drop_default_val
           condition <- sprintf("%s[%s] <> 0", param_name, idx_var)
         }
 
-        export_lines <- c(export_lines,
-          sprintf('for {%s in %s: %s} { printf "%%s,%%g\\n", %s, %s[%s] >> "%s"; }',
-                  idx_var, dims[1], condition, idx_var, param_name, idx_var, csv_file)
+        export_lines <- c(
+          export_lines,
+          sprintf(
+            'for {%s in %s: %s} { printf "%%s,%%g\\n", %s, %s[%s] >> "%s"; }',
+            idx_var, dims[1], condition, idx_var, param_name, idx_var, csv_file
+          )
         )
         lines <- c(lines, export_lines)
-
       } else if (length(dims) == 2) {
         # 2D parameter
         idx_var1 <- "i"
@@ -952,7 +1000,8 @@ export_data_gmpl <- function(model, export_dir = "data_export", drop_default_val
         # Add default value in first row with empty set columns
         if (has_default) {
           default_str <- if (is.character(default_val)) default_val else sprintf("%g", default_val)
-          export_lines <- c(export_lines,
+          export_lines <- c(
+            export_lines,
             sprintf('printf ",,%s\\n" >> "%s";', default_str, csv_file)
           )
         }
@@ -964,13 +1013,15 @@ export_data_gmpl <- function(model, export_dir = "data_export", drop_default_val
           condition <- sprintf("%s[%s,%s] <> 0", param_name, idx_var1, idx_var2)
         }
 
-        export_lines <- c(export_lines,
-          sprintf('for {%s in %s, %s in %s: %s} { printf "%%s,%%s,%%g\\n", %s, %s, %s[%s,%s] >> "%s"; }',
-                  idx_var1, dims[1], idx_var2, dims[2], condition,
-                  idx_var1, idx_var2, param_name, idx_var1, idx_var2, csv_file)
+        export_lines <- c(
+          export_lines,
+          sprintf(
+            'for {%s in %s, %s in %s: %s} { printf "%%s,%%s,%%g\\n", %s, %s, %s[%s,%s] >> "%s"; }',
+            idx_var1, dims[1], idx_var2, dims[2], condition,
+            idx_var1, idx_var2, param_name, idx_var1, idx_var2, csv_file
+          )
         )
         lines <- c(lines, export_lines)
-
       } else if (length(dims) == 3) {
         # 3D parameter
         idx_var1 <- "i"
@@ -982,7 +1033,8 @@ export_data_gmpl <- function(model, export_dir = "data_export", drop_default_val
         # Add default value in first row with empty set columns
         if (has_default) {
           default_str <- if (is.character(default_val)) default_val else sprintf("%g", default_val)
-          export_lines <- c(export_lines,
+          export_lines <- c(
+            export_lines,
             sprintf('printf ",,,%s\\n" >> "%s";', default_str, csv_file)
           )
         }
@@ -994,15 +1046,17 @@ export_data_gmpl <- function(model, export_dir = "data_export", drop_default_val
           condition <- sprintf("%s[%s,%s,%s] <> 0", param_name, idx_var1, idx_var2, idx_var3)
         }
 
-        export_lines <- c(export_lines,
-          sprintf('for {%s in %s, %s in %s, %s in %s: %s} { printf "%%s,%%s,%%s,%%g\\n", %s, %s, %s, %s[%s,%s,%s] >> "%s"; }',
-                  idx_var1, dims[1], idx_var2, dims[2], idx_var3, dims[3],
-                  condition,
-                  idx_var1, idx_var2, idx_var3, param_name,
-                  idx_var1, idx_var2, idx_var3, csv_file)
+        export_lines <- c(
+          export_lines,
+          sprintf(
+            'for {%s in %s, %s in %s, %s in %s: %s} { printf "%%s,%%s,%%s,%%g\\n", %s, %s, %s, %s[%s,%s,%s] >> "%s"; }',
+            idx_var1, dims[1], idx_var2, dims[2], idx_var3, dims[3],
+            condition,
+            idx_var1, idx_var2, idx_var3, param_name,
+            idx_var1, idx_var2, idx_var3, csv_file
+          )
         )
         lines <- c(lines, export_lines)
-
       } else if (length(dims) == 4) {
         # 4D parameter
         idx_vars <- c("i", "j", "k", "l")
@@ -1018,7 +1072,8 @@ export_data_gmpl <- function(model, export_dir = "data_export", drop_default_val
         if (has_default) {
           default_str <- if (is.character(default_val)) default_val else sprintf("%g", default_val)
           empty_cols <- paste(rep(",", 4), collapse = "")
-          export_lines <- c(export_lines,
+          export_lines <- c(
+            export_lines,
             sprintf('printf "%s%s\\n" >> "%s";', empty_cols, default_str, csv_file)
           )
         }
@@ -1030,12 +1085,14 @@ export_data_gmpl <- function(model, export_dir = "data_export", drop_default_val
           condition <- sprintf("%s <> 0", param_ref)
         }
 
-        export_lines <- c(export_lines,
-          sprintf('for {%s: %s} { printf "%s,%%g\\n", %s >> "%s"; }',
-                  iter_str, condition, printf_format, printf_args, csv_file)
+        export_lines <- c(
+          export_lines,
+          sprintf(
+            'for {%s: %s} { printf "%s,%%g\\n", %s >> "%s"; }',
+            iter_str, condition, printf_format, printf_args, csv_file
+          )
         )
         lines <- c(lines, export_lines)
-
       } else if (length(dims) == 5) {
         # 5D parameter
         idx_vars <- c("i", "j", "k", "l", "m")
@@ -1051,7 +1108,8 @@ export_data_gmpl <- function(model, export_dir = "data_export", drop_default_val
         if (has_default) {
           default_str <- if (is.character(default_val)) default_val else sprintf("%g", default_val)
           empty_cols <- paste(rep(",", 5), collapse = "")
-          export_lines <- c(export_lines,
+          export_lines <- c(
+            export_lines,
             sprintf('printf "%s%s\\n" >> "%s";', empty_cols, default_str, csv_file)
           )
         }
@@ -1063,16 +1121,18 @@ export_data_gmpl <- function(model, export_dir = "data_export", drop_default_val
           condition <- sprintf("%s <> 0", param_ref)
         }
 
-        export_lines <- c(export_lines,
-          sprintf('for {%s: %s} { printf "%s,%%g\\n", %s >> "%s"; }',
-                  iter_str, condition, printf_format, printf_args, csv_file)
+        export_lines <- c(
+          export_lines,
+          sprintf(
+            'for {%s: %s} { printf "%s,%%g\\n", %s >> "%s"; }',
+            iter_str, condition, printf_format, printf_args, csv_file
+          )
         )
         lines <- c(lines, export_lines)
-
       } else {
         # 6+ dimensions - generalize
         n_dims <- length(dims)
-        idx_vars <- letters[9:(8+n_dims)]  # i, j, k, l, m, n, o, ...
+        idx_vars <- letters[9:(8 + n_dims)] # i, j, k, l, m, n, o, ...
         header <- paste(c(dims, "value"), collapse = ",")
         iter_str <- paste(sprintf("%s in %s", idx_vars, dims), collapse = ", ")
         param_ref <- sprintf("%s[%s]", param_name, paste(idx_vars, collapse = ","))
@@ -1085,7 +1145,8 @@ export_data_gmpl <- function(model, export_dir = "data_export", drop_default_val
         if (has_default) {
           default_str <- if (is.character(default_val)) default_val else sprintf("%g", default_val)
           empty_cols <- paste(rep(",", n_dims), collapse = "")
-          export_lines <- c(export_lines,
+          export_lines <- c(
+            export_lines,
             sprintf('printf "%s%s\\n" >> "%s";', empty_cols, default_str, csv_file)
           )
         }
@@ -1097,9 +1158,12 @@ export_data_gmpl <- function(model, export_dir = "data_export", drop_default_val
           condition <- sprintf("%s <> 0", param_ref)
         }
 
-        export_lines <- c(export_lines,
-          sprintf('for {%s: %s <> 0} { printf "%s,%%g\\n", %s >> "%s"; }',
-                  iter_str, param_ref, printf_format, printf_args, csv_file)
+        export_lines <- c(
+          export_lines,
+          sprintf(
+            'for {%s: %s <> 0} { printf "%s,%%g\\n", %s >> "%s"; }',
+            iter_str, param_ref, printf_format, printf_args, csv_file
+          )
         )
         lines <- c(lines, export_lines)
       }
@@ -1107,12 +1171,13 @@ export_data_gmpl <- function(model, export_dir = "data_export", drop_default_val
     lines <- c(lines, "")
   }
 
-  lines <- c(lines,
+  lines <- c(
+    lines,
     'printf "Data export complete!\\n";',
     "# ========== END DATA EXPORT =========="
   )
 
-  return(paste(lines, collapse = "\n"))
+  paste(lines, collapse = "\n")
 }
 
 #' Write GMPL data file from multimod model
@@ -1155,7 +1220,7 @@ write_gmpl_data <- function(model, file = NULL, use_folded = TRUE, INF = 1e20) {
         next
       }
       if (!is.null(s$name) && s$name %in% subset_symbols &&
-          !set_side_has_data(s$name)) {
+        !set_side_has_data(s$name)) {
         next
       }
 
@@ -1176,7 +1241,7 @@ write_gmpl_data <- function(model, file = NULL, use_folded = TRUE, INF = 1e20) {
 
       # Emitted in the set section above when that side carries the members.
       if (!is.null(m$name) && m$name %in% subset_symbols &&
-          set_side_has_data(m$name)) {
+        set_side_has_data(m$name)) {
         next
       }
 
@@ -1209,7 +1274,7 @@ write_gmpl_data <- function(model, file = NULL, use_folded = TRUE, INF = 1e20) {
     writeLines(lines, con = file, useBytes = TRUE)
     invisible(NULL)
   } else {
-    return(lines)
+    lines
   }
 }
 
@@ -1223,7 +1288,9 @@ write_gmpl_data <- function(model, file = NULL, use_folded = TRUE, INF = 1e20) {
 #' @keywords internal
 write_set_data <- function(set_obj, model = NULL) {
   set_name <- set_obj$name
-  if (is.null(set_name)) return(NULL)
+  if (is.null(set_name)) {
+    return(NULL)
+  }
 
   # Use direct data if available
   if (!is.null(set_obj$data) && length(set_obj$data) > 0) {
@@ -1304,7 +1371,9 @@ write_set_data <- function(set_obj, model = NULL) {
 #' @keywords internal
 write_mapping_data <- function(mapping_obj, model = NULL) {
   mapping_name <- mapping_obj$name
-  if (is.null(mapping_name)) return(NULL)
+  if (is.null(mapping_name)) {
+    return(NULL)
+  }
 
   # Get data (with lazy loading support)
   data <- get_data_for_writing(mapping_obj, model)
@@ -1327,7 +1396,7 @@ write_mapping_data <- function(mapping_obj, model = NULL) {
   # Each row is a tuple
   for (i in seq_len(nrow(data))) {
     row_vals <- as.character(unlist(data[i, ]))
-    tuple <- paste(row_vals, collapse = " ")  # Space-separated tuple elements
+    tuple <- paste(row_vals, collapse = " ") # Space-separated tuple elements
     if (i < nrow(data)) {
       lines <- c(lines, paste0(tuple, ","))
     } else {
@@ -1352,7 +1421,9 @@ write_parameter_data <- function(param_obj, model = NULL,
                                  use_folded = TRUE,
                                  validate_timestamp = TRUE) {
   param_name <- param_obj$name
-  if (is.null(param_name)) return(NULL)
+  if (is.null(param_name)) {
+    return(NULL)
+  }
 
   # Determine which data to use: folded or original
   use_folded_data <- FALSE
@@ -1383,7 +1454,7 @@ write_parameter_data <- function(param_obj, model = NULL,
   default_val <- if (!is.null(param_obj$defVal)) {
     param_obj$defVal
   } else {
-    0  # fallback to 0
+    0 # fallback to 0
   }
 
   # Handle ast_formula - treat as if default is in model file
@@ -1435,7 +1506,7 @@ write_parameter_data <- function(param_obj, model = NULL,
     value <- if ("value" %in% names(data)) {
       data[["value"]][1]
     } else {
-      data[[ncol(data)]][1]  # Fallback to last column
+      data[[ncol(data)]][1] # Fallback to last column
     }
     return(paste0("param ", param_name, " := ", format(value, scientific = FALSE, digits = 17), ";"))
   }
@@ -1460,7 +1531,7 @@ write_parameter_data <- function(param_obj, model = NULL,
     # Extract index values and value
     if (n_dims > 0) {
       indices <- as.character(unlist(data[i, 1:n_dims]))
-      index_str <- paste(indices, collapse = ",")  # Comma-separated indices
+      index_str <- paste(indices, collapse = ",") # Comma-separated indices
     } else {
       index_str <- ""
     }
@@ -1469,7 +1540,7 @@ write_parameter_data <- function(param_obj, model = NULL,
     value <- if ("value" %in% names(data)) {
       data[["value"]][i]
     } else {
-      data[[ncol(data)]][i]  # Fallback to last column
+      data[[ncol(data)]][i] # Fallback to last column
     }
 
     # No comma after the last value, semicolon instead
@@ -1509,11 +1580,14 @@ get_data_for_writing <- function(obj, model = NULL) {
 
   # Try lazy loading
   if (!is.null(model)) {
-    data <- tryCatch({
-      get_lazy_data(obj, base_path = model$base_path, collect = TRUE)
-    }, error = function(e) {
-      NULL
-    })
+    data <- tryCatch(
+      {
+        get_lazy_data(obj, base_path = model$base_path, collect = TRUE)
+      },
+      error = function(e) {
+        NULL
+      }
+    )
 
     if (!is.null(data) && nrow(data) > 0) {
       return(data)
@@ -1522,6 +1596,3 @@ get_data_for_writing <- function(obj, model = NULL) {
 
   NULL
 }
-
-
-

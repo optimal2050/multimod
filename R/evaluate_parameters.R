@@ -31,16 +31,16 @@
 #' model <- evaluate_parameters(gmpl, data)
 #' model$parameters$GrowthFactor$data
 evaluate_parameters <- function(
-    model,
-    data = list(),
-    preserve_ast = TRUE,
-    verbose = FALSE,
-    strategy = c("auto", "dag", "iterative")
+  model,
+  data = list(),
+  preserve_ast = TRUE,
+  verbose = FALSE,
+  strategy = c("auto", "dag", "iterative")
 ) {
   strategy <- match.arg(strategy)
-  
+
   if (verbose) message("Evaluating parameter formulas and defaults...")
-  
+
   # Materialize sets as their member values so formulas can iterate over indices
   set_data <- list()
   if (!is.null(model$sets) && length(model$sets) > 0) {
@@ -66,17 +66,17 @@ evaluate_parameters <- function(
       all_data[[pname]] <- param$defVal
     }
   }
-  
+
   # Track which parameters need evaluation
   needs_eval <- list()
   computed_params <- character(0)
-  
+
   # Find parameters with AST formulas or defaults
   for (pname in names(model$parameters)) {
     param <- model$parameters[[pname]]
     has_formula <- !is.null(param$formula) && is_ast_node(param$formula)
     has_defval_ast <- !is.null(param$defVal) && is_ast_node(param$defVal)
-    
+
     if (has_formula || has_defval_ast) {
       computed_params <- c(computed_params, pname)
       needs_eval[[pname]] <- list(
@@ -86,34 +86,34 @@ evaluate_parameters <- function(
       )
     }
   }
-  
+
   if (length(needs_eval) == 0) {
     if (verbose) message("  No parameters need evaluation")
     return(model)
   }
-  
+
   # Extract dependencies for each parameter
   for (pname in names(needs_eval)) {
     param <- model$parameters[[pname]]
     deps <- character(0)
-    
+
     if (needs_eval[[pname]]$formula) {
       deps <- c(deps, get_dependencies(param$formula, model))
     }
     if (needs_eval[[pname]]$defval) {
       deps <- c(deps, get_dependencies(param$defVal, model))
     }
-    
+
     needs_eval[[pname]]$deps <- unique(deps)
   }
-  
+
   evaluate_single_param <- function(pname, stop_on_error = TRUE) {
     result <- list(success = TRUE, error = NULL)
     info <- needs_eval[[pname]]
     if (is.null(info)) {
       return(result)
     }
-    param <- model$parameters[[pname]]
+    param <- model$parameters[[pname]] # nolint: object_usage_linter.
 
     run_eval <- function() {
       if (verbose) message("  Evaluating: ", pname)
@@ -237,28 +237,29 @@ evaluate_parameters <- function(
     }
   }
 
-  dag_attempted <- FALSE
   dag_failed <- FALSE
   dag_error <- NULL
 
   if (strategy %in% c("auto", "dag")) {
-    dag_attempted <- TRUE
     eval_order <- topological_sort(needs_eval, verbose)
     if (verbose) message("  Evaluation order: ", paste(eval_order, collapse = " -> "))
 
-    dag_status <- tryCatch({
-      for (pname in eval_order) {
-        evaluate_single_param(pname, stop_on_error = TRUE)
+    dag_status <- tryCatch(
+      {
+        for (pname in eval_order) {
+          evaluate_single_param(pname, stop_on_error = TRUE)
+        }
+        TRUE
+      },
+      error = function(e) {
+        if (strategy == "dag") {
+          stop(e)
+        }
+        dag_failed <<- TRUE
+        dag_error <<- e
+        FALSE
       }
-      TRUE
-    }, error = function(e) {
-      if (strategy == "dag") {
-        stop(e)
-      }
-      dag_failed <<- TRUE
-      dag_error <<- e
-      FALSE
-    })
+    )
 
     if (dag_status && strategy != "auto") {
       if (verbose) message("  Evaluation complete!")
@@ -516,15 +517,15 @@ ensure_parameter_defval <- function(param) {
 get_dependencies <- function(ast, model) {
   # Extract all symbols from AST
   symbols <- extract_args(ast)
-  
+
   # Filter to only parameters (exclude sets and index variables)
   param_names <- names(model$parameters)
   deps <- symbols[symbols %in% param_names]
-  
+
   # Remove single lowercase letters (likely index variables like r, t, y)
   deps <- deps[!grepl("^[a-z]$", deps)]
-  
-  return(unique(deps))
+
+  unique(deps)
 }
 
 
@@ -534,38 +535,38 @@ get_dependencies <- function(ast, model) {
 #' @keywords internal
 topological_sort <- function(needs_eval, verbose = FALSE) {
   # Simple topological sort using Kahn's algorithm
-  
+
   # Filter dependencies to only those that need evaluation
   # (input parameters like DiscountRate are not in needs_eval)
   for (pname in names(needs_eval)) {
     needs_eval[[pname]]$deps <- needs_eval[[pname]]$deps[needs_eval[[pname]]$deps %in% names(needs_eval)]
   }
-  
+
   # Calculate in-degree (number of dependencies)
   in_degree <- sapply(needs_eval, function(x) length(x$deps))
-  
+
   # Initialize result and queue
   result <- character(0)
   queue <- names(in_degree)[in_degree == 0]
-  
+
   # Track processed parameters
   processed <- character(0)
-  
+
   while (length(queue) > 0) {
     # Process parameter with no dependencies
     current <- queue[1]
     queue <- queue[-1]
     result <- c(result, current)
     processed <- c(processed, current)
-    
+
     # Update in-degrees of dependent parameters
     for (pname in names(needs_eval)) {
       if (pname %in% processed) next
-      
+
       # Remove processed parameter from dependencies
       if (current %in% needs_eval[[pname]]$deps) {
         in_degree[pname] <- in_degree[pname] - 1
-        
+
         # If no more dependencies, add to queue
         if (in_degree[pname] == 0) {
           queue <- c(queue, pname)
@@ -573,15 +574,17 @@ topological_sort <- function(needs_eval, verbose = FALSE) {
       }
     }
   }
-  
+
   # Check for circular dependencies
   if (length(result) != length(needs_eval)) {
     remaining <- setdiff(names(needs_eval), result)
-    stop("Circular dependencies detected among parameters: ", 
-         paste(remaining, collapse=", "))
+    stop(
+      "Circular dependencies detected among parameters: ",
+      paste(remaining, collapse = ", ")
+    )
   }
-  
-  return(result)
+
+  result
 }
 
 
@@ -590,15 +593,14 @@ topological_sort <- function(needs_eval, verbose = FALSE) {
 #'   dimension) or a numeric array with `dimnames` (several dimensions).
 #' @keywords internal
 evaluate_formula <- function(formula_ast, dims, dims_index_aliases, all_data, model, verbose = FALSE) {
-  
   # Create R function from AST
   fn <- as_rfunction(formula_ast)
   fn_args <- names(formals(fn))
 
   dim_names <- normalize_dim_names(dims)
-  
-  if (verbose) message("      Formula args: ", paste(fn_args, collapse=", "))
-  
+
+  if (verbose) message("      Formula args: ", paste(fn_args, collapse = ", "))
+
   # Handle scalar (no dims)
   if (length(dim_names) == 0) {
     # Build arguments
@@ -610,12 +612,12 @@ evaluate_formula <- function(formula_ast, dims, dims_index_aliases, all_data, mo
         stop("Missing data for argument: ", arg)
       }
     }
-    
+
     # Evaluate
     result <- do.call(fn, args_list)
     return(result)
   }
-  
+
   # Get dimension sets
   dim_sets <- lapply(dim_names, function(dname) {
     if (dname %in% names(all_data)) {
@@ -625,21 +627,21 @@ evaluate_formula <- function(formula_ast, dims, dims_index_aliases, all_data, mo
     }
   })
   names(dim_sets) <- dim_names
-  
+
   # Get index variable names (e.g., r, t, y instead of REGION, TECHNOLOGY, YEAR)
   index_vars <- resolve_index_vars(dims_index_aliases, dim_names)
-  
+
   # Create all combinations of indices
   grid <- expand.grid(dim_sets, stringsAsFactors = FALSE)
   colnames(grid) <- dim_names
-  
+
   # Evaluate for each combination
   results <- numeric(nrow(grid))
-  
+
   for (i in seq_len(nrow(grid))) {
     # Build arguments for this index combination
     args_list <- list()
-    
+
     # Add index variables
     for (set_name in dim_names) {
       idx_var <- index_vars[set_name]
@@ -648,7 +650,7 @@ evaluate_formula <- function(formula_ast, dims, dims_index_aliases, all_data, mo
       }
       args_list[[idx_var]] <- grid[i, set_name]
     }
-    
+
     # Add parameter/set data
     for (arg in fn_args) {
       if (!arg %in% names(args_list)) {
@@ -659,17 +661,22 @@ evaluate_formula <- function(formula_ast, dims, dims_index_aliases, all_data, mo
         }
       }
     }
-    
+
     # Evaluate
-    results[i] <- tryCatch({
-      do.call(fn, args_list)
-    }, error = function(e) {
-      stop("Error evaluating formula at indices ", 
-           paste(names(grid[i,]), "=", grid[i,], collapse=", "), 
-           ": ", e$message)
-    })
+    results[i] <- tryCatch(
+      {
+        do.call(fn, args_list)
+      },
+      error = function(e) {
+        stop(
+          "Error evaluating formula at indices ",
+          paste(names(grid[i, ]), "=", grid[i, ], collapse = ", "),
+          ": ", e$message
+        )
+      }
+    )
   }
-  
+
   # Convert to named array/matrix structure
   if (length(dim_names) == 1) {
     names(results) <- grid[[1]]
@@ -678,8 +685,8 @@ evaluate_formula <- function(formula_ast, dims, dims_index_aliases, all_data, mo
     dim_sizes <- sapply(dim_sets, length)
     results <- array(results, dim = dim_sizes, dimnames = dim_sets)
   }
-  
-  return(results)
+
+  results
 }
 
 #' Normalize dimension specifications to a character vector of set names
@@ -707,7 +714,9 @@ normalize_dim_names <- function(dims) {
 #' @return A character string, or `NA_character_` for `NULL`.
 #' @keywords internal
 dim_entry_to_name <- function(entry) {
-  if (is.null(entry)) return(NA_character_)
+  if (is.null(entry)) {
+    return(NA_character_)
+  }
   if (is.character(entry) && length(entry) >= 1) {
     return(entry[1])
   }
@@ -800,7 +809,6 @@ default_index_aliases <- function(dim_names) {
 #'   unevaluated AST when it has index variables or evaluation fails.
 #' @keywords internal
 evaluate_default_expr <- function(defval_ast, all_data, model, verbose = FALSE) {
-  
   # If it's an ast_formula with index variables, keep it unevaluated
   if (inherits(defval_ast, "ast_formula")) {
     if (length(defval_ast$index_vars) > 0) {
@@ -811,13 +819,13 @@ evaluate_default_expr <- function(defval_ast, all_data, model, verbose = FALSE) 
     if (verbose) message("      ast_formula has no index vars, evaluating expr")
     defval_ast <- defval_ast$expr
   }
-  
+
   # Create R function from AST
   fn <- as_rfunction(defval_ast)
   fn_args <- names(formals(fn))
-  
-  if (verbose) message("      Default args: ", paste(fn_args, collapse=", "))
-  
+
+  if (verbose) message("      Default args: ", paste(fn_args, collapse = ", "))
+
   # Build arguments
   args_list <- list()
   for (arg in fn_args) {
@@ -827,20 +835,23 @@ evaluate_default_expr <- function(defval_ast, all_data, model, verbose = FALSE) 
       stop("Missing data for default expression argument: ", arg)
     }
   }
-  
+
   # For simple defaults, might evaluate to scalar
   # For complex defaults, might need to return a function or keep as AST
   # For now, try to evaluate if possible
-  
-  result <- tryCatch({
-    do.call(fn, args_list)
-  }, error = function(e) {
-    # If evaluation fails, keep as AST with warning
-    warning("Could not evaluate default expression, keeping as AST: ", e$message)
-    defval_ast
-  })
-  
-  return(result)
+
+  result <- tryCatch(
+    {
+      do.call(fn, args_list)
+    },
+    error = function(e) {
+      # If evaluation fails, keep as AST with warning
+      warning("Could not evaluate default expression, keeping as AST: ", e$message)
+      defval_ast
+    }
+  )
+
+  result
 }
 
 
@@ -855,23 +866,23 @@ evaluate_default_expr <- function(defval_ast, all_data, model, verbose = FALSE) 
 restore_ast <- function(model) {
   for (pname in names(model$parameters)) {
     param <- model$parameters[[pname]]
-    
+
     # Restore formula AST
     if (!is.null(param$misc$ast_formula)) {
       param$formula <- param$misc$ast_formula
       param$misc$ast_formula <- NULL
     }
-    
+
     # Restore defVal AST
     if (!is.null(param$misc$ast_defVal)) {
       param$defVal <- param$misc$ast_defVal
       param$misc$ast_defVal <- NULL
     }
-    
+
     model$parameters[[pname]] <- param
   }
-  
-  return(model)
+
+  model
 }
 
 
@@ -890,5 +901,5 @@ has_ast_formulas <- function(model) {
       return(TRUE)
     }
   }
-  return(FALSE)
+  FALSE
 }

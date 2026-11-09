@@ -30,7 +30,9 @@
 #' @noRd
 .mx_lower_equation <- function(eq, ctx) {
   dims <- .mx_eq_dims(eq)
-  if (anyDuplicated(dims)) return(NULL)
+  if (anyDuplicated(dims)) {
+    return(NULL)
+  }
   L <- new.env(parent = emptyenv())
   L$ctx <- ctx
   L$tables <- list()
@@ -42,9 +44,14 @@
     ctx$lower_why[[eq$name]] <- L$why %||% "unknown"
     return(NULL)
   }
-  rhs <- lapply(rhs, function(t) { t$sign <- -t$sign; t })
-  list(plan = list(rows = "rows", row_keys = as.character(dims), terms = c(lhs, rhs)),
-       tables = L$tables)
+  rhs <- lapply(rhs, function(t) {
+    t$sign <- -t$sign
+    t
+  })
+  list(
+    plan = list(rows = "rows", row_keys = as.character(dims), terms = c(lhs, rhs)),
+    tables = L$tables
+  )
 }
 
 # A lowering failure: mark it with the construct that caused it (the first
@@ -98,10 +105,12 @@
     id <- paste0("p:", nm, "#", paste(g$pos, collapse = ""))
     if (is.null(L$tables[[id]])) L$tables[[id]] <- as.list(g$sub)[c(g$keys, "value")]
     on <- stats::setNames(g$keys, ref[g$pos])
-    expr <- list(kind = "when",
-                 cond = list(kind = "member", table = id, on = on),
-                 a = list(kind = "param", table = id, on = on, column = "value", default = pp$defv),
-                 b = expr)
+    expr <- list(
+      kind = "when",
+      cond = list(kind = "member", table = id, on = on),
+      a = list(kind = "param", table = id, on = on, column = "value", default = pp$defv),
+      b = expr
+    )
   }
   expr
 }
@@ -126,63 +135,102 @@
 #' @keywords internal
 #' @noRd
 .mx_num <- function(node, bound, L) {
-  if (is.null(node)) return(NULL)
+  if (is.null(node)) {
+    return(NULL)
+  }
   ctx <- L$ctx
   cls <- .mx_cls(node)
   if (cls == "constant") {
     v <- suppressWarnings(as.numeric(node$value))
-    if (is.na(v)) return(NULL)
+    if (is.na(v)) {
+      return(NULL)
+    }
     return(list(kind = "const", value = v))
   }
   if (cls == "parameter") {
-    if (.mx_has_shift(node)) return(NULL)
+    if (.mx_has_shift(node)) {
+      return(NULL)
+    }
     pp <- .mx_prep_param(node$name, ctx)
     ref <- .mx_bound_names(.mx_ref_dims(node), bound, ctx)
     if (!length(ref)) {
       return(list(kind = "const", value = if (!is.null(pp$first)) pp$first else pp$defv))
     }
-    if (is.null(pp$first)) return(list(kind = "const", value = pp$defv))
-    if (length(pp$cols) != length(ref) || !all(ref %in% bound)) return(NULL)
-    if (!is.null(pp$wild)) return(.mx_num_wildcard(node$name, pp, ref, L))
-    return(list(kind = "param", table = .mx_plan_param(node$name, pp, L),
-                on = stats::setNames(pp$keys, ref), column = "value", default = pp$defv))
+    if (is.null(pp$first)) {
+      return(list(kind = "const", value = pp$defv))
+    }
+    if (length(pp$cols) != length(ref) || !all(ref %in% bound)) {
+      return(NULL)
+    }
+    if (!is.null(pp$wild)) {
+      return(.mx_num_wildcard(node$name, pp, ref, L))
+    }
+    return(list(
+      kind = "param", table = .mx_plan_param(node$name, pp, L),
+      on = stats::setNames(pp$keys, ref), column = "value", default = pp$defv
+    ))
   }
   if (cls == "unary") {
     a <- .mx_num(node$rhs, bound, L)
-    if (is.null(a)) return(NULL)
-    if (identical(node$op, "+")) return(a)
-    if (identical(node$op, "-")) return(list(kind = "bin", op = "*", a = list(kind = "const", value = -1), b = a))
+    if (is.null(a)) {
+      return(NULL)
+    }
+    if (identical(node$op, "+")) {
+      return(a)
+    }
+    if (identical(node$op, "-")) {
+      return(list(kind = "bin", op = "*", a = list(kind = "const", value = -1), b = a))
+    }
     return(NULL)
   }
   if (cls == "expression") {
     op <- node$op
-    if (!op %in% c("+", "-", "*", "/", "**", "^")) return(NULL)
+    if (!op %in% c("+", "-", "*", "/", "**", "^")) {
+      return(NULL)
+    }
     a <- .mx_num(node$lhs, bound, L)
     b <- .mx_num(node$rhs, bound, L)
-    if (is.null(a) || is.null(b)) return(NULL)
+    if (is.null(a) || is.null(b)) {
+      return(NULL)
+    }
     return(list(kind = "bin", op = if (op == "**") "^" else op, a = a, b = b))
   }
   if (cls == "when") {
     cond <- .mx_cond(node$condition, bound, L)
     a <- .mx_num(node$then, bound, L)
-    if (is.null(cond) || is.null(a)) return(NULL)
+    if (is.null(cond) || is.null(a)) {
+      return(NULL)
+    }
     b <- NULL
     if (!is.null(node$otherwise)) {
       b <- .mx_num(node$otherwise, bound, L)
-      if (is.null(b)) return(NULL)
+      if (is.null(b)) {
+        return(NULL)
+      }
     }
     return(list(kind = "when", cond = cond, a = a, b = b))
   }
-  agg <- if (cls == "sum") "+" else if (cls == "prod") "*" else
-    if (cls == "func" && tolower(node$name) %in% c("sum", "prod")) {
-      if (tolower(node$name) == "sum") "+" else "*"
-    } else NULL
+  agg <- if (cls == "sum") {
+    "+"
+  } else if (cls == "prod") {
+    "*"
+  } else if (cls == "func" && tolower(node$name) %in% c("sum", "prod")) {
+    if (tolower(node$name) == "sum") "+" else "*"
+  } else {
+    NULL
+  }
   if (!is.null(agg)) {
     st <- .mx_agg_steps(node, bound, L)
-    if (is.null(st)) return(NULL)
-    if (identical(st, "empty")) return(list(kind = "const", value = if (agg == "*") 1 else 0))
+    if (is.null(st)) {
+      return(NULL)
+    }
+    if (identical(st, "empty")) {
+      return(list(kind = "const", value = if (agg == "*") 1 else 0))
+    }
     body <- .mx_num(node$value, st$cur, L)
-    if (is.null(body)) return(NULL)
+    if (is.null(body)) {
+      return(NULL)
+    }
     return(list(kind = "agg", op = agg, steps = st$steps, body = body))
   }
   NULL
@@ -202,25 +250,37 @@
 #' @keywords internal
 #' @noRd
 .mx_cond <- function(node, bound, L, iters = character()) {
-  if (is.null(node)) return(NULL)
+  if (is.null(node)) {
+    return(NULL)
+  }
   ctx <- L$ctx
   cls <- .mx_cls(node)
   if (cls == "mapping") {
     ref <- .mx_ref_dims(node)
-    if (!length(ref) || anyDuplicated(ref)) return(NULL)
+    if (!length(ref) || anyDuplicated(ref)) {
+      return(NULL)
+    }
     ref <- .mx_resolve_cond_names(ref, bound, iters, ctx)
-    if (!all(ref %in% bound)) return(NULL)
+    if (!all(ref %in% bound)) {
+      return(NULL)
+    }
     dat <- .mx_map_data(node$name, ctx)
-    if (!nrow(dat)) {   # an empty map: nothing qualifies
+    if (!nrow(dat)) { # an empty map: nothing qualifies
       return(list(kind = "cmp", op = "==", a = list(kind = "const", value = 0), b = list(kind = "const", value = 1)))
     }
-    if (length(names(dat)) != length(ref)) return(NULL)
-    return(list(kind = "member", table = .mx_plan_map(node$name, dat, L),
-                on = stats::setNames(names(dat), ref)))
+    if (length(names(dat)) != length(ref)) {
+      return(NULL)
+    }
+    return(list(
+      kind = "member", table = .mx_plan_map(node$name, dat, L),
+      on = stats::setNames(names(dat), ref)
+    ))
   }
   if (cls == "unary" && identical(node$op, "not")) {
     a <- .mx_cond(node$rhs, bound, L, iters)
-    if (is.null(a)) return(NULL)
+    if (is.null(a)) {
+      return(NULL)
+    }
     return(list(kind = "not", a = a))
   }
   if (cls == "expression") {
@@ -228,14 +288,22 @@
     if (op %in% c("and", "&", "&&", "or", "|", "||")) {
       a <- .mx_cond(node$lhs, bound, L, iters)
       b <- .mx_cond(node$rhs, bound, L, iters)
-      if (is.null(a) || is.null(b)) return(NULL)
+      if (is.null(a) || is.null(b)) {
+        return(NULL)
+      }
       return(list(kind = if (op %in% c("and", "&", "&&")) "and" else "or", a = a, b = b))
     }
     if (op %in% c("<", "<=", ">", ">=", "=", "==", "<>", "!=")) {
       a <- .mx_num(node$lhs, bound, L)
       b <- .mx_num(node$rhs, bound, L)
-      if (is.null(a) || is.null(b)) return(NULL)
-      op <- switch(op, "=" = "==", "<>" = "!=", op)
+      if (is.null(a) || is.null(b)) {
+        return(NULL)
+      }
+      op <- switch(op,
+        "=" = "==",
+        "<>" = "!=",
+        op
+      )
       return(list(kind = "cmp", op = op, a = a, b = b))
     }
   }
@@ -247,13 +315,18 @@
 #' @keywords internal
 #' @noRd
 .mx_lower <- function(node, bound, L) {
-  if (L$fail) return(NULL)
-  if (is.null(node)) return(list())
+  if (L$fail) {
+    return(NULL)
+  }
+  if (is.null(node)) {
+    return(list())
+  }
   e <- .mx_num(node, bound, L)
-  if (!is.null(e)) return(list(.mx_term(list(list(op = "factor", expr = e)))))
+  if (!is.null(e)) {
+    return(list(.mx_term(list(list(op = "factor", expr = e)))))
+  }
   cls <- .mx_cls(node)
-  switch(
-    cls,
+  switch(cls,
     variable   = .mx_lower_variable(node, bound, L),
     expression = .mx_lower_expression(node, bound, L),
     unary      = .mx_lower_unary(node, bound, L),
@@ -266,14 +339,25 @@
 
 .mx_lower_unary <- function(node, bound, L) {
   tm <- .mx_lower(node$rhs, bound, L)
-  if (is.null(tm)) return(NULL)
-  if (identical(node$op, "-")) return(lapply(tm, function(t) { t$sign <- -t$sign; t }))
-  if (identical(node$op, "+")) return(tm)
+  if (is.null(tm)) {
+    return(NULL)
+  }
+  if (identical(node$op, "-")) {
+    return(lapply(tm, function(t) {
+      t$sign <- -t$sign
+      t
+    }))
+  }
+  if (identical(node$op, "+")) {
+    return(tm)
+  }
   .mx_lower_fail(L, paste0("unary:", node$op))
 }
 
 .mx_lower_variable <- function(node, bound, L) {
-  if (.mx_has_shift(node)) return(.mx_lower_fail(L, "shift"))
+  if (.mx_has_shift(node)) {
+    return(.mx_lower_fail(L, "shift"))
+  }
   nm <- node$name
   if (!is.null(L$ctx$subst[[nm]])) {
     if (identical(L$defining, nm)) {
@@ -283,25 +367,37 @@
         # the variable a definition is being solved for: its term is located,
         # never executed
         on <- if (length(ref)) stats::setNames(paste0("i", seq_along(ref)), ref) else character()
-        return(list(.mx_term(list(list(op = "var", table = paste0("v:", nm), on = on,
-                                       column = "j", defined = TRUE)))))
+        return(list(.mx_term(list(list(
+          op = "var", table = paste0("v:", nm), on = on,
+          column = "j", defined = TRUE
+        )))))
       }
       # the variable at another tuple of its own definition: a placeholder
       # column past the LP's columns, one per tuple of the domain, resolved
       # when the definition is composed
       sp <- L$ctx$subst[[nm]]
-      if (!isTRUE(sp$recursive)) return(.mx_lower_fail(L, "var:self"))
-      if (!all(ref %in% bound)) return(.mx_lower_fail(L, "var:unbound"))
+      if (!isTRUE(sp$recursive)) {
+        return(.mx_lower_fail(L, "var:self"))
+      }
+      if (!all(ref %in% bound)) {
+        return(.mx_lower_fail(L, "var:unbound"))
+      }
       id <- paste0("x:", nm)
       if (is.null(L$tables[[id]])) {
-        L$tables[[id]] <- c(as.list(sp$keys),
-                            list(j = nrow(L$ctx$col_index) + seq_len(nrow(sp$keys))))
+        L$tables[[id]] <- c(
+          as.list(sp$keys),
+          list(j = nrow(L$ctx$col_index) + seq_len(nrow(sp$keys)))
+        )
       }
       # a finer tuple kept out of the substitution is an ordinary column
-      return(c(list(.mx_term(list(list(op = "var", table = id,
-                                       on = stats::setNames(paste0("i", seq_along(ref)), ref),
-                                       column = "j")))),
-               .mx_lower_var_lookup(node, bound, L)))
+      return(c(
+        list(.mx_term(list(list(
+          op = "var", table = id,
+          on = stats::setNames(paste0("i", seq_along(ref)), ref),
+          column = "j"
+        )))),
+        .mx_lower_var_lookup(node, bound, L)
+      ))
     }
     return(.mx_subst_ref(node, bound, L))
   }
@@ -317,15 +413,21 @@
     ci <- .mx_col_coded(ctx)[symbol == nm]
     ctx$col_cache[[nm]] <- ci
   }
-  if (!nrow(ci)) return(list())              # no columns in this scenario: no term
+  if (!nrow(ci)) {
+    return(list())
+  } # no columns in this scenario: no term
   ref <- .mx_bound_names(.mx_ref_dims(node), bound, ctx)
   id <- .mx_plan_var(nm, ci, L)
-  if (!length(ref)) {                        # a scalar variable
+  if (!length(ref)) { # a scalar variable
     return(list(.mx_term(list(list(op = "var", table = id, on = character(), column = "j")))))
   }
   idx <- paste0("i", seq_along(ref))
-  if (!all(idx %in% names(ci))) return(.mx_lower_fail(L, "var:arity"))
-  if (!all(ref %in% bound)) return(.mx_lower_fail(L, "var:unbound"))
+  if (!all(idx %in% names(ci))) {
+    return(.mx_lower_fail(L, "var:arity"))
+  }
+  if (!all(ref %in% bound)) {
+    return(.mx_lower_fail(L, "var:unbound"))
+  }
   list(.mx_term(list(list(op = "var", table = id, on = stats::setNames(idx, ref), column = "j"))))
 }
 
@@ -335,10 +437,14 @@
 
 # product of two term lists: every pair, steps concatenated
 .mx_terms_mult <- function(a, b, L) {
-  if (.mx_terms_has_var(a) && .mx_terms_has_var(b)) return(.mx_lower_fail(L, "nonlinear"))
+  if (.mx_terms_has_var(a) && .mx_terms_has_var(b)) {
+    return(.mx_lower_fail(L, "nonlinear"))
+  }
   out <- list()
-  for (x in a) for (y in b) {
-    out[[length(out) + 1L]] <- .mx_term(c(x$steps, y$steps), x$sign * y$sign)
+  for (x in a) {
+    for (y in b) {
+      out[[length(out) + 1L]] <- .mx_term(c(x$steps, y$steps), x$sign * y$sign)
+    }
   }
   out
 }
@@ -348,21 +454,34 @@
   if (op %in% c("+", "-")) {
     l <- .mx_lower(node$lhs, bound, L)
     r <- .mx_lower(node$rhs, bound, L)
-    if (is.null(l) || is.null(r)) return(NULL)
-    if (op == "-") r <- lapply(r, function(t) { t$sign <- -t$sign; t })
+    if (is.null(l) || is.null(r)) {
+      return(NULL)
+    }
+    if (op == "-") {
+      r <- lapply(r, function(t) {
+        t$sign <- -t$sign
+        t
+      })
+    }
     return(c(l, r))
   }
   if (op == "*") {
     l <- .mx_lower(node$lhs, bound, L)
     r <- .mx_lower(node$rhs, bound, L)
-    if (is.null(l) || is.null(r)) return(NULL)
+    if (is.null(l) || is.null(r)) {
+      return(NULL)
+    }
     return(.mx_terms_mult(l, r, L))
   }
   if (op == "/") {
     l <- .mx_lower(node$lhs, bound, L)
-    if (is.null(l)) return(NULL)
-    d <- .mx_num(node$rhs, bound, L)     # the divisor must be a per-row number
-    if (is.null(d)) return(.mx_lower_fail(L, "divisor"))
+    if (is.null(l)) {
+      return(NULL)
+    }
+    d <- .mx_num(node$rhs, bound, L) # the divisor must be a per-row number
+    if (is.null(d)) {
+      return(.mx_lower_fail(L, "divisor"))
+    }
     return(lapply(l, function(t) {
       t$steps <- c(t$steps, list(list(op = "factor", expr = d, invert = TRUE)))
       t
@@ -376,31 +495,48 @@
 .mx_cond_step <- function(cond, bound, L, iters = character()) {
   if (inherits(cond, "mm_mapping")) {
     c <- .mx_cond(cond, bound, L, iters)
-    if (is.null(c)) return(NULL)
-    if (c$kind == "member") return(list(op = "gate", table = c$table, on = c$on))
+    if (is.null(c)) {
+      return(NULL)
+    }
+    if (c$kind == "member") {
+      return(list(op = "gate", table = c$table, on = c$on))
+    }
     return(list(op = "filter", cond = c))
   }
   c <- .mx_cond(cond, bound, L, iters)
-  if (is.null(c)) return(NULL)
+  if (is.null(c)) {
+    return(NULL)
+  }
   list(op = "filter", cond = c)
 }
 
 .mx_lower_when <- function(node, bound, L) {
-  if (!is.null(node$otherwise)) return(.mx_lower_fail(L, "when:otherwise"))
+  if (!is.null(node$otherwise)) {
+    return(.mx_lower_fail(L, "when:otherwise"))
+  }
   steps <- list()
   for (cond in .mx_flatten_and(node$condition)) {
     s <- .mx_cond_step(cond, bound, L)
-    if (is.null(s)) return(.mx_lower_fail(L, paste0("cond:", .mx_cls(cond))))
+    if (is.null(s)) {
+      return(.mx_lower_fail(L, paste0("cond:", .mx_cls(cond))))
+    }
     steps[[length(steps) + 1L]] <- s
   }
   body <- .mx_lower(node$then, bound, L)
-  if (is.null(body)) return(NULL)
-  lapply(body, function(t) { t$steps <- c(steps, t$steps); t })
+  if (is.null(body)) {
+    return(NULL)
+  }
+  lapply(body, function(t) {
+    t$steps <- c(steps, t$steps)
+    t
+  })
 }
 
 .mx_lower_func <- function(node, bound, L) {
   fn <- tolower(node$name)
-  if (fn == "sum") return(.mx_lower_sum(node, bound, L))
+  if (fn == "sum") {
+    return(.mx_lower_sum(node, bound, L))
+  }
   .mx_lower_fail(L, paste0("func:", fn))
 }
 
@@ -416,14 +552,24 @@
 #' @noRd
 .mx_agg_steps <- function(node, bound, L) {
   ctx <- L$ctx
-  no <- function(why) { L$agg_why <- why; NULL }
+  no <- function(why) {
+    L$agg_why <- why
+    NULL
+  }
   idx <- node$index
   cond <- NULL
-  if (inherits(idx, "when")) { cond <- idx$condition; idx <- idx$then }
+  if (inherits(idx, "when")) {
+    cond <- idx$condition
+    idx <- idx$then
+  }
   if (is.null(cond) && !is.null(node$domain)) cond <- node$domain
   iters <- .mx_index_names(idx)
-  if (!length(iters)) return(no("agg:noindex"))
-  if (any(iters %in% bound)) return(no("agg:shadow"))
+  if (!length(iters)) {
+    return(no("agg:noindex"))
+  }
+  if (any(iters %in% bound)) {
+    return(no("agg:shadow"))
+  }
   conds <- .mx_flatten_and(cond)
   # Binding candidates: the sum's own conditions, and the mapping gates of
   # its body (`x$m` zeroes the body wherever `m` fails, so `m` may bind the
@@ -442,16 +588,40 @@
       cn <- cands[[n]]
       if (!inherits(cn, "mm_mapping")) next
       ref <- .mx_ref_dims(cn)
-      if (!length(ref) || anyDuplicated(ref)) { if (own[n]) return(no("agg:map-ref")) else next }
+      if (!length(ref) || anyDuplicated(ref)) {
+        if (own[n]) {
+          return(no("agg:map-ref"))
+        } else {
+          next
+        }
+      }
       if (own[n]) ref <- .mx_resolve_cond_names(ref, cur, iters, ctx)
       dat <- .mx_map_data(cn$name, ctx)
-      if (!nrow(dat)) { if (own[n]) return("empty") else next }
-      if (length(names(dat)) != length(ref)) { if (own[n]) return(no("agg:map-arity")) else next }
+      if (!nrow(dat)) {
+        if (own[n]) {
+          return("empty")
+        } else {
+          next
+        }
+      }
+      if (length(names(dat)) != length(ref)) {
+        if (own[n]) {
+          return(no("agg:map-arity"))
+        } else {
+          next
+        }
+      }
       shared <- ref[ref %in% cur]
       newc <- ref[!ref %in% cur]
-      if (!length(newc)) next                          # a filter; applied below
-      if (!all(newc %in% iters)) { if (own[n]) return(no("agg:binds-foreign")) else next }
-      if (!length(shared)) next                        # needs a bound index first
+      if (!length(newc)) next # a filter; applied below
+      if (!all(newc %in% iters)) {
+        if (own[n]) {
+          return(no("agg:binds-foreign"))
+        } else {
+          next
+        }
+      }
+      if (!length(shared)) next # needs a bound index first
       # the most selective join first: the fewest table rows per distinct
       # value of the shared keys (the fan-out of the expansion); an own
       # condition wins a tie
@@ -467,7 +637,8 @@
     steps[[length(steps) + 1L]] <- list(
       op = "expand", table = id,
       on = stats::setNames(cols[best$ref %in% cur], best$shared),
-      bind = stats::setNames(cols[!best$ref %in% cur], best$newc))
+      bind = stats::setNames(cols[!best$ref %in% cur], best$newc)
+    )
     cur <- c(cur, best$newc)
     used[best$n] <- TRUE
     if (all(iters %in% cur)) break
@@ -479,17 +650,23 @@
     for (it in remaining) {
       base <- if (it %in% names(sets)) sets[[it]] else it
       members <- .mx_set_members(ctx, .mx_base_set(ctx$model, base))
-      if (!length(members)) return("empty")
+      if (!length(members)) {
+        return("empty")
+      }
       id <- paste0("s:", base)
       if (is.null(L$tables[[id]])) L$tables[[id]] <- list(m = members)
-      steps[[length(steps) + 1L]] <- list(op = "expand", table = id, on = character(),
-                                          bind = stats::setNames("m", it))
+      steps[[length(steps) + 1L]] <- list(
+        op = "expand", table = id, on = character(),
+        bind = stats::setNames("m", it)
+      )
       cur <- c(cur, it)
     }
   }
   for (n in which(!used)) {
     s <- .mx_cond_step(conds[[n]], cur, L, iters)
-    if (is.null(s)) return(no(paste0("agg:cond:", .mx_cls(conds[[n]]))))
+    if (is.null(s)) {
+      return(no(paste0("agg:cond:", .mx_cls(conds[[n]]))))
+    }
     steps[[length(steps) + 1L]] <- s
   }
   list(steps = steps, cur = cur)
@@ -500,7 +677,9 @@
 .mx_map_fanout <- function(nm, dat, cols, ctx) {
   key <- paste(c(nm, cols), collapse = "\x1f")
   f <- ctx$fanout_cache[[key]]
-  if (!is.null(f)) return(f)
+  if (!is.null(f)) {
+    return(f)
+  }
   f <- nrow(dat) / max(1, data.table::uniqueN(dat, by = cols))
   if (is.null(ctx$fanout_cache)) ctx$fanout_cache <- list()
   ctx$fanout_cache[[key]] <- f
@@ -509,11 +688,20 @@
 
 .mx_lower_sum <- function(node, bound, L) {
   st <- .mx_agg_steps(node, bound, L)
-  if (is.null(st)) return(.mx_lower_fail(L, L$agg_why %||% "sum"))
-  if (identical(st, "empty")) return(list())
+  if (is.null(st)) {
+    return(.mx_lower_fail(L, L$agg_why %||% "sum"))
+  }
+  if (identical(st, "empty")) {
+    return(list())
+  }
   body <- .mx_lower(node$value, st$cur, L)
-  if (is.null(body)) return(NULL)
-  lapply(body, function(t) { t$steps <- c(st$steps, t$steps); t })
+  if (is.null(body)) {
+    return(NULL)
+  }
+  lapply(body, function(t) {
+    t$steps <- c(st$steps, t$steps)
+    t
+  })
 }
 
 # --- execution --------------------------------------------------------------
@@ -528,21 +716,31 @@
   dims <- lowered$plan$row_keys
   rt <- list(k = rows$i)
   for (n in seq_along(dims)) rt[[dims[n]]] <- rows[[paste0("i", n)]]
-  ex <- if (!is.null(ctx)) .mx_executor(ctx, lowered$tables) else
+  ex <- if (!is.null(ctx)) {
+    .mx_executor(ctx, lowered$tables)
+  } else {
     mm_block_open(lowered$tables, .mx_threads(), .mx_slice_rows())
+  }
   if (!is.null(sink)) {
     # the entries go straight to the sink (or the scan); only the constants
     # come back
-    out <- if (inherits(sink, "mm_scan")) mm_block_run_scan(ex, lowered$plan, rt, sink) else
+    out <- if (inherits(sink, "mm_scan")) {
+      mm_block_run_scan(ex, lowered$plan, rt, sink)
+    } else {
       mm_block_run_sink(ex, lowered$plan, rt, sink)
-    return(list(mat = data.table::data.table(i = integer(), j = integer(), coef = numeric()),
-                cst = data.table::data.table(i = out$rhs_i, rhs = out$rhs),
-                stats = out$stats))
+    }
+    return(list(
+      mat = data.table::data.table(i = integer(), j = integer(), coef = numeric()),
+      cst = data.table::data.table(i = out$rhs_i, rhs = out$rhs),
+      stats = out$stats
+    ))
   }
   out <- mm_block_run(ex, lowered$plan, rt)
-  list(mat = data.table::data.table(i = out$i, j = out$j, coef = out$coef),
-       cst = data.table::data.table(i = out$rhs_i, rhs = out$rhs),
-       stats = out$stats)
+  list(
+    mat = data.table::data.table(i = out$i, j = out$j, coef = out$coef),
+    cst = data.table::data.table(i = out$rhs_i, rhs = out$rhs),
+    stats = out$stats
+  )
 }
 
 #' The build's executor, with the tables of a lowered equation registered
@@ -615,20 +813,27 @@
     n <- with_engine("native", {
       t0 <- proc.time()[[3]]
       a <- build_triplets(model, col_index, row_index, equations = nm, chunk_rows = chunk_rows)
-      list(t = proc.time()[[3]] - t0, tri = a$triplets, rhs = a$rhs,
-           native = attr(a, "native"), why = attr(a, "lower_why"))
+      list(
+        t = proc.time()[[3]] - t0, tri = a$triplets, rhs = a$rhs,
+        native = attr(a, "native"), why = attr(a, "lower_why")
+      )
     })
     key <- function(d) d[order(d$i, d$j)]
     # the right-hand side is compared as values per row: a constant term the
     # R engine never emits and a zero one the executor emits are the same 0
-    dense <- function(d) { v <- d[d$rhs != 0]; v[order(v$i)] }
+    dense <- function(d) {
+      v <- d[d$rhs != 0]
+      v[order(v$i)]
+    }
     same <- identical(nrow(r$tri), nrow(n$tri)) &&
       isTRUE(all.equal(key(r$tri), key(n$tri), check.attributes = FALSE)) &&
       isTRUE(all.equal(dense(r$rhs), dense(n$rhs), check.attributes = FALSE))
-    data.frame(equation = nm, rows = sum(row_index$symbol == nm), nnz = nrow(r$tri),
-               native = isTRUE(n$native[[nm]]), same = same,
-               why = if (isTRUE(n$native[[nm]])) "" else (n$why[[nm]] %||% ""),
-               secs_r = r$t, secs_native = n$t, stringsAsFactors = FALSE)
+    data.frame(
+      equation = nm, rows = sum(row_index$symbol == nm), nnz = nrow(r$tri),
+      native = isTRUE(n$native[[nm]]), same = same,
+      why = if (isTRUE(n$native[[nm]])) "" else (n$why[[nm]] %||% ""),
+      secs_r = r$t, secs_native = n$t, stringsAsFactors = FALSE
+    )
   })
   do.call(rbind, rows)
 }

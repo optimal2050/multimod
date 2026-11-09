@@ -1,0 +1,24 @@
+linters: linters_with_defaults(
+    # Writer templates and generated-code strings are kept on one line.
+    line_length_linter = NULL,
+    # Backend writers use mixed-case names that mirror the target languages
+    # (GAMS, JuMP, Pyomo symbols) and exported constants are UPPERCASE.
+    object_name_linter = NULL,
+    # Hanging-indent rules fight with multi-line sprintf()/paste0() code
+    # generation, which is the bulk of the writers.
+    indentation_linter = NULL,
+    commented_code_linter = NULL,
+    # AST walkers accumulate nodes through closures that assign upward.
+    assignment_linter(operator = c("<-", "<<-")),
+    # Writer options such as set_display_head_tail_threshold are part of
+    # the exported signatures.
+    object_length_linter(40L)
+  )
+exclusions: list(
+    "tests/testthat.R",
+    "vignettes",
+    "data-raw",
+    # lintr lints each file alone: helper files call testthat expectations
+    # and sibling helpers without a library() call in the file.
+    "tests/testthat" = list(object_usage_linter = Inf)
+  )

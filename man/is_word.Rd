@@ -18,8 +18,8 @@ This function tests whether the input string consists entirely of letters (a–z
 with no digits, punctuation, or special characters.
 }
 \examples{
-is_word("alpha")     # TRUE
-is_word("123")       # FALSE
-is_word("var_1")     # FALSE
-is_word(c("a", "B", "C3"))  # TRUE, TRUE, FALSE
+is_word("alpha") # TRUE
+is_word("123") # FALSE
+is_word("var_1") # FALSE
+is_word(c("a", "B", "C3")) # TRUE, TRUE, FALSE
 }

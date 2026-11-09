@@ -83,7 +83,9 @@ test_that("a GAMS equation without a domain condition renders in every language"
 
   expect_match(as_gams(eq), "sum(tech, gen[tech,region])", fixed = TRUE)
   expect_match(as_gmpl(eq, model = m),
-               "s.t. eqDemand{r in region}: sum{t in tech}(gen[t,r])", fixed = TRUE)
+    "s.t. eqDemand{r in region}: sum{t in tech}(gen[t,r])",
+    fixed = TRUE
+  )
   expect_match(as_jump(eq, model = m), "eqDemand[r in region]", fixed = TRUE)
   expect_match(as_pyomo(eq, model = m), "Constraint(", fixed = TRUE)
 })

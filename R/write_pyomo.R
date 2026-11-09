@@ -32,16 +32,18 @@ write_pyomo <- function(model, model_dir = NULL, solver_dir = "pyomo",
 
 #' @export
 write_pyomo.mm_model <- function(model, model_dir = NULL, solver_dir = "pyomo",
-                              model_name = "model", solver = "highs",
-                              use_folded = TRUE, cleanup = TRUE,
-                              data_mode = c("external", "embedded"),
-                              split = FALSE, export_vars = FALSE, export_data = FALSE,
-                              export_mps = FALSE, ...) {
-  write_pyomo_internal(model, model_dir = model_dir, solver_dir = solver_dir,
-                       model_name = model_name, solver = solver, use_folded = use_folded,
-                       cleanup = cleanup, data_mode = data_mode, split = split,
-                       export_vars = export_vars, export_data = export_data,
-                       export_mps = export_mps, ...)
+                                 model_name = "model", solver = "highs",
+                                 use_folded = TRUE, cleanup = TRUE,
+                                 data_mode = c("external", "embedded"),
+                                 split = FALSE, export_vars = FALSE, export_data = FALSE,
+                                 export_mps = FALSE, ...) {
+  write_pyomo_internal(model,
+    model_dir = model_dir, solver_dir = solver_dir,
+    model_name = model_name, solver = solver, use_folded = use_folded,
+    cleanup = cleanup, data_mode = data_mode, split = split,
+    export_vars = export_vars, export_data = export_data,
+    export_mps = export_mps, ...
+  )
 }
 
 #' @export
@@ -65,13 +67,17 @@ write_pyomo_internal <- function(model, model_dir = NULL, solver_dir = "pyomo",
   data_mode <- match.arg(data_mode)
 
   if (!is.null(list(...)$file)) {
-    stop("write_pyomo() writes a directory scaffold, not a single file; ",
-         "pass `model_dir` instead of `file`.")
+    stop(
+      "write_pyomo() writes a directory scaffold, not a single file; ",
+      "pass `model_dir` instead of `file`."
+    )
   }
 
   if (is.null(model_dir)) {
-    stop("`model_dir` is required: the Pyomo scaffold reads its data from a ",
-         "model workspace (see save_model()).")
+    stop(
+      "`model_dir` is required: the Pyomo scaffold reads its data from a ",
+      "model workspace (see save_model())."
+    )
   }
   # The generated code resolves the workspace from its own location
   # (`<model_dir>/solvers/<solver_dir>/model.py`), so the data must be there.
@@ -120,7 +126,8 @@ build_pyomo_model_lines <- function(model, model_name = "model", use_folded = TR
     "from pyomo.environ import *"
   )
   if (embed_runner) {
-    header <- c(header,
+    header <- c(
+      header,
       "import json",
       "import os",
       "import csv",
@@ -138,15 +145,19 @@ build_pyomo_model_lines <- function(model, model_name = "model", use_folded = TR
   lines <- c(lines, pyomo_render_objective(model, model_name, use_folded = use_folded))
   lines <- c(lines, pyomo_render_constraints(model, use_folded = use_folded))
   if (embed_runner) {
-    lines <- c(lines, pyomo_runner_body(solver = runner_solver, solver_dir = solver_dir,
-                                        export_vars = export_vars, export_data = export_data,
-                                        export_mps = export_mps))
+    lines <- c(lines, pyomo_runner_body(
+      solver = runner_solver, solver_dir = solver_dir,
+      export_vars = export_vars, export_data = export_data,
+      export_mps = export_mps
+    ))
   }
   lines
 }
 
 pyomo_render_sets <- function(model) {
-  if (is.null(model$sets) || length(model$sets) == 0) return(character(0))
+  if (is.null(model$sets) || length(model$sets) == 0) {
+    return(character(0))
+  }
   lines <- c("# Sets")
   for (set_name in names(model$sets)) {
     set_obj <- model$sets[[set_name]]
@@ -158,7 +169,9 @@ pyomo_render_sets <- function(model) {
 }
 
 pyomo_render_mappings <- function(model) {
-  if (is.null(model$mappings) || length(model$mappings) == 0) return(character(0))
+  if (is.null(model$mappings) || length(model$mappings) == 0) {
+    return(character(0))
+  }
   lines <- c("# Mappings (sets of tuples)")
   subset_symbols <- dual_registered_symbols(model)
   for (mapping_name in names(model$mappings)) {
@@ -190,7 +203,9 @@ pyomo_param_default <- function(param, model = NULL) {
 }
 
 pyomo_render_parameters <- function(model) {
-  if (is.null(model$parameters) || length(model$parameters) == 0) return(character(0))
+  if (is.null(model$parameters) || length(model$parameters) == 0) {
+    return(character(0))
+  }
   lines <- c("# Parameters")
   for (param_name in names(model$parameters)) {
     param <- model$parameters[[param_name]]
@@ -198,24 +213,30 @@ pyomo_render_parameters <- function(model) {
     dims <- pyomo_collect_dim_names(param$active_dims)
     if (length(dims) == 0) dims <- pyomo_collect_dim_names(param$dims)
     desc <- sanitize_description(param$desc, param_name)
-  default_val <- pyomo_param_default(param, model = model)
-  default_lit <- if (is.numeric(default_val)) pyomo_format_scalar(default_val) else pyomo_quote(default_val)
+    default_val <- pyomo_param_default(param, model = model)
+    default_lit <- if (is.numeric(default_val)) pyomo_format_scalar(default_val) else pyomo_quote(default_val)
     domain <- if (isTRUE(param$symbolic)) "Any" else "Reals"
     if (length(dims) == 0) {
-      lines <- c(lines, sprintf("model.%s = Param(default=%s, domain=%s, doc=%s)",
-                                 param_name, default_lit, domain, pyomo_quote(desc %||% param_name)))
+      lines <- c(lines, sprintf(
+        "model.%s = Param(default=%s, domain=%s, doc=%s)",
+        param_name, default_lit, domain, pyomo_quote(desc %||% param_name)
+      ))
     } else {
       base_sets <- vapply(dims, function(nm) pyomo_resolve_base_set(nm, model = model), character(1))
       index_sets <- paste(sprintf("model.%s", base_sets), collapse = ", ")
-      lines <- c(lines, sprintf("model.%s = Param(%s, default=%s, domain=%s, doc=%s)",
-                                 param_name, index_sets, default_lit, domain, pyomo_quote(desc %||% param_name)))
+      lines <- c(lines, sprintf(
+        "model.%s = Param(%s, default=%s, domain=%s, doc=%s)",
+        param_name, index_sets, default_lit, domain, pyomo_quote(desc %||% param_name)
+      ))
     }
   }
   c(lines, "")
 }
 
 pyomo_render_variables <- function(model) {
-  if (is.null(model$variables) || length(model$variables) == 0) return(character(0))
+  if (is.null(model$variables) || length(model$variables) == 0) {
+    return(character(0))
+  }
   lines <- c("# Decision variables")
   for (var_name in names(model$variables)) {
     var <- model$variables[[var_name]]
@@ -226,16 +247,22 @@ pyomo_render_variables <- function(model) {
     within <- "Reals"
     if (!is.null(var$vtype)) {
       vt <- tolower(var$vtype)
-      if (vt %in% c("binary", "bin")) within <- "Binary"
-      else if (vt %in% c("integer", "int")) within <- "Integers"
-      else if (vt %in% c("positive")) within <- "NonNegativeReals"
+      if (vt %in% c("binary", "bin")) {
+        within <- "Binary"
+      } else if (vt %in% c("integer", "int")) {
+        within <- "Integers"
+      } else if (vt %in% c("positive")) {
+        within <- "NonNegativeReals"
+      }
     }
 
     bounds <- var$bounds %||% list()
     lower <- bounds$lo %||% bounds$lb %||% var$lb
     upper <- bounds$up %||% bounds$ub %||% var$ub
     format_bound <- function(bnd, default) {
-      if (is.null(bnd) || !is.finite(bnd)) return(default)
+      if (is.null(bnd) || !is.finite(bnd)) {
+        return(default)
+      }
       format(bnd, scientific = FALSE, trim = TRUE)
     }
     lower_lit <- format_bound(lower, "None")
@@ -250,12 +277,14 @@ pyomo_render_variables <- function(model) {
       index_sets <- NULL
     }
 
-    decl <- sprintf("model.%s = Var(%swithin=%s, bounds=(%s, %s))",
-                    var_name,
-                    if (!is.null(index_sets)) paste0(index_sets, ", ") else "",
-                    within,
-                    lower_lit,
-                    upper_lit)
+    decl <- sprintf(
+      "model.%s = Var(%swithin=%s, bounds=(%s, %s))",
+      var_name,
+      if (!is.null(index_sets)) paste0(index_sets, ", ") else "",
+      within,
+      lower_lit,
+      upper_lit
+    )
     if (!is.null(desc) && nzchar(desc)) {
       decl <- paste0(decl, sprintf("  # %s", desc))
     }
@@ -275,8 +304,8 @@ pyomo_render_objective <- function(model, model_name, use_folded = TRUE) {
     }
     if (!is.null(eq_source)) {
       expr <- as_pyomo(eq_source$rhs, model = model)
-  sense <- if (tolower(obj$sense %||% "min") %in% c("min", "minimize")) "minimize" else "maximize"
-  return(c("# Objective", sprintf("model.objective = Objective(rule=lambda model: %s, sense=%s)", expr, sense), ""))
+      sense <- if (tolower(obj$sense %||% "min") %in% c("min", "minimize")) "minimize" else "maximize"
+      return(c("# Objective", sprintf("model.objective = Objective(rule=lambda model: %s, sense=%s)", expr, sense), ""))
     }
   }
   c("# Objective", "model.objective = Objective(rule=lambda model: model.vObjective, sense=minimize)", "")
@@ -288,8 +317,10 @@ pyomo_render_constraints <- function(model, use_folded = TRUE) {
   } else {
     model$equations
   }
-  if (is.null(eqs) || length(eqs) == 0) return(character(0))
-  
+  if (is.null(eqs) || length(eqs) == 0) {
+    return(character(0))
+  }
+
   # Collect equation names used as objectives
   objective_eqs <- character(0)
   if (!is.null(model$objectives)) {
@@ -299,7 +330,7 @@ pyomo_render_constraints <- function(model, use_folded = TRUE) {
       }
     }
   }
-  
+
   lines <- c("# Constraints")
   for (eq_name in names(eqs)) {
     eq <- eqs[[eq_name]]
@@ -425,24 +456,27 @@ build_pyomo_loader_external <- function(model, use_folded = TRUE) {
 
   for (spec in param_specs) {
     if (spec$trimmed) next
-    dims <- spec$dims
-    index_clause <- if (length(dims) > 0) sprintf(", index=%s", pyomo_python_tuple(dims)) else ""
-    lines <- c(lines,
+    lines <- c(
+      lines,
       sprintf("    param_dir = base_dir / 'parameters' / '%s'", spec$name),
       "    file_path = param_dir / f'data{ext}'"
     )
     if (spec$folded) {
-      lines <- c(lines,
+      lines <- c(
+        lines,
         "    folded_dir = param_dir / 'folded_data'",
         "    candidate = folded_dir / f'data{ext}'",
         "    if folded_dir.exists() and candidate.exists():",
         "        file_path = candidate"
       )
     }
-    lines <- c(lines,
+    lines <- c(
+      lines,
       "    if file_path.exists():",
-      sprintf("        out[%s] = _param_dict(_read_rows(file_path, ext))",
-              pyomo_quote(spec$name))
+      sprintf(
+        "        out[%s] = _param_dict(_read_rows(file_path, ext))",
+        pyomo_quote(spec$name)
+      )
     )
   }
 
@@ -451,12 +485,16 @@ build_pyomo_loader_external <- function(model, use_folded = TRUE) {
 }
 
 pyomo_python_list <- function(values) {
-  if (is.null(values) || length(values) == 0) return("[]")
+  if (is.null(values) || length(values) == 0) {
+    return("[]")
+  }
   paste0("[", paste(sprintf("'%s'", values), collapse = ", "), "]")
 }
 
 pyomo_python_tuple <- function(values) {
-  if (is.null(values) || length(values) == 0) return("()")
+  if (is.null(values) || length(values) == 0) {
+    return("()")
+  }
   if (length(values) == 1) {
     return(sprintf("('%s',)", values))
   }
@@ -495,11 +533,12 @@ pyomo_runner_body <- function(solver = "highs", solver_dir = "pyomo", export_var
     "        raise RuntimeError('Only external data mode is supported right now.')",
     "    data = build_data(model, base_dir)"
   )
-  
+
   # Export data as CSV files after loading data but BEFORE creating instance (like write_gmpl and write_jump)
   # This allows checking exported data even if model creation fails
   if (isTRUE(export_data)) {
-    lines <- c(lines,
+    lines <- c(
+      lines,
       "",
       "    # ========== DATA EXPORT ==========",
       sprintf("    data_export_dir = base_dir / 'solvers' / '%s' / 'data_export'", solver_dir),
@@ -560,14 +599,16 @@ pyomo_runner_body <- function(solver = "highs", solver_dir = "pyomo", export_var
       ""
     )
   }
-  
-  lines <- c(lines,
+
+  lines <- c(
+    lines,
     "    instance = model.create_instance(data)"
   )
-  
+
   # Export MPS after instance is created but before solving
   if (isTRUE(export_mps)) {
-    lines <- c(lines,
+    lines <- c(
+      lines,
       "",
       "    # Export MPS format",
       sprintf("    mps_file = base_dir / 'solvers' / '%s' / 'model.mps'", solver_dir),
@@ -588,8 +629,9 @@ pyomo_runner_body <- function(solver = "highs", solver_dir = "pyomo", export_var
       "            f.write(line)"
     )
   }
-  
-  lines <- c(lines,
+
+  lines <- c(
+    lines,
     "",
     "    # Solve the model",
     sprintf("    solver_name = os.environ.get('PYOMO_SOLVER', '%s')", solver),
@@ -615,9 +657,10 @@ pyomo_runner_body <- function(solver = "highs", solver_dir = "pyomo", export_var
     "    with open(sol_dir / 'status.json', 'w') as fh:",
     "        json.dump({'solver': solver_name, 'status': str(results.solver.status), 'termination': str(results.solver.termination_condition), 'objective': objective_value}, fh, indent=2)"
   )
-  
+
   if (isTRUE(export_vars)) {
-    lines <- c(lines,
+    lines <- c(
+      lines,
       "",
       "    # Export variable values",
       "    with open(sol_dir / 'variables.json', 'w') as fh:",
@@ -627,8 +670,9 @@ pyomo_runner_body <- function(solver = "highs", solver_dir = "pyomo", export_var
       "        json.dump(var_dict, fh, indent=2)"
     )
   }
-  
-  c(lines,
+
+  c(
+    lines,
     "",
     "if __name__ == '__main__':",
     "    main()",

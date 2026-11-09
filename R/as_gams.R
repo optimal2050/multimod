@@ -1,4 +1,3 @@
-
 #' Quote GAMS explanatory text when it needs it
 #'
 #' A description is free text after the symbol, and GAMS reads a comma in it
@@ -9,7 +8,9 @@
 #' @return The text, quoted if it carries a comma, semicolon or quote.
 #' @keywords internal
 gams_desc <- function(x) {
-  if (is.null(x) || length(x) == 0 || is.na(x[1]) || !nzchar(x[1])) return("")
+  if (is.null(x) || length(x) == 0 || is.na(x[1]) || !nzchar(x[1])) {
+    return("")
+  }
   txt <- as.character(x[1])
   if (grepl("[,;'\"]", txt)) {
     txt <- gsub("'", "", txt, fixed = TRUE)
@@ -34,7 +35,9 @@ as_gams <- function(x, ...) {
 
 #' @export
 as_gams.default <- function(x, ...) {
-  if (is.null(x)) return(x)
+  if (is.null(x)) {
+    return(x)
+  }
   if (length(x) == 1 && is.numeric(x)) {
     return(format(x, scientific = FALSE))
   } else if (length(x) == 1 && is.character(x)) {
@@ -60,7 +63,7 @@ as_gams.character <- function(x, ...) {
 as_gams.mm_set <- function(x, declaration = FALSE, desc = declaration, ...) {
   stopifnot(inherits(x, "mm_set"))
   if (declaration) {
-    paste0("set ", x$name, ifelse(desc, paste0("  ", gams_desc(x$desc)), ""),";")
+    paste0("set ", x$name, ifelse(desc, paste0("  ", gams_desc(x$desc)), ""), ";")
   } else if (isTRUE(desc)) {
     paste(x$name, gams_desc(x$desc), sep = "  ")
   } else {
@@ -102,8 +105,10 @@ as_gams.mm_parameter <- function(x, declaration = FALSE, desc = declaration, ...
 as_gams.mm_variable <- function(x, declaration = FALSE, desc = declaration, ...) {
   stopifnot(inherits(x, "mm_variable"))
   if (declaration) {
-    paste0("variable ", as.character(x),
-                  ifelse(desc, paste0("  ", gams_desc(x$desc)), ""), ";")
+    paste0(
+      "variable ", as.character(x),
+      ifelse(desc, paste0("  ", gams_desc(x$desc)), ""), ";"
+    )
   } else {
     paste0(as.character(x), ifelse(desc, paste0("  ", gams_desc(x$desc)), ""))
   }
@@ -126,7 +131,7 @@ as_gams.symbol <- function(x, ...) {
 as_gams.sum <- function(x, ...) {
   idx <- .gams_iterated_index(x$index, body = x$value, ...)
   val <- as_gams(x$value, ...)
-  paste0("sum(", idx, ", ", val,")")
+  paste0("sum(", idx, ", ", val, ")")
 }
 
 # A MathProg iterator ranges over a set under its own name (`sum{t in TECH}`);
@@ -147,21 +152,33 @@ as_gams.sum <- function(x, ...) {
 # already resolved the body's indices to set names (`x[L]`) keeps the set
 # names in the index too.
 .gams_index_iterators <- function(index, body = NULL) {
-  if (!inherits(index, "dims") || length(index) == 0) return(NULL)
+  if (!inherits(index, "dims") || length(index) == 0) {
+    return(NULL)
+  }
   iters <- names(index)
-  if (is.null(iters) || any(is.na(iters) | !nzchar(iters))) return(NULL)
+  if (is.null(iters) || any(is.na(iters) | !nzchar(iters))) {
+    return(NULL)
+  }
   sets <- vapply(index, function(d) if (is.null(d$name)) NA_character_ else d$name, "")
-  if (any(is.na(sets)) || identical(unname(iters), unname(sets))) return(NULL)
-  if (!.gams_body_uses(body, setdiff(iters, sets))) return(NULL)
+  if (any(is.na(sets)) || identical(unname(iters), unname(sets))) {
+    return(NULL)
+  }
+  if (!.gams_body_uses(body, setdiff(iters, sets))) {
+    return(NULL)
+  }
   iters
 }
 
 # Whether any of `names` appears as an index symbol anywhere in `node`.
 .gams_body_uses <- function(node, names) {
-  if (!length(names)) return(TRUE)
+  if (!length(names)) {
+    return(TRUE)
+  }
   found <- FALSE
   walk <- function(x) {
-    if (found) return(invisible())
+    if (found) {
+      return(invisible())
+    }
     if (inherits(x, "symbol") && !is.null(x$name) && x$name %in% names) {
       found <<- TRUE
       return(invisible())
@@ -199,9 +216,13 @@ as_gams.sum <- function(x, ...) {
 # iterators are substituted, so a header over aliases matches its declaration.
 .gams_equation_domain <- function(eq) {
   index_dims <- .gams_equation_index_dims(eq)
-  if (length(index_dims) == 0) return("")
+  if (length(index_dims) == 0) {
+    return("")
+  }
   sets <- vapply(index_dims, function(d) if (is.null(d$name)) NA_character_ else d$name, "")
-  if (any(is.na(sets))) return("")
+  if (any(is.na(sets))) {
+    return("")
+  }
   paste0("[", paste(sets, collapse = ","), "]")
 }
 
@@ -209,7 +230,7 @@ as_gams.sum <- function(x, ...) {
 # binds the domain's dims rather than the base sets carried by eq$dims.
 .gams_equation_index_dims <- function(eq) {
   if (inherits(eq$domain, "mm_mapping") && !is.null(eq$domain$dims) &&
-      length(eq$domain$dims) == length(eq$dims)) {
+    length(eq$domain$dims) == length(eq$dims)) {
     return(eq$domain$dims)
   }
   eq$dims
@@ -224,10 +245,12 @@ as_gams.sum <- function(x, ...) {
   iters <- unname(as.character(iters))
   sets <- vapply(eq$dims, function(d) if (is.null(d$name)) NA_character_ else d$name, "")
   if (any(is.na(iters) | !nzchar(iters)) || any(is.na(sets)) ||
-      identical(iters, unname(sets))) {
+    identical(iters, unname(sets))) {
     return(NULL)
   }
-  if (!.gams_body_uses(list(eq$lhs, eq$rhs), setdiff(iters, sets))) return(NULL)
+  if (!.gams_body_uses(list(eq$lhs, eq$rhs), setdiff(iters, sets))) {
+    return(NULL)
+  }
   iters
 }
 
@@ -254,7 +277,8 @@ as_gams.ast_formula <- function(x, ...) {
   # GAMS, not MathProg's inline `:=`. This renders the assignment.
   if (is.null(x$expr)) {
     stop("as_gams: a formula with no expression cannot be written.",
-         call. = FALSE)
+      call. = FALSE
+    )
   }
   idx <- x$index_vars
   if (is.null(idx) || !length(idx)) idx <- x$index_sets
@@ -272,7 +296,9 @@ as_gams.shift <- function(x, ...) {
   # A lag or lead on a set index. GAMS doubles the operator for the circular
   # form: `y-1` stops at the ends, `y--1` wraps.
   offset <- x$offset
-  if (is.null(offset) || offset == 0) return(x$symbol)
+  if (is.null(offset) || offset == 0) {
+    return(x$symbol)
+  }
   op <- if (offset > 0) "+" else "-"
   if (isTRUE(x$circular)) op <- paste0(op, op)
   paste0(x$symbol, op, abs(offset))
@@ -309,9 +335,9 @@ as_gams.func <- function(x, ...) {
 
   if (!is.null(x$index)) {
     idx <- as_gams(x$index, ...)
-    return(paste0(x$name, "(", idx, ", ", val_str, ")"))
+    paste0(x$name, "(", idx, ", ", val_str, ")")
   } else {
-    return(paste0(x$name, "(", val_str, ")"))
+    paste0(x$name, "(", val_str, ")")
   }
 }
 
@@ -331,7 +357,6 @@ as_gams.call <- function(x, ...) {
     paste0(x$name, "()")
   }
 }
-
 
 
 #' @export
@@ -413,12 +438,13 @@ as_gams.mm_equation <- function(x, ...) {
   lhs <- as_gams(x$lhs, ...)
   rhs <- as_gams(x$rhs, ...)
   rel <- switch(x$relation,
-                "==" = "=e=",
-                "<=" = "=l=",
-                ">=" = "=g=",
-                stop("Unsupported relation: ", x$relation)
+    "==" = "=e=",
+    "<=" = "=l=",
+    ">=" = "=g=",
+    stop("Unsupported relation: ", x$relation)
   )
-  paste0(eqname, index, domain, "..\n  ",
-         lhs, " ", rel, "\n  ", rhs, ";")
+  paste0(
+    eqname, index, domain, "..\n  ",
+    lhs, " ", rel, "\n  ", rhs, ";"
+  )
 }
-

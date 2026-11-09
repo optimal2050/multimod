@@ -67,38 +67,55 @@ lp_bounds <- function(lp, objective = NULL, max_pass = 50L, tol = 1e-9, verbose 
     e[, `:=`(clo = a * blo, cup = a * bup)]
     # per row: the finite part of the activity range and the number of
     # infinite contributions on each side
-    rows <- e[, list(Lf = sum(clo[is.finite(clo)]), Ln = sum(!is.finite(clo)),
-                     Uf = sum(cup[is.finite(cup)]), Un = sum(!is.finite(cup))), by = i]
+    rows <- e[, list(
+      Lf = sum(clo[is.finite(clo)]), Ln = sum(!is.finite(clo)),
+      Uf = sum(cup[is.finite(cup)]), Un = sum(!is.finite(cup))
+    ), by = i]
     # a row whose whole activity range misses its bounds
     Lmin <- ifelse(rows$Ln > 0, -Inf, rows$Lf)
     Umax <- ifelse(rows$Un > 0, Inf, rows$Uf)
     bad <- rows$i[Lmin > rup[rows$i] + tol | Umax < rlo[rows$i] - tol]
-    if (length(bad)) { infeasible <- unique(c(infeasible, bad)); }
+    if (length(bad)) {
+      infeasible <- unique(c(infeasible, bad))
+    }
     e[rows, `:=`(Lf = i.Lf, Ln = i.Ln, Uf = i.Uf, Un = i.Un), on = "i"]
     # the activity of the row without this entry: finite when the entry
     # carries the row's only infinite contribution, else when there is none
-    e[, `:=`(Lrest = ifelse(is.finite(clo), ifelse(Ln == 0L, Lf - clo, NA_real_),
-                            ifelse(Ln == 1L, Lf, NA_real_)),
-             Urest = ifelse(is.finite(cup), ifelse(Un == 0L, Uf - cup, NA_real_),
-                            ifelse(Un == 1L, Uf, NA_real_)))]
+    e[, `:=`(
+      Lrest = ifelse(is.finite(clo), ifelse(Ln == 0L, Lf - clo, NA_real_),
+        ifelse(Ln == 1L, Lf, NA_real_)
+      ),
+      Urest = ifelse(is.finite(cup), ifelse(Un == 0L, Uf - cup, NA_real_),
+        ifelse(Un == 1L, Uf, NA_real_)
+      )
+    )]
     # the entry's implied bounds on its variable
-    e[, `:=`(nup = ifelse(a > 0, (rup[i] - Lrest) / a, (rlo[i] - Urest) / a),
-             nlo = ifelse(a > 0, (rlo[i] - Urest) / a, (rup[i] - Lrest) / a))]
-    cb <- e[, list(nlo = suppressWarnings(max(nlo, na.rm = TRUE)),
-                   nup = suppressWarnings(min(nup, na.rm = TRUE))), by = j]
-    nlo <- lo; nup <- up
+    e[, `:=`(
+      nup = ifelse(a > 0, (rup[i] - Lrest) / a, (rlo[i] - Urest) / a),
+      nlo = ifelse(a > 0, (rlo[i] - Urest) / a, (rup[i] - Lrest) / a)
+    )]
+    cb <- e[, list(
+      nlo = suppressWarnings(max(nlo, na.rm = TRUE)),
+      nup = suppressWarnings(min(nup, na.rm = TRUE))
+    ), by = j]
+    nlo <- lo
+    nup <- up
     nlo[cb$j] <- pmax(lo[cb$j], cb$nlo)
     nup[cb$j] <- pmin(up[cb$j], cb$nup)
     # an implied interval cannot cross; a crossing is an infeasibility of
     # rounding size at worst, kept at the declared bound
     cross <- nlo > nup
-    if (any(cross)) { nlo[cross] <- pmin(nlo[cross], up[cross]); nup[cross] <- pmax(nup[cross], lo[cross]) }
+    if (any(cross)) {
+      nlo[cross] <- pmin(nlo[cross], up[cross])
+      nup[cross] <- pmax(nup[cross], lo[cross])
+    }
     changed <- function(new, old) {
       scale <- pmax(1, abs(ifelse(is.finite(old), old, 0)))
       is.finite(new) != is.finite(old) | (is.finite(old) & abs(new - old) > tol * scale)
     }
     moved <- sum(changed(nlo, lo), na.rm = TRUE) + sum(changed(nup, up), na.rm = TRUE)
-    lo <- nlo; up <- nup
+    lo <- nlo
+    up <- nup
     if (verbose) message(sprintf("bounds pass %d: %d bound(s) moved", passes, moved))
     if (moved == 0L || passes >= max_pass) break
   }
@@ -108,10 +125,16 @@ lp_bounds <- function(lp, objective = NULL, max_pass = 50L, tol = 1e-9, verbose 
   if (nrow(ci) != n && "jred" %in% names(ci)) {
     keep <- which(!is.na(ci$jred))
     keep <- keep[order(ci$jred[keep])]
-    full <- function(v) { out <- rep(NA_real_, nrow(ci)); out[keep] <- v; out }
-    lo_ci <- full(lo); up_ci <- full(up)
+    full <- function(v) {
+      out <- rep(NA_real_, nrow(ci))
+      out[keep] <- v
+      out
+    }
+    lo_ci <- full(lo)
+    up_ci <- full(up)
   } else {
-    lo_ci <- lo; up_ci <- up
+    lo_ci <- lo
+    up_ci <- up
   }
   data.table::set(ci, j = "lo_impl", value = lo_ci)
   data.table::set(ci, j = "up_impl", value = up_ci)
@@ -122,9 +145,12 @@ lp_bounds <- function(lp, objective = NULL, max_pass = 50L, tol = 1e-9, verbose 
     fixed = sum(is.finite(lo) & is.finite(up) & up - lo <= tol * pmax(1, abs(lo))),
     open = sum(!is.finite(lo) | !is.finite(up)),
     infeasible = infeasible,
-    objective = objective)
+    objective = objective
+  )
   lp
 }
 
-utils::globalVariables(c(":=", "i", "a", "blo", "bup", "clo", "cup", "Lf", "Ln", "Uf", "Un",
-                         "i.Lf", "i.Ln", "i.Uf", "i.Un", "Lrest", "Urest", "nlo", "nup"))
+utils::globalVariables(c(
+  ":=", "i", "a", "blo", "bup", "clo", "cup", "Lf", "Ln", "Uf", "Un",
+  "i.Lf", "i.Ln", "i.Uf", "i.Un", "Lrest", "Urest", "nlo", "nup"
+))

@@ -23,7 +23,7 @@
 EXPECTED_OBJECTIVE <- 46398.4234209742
 
 test_that("model_to_lp assembles a matrix of the right shape", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   lp <- model_to_lp(example_models$energyRt$multimod)
 
@@ -42,7 +42,7 @@ test_that("model_to_lp assembles a matrix of the right shape", {
 })
 
 test_that("row bounds encode the constraint sense", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   lp <- model_to_lp(example_models$energyRt$multimod)
   s <- lp$row_index$sense
@@ -54,7 +54,7 @@ test_that("row bounds encode the constraint sense", {
 })
 
 test_that("the objective is an indicator on the declared objective variable", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   m <- example_models$energyRt$multimod
   lp <- model_to_lp(m)
@@ -62,11 +62,11 @@ test_that("the objective is an indicator on the declared objective variable", {
   expect_equal(sum(lp$obj != 0), 1L)
   j <- which(lp$obj != 0)
   expect_equal(lp$col_index$symbol[j], m$objectives[[1]]$variable)
-  expect_false(lp$maximum)                       # energyRt minimises
+  expect_false(lp$maximum) # energyRt minimises
 })
 
 test_that("solve_highs reproduces the reference objective", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   skip_if_not_installed("highs")
   data(example_models, package = "multimod")
 
@@ -77,7 +77,7 @@ test_that("solve_highs reproduces the reference objective", {
 })
 
 test_that("duals are returned, not just primal values", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   skip_if_not_installed("highs")
   data(example_models, package = "multimod")
 
@@ -91,7 +91,7 @@ test_that("duals are returned, not just primal values", {
 })
 
 test_that("primal values attach back with real index columns", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   skip_if_not_installed("highs")
   data(example_models, package = "multimod")
 
@@ -105,7 +105,7 @@ test_that("primal values attach back with real index columns", {
 })
 
 test_that("write_mps round-trips through HiGHS to the same objective", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   skip_if_not_installed("highs")
   data(example_models, package = "multimod")
   m <- example_models$energyRt$multimod
@@ -144,15 +144,17 @@ test_that("write_mps round-trips through HiGHS to the same objective", {
 # =============================================================================
 
 test_that("check_matrix_numbers reports each section's magnitude spectrum", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   skip_if_not_installed("highs")
   data(example_models, package = "multimod")
   lp <- model_to_lp(example_models$energyRt$multimod)
 
   res <- check_matrix_numbers(lp, verbose = FALSE)
 
-  expect_setequal(res$summary$section,
-                  c("COLUMNS", "OBJECTIVE", "RHS", "BOUNDS"))
+  expect_setequal(
+    res$summary$section,
+    c("COLUMNS", "OBJECTIVE", "RHS", "BOUNDS")
+  )
   cols <- res$summary[res$summary$section == "COLUMNS", ]
   expect_equal(cols$entries, length(lp$A@x))
   expect_equal(cols$min_abs, min(abs(lp$A@x[lp$A@x != 0])))
@@ -163,7 +165,7 @@ test_that("check_matrix_numbers reports each section's magnitude spectrum", {
 })
 
 test_that("offenders are attributed to real equation and variable names", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   skip_if_not_installed("highs")
   data(example_models, package = "multimod")
   lp <- model_to_lp(example_models$energyRt$multimod)
@@ -182,7 +184,7 @@ test_that("offenders are attributed to real equation and variable names", {
 })
 
 test_that("a matrix with no small entries yields empty offender tables", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   skip_if_not_installed("highs")
   data(example_models, package = "multimod")
   lp <- model_to_lp(example_models$energyRt$multimod)
@@ -211,7 +213,7 @@ test_that("a matrix with no small entries yields empty offender tables", {
 # =============================================================================
 
 test_that("an infinite parameter value falls back to the default", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   skip_if_not_installed("highs")
   data(example_models, package = "multimod")
   m <- example_models$energyRt$multimod
@@ -236,7 +238,7 @@ test_that("an infinite parameter value falls back to the default", {
 })
 
 test_that("an infinite default contributes 0, as the writers do", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   skip_if_not_installed("highs")
   data(example_models, package = "multimod")
   m <- example_models$energyRt$multimod

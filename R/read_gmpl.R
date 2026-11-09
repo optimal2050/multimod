@@ -124,9 +124,9 @@ read_gmpl <- function(model_file,
     parameters = list(),
     variables = list(),
     equations = list(),
-    objectives = list(),  # Can have multiple objectives
-    models = list(),      # Model definitions
-    aliases = list(),     # Will collect from indexing expressions
+    objectives = list(), # Can have multiple objectives
+    models = list(), # Model definitions
+    aliases = list(), # Will collect from indexing expressions
     index_aliases = character(0)
   )
 
@@ -153,13 +153,13 @@ read_gmpl <- function(model_file,
     name = model_name,
     desc = paste0("GMPL model from ", if (model_source == "<in-memory>") "in-memory source" else basename(model_source)),
     sets = temp_model$sets,
-    mappings = list(),  # GMPL doesn't have explicit mappings
-    aliases = temp_model$aliases,  # Extracted from indexing expressions
+    mappings = list(), # GMPL doesn't have explicit mappings
+    aliases = temp_model$aliases, # Extracted from indexing expressions
     parameters = temp_model$parameters,
     variables = temp_model$variables,
-    equations = temp_model$equations,  # Objective is already in equations
-    objectives = temp_model$objectives,  # Objective metadata (plural)
-    models = list(),  # GMPL doesn't have explicit model definitions
+    equations = temp_model$equations, # Objective is already in equations
+    objectives = temp_model$objectives, # Objective metadata (plural)
+    models = list(), # GMPL doesn't have explicit model definitions
     source = model_source,
     language = "gmpl"
   )
@@ -184,7 +184,7 @@ read_gmpl <- function(model_file,
     return(model)
   }
 
-  return(model_struct)
+  model_struct
 }
 
 #' Preprocess GMPL Text
@@ -211,7 +211,7 @@ preprocess_gmpl <- function(lines) {
   # (declarations end with semicolon)
   text <- paste(lines, collapse = " ")
 
-  return(text)
+  text
 }
 
 #' Parse GMPL Declarations
@@ -236,29 +236,23 @@ parse_gmpl_declarations <- function(text, model, verbose = FALSE) {
     # Identify statement type by first keyword
     if (grepl("^set\\s+", stmt, ignore.case = TRUE)) {
       model <- parse_gmpl_set(stmt, model, verbose)
-
     } else if (grepl("^param\\s+", stmt, ignore.case = TRUE)) {
       model <- parse_gmpl_param(stmt, model, verbose)
-
     } else if (grepl("^var\\s+", stmt, ignore.case = TRUE)) {
       model <- parse_gmpl_var(stmt, model, verbose)
-
     } else if (grepl("^s\\.t\\.\\s+", stmt, ignore.case = TRUE)) {
       model <- parse_gmpl_equation(stmt, model, verbose)
-
     } else if (grepl("^(minimize|maximize)\\s+", stmt, ignore.case = TRUE)) {
       model <- parse_gmpl_objective(stmt, model, verbose)
-
     } else if (grepl("^(check|printf|display|solve|end|data|for|table)\\s*", stmt, ignore.case = TRUE)) {
       # Ignore these statements for now (output/control statements)
       next
-
     } else {
       if (verbose) warning("Unrecognized statement: ", substr(stmt, 1, 50))
     }
   }
 
-  return(model)
+  model
 }
 
 #' Split Text into Statements
@@ -320,7 +314,7 @@ split_statements <- function(text) {
     statements <- c(statements, trimws(current))
   }
 
-  return(statements)
+  statements
 }
 
 #' Parse GMPL Set Declaration
@@ -343,27 +337,22 @@ parse_gmpl_set <- function(stmt, model, verbose = FALSE) {
   name <- regmatches(stmt, name_match)
   stmt <- substring(stmt, name_match + attr(name_match, "match.length"))
 
-  # Check for indexing
-  indexing <- NULL
+  # Strip the indexing, if any
   if (grepl("^\\s*\\{", stmt)) {
     idx_result <- extract_indexing(stmt)
-    indexing <- idx_result$indexing
     stmt <- idx_result$remaining
   }
-
-  # Parse attributes (dimen, within, etc.) - skip for now
-  attributes <- list()
 
   # Add to model (model_structure format)
   model$sets[[name]] <- list(
     name = name,
-    desc = "",  # GMPL doesn't have descriptions
-    dims = character(0)  # Simple sets have no dims
+    desc = "", # GMPL doesn't have descriptions
+    dims = character(0) # Simple sets have no dims
   )
 
   if (verbose) message("  Set: ", name)
 
-  return(model)
+  model
 }
 
 #' Create AST Formula Node
@@ -466,37 +455,43 @@ parse_gmpl_param <- function(stmt, model, verbose = FALSE) {
       } else {
         # Not numeric - parse as expression to AST
         if (verbose) message("  Parsing default expression: ", default_val)
-        default_val <- tryCatch({
-          ast <- parse_gmpl_expr(default_val, symbols = model)
+        default_val <- tryCatch(
+          {
+            ast <- parse_gmpl_expr(default_val, symbols = model)
 
-          # Extract index variables and sets from indexing
-          idx_vars <- character()
-          idx_sets <- character()
-          if (!is.null(indexing)) {
-            idx_vars <- sapply(indexing$specs, function(s) {
-              if (length(s$vars) == 1) s$vars[1]
-              else tolower(substr(s$set, 1, 1))
-            })
-            idx_sets <- sapply(indexing$specs, function(s) s$set)
+            # Extract index variables and sets from indexing
+            idx_vars <- character()
+            idx_sets <- character()
+            if (!is.null(indexing)) {
+              idx_vars <- sapply(indexing$specs, function(s) {
+                if (length(s$vars) == 1) {
+                  s$vars[1]
+                } else {
+                  tolower(substr(s$set, 1, 1))
+                }
+              })
+              idx_sets <- sapply(indexing$specs, function(s) s$set)
+            }
+
+            # Extract dependencies
+            dep_args <- extract_args(ast)
+
+            # Wrap in ast_formula
+            new_ast_formula(
+              target = name,
+              field = "defVal",
+              expr = ast,
+              index_vars = idx_vars,
+              index_sets = idx_sets,
+              args = dep_args
+            )
+          },
+          error = function(e) {
+            warning("Could not parse default expression for parameter '", name, "': ", e$message)
+            # Fall back to keeping as string
+            default_val
           }
-
-          # Extract dependencies
-          dep_args <- extract_args(ast)
-
-          # Wrap in ast_formula
-          new_ast_formula(
-            target = name,
-            field = "defVal",
-            expr = ast,
-            index_vars = idx_vars,
-            index_sets = idx_sets,
-            args = dep_args
-          )
-        }, error = function(e) {
-          warning("Could not parse default expression for parameter '", name, "': ", e$message)
-          # Fall back to keeping as string
-          default_val
-        })
+        )
         if (verbose && inherits(default_val, "ast_formula")) {
           message("    Default expression wrapped in ast_formula successfully")
         }
@@ -509,7 +504,7 @@ parse_gmpl_param <- function(stmt, model, verbose = FALSE) {
     # Collect aliases: short var -> full set name
     for (spec in indexing$specs) {
       if (!is.null(spec$set) && length(spec$vars) == 1 &&
-          !identical(spec$vars[1], spec$set)) {
+        !identical(spec$vars[1], spec$set)) {
         var_name <- spec$vars[1]
         set_name <- spec$set
         # Store alias: SETNAME -> c(SETNAME, short_alias)
@@ -547,36 +542,42 @@ parse_gmpl_param <- function(stmt, model, verbose = FALSE) {
   formula_expr <- NULL
   if (!is.null(formula) && nzchar(formula)) {
     if (verbose) message("  Parsing formula for parameter: ", name)
-    formula_expr <- tryCatch({
-      ast <- parse_gmpl_expr(formula, symbols = model)
+    formula_expr <- tryCatch(
+      {
+        ast <- parse_gmpl_expr(formula, symbols = model)
 
-      # Extract index variables and sets from indexing
-      idx_vars <- character()
-      idx_sets <- character()
-      if (!is.null(indexing)) {
-        idx_vars <- sapply(indexing$specs, function(s) {
-          if (length(s$vars) == 1) s$vars[1]
-          else tolower(substr(s$set, 1, 1))
-        })
-        idx_sets <- sapply(indexing$specs, function(s) s$set)
+        # Extract index variables and sets from indexing
+        idx_vars <- character()
+        idx_sets <- character()
+        if (!is.null(indexing)) {
+          idx_vars <- sapply(indexing$specs, function(s) {
+            if (length(s$vars) == 1) {
+              s$vars[1]
+            } else {
+              tolower(substr(s$set, 1, 1))
+            }
+          })
+          idx_sets <- sapply(indexing$specs, function(s) s$set)
+        }
+
+        # Extract dependencies
+        dep_args <- extract_args(ast)
+
+        # Wrap in ast_formula
+        new_ast_formula(
+          target = name,
+          field = "formula",
+          expr = ast,
+          index_vars = idx_vars,
+          index_sets = idx_sets,
+          args = dep_args
+        )
+      },
+      error = function(e) {
+        warning("Could not parse formula for parameter '", name, "': ", e$message)
+        NULL
       }
-
-      # Extract dependencies
-      dep_args <- extract_args(ast)
-
-      # Wrap in ast_formula
-      new_ast_formula(
-        target = name,
-        field = "formula",
-        expr = ast,
-        index_vars = idx_vars,
-        index_sets = idx_sets,
-        args = dep_args
-      )
-    }, error = function(e) {
-      warning("Could not parse formula for parameter '", name, "': ", e$message)
-      NULL
-    })
+    )
     if (verbose) {
       if (!is.null(formula_expr)) {
         message("    Formula wrapped in ast_formula successfully")
@@ -612,9 +613,9 @@ parse_gmpl_param <- function(stmt, model, verbose = FALSE) {
 
   model$parameters[[name]] <- param
 
-  if (verbose) message("  Parameter: ", name, " [", paste(dims, collapse=", "), "]")
+  if (verbose) message("  Parameter: ", name, " [", paste(dims, collapse = ", "), "]")
 
-  return(model)
+  model
 }
 
 #' Parse GMPL Variable Declaration
@@ -679,7 +680,7 @@ parse_gmpl_var <- function(stmt, model, verbose = FALSE) {
     # Collect aliases: short var -> full set name
     for (spec in indexing$specs) {
       if (!is.null(spec$set) && length(spec$vars) == 1 &&
-          !identical(spec$vars[1], spec$set)) {
+        !identical(spec$vars[1], spec$set)) {
         var_name <- spec$vars[1]
         set_name <- spec$set
         # Store alias: SETNAME -> c(SETNAME, short_alias)
@@ -733,9 +734,9 @@ parse_gmpl_var <- function(stmt, model, verbose = FALSE) {
 
   model$variables[[name]] <- var
 
-  if (verbose) message("  Variable: ", name, " [", paste(dims, collapse=", "), "]")
+  if (verbose) message("  Variable: ", name, " [", paste(dims, collapse = ", "), "]")
 
-  return(model)
+  model
 }
 
 #' Parse GMPL Equation Declaration
@@ -785,7 +786,7 @@ parse_gmpl_equation <- function(stmt, model, verbose = FALSE) {
       depth <- depth - 1
     } else if (depth == 0 && i < length(chars)) {
       # Check for two-char operators
-      two_char <- paste0(chars[i], chars[i+1])
+      two_char <- paste0(chars[i], chars[i + 1])
       if (two_char == "<=" && is.null(sense)) {
         sense <- "<="
         break
@@ -794,8 +795,8 @@ parse_gmpl_equation <- function(stmt, model, verbose = FALSE) {
         break
       } else if (ch == "=" && is.null(sense)) {
         # Make sure it's not part of <= or >=
-        prev_ch <- if (i > 1) chars[i-1] else ""
-        next_ch <- if (i < length(chars)) chars[i+1] else ""
+        prev_ch <- if (i > 1) chars[i - 1] else ""
+        next_ch <- if (i < length(chars)) chars[i + 1] else ""
         if (!(prev_ch %in% c("<", ">", "!")) && !(next_ch == "=")) {
           sense <- "="
           break
@@ -806,7 +807,7 @@ parse_gmpl_equation <- function(stmt, model, verbose = FALSE) {
 
   if (is.null(sense)) {
     warning("Could not determine sense for equation: ", name)
-    sense <- "="  # Default fallback
+    sense <- "=" # Default fallback
   }
 
   # Extract dims from indexing and collect aliases
@@ -814,7 +815,7 @@ parse_gmpl_equation <- function(stmt, model, verbose = FALSE) {
     # Collect aliases: short var -> full set name
     for (spec in indexing$specs) {
       if (!is.null(spec$set) && length(spec$vars) == 1 &&
-          !identical(spec$vars[1], spec$set)) {
+        !identical(spec$vars[1], spec$set)) {
         var_name <- spec$vars[1]
         set_name <- spec$set
         # Store alias: SETNAME -> c(SETNAME, short_alias)
@@ -839,7 +840,7 @@ parse_gmpl_equation <- function(stmt, model, verbose = FALSE) {
       if (length(spec$vars) == 1) {
         result[i] <- spec$vars[1]
       } else {
-        result[i] <- spec$set  # fallback to set name
+        result[i] <- spec$set # fallback to set name
       }
     }
     result
@@ -860,16 +861,16 @@ parse_gmpl_equation <- function(stmt, model, verbose = FALSE) {
   model$equations[[name]] <- list(
     name = name,
     dims = dims,
-    dims_index_aliases = dims_index_aliases,  # Store equation-specific index vars
+    dims_index_aliases = dims_index_aliases, # Store equation-specific index vars
     desc = "",
-    body = body,  # Unparsed expression
+    body = body, # Unparsed expression
     sense = sense,
     condition = condition
   )
 
-  if (verbose) message("  Equation: ", name, " [", paste(dims, collapse=", "), "]")
+  if (verbose) message("  Equation: ", name, " [", paste(dims, collapse = ", "), "]")
 
-  return(model)
+  model
 }
 
 #' Parse GMPL Objective Declaration
@@ -917,14 +918,14 @@ parse_gmpl_objective <- function(stmt, model, verbose = FALSE) {
     variable = var_name,
     sense = sense,
     gmpl = original_stmt,
-    model = NULL  # No explicit model name in GMPL
+    model = NULL # No explicit model name in GMPL
   )
 
   # Add objective variable if it doesn't exist
   if (!var_name %in% names(model$variables)) {
     model$variables[[var_name]] <- list(
       name = var_name,
-      dims = character(0),  # Scalar
+      dims = character(0), # Scalar
       desc = paste0("Objective value (", sense, ")"),
       domain = NULL,
       vtype = "free",
@@ -934,43 +935,46 @@ parse_gmpl_objective <- function(stmt, model, verbose = FALSE) {
 
   # Parse expr to extract dims_index_aliases from sum/product if present
   dims_index_aliases <- NULL
-  tryCatch({
-    # Quick parse to check if there's a sum/product with indexing
-    if (grepl("^sum\\s*\\{", expr) || grepl("^product\\s*\\{", expr)) {
-      # Extract the indexing from sum{...} or product{...}
-      idx_result <- extract_indexing(substring(expr, 4))  # Skip "sum" or "product"
-      if (!is.null(idx_result$indexing)) {
-        dims_index_aliases <- character(length(idx_result$indexing$specs))
-        for (i in seq_along(idx_result$indexing$specs)) {
-          spec <- idx_result$indexing$specs[[i]]
-          if (length(spec$vars) == 1) {
-            dims_index_aliases[i] <- spec$vars[1]
-          } else {
-            dims_index_aliases[i] <- tolower(substr(spec$set, 1, 1))
+  tryCatch(
+    {
+      # Quick parse to check if there's a sum/product with indexing
+      if (grepl("^sum\\s*\\{", expr) || grepl("^product\\s*\\{", expr)) {
+        # Extract the indexing from sum{...} or product{...}
+        idx_result <- extract_indexing(substring(expr, 4)) # Skip "sum" or "product"
+        if (!is.null(idx_result$indexing)) {
+          dims_index_aliases <- character(length(idx_result$indexing$specs))
+          for (i in seq_along(idx_result$indexing$specs)) {
+            spec <- idx_result$indexing$specs[[i]]
+            if (length(spec$vars) == 1) {
+              dims_index_aliases[i] <- spec$vars[1]
+            } else {
+              dims_index_aliases[i] <- tolower(substr(spec$set, 1, 1))
+            }
           }
+          names(dims_index_aliases) <- .gmpl_spec_sets(idx_result$indexing$specs)
         }
-        names(dims_index_aliases) <- .gmpl_spec_sets(idx_result$indexing$specs)
       }
+    },
+    error = function(e) {
+      # If extraction fails, leave as NULL
     }
-  }, error = function(e) {
-    # If extraction fails, leave as NULL
-  })
+  )
 
   # Add objective equation: var_name = expr
   # Use "objective" as the equation name (standard convention)
   eq_name <- "objective"
   model$equations[[eq_name]] <- list(
     name = eq_name,
-    dims = character(0),  # Scalar
-    dims_index_aliases = dims_index_aliases,  # From sum/product iterators
+    dims = character(0), # Scalar
+    dims_index_aliases = dims_index_aliases, # From sum/product iterators
     desc = paste0("Objective equation (", sense, ")"),
     body = paste0(var_name, " = ", expr),
-    sense = sense  # Store sense to identify as objective later
+    sense = sense # Store sense to identify as objective later
   )
 
   if (verbose) message("  Objective: ", var_name, " (", sense, ")")
 
-  return(model)
+  model
 }
 
 #' Extract Indexing Expression from GMPL Statement
@@ -1027,11 +1031,11 @@ extract_indexing <- function(stmt) {
     raw = idx_content
   )
 
-  return(list(
+  list(
     indexing = indexing,
     condition = condition,
     remaining = remaining
-  ))
+  )
 }
 
 #' Parse Index List
@@ -1046,7 +1050,9 @@ parse_index_list <- function(str) {
   # one spec. A plain comma split cut it into "(i" and "j) in S", which left
   # the first index setless and the second carrying a stray parenthesis - and
   # the tuple form is how MathProg binds an equation to a domain mapping.
-  if (!nzchar(trimws(str))) return(list())
+  if (!nzchar(trimws(str))) {
+    return(list())
+  }
   specs_raw <- split_top_level_args(str)
 
   specs <- lapply(specs_raw, function(spec) {
@@ -1074,13 +1080,13 @@ parse_index_list <- function(str) {
     }
 
     # If no "in", might be just variable name
-    return(list(
+    list(
       vars = trimws(spec),
       set = NULL
-    ))
+    )
   })
 
-  return(specs)
+  specs
 }
 
 #' Build an AST node for a GMPL identifier
@@ -1104,10 +1110,10 @@ gmpl_symbol_node <- function(name, symbols) {
   canonical_name <- name
   if (!is.null(symbols)) {
     pool <- switch(symbol_type,
-                   variable = symbols$variables,
-                   parameter = symbols$parameters,
-                   set = symbols$sets,
-                   NULL
+      variable = symbols$variables,
+      parameter = symbols$parameters,
+      set = symbols$sets,
+      NULL
     )
     if (!is.null(pool)) {
       idx <- match(tolower(name), tolower(pool))
@@ -1117,13 +1123,13 @@ gmpl_symbol_node <- function(name, symbols) {
     }
   }
   ctor <- switch(symbol_type,
-                 variable = ast_variable,
-                 parameter = ast_parameter,
-                 set = function(n, ...) ast_set(n),
-                 symbol = ast_symbol,
-                 func = ast_symbol,
-                 func_indexed = ast_symbol,
-                 ast_symbol
+    variable = ast_variable,
+    parameter = ast_parameter,
+    set = function(n, ...) ast_set(n),
+    symbol = ast_symbol,
+    func = ast_symbol,
+    func_indexed = ast_symbol,
+    ast_symbol
   )
   if (identical(ctor, ast_set)) {
     return(ctor(canonical_name))
@@ -1148,7 +1154,7 @@ parse_gmpl_expr <- function(expr, symbols = list(), depth = 0, max_depth = 50) {
 
   # String literals (quoted)
   if (grepl('^["\'].*["\']$', expr)) {
-    return(ast_constant(gsub('["\']', '', expr)))
+    return(ast_constant(gsub('["\']', "", expr)))
   }
 
   # Check for index shift patterns (y-1, y+1, ls-1, etc.) BEFORE expression parsing
@@ -1187,15 +1193,15 @@ parse_gmpl_expr <- function(expr, symbols = list(), depth = 0, max_depth = 50) {
   if (has_top_level_op(expr, "\\|\\|")) {
     parts <- split_by_op(expr, "\\|\\|")
     return(ast_expression("or",
-                          lhs = parse_gmpl_expr(parts$lhs, symbols, depth + 1, max_depth),
-                          rhs = parse_gmpl_expr(parts$rhs, symbols, depth + 1, max_depth)
+      lhs = parse_gmpl_expr(parts$lhs, symbols, depth + 1, max_depth),
+      rhs = parse_gmpl_expr(parts$rhs, symbols, depth + 1, max_depth)
     ))
   }
   if (has_top_level_op(expr, "\\bor\\b")) {
     parts <- split_by_op(expr, "\\bor\\b")
     return(ast_expression("or",
-                          lhs = parse_gmpl_expr(parts$lhs, symbols, depth + 1, max_depth),
-                          rhs = parse_gmpl_expr(parts$rhs, symbols, depth + 1, max_depth)
+      lhs = parse_gmpl_expr(parts$lhs, symbols, depth + 1, max_depth),
+      rhs = parse_gmpl_expr(parts$rhs, symbols, depth + 1, max_depth)
     ))
   }
 
@@ -1203,35 +1209,35 @@ parse_gmpl_expr <- function(expr, symbols = list(), depth = 0, max_depth = 50) {
   if (has_top_level_op(expr, "&&")) {
     parts <- split_by_op(expr, "&&")
     return(ast_expression("and",
-                          lhs = parse_gmpl_expr(parts$lhs, symbols, depth + 1, max_depth),
-                          rhs = parse_gmpl_expr(parts$rhs, symbols, depth + 1, max_depth)
+      lhs = parse_gmpl_expr(parts$lhs, symbols, depth + 1, max_depth),
+      rhs = parse_gmpl_expr(parts$rhs, symbols, depth + 1, max_depth)
     ))
   }
   if (has_top_level_op(expr, "\\band\\b")) {
     parts <- split_by_op(expr, "\\band\\b")
     return(ast_expression("and",
-                          lhs = parse_gmpl_expr(parts$lhs, symbols, depth + 1, max_depth),
-                          rhs = parse_gmpl_expr(parts$rhs, symbols, depth + 1, max_depth)
+      lhs = parse_gmpl_expr(parts$lhs, symbols, depth + 1, max_depth),
+      rhs = parse_gmpl_expr(parts$rhs, symbols, depth + 1, max_depth)
     ))
   }
 
   # Comparison operators
   for (op in c("<=", ">=", "<>", "!=", "=", "<", ">")) {
     op_pattern <- switch(op,
-                         "<=" = "<=",
-                         ">=" = ">=",
-                         "<>" = "<>",
-                         "!=" = "!=",
-                         "=" = "(?<![<>!])=(?!=)",  # = but not <=, >=, !=, ==
-                         "<" = "(?<!<)<(?![=>])",   # < but not <=, <>
-                         ">" = "(?<!>)>(?!=)"        # > but not >=
+      "<=" = "<=",
+      ">=" = ">=",
+      "<>" = "<>",
+      "!=" = "!=",
+      "=" = "(?<![<>!])=(?!=)", # = but not <=, >=, !=, ==
+      "<" = "(?<!<)<(?![=>])", # < but not <=, <>
+      ">" = "(?<!>)>(?!=)" # > but not >=
     )
 
     if (has_top_level_op(expr, op_pattern)) {
       parts <- split_by_op(expr, op_pattern)
       return(ast_expression(op,
-                            lhs = parse_gmpl_expr(parts$lhs, symbols, depth + 1, max_depth),
-                            rhs = parse_gmpl_expr(parts$rhs, symbols, depth + 1, max_depth)
+        lhs = parse_gmpl_expr(parts$lhs, symbols, depth + 1, max_depth),
+        rhs = parse_gmpl_expr(parts$rhs, symbols, depth + 1, max_depth)
       ))
     }
   }
@@ -1242,13 +1248,14 @@ parse_gmpl_expr <- function(expr, symbols = list(), depth = 0, max_depth = 50) {
       parts <- split_by_op(expr, op)
       if (!is.null(parts$lhs) && nchar(trimws(parts$lhs)) > 0) {
         return(ast_expression(gsub("\\\\", "", op),
-                              lhs = parse_gmpl_expr(parts$lhs, symbols, depth + 1, max_depth),
-                              rhs = parse_gmpl_expr(parts$rhs, symbols, depth + 1, max_depth)
+          lhs = parse_gmpl_expr(parts$lhs, symbols, depth + 1, max_depth),
+          rhs = parse_gmpl_expr(parts$rhs, symbols, depth + 1, max_depth)
         ))
       } else {
         # Unary minus/plus
-        return(ast_unary(gsub("\\\\", "", op),
-                         parse_gmpl_expr(parts$rhs, symbols, depth + 1, max_depth)
+        return(ast_unary(
+          gsub("\\\\", "", op),
+          parse_gmpl_expr(parts$rhs, symbols, depth + 1, max_depth)
         ))
       }
     }
@@ -1262,7 +1269,9 @@ parse_gmpl_expr <- function(expr, symbols = list(), depth = 0, max_depth = 50) {
   for (func in c("sum", "prod", "min", "max")) {
     if (grepl(paste0("^", func, "\\s*\\{"), expr, ignore.case = TRUE)) {
       result <- parse_indexed_func(expr, func, symbols, depth, max_depth)
-      if (!is.null(result)) return(result)
+      if (!is.null(result)) {
+        return(result)
+      }
     }
   }
 
@@ -1271,8 +1280,8 @@ parse_gmpl_expr <- function(expr, symbols = list(), depth = 0, max_depth = 50) {
     if (has_top_level_op(expr, op)) {
       parts <- split_by_op(expr, op)
       return(ast_expression(gsub("\\\\|\\b", "", op),
-                            lhs = parse_gmpl_expr(parts$lhs, symbols, depth + 1, max_depth),
-                            rhs = parse_gmpl_expr(parts$rhs, symbols, depth + 1, max_depth)
+        lhs = parse_gmpl_expr(parts$lhs, symbols, depth + 1, max_depth),
+        rhs = parse_gmpl_expr(parts$rhs, symbols, depth + 1, max_depth)
       ))
     }
   }
@@ -1281,8 +1290,8 @@ parse_gmpl_expr <- function(expr, symbols = list(), depth = 0, max_depth = 50) {
   if (has_top_level_op(expr, "\\^")) {
     parts <- split_by_op(expr, "\\^", rightmost = TRUE)
     return(ast_expression("^",
-                          lhs = parse_gmpl_expr(parts$lhs, symbols, depth + 1, max_depth),
-                          rhs = parse_gmpl_expr(parts$rhs, symbols, depth + 1, max_depth)
+      lhs = parse_gmpl_expr(parts$lhs, symbols, depth + 1, max_depth),
+      rhs = parse_gmpl_expr(parts$rhs, symbols, depth + 1, max_depth)
     ))
   }
 
@@ -1305,7 +1314,9 @@ parse_gmpl_expr <- function(expr, symbols = list(), depth = 0, max_depth = 50) {
   # Conditional: if condition then expr1 else expr2
   if (grepl("\\bif\\b", expr, ignore.case = TRUE)) {
     result <- parse_conditional(expr, symbols, depth, max_depth)
-    if (!is.null(result)) return(result)
+    if (!is.null(result)) {
+      return(result)
+    }
   }
 
   # Aggregation functions: sum, prod, min, max
@@ -1313,20 +1324,26 @@ parse_gmpl_expr <- function(expr, symbols = list(), depth = 0, max_depth = 50) {
     pattern <- paste0("^", func, "\\s*\\{")
     if (grepl(pattern, expr, ignore.case = TRUE)) {
       result <- parse_indexed_func(expr, func, symbols, depth, max_depth)
-      if (!is.null(result)) return(result)
+      if (!is.null(result)) {
+        return(result)
+      }
     }
   }
 
   # Regular functions: abs, ceil, floor, exp, log, sqrt, sin, cos, etc.
   if (grepl("^[a-zA-Z_][a-zA-Z0-9_]*\\s*\\(", expr)) {
     result <- parse_function_call(expr, symbols, depth, max_depth)
-    if (!is.null(result)) return(result)
+    if (!is.null(result)) {
+      return(result)
+    }
   }
 
   # Array/parameter access: name[index1, index2, ...]
   if (grepl("^[a-zA-Z_][a-zA-Z0-9_]*\\s*\\[", expr)) {
     result <- parse_indexed_access(expr, symbols, depth, max_depth)
-    if (!is.null(result)) return(result)
+    if (!is.null(result)) {
+      return(result)
+    }
   }
 
   # Simple symbol (variable, parameter, set element)
@@ -1337,7 +1354,7 @@ parse_gmpl_expr <- function(expr, symbols = list(), depth = 0, max_depth = 50) {
   # If we get here, couldn't parse
   warning("Could not parse GMPL expression: \n", expr)
   # "\n", substr(expr, 1, 50))
-  return(ast_symbol(paste0("UNPARSED_", substr(gsub("[^a-zA-Z0-9]", "_", expr), 1, 20))))
+  ast_symbol(paste0("UNPARSED_", substr(gsub("[^a-zA-Z0-9]", "_", expr), 1, 20)))
 }
 
 #' Check if expression has operator at top level (outside parentheses/brackets)
@@ -1446,14 +1463,18 @@ split_by_op <- function(expr, op_pattern, rightmost = FALSE) {
 #' @return Position of matching closing paren, or NA if not found
 #' @keywords internal
 matching_paren <- function(expr) {
-  if (!startsWith(expr, "(")) return(NA)
+  if (!startsWith(expr, "(")) {
+    return(NA)
+  }
 
   depth <- 0
   chars <- strsplit(expr, "")[[1]]
   for (i in seq_along(chars)) {
     if (chars[i] == "(") depth <- depth + 1
     if (chars[i] == ")") depth <- depth - 1
-    if (depth == 0) return(i)
+    if (depth == 0) {
+      return(i)
+    }
   }
   NA
 }
@@ -1491,12 +1512,12 @@ parse_conditional <- function(expr, symbols, depth, max_depth) {
         match <- regexpr("^\\s*\\bif\\b", remaining, ignore.case = TRUE, perl = TRUE)
         if_pos <- i + attr(match, "match.length")
       } else if (!is.null(if_pos) && is.null(then_pos) &&
-                 grepl("^\\s*\\bthen\\b", remaining, ignore.case = TRUE)) {
+        grepl("^\\s*\\bthen\\b", remaining, ignore.case = TRUE)) {
         then_pos <- i
         match <- regexpr("^\\s*\\bthen\\b", remaining, ignore.case = TRUE, perl = TRUE)
         i <- i + attr(match, "match.length") - 1
       } else if (!is.null(then_pos) && is.null(else_pos) &&
-                 grepl("^\\s*\\belse\\b", remaining, ignore.case = TRUE)) {
+        grepl("^\\s*\\belse\\b", remaining, ignore.case = TRUE)) {
         else_pos <- i
       }
     }
@@ -1505,8 +1526,8 @@ parse_conditional <- function(expr, symbols, depth, max_depth) {
 
   if (!is.null(if_pos) && !is.null(then_pos) && !is.null(else_pos)) {
     condition <- substring(expr, if_pos, then_pos - 1)
-    then_expr <- substring(expr, then_pos + 4, else_pos - 1)  # +4 for "then"
-    else_expr <- substring(expr, else_pos + 4)  # +4 for "else"
+    then_expr <- substring(expr, then_pos + 4, else_pos - 1) # +4 for "then"
+    else_expr <- substring(expr, else_pos + 4) # +4 for "else"
 
     return(ast_when(
       condition = parse_gmpl_expr(trimws(condition), symbols, depth + 1, max_depth),
@@ -1533,7 +1554,9 @@ parse_indexed_func <- function(expr, func, symbols, depth, max_depth) {
 
   pattern <- paste0("^", func, "\\s*\\{")
   match_start <- regexpr(pattern, expr, ignore.case = TRUE, perl = TRUE)
-  if (match_start != 1) return(NULL)
+  if (match_start != 1) {
+    return(NULL)
+  }
 
   # Find matching }
   brace_start <- regexpr("\\{", expr)[[1]]
@@ -1604,7 +1627,9 @@ parse_indexed_func <- function(expr, func, symbols, depth, max_depth) {
       for (v in sp$vars) index_list[[length(index_list) + 1L]] <- ast_symbol(v)
       if (!is.null(sp$set)) {
         map_conds[[length(map_conds) + 1L]] <- ast_mapping(
-          sp$set, dims = do.call(ast_dims, as.list(sp$vars)))
+          sp$set,
+          dims = do.call(ast_dims, as.list(sp$vars))
+        )
       }
     } else if (!is.null(sp$set)) {
       index_list[[sp$vars]] <- parse_gmpl_expr(sp$set, symbols, depth + 1, max_depth)
@@ -1634,11 +1659,11 @@ parse_indexed_func <- function(expr, func, symbols, depth, max_depth) {
 
   # Return appropriate AST node
   switch(func,
-         sum = ast_sum(index = index_ast, value = value_ast),
-         prod = ast_prod(index = index_ast, value = value_ast),
-         min = ast_setmin(index = index_ast, value = value_ast),
-         max = ast_setmax(index = index_ast, value = value_ast),
-         stop("Unknown indexed function: ", func)
+    sum = ast_sum(index = index_ast, value = value_ast),
+    prod = ast_prod(index = index_ast, value = value_ast),
+    min = ast_setmin(index = index_ast, value = value_ast),
+    max = ast_setmax(index = index_ast, value = value_ast),
+    stop("Unknown indexed function: ", func)
   )
 }
 
@@ -1653,7 +1678,9 @@ parse_indexed_func <- function(expr, func, symbols, depth, max_depth) {
 parse_function_call <- function(expr, symbols, depth, max_depth) {
   # Pattern: func_name(arg1, arg2, ...)
   match <- regexec("^([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\((.*)\\)$", expr)[[1]]
-  if (match[1] == -1) return(NULL)
+  if (match[1] == -1) {
+    return(NULL)
+  }
 
   captures <- regmatches(expr, regexec("^([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\((.*)\\)$", expr))[[1]]
   func_name <- captures[2]
@@ -1685,13 +1712,15 @@ parse_function_call <- function(expr, symbols, depth, max_depth) {
 
   # For single-argument standard functions, use ast_func
   # For others, use ast_call
-  standard_funcs <- c("abs", "ceil", "floor", "exp", "log", "log10", "sqrt",
-                      "sin", "cos", "tan", "asin", "acos", "atan")
+  standard_funcs <- c(
+    "abs", "ceil", "floor", "exp", "log", "log10", "sqrt",
+    "sin", "cos", "tan", "asin", "acos", "atan"
+  )
 
   if (func_name %in% standard_funcs && length(args_list) == 1) {
-    return(ast_func(func_name, args_list[[1]]))
+    ast_func(func_name, args_list[[1]])
   } else {
-    return(ast_call(func_name, args_list))
+    ast_call(func_name, args_list)
   }
 }
 
@@ -1706,7 +1735,9 @@ parse_function_call <- function(expr, symbols, depth, max_depth) {
 parse_indexed_access <- function(expr, symbols, depth, max_depth) {
   # Pattern: name[index1, index2, ...]
   match <- regexec("^([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\[(.*)\\]$", expr)[[1]]
-  if (match[1] == -1) return(NULL)
+  if (match[1] == -1) {
+    return(NULL)
+  }
 
   captures <- regmatches(expr, regexec("^([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\[(.*)\\]$", expr))[[1]]
   name <- captures[2]
@@ -1758,11 +1789,11 @@ parse_indexed_access <- function(expr, symbols, depth, max_depth) {
 #' @keywords internal
 parse_gmpl_equation_to_ast <- function(eqn_info, symbols = list()) {
   # Parse the body (which contains both LHS and RHS)
-  body <- eqn_info[['body']]
-  sense <- eqn_info[['sense']]
+  body <- eqn_info[["body"]]
+  sense <- eqn_info[["sense"]]
 
   if (is.null(body) || nchar(trimws(body)) == 0) {
-    stop("Empty equation body for: ", eqn_info[['name']])
+    stop("Empty equation body for: ", eqn_info[["name"]])
   }
 
   # Convert GMPL sense to multimod relation
@@ -1777,16 +1808,16 @@ parse_gmpl_equation_to_ast <- function(eqn_info, symbols = list()) {
   } else {
     # For constraints, convert GMPL sense to multimod relation
     relation <- switch(sense,
-                       "=" = "==",
-                       "<=" = "<=",
-                       ">=" = ">=",
-                       stop("Unknown equation sense: ", sense)
+      "=" = "==",
+      "<=" = "<=",
+      ">=" = ">=",
+      stop("Unknown equation sense: ", sense)
     )
     sense_pattern <- switch(sense,
-                            "=" = "=",
-                            "<=" = "<=",
-                            ">=" = ">=",
-                            stop("Unknown equation sense: ", sense)
+      "=" = "=",
+      "<=" = "<=",
+      ">=" = ">=",
+      stop("Unknown equation sense: ", sense)
     )
   }
 
@@ -1795,7 +1826,7 @@ parse_gmpl_equation_to_ast <- function(eqn_info, symbols = list()) {
   # occurrence at depth 0, not the first. So we scan the entire body and keep the last match.
   depth <- 0
   chars <- strsplit(body, "")[[1]]
-  split_pos <- NULL  # Will hold the position of the LAST sense operator found
+  split_pos <- NULL # Will hold the position of the LAST sense operator found
 
   i <- 1
   while (i <= length(chars)) {
@@ -1808,7 +1839,7 @@ parse_gmpl_equation_to_ast <- function(eqn_info, symbols = list()) {
       remaining <- paste0(chars[i:length(chars)], collapse = "")
       match <- regexpr(paste0("^", sense_pattern), remaining, perl = TRUE)
       if (match > 0) {
-        split_pos <- i  # Update to this position (will keep the last one)
+        split_pos <- i # Update to this position (will keep the last one)
         # DON'T break - keep looking for later occurrences
       }
     }
@@ -1816,7 +1847,7 @@ parse_gmpl_equation_to_ast <- function(eqn_info, symbols = list()) {
   }
 
   if (is.null(split_pos)) {
-    stop("Could not find sense operator '", sense_pattern, "' in equation: ", eqn_info[['name']])
+    stop("Could not find sense operator '", sense_pattern, "' in equation: ", eqn_info[["name"]])
   }
 
   lhs_str <- substring(body, 1, split_pos - 1)
@@ -1828,22 +1859,22 @@ parse_gmpl_equation_to_ast <- function(eqn_info, symbols = list()) {
   rhs_ast <- parse_gmpl_expr(trimws(rhs_str), symbols)
 
   # Parse domain/condition if present
-  domain <- if (!is.null(eqn_info[['condition']]) && nzchar(eqn_info[['condition']])) {
-    parse_gmpl_expr(eqn_info[['condition']], symbols)
+  domain <- if (!is.null(eqn_info[["condition"]]) && nzchar(eqn_info[["condition"]])) {
+    parse_gmpl_expr(eqn_info[["condition"]], symbols)
   } else {
     NULL
   }
 
   # Return equation using new_equation constructor
   new_equation(
-    name = eqn_info[['name']],
-    desc = eqn_info[['desc']],
-    dims = eqn_info[['dims']],
+    name = eqn_info[["name"]],
+    desc = eqn_info[["desc"]],
+    dims = eqn_info[["dims"]],
     lhs = lhs_ast,
     rhs = rhs_ast,
     relation = relation,
     domain = domain,
-    dims_index_aliases = eqn_info[['dims_index_aliases']]
+    dims_index_aliases = eqn_info[["dims_index_aliases"]]
   )
 }
 
@@ -1914,18 +1945,18 @@ parse_if_then_else_expr <- function(expr) {
 
   # Extract parts
   # Condition: from after 'if' to before 'then'
-  condition_start <- if_pos + 2  # Skip 'if'
+  condition_start <- if_pos + 2 # Skip 'if'
   condition_end <- then_pos - 1
   condition <- trimws(paste0(chars[condition_start:condition_end], collapse = ""))
 
   # Then expression: from after 'then' to before 'else' (or end)
-  then_start <- then_pos + 4  # Skip 'then'
+  then_start <- then_pos + 4 # Skip 'then'
   then_end <- if (!is.null(else_pos)) else_pos - 1 else length(chars)
   then_expr <- trimws(paste0(chars[then_start:then_end], collapse = ""))
 
   # Else expression: from after 'else' to end (if present)
   else_expr <- if (!is.null(else_pos)) {
-    else_start <- else_pos + 4  # Skip 'else'
+    else_start <- else_pos + 4 # Skip 'else'
     trimws(paste0(chars[else_start:length(chars)], collapse = ""))
   } else {
     NULL
@@ -1934,16 +1965,16 @@ parse_if_then_else_expr <- function(expr) {
   # Determine end position of entire if-then-else expression
   # This is the end of the else expression (if present) or then expression
   end_pos <- if (!is.null(else_pos)) {
-    length(chars)  # Entire string if there's an else
+    length(chars) # Entire string if there's an else
   } else {
-    then_end  # End of then expression if no else
+    then_end # End of then expression if no else
   }
 
   list(
     condition = condition,
     then_expr = then_expr,
     else_expr = else_expr,
-    end_pos = end_pos  # Character position where if-then-else ends
+    end_pos = end_pos # Character position where if-then-else ends
   )
 }
 
@@ -2215,7 +2246,8 @@ parse_set_declaration <- function(lines, start_line) {
   }
   # Fallback: whitespace separated values interpreted as 1-D set
   tokens <- unlist(strsplit(
-    .gmpl_commas_to_space(paste(data_lines, collapse = " ")), "\\s+"))
+    .gmpl_commas_to_space(paste(data_lines, collapse = " ")), "\\s+"
+  ))
   tokens <- tokens[nchar(tokens) > 0]
   list(
     name = name,
@@ -2240,7 +2272,7 @@ parse_param_declaration <- function(lines, start_line) {
   # Extract preceding comments (look back up to 10 lines)
   comment_lines <- character()
   desc <- ""
-  for (i in (start_line-1):max(1, start_line-10)) {
+  for (i in (start_line - 1):max(1, start_line - 10)) {
     if (i < 1 || i > length(lines)) break
     prev_line <- trimws(lines[i])
     if (startsWith(prev_line, "#")) {
@@ -2355,7 +2387,7 @@ parse_param_declaration <- function(lines, start_line) {
   result$desc <- desc
   result$comment <- comment
   result$units <- units
-  return(result)
+  result
 }
 
 
@@ -2380,17 +2412,18 @@ parse_sliced_table_format <- function(name, header, text, default_val) {
   slice_matches <- gregexpr(slice_pattern, text, perl = TRUE)
 
   if (slice_matches[[1]][1] < 0) {
-    return(list(name = name, type = "parameter", dims = 0, defVal = default_val,
-                data = data.frame()))
+    return(list(
+      name = name, type = "parameter", dims = 0, defVal = default_val,
+      data = data.frame()
+    ))
   }
 
   match_starts <- slice_matches[[1]]
-  match_lengths <- attr(slice_matches[[1]], "match.length")
 
   # Process each sliced block
   for (idx in seq_along(match_starts)) {
     block_start <- match_starts[idx]
-    block_end <- if (idx < length(match_starts)) match_starts[idx+1] - 1 else nchar(text)
+    block_end <- if (idx < length(match_starts)) match_starts[idx + 1] - 1 else nchar(text)
 
     block_text <- substring(text, block_start, block_end)
     # Remove any leading whitespace or stray brackets
@@ -2402,7 +2435,6 @@ parse_sliced_table_format <- function(name, header, text, default_val) {
     slice_parts <- trimws(slice_parts)
 
     # Extract column headers
-    col_match <- regexpr(":\\s*([^:]+):=", block_text, perl = TRUE)
     col_text <- sub(".*:\\s*([^:]+):=.*", "\\1", block_text, perl = TRUE)
     col_names <- strsplit(.gmpl_commas_to_space(trimws(col_text)), "\\s+")[[1]]
     col_names <- col_names[nchar(col_names) > 0]
@@ -2422,7 +2454,7 @@ parse_sliced_table_format <- function(name, header, text, default_val) {
       if (i + n_cols > length(data_tokens)) break
 
       row_name <- data_tokens[i]
-      row_values <- data_tokens[(i+1):(i+n_cols)]
+      row_values <- data_tokens[(i + 1):(i + n_cols)]
 
       # Create rows for each column
       for (j in seq_along(col_names)) {
@@ -2444,8 +2476,10 @@ parse_sliced_table_format <- function(name, header, text, default_val) {
   }
 
   if (length(all_rows) == 0) {
-    return(list(name = name, type = "parameter", dims = 0, defVal = default_val,
-                data = data.frame()))
+    return(list(
+      name = name, type = "parameter", dims = 0, defVal = default_val,
+      data = data.frame()
+    ))
   }
 
   n_dims <- length(all_rows[[1]]) - 1
@@ -2470,7 +2504,9 @@ parse_sliced_table_format <- function(name, header, text, default_val) {
 # commas outside brackets become spaces.
 .gmpl_commas_to_space <- function(x) {
   vapply(x, function(s) {
-    if (!grepl(",", s, fixed = TRUE)) return(s)
+    if (!grepl(",", s, fixed = TRUE)) {
+      return(s)
+    }
     chars <- strsplit(s, "", fixed = TRUE)[[1]]
     depth <- 0L
     for (i in seq_along(chars)) {
@@ -2503,8 +2539,10 @@ parse_simple_table_format <- function(name, header, text, default_val) {
   data_tokens <- data_tokens[nchar(data_tokens) > 0]
 
   if (length(data_tokens) == 0 || length(col_names) == 0) {
-    return(list(name = name, type = "parameter", dims = 0, defVal = default_val,
-                data = data.frame()))
+    return(list(
+      name = name, type = "parameter", dims = 0, defVal = default_val,
+      data = data.frame()
+    ))
   }
 
   # Parse rows: row_name value1 value2 ... valueN
@@ -2516,7 +2554,7 @@ parse_simple_table_format <- function(name, header, text, default_val) {
     if (i + n_cols > length(data_tokens)) break
 
     row_name <- data_tokens[i]
-    row_values <- data_tokens[(i+1):(i+n_cols)]
+    row_values <- data_tokens[(i + 1):(i + n_cols)]
 
     # Create a row for each column value
     for (j in seq_along(col_names)) {
@@ -2532,8 +2570,10 @@ parse_simple_table_format <- function(name, header, text, default_val) {
   }
 
   if (length(rows_list) == 0) {
-    return(list(name = name, type = "parameter", dims = 2, defVal = default_val,
-                data = data.frame()))
+    return(list(
+      name = name, type = "parameter", dims = 2, defVal = default_val,
+      data = data.frame()
+    ))
   }
 
   data_df <- do.call(rbind, rows_list)
@@ -2563,8 +2603,10 @@ parse_bracket_format <- function(name, text, default_val) {
   matches <- gregexpr(pattern, text, perl = TRUE)
 
   if (matches[[1]][1] < 0) {
-    return(list(name = name, type = "parameter", dims = 0, defVal = default_val,
-                data = data.frame()))
+    return(list(
+      name = name, type = "parameter", dims = 0, defVal = default_val,
+      data = data.frame()
+    ))
   }
 
   rows_list <- list()
@@ -2586,8 +2628,10 @@ parse_bracket_format <- function(name, text, default_val) {
   }
 
   if (length(rows_list) == 0) {
-    return(list(name = name, type = "parameter", dims = 0, defVal = default_val,
-                data = data.frame()))
+    return(list(
+      name = name, type = "parameter", dims = 0, defVal = default_val,
+      data = data.frame()
+    ))
   }
 
   # Convert to data frame
@@ -2616,14 +2660,16 @@ parse_bracket_format <- function(name, text, default_val) {
 parse_list_format <- function(name, text, default_val) {
   # Remove quoted strings (symbolic parameters like ResultsPath := "results")
   # These should be ignored as we don't store string parameter values
-  text_cleaned <- gsub('"[^"]*"', '', text)
-  text_cleaned <- gsub("'[^']*'", '', text_cleaned)
+  text_cleaned <- gsub('"[^"]*"', "", text)
+  text_cleaned <- gsub("'[^']*'", "", text_cleaned)
   text_cleaned <- trimws(text_cleaned)
 
   # If nothing left after removing strings, return empty
   if (nchar(text_cleaned) == 0) {
-    return(list(name = name, type = "parameter", dims = 1, defVal = default_val,
-                data = data.frame()))
+    return(list(
+      name = name, type = "parameter", dims = 1, defVal = default_val,
+      data = data.frame()
+    ))
   }
 
   tokens <- strsplit(.gmpl_commas_to_space(text_cleaned), "\\s+")[[1]]
@@ -2631,14 +2677,18 @@ parse_list_format <- function(name, text, default_val) {
 
   if (length(tokens) == 0) {
     # Empty parameter (no data provided)
-    return(list(name = name, type = "parameter", dims = 1, defVal = default_val,
-                data = data.frame()))
+    return(list(
+      name = name, type = "parameter", dims = 1, defVal = default_val,
+      data = data.frame()
+    ))
   }
 
   if (length(tokens) %% 2 != 0) {
     warning("Parameter ", name, ": odd number of tokens in list format")
-    return(list(name = name, type = "parameter", dims = 1, defVal = default_val,
-                data = data.frame()))
+    return(list(
+      name = name, type = "parameter", dims = 1, defVal = default_val,
+      data = data.frame()
+    ))
   }
 
   rows_list <- list()
@@ -2653,8 +2703,10 @@ parse_list_format <- function(name, text, default_val) {
   }
 
   if (length(rows_list) == 0) {
-    return(list(name = name, type = "parameter", dims = 1, defVal = default_val,
-                data = data.frame()))
+    return(list(
+      name = name, type = "parameter", dims = 1, defVal = default_val,
+      data = data.frame()
+    ))
   }
 
   data_df <- do.call(rbind, rows_list)
@@ -2709,20 +2761,23 @@ parse_list_format <- function(name, text, default_val) {
 #'
 #' # Or import pre-parsed data, saving it as CSV in a model directory
 #' data <- read_gmpl_data(data_text)
-#' model <- import_gmpl_data(model, gmpl_data = data,
-#'                           model_path = tempfile("gmpl-data-"),
-#'                           format = "csv")
+#' model <- import_gmpl_data(model,
+#'   gmpl_data = data,
+#'   model_path = tempfile("gmpl-data-"),
+#'   format = "csv"
+#' )
 import_gmpl_data <- function(model,
                              gmpl_data,
                              model_path = NULL,
                              format = c("memory", "csv", "arrow"),
                              verbose = FALSE) {
-
   format <- match.arg(format)
 
   if (format != "memory" && is.null(model_path)) {
     stop("`model_path` is required with format = \"", format, "\": the ",
-         "directory to save the parameter data to.", call. = FALSE)
+      "directory to save the parameter data to.",
+      call. = FALSE
+    )
   }
 
   # Read data if needed
@@ -2792,7 +2847,7 @@ import_gmpl_data <- function(model,
         # Update desc (short description) if available
         if (!is.null(param_info$desc) && nchar(param_info$desc) > 0) {
           if (is.null(model$parameters[[param_name]]$desc) ||
-              nchar(model$parameters[[param_name]]$desc) == 0) {
+            nchar(model$parameters[[param_name]]$desc) == 0) {
             model$parameters[[param_name]]$desc <- param_info$desc
           }
         }
@@ -2883,6 +2938,5 @@ import_gmpl_data <- function(model,
 
   if (verbose) cat("\nData import complete.\n")
 
-  return(model)
+  model
 }
-

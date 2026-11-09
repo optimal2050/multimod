@@ -18,7 +18,9 @@ test_that("the implied intervals of the toy model contain its optimum and tighte
   expect_true(all(ci$lo_impl >= lp$col_lo & ci$up_impl <= lp$col_up))
   expect_within(s$primal$value, ci$lo_impl, ci$up_impl)
   # a second propagation from the implied bounds moves nothing
-  lp2 <- lp; lp2$col_lo <- ci$lo_impl; lp2$col_up <- ci$up_impl
+  lp2 <- lp
+  lp2$col_lo <- ci$lo_impl
+  lp2$col_up <- ci$up_impl
   b2 <- lp_bounds(lp2)
   expect_identical(b2$bounds$passes, 1L)
   expect_equal(b2$col_index$lo_impl, ci$lo_impl)
@@ -55,9 +57,11 @@ test_that("the implied intervals of the energyRt model contain its optimum, befo
 test_that("a row with one unbounded variable bounds it, and a contradiction is reported", {
   # x + y <= 5, x >= 0, y free, y >= -1 through the second row
   A <- Matrix::sparseMatrix(i = c(1, 1, 2), j = c(1, 2, 2), x = c(1, 1, 1), dims = c(2, 2))
-  lp <- list(A = A, obj = c(1, 1), row_lo = c(-Inf, -1), row_up = c(5, Inf),
-             col_lo = c(0, -Inf), col_up = c(Inf, Inf), maximum = FALSE,
-             col_index = data.frame(j = 1:2, symbol = c("x", "y")))
+  lp <- list(
+    A = A, obj = c(1, 1), row_lo = c(-Inf, -1), row_up = c(5, Inf),
+    col_lo = c(0, -Inf), col_up = c(Inf, Inf), maximum = FALSE,
+    col_index = data.frame(j = 1:2, symbol = c("x", "y"))
+  )
   b <- lp_bounds(lp)
   expect_equal(b$col_index$lo_impl, c(0, -1))
   expect_equal(b$col_index$up_impl, c(6, 5))

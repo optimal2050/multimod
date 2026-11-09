@@ -11,8 +11,10 @@ test_that("get_data() reads a workspace table once per session", {
   skip_if_not_installed("arrow")
   local_cache()
   dir <- withr::local_tempdir()
-  m <- save_model(example_models$toy, dir, format = "parquet", keep_in_memory = FALSE,
-                  verbose = FALSE)
+  m <- save_model(example_models$toy, dir,
+    format = "parquet", keep_in_memory = FALSE,
+    verbose = FALSE
+  )
   nm <- names(m$mappings)[1]
   a <- get_data(m, nm, type = "mapping")
   expect_true(nrow(a) > 0)
@@ -29,10 +31,13 @@ test_that("the memo keeps within its budget, dropping the least recently used", 
   skip_if_not_installed("arrow")
   local_cache()
   dir <- withr::local_tempdir()
-  m <- save_model(example_models$energyRt$multimod, dir, format = "parquet",
-                  keep_in_memory = FALSE, verbose = FALSE)
-  maps <- names(m$mappings)[vapply(names(m$mappings), function(nm)
-    file.exists(file.path(dir, "mappings", nm, "data.parquet")), logical(1))]
+  m <- save_model(example_models$energyRt$multimod, dir,
+    format = "parquet",
+    keep_in_memory = FALSE, verbose = FALSE
+  )
+  maps <- names(m$mappings)[vapply(names(m$mappings), function(nm) {
+    file.exists(file.path(dir, "mappings", nm, "data.parquet"))
+  }, logical(1))]
   skip_if(length(maps) < 3L)
   # a budget of a few kilobytes: one or two small tables fit, the oldest goes
   withr::local_options(multimod.data_cache_gb = 4e3 / 2^30)
@@ -53,11 +58,14 @@ test_that("a symbol with a reference reads through the memo, keyed by its hash",
   entry <- file.path(dir, "entry")
   arrow::write_dataset(tbl, file.path(entry, "data"), format = "parquet")
   m$parameters[[nm]]$data <- NULL
-  m$parameters[[nm]]$misc <- list(inMemory = FALSE, path = entry,
-                                  ref = list(hash = "abc123", nrow = nrow(tbl)))
+  m$parameters[[nm]]$misc <- list(
+    inMemory = FALSE, path = entry,
+    ref = list(hash = "abc123", nrow = nrow(tbl))
+  )
   got <- get_data(m, nm, type = "parameter")
   expect_equal(as.data.frame(got)[order(got[[1]]), ], as.data.frame(tbl)[order(tbl[[1]]), ],
-               ignore_attr = TRUE)
+    ignore_attr = TRUE
+  )
   expect_true("hash:abc123" %in% data_cache_info()$key)
   # replacing the table drops the reference and the memo entry
   m2 <- update_parameter(m, nm, tbl)
@@ -75,10 +83,13 @@ test_that("a referenced model renders and folds like the one holding its tables"
   for (nm in names(full$mappings)) {
     expect_equal(nrow(loaded$mappings[[nm]]$data), NROW(full$mappings[[nm]]$data), info = nm)
   }
-  g1 <- withr::local_tempfile(fileext = ".gms"); g2 <- withr::local_tempfile(fileext = ".gms")
-  write_gams(full, g1); write_gams(lazy, g2)
+  g1 <- withr::local_tempfile(fileext = ".gms")
+  g2 <- withr::local_tempfile(fileext = ".gms")
+  write_gams(full, g1)
+  write_gams(lazy, g2)
   expect_identical(readLines(g2), readLines(g1))
-  d1 <- withr::local_tempdir(); d2 <- withr::local_tempdir()
+  d1 <- withr::local_tempdir()
+  d2 <- withr::local_tempdir()
   write_jump(full, model_dir = d1, cleanup = FALSE)
   write_jump(lazy, model_dir = d2, cleanup = FALSE)
   j1 <- list.files(d1, pattern = "[.]jl$", recursive = TRUE, full.names = TRUE)
@@ -91,8 +102,10 @@ test_that("a formula parameter is not re-evaluated when its table is a reference
   skip_if_not_installed("arrow")
   local_cache()
   dir <- withr::local_tempdir()
-  m <- save_model(example_models$toy, dir, format = "parquet", keep_in_memory = FALSE,
-                  verbose = FALSE)
+  m <- save_model(example_models$toy, dir,
+    format = "parquet", keep_in_memory = FALSE,
+    verbose = FALSE
+  )
   ns <- asNamespace("multimod")
   # nothing pending: every table is on disk and counted as data
   out <- ns$.mx_materialise_formulas(m)

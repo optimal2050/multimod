@@ -223,7 +223,7 @@ cat(readLines(file.path(ws, "metadata.json")), sep = "\n")
 #> {
 #>   "name": "toy",
 #>   "desc": "two-region capacity expansion toy model",
-#>   "saved": "2026-11-08 16:11:28",
+#>   "saved": "2026-11-08 22:14:13",
 #>   "format": "csv",
 #>   "structure": "rds",
 #>   "compression": null,

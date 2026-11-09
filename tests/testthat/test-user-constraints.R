@@ -35,18 +35,22 @@ mx_env <- function(ctx, ...) {
 }
 
 test_that("an empty gating map ends the sum instead of expanding it densely", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   m <- example_models$energyRt$multimod
   # declared, but holding no tuples - and, as an unlinked map does, carrying no
   # columns either. Arity cannot be checked here, which is exactly why the
   # emptiness test has to come first.
   m$mappings$mGateEmpty <- new_mapping(
-    "mGateEmpty", desc = "empty gate", dims = c("tech", "region", "year"),
-    active_dims = c("tech", "region", "year"), data = data.frame())
+    "mGateEmpty",
+    desc = "empty gate", dims = c("tech", "region", "year"),
+    active_dims = c("tech", "region", "year"), data = data.frame()
+  )
 
-  cond <- ast_mapping("mGateEmpty",
-                      ast_dims(c("tech", "region", "year")))
+  cond <- ast_mapping(
+    "mGateEmpty",
+    ast_dims(c("tech", "region", "year"))
+  )
   ctx <- mx_ctx(m)
   cur <- mx_env(ctx, region = "R1", year = "2030", .outer = 1L)
 
@@ -59,15 +63,17 @@ test_that("an empty gating map ends the sum instead of expanding it densely", {
 })
 
 test_that("a map the model never declared is an error, not an open index", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   m <- example_models$energyRt$multimod
-  expect_error(multimod:::.mx_map_data("mNoSuchMap", mx_ctx(m)),
-               "not declared")
+  expect_error(
+    multimod:::.mx_map_data("mNoSuchMap", mx_ctx(m)),
+    "not declared"
+  )
 })
 
 test_that("a populated gating map still binds the summation index", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   m <- example_models$energyRt$multimod
   cond <- ast_mapping("mTechSpan", ast_dims(c("tech", "region", "year")))
@@ -82,7 +88,8 @@ test_that("a populated gating map still binds the summation index", {
   expect_equal(
     sort(multimod:::.mx_decode(ctx, res$tech)),
     sort(as.character(span$tech[as.character(span$region) == reg &
-                                  as.character(span$year) == yr])))
+      as.character(span$year) == yr]))
+  )
 })
 
 test_that("a wildcard (NA) index is looked up on its explicit columns", {
@@ -94,30 +101,39 @@ test_that("a wildcard (NA) index is looked up on its explicit columns", {
   # a prepared wildcard parameter: coded keys `.c1`, `.c2`, grouped by pattern
   prep <- function(lk, defv) {
     lk <- multimod:::.mx_code_cols(ctx, lk, c("region", "year"), c(".c1", ".c2"))
-    list(defv = defv,
-         wild = multimod:::.mx_prep_wildcard(lk, c(".c1", ".c2"), "pX", ctx))
+    list(
+      defv = defv,
+      wild = multimod:::.mx_prep_wildcard(lk, c(".c1", ".c2"), "pX", ctx)
+    )
   }
   lk <- data.table::data.table(
     region = c("R1", NA, NA),
     year   = c("2030", "2030", NA),
-    value  = c(5, 7, 9))
+    value  = c(5, 7, 9)
+  )
   env <- mx_env(ctx,
     .k = 1:4,
     region = c("R1", "R2", "R1", "R2"),
-    year   = c("2030", "2030", "2040", "2040"))
+    year = c("2030", "2030", "2040", "2040")
+  )
   tm <- multimod:::.mx_param_wildcard(prep(lk, 0), c("region", "year"), env,
-                                      nm = "pX", ctx = ctx)
+    nm = "pX", ctx = ctx
+  )
   # R1/2030 explicit; R2/2030 from the year-only row; 2040 from the all-NA row
   expect_equal(tm$coef, c(5, 7, 9, 9))
 
   # without the all-wildcard row the unmatched tuples take the default
   tm2 <- multimod:::.mx_param_wildcard(prep(lk[1:2], -1), c("region", "year"),
-                                       env, nm = "pX", ctx = ctx)
+    env,
+    nm = "pX", ctx = ctx
+  )
   expect_equal(tm2$coef, c(5, 7, -1, -1))
 
   # two different values for the same wildcard key are ambiguous
-  amb <- data.table::data.table(region = c(NA, NA), year = c("2030", "2030"),
-                                value = c(1, 2))
+  amb <- data.table::data.table(
+    region = c(NA, NA), year = c("2030", "2030"),
+    value = c(1, 2)
+  )
   expect_error(prep(amb, 0), "ambiguous")
 })
 
@@ -126,13 +142,15 @@ test_that("a tuple index list parses without the separator's whitespace", {
   expect_s3_class(n, "dims")
   expect_identical(
     vapply(n, function(x) x$name, character(1), USE.NAMES = FALSE),
-    c("region", "timeslice"))
+    c("region", "timeslice")
+  )
 
   # the spacing energyRt actually emits, and a wider tuple
   n3 <- multimod:::parse_gams_expr("tech,  region ,year")
   expect_identical(
     vapply(n3, function(x) x$name, character(1), USE.NAMES = FALSE),
-    c("tech", "region", "year"))
+    c("tech", "region", "year")
+  )
 })
 
 test_that("numeric literals in scientific notation parse whole", {

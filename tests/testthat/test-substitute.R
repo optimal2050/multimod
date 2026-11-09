@@ -3,8 +3,10 @@
 .subst_solve <- function(m, sub, format = "parquet", presolve = FALSE) {
   d <- withr::local_tempdir(.local_envir = parent.frame())
   f <- file.path(d, "model.mps")
-  withr::with_options(list(multimod.engine = "native"),
-    write_mps(m, f, stream = TRUE, format = format, substitute = sub, presolve = presolve))
+  withr::with_options(
+    list(multimod.engine = "native"),
+    write_mps(m, f, stream = TRUE, format = format, substitute = sub, presolve = presolve)
+  )
   r <- solve_mps(f, verbose = FALSE)
   list(sol = read_mps_solution(r$sol_file, index_dir = d, format = format), dir = d)
 }
@@ -60,8 +62,10 @@ test_that("definitions referring to substituted variables are substituted in tur
   skip_if_not_installed("arrow")
   m <- example_models$energyRt$multimod
   lp <- model_to_lp(m)
-  defs <- c("eqTechActSng", "eqTechOutTot", "eqTechInpTot", "eqStorageInpTot",
-            "eqStorageOutTot", "eqSupOutTot", "eqImportTot", "eqExportTot", "eqDemInp")
+  defs <- c(
+    "eqTechActSng", "eqTechOutTot", "eqTechInpTot", "eqStorageInpTot",
+    "eqStorageOutTot", "eqSupOutTot", "eqImportTot", "eqExportTot", "eqDemInp"
+  )
   r <- .subst_solve(m, defs, presolve = TRUE)
   x <- .subst_full_x(lp, r$sol$primal)
   expect_false(anyNA(x))
@@ -76,9 +80,11 @@ test_that("a definition rolled up over finer timeslices is composed through its 
   skip_if_not_installed("arrow")
   m <- example_models$energyRt$multimod
   lp <- model_to_lp(m)
-  defs <- c("eqTechActSng", "eqTechOutTot", "eqTechInpTot", "eqStorageInpTot",
-            "eqStorageOutTot", "eqSupOutTot", "eqImportTot", "eqExportTot", "eqDemInp",
-            "eqOutTot", "eqInpTot")
+  defs <- c(
+    "eqTechActSng", "eqTechOutTot", "eqTechInpTot", "eqStorageInpTot",
+    "eqStorageOutTot", "eqSupOutTot", "eqImportTot", "eqExportTot", "eqDemInp",
+    "eqOutTot", "eqInpTot"
+  )
   n_out <- sum(lp$row_index$symbol == "eqOutTot")
   for (pre in c(FALSE, TRUE)) {
     r <- .subst_solve(m, defs, presolve = pre)
@@ -107,13 +113,17 @@ test_that("a definition rolled up over finer timeslices is composed through its 
 test_that("a roll-up that refers back to a coarser timeslice is refused as cyclic", {
   m <- example_models$energyRt$multimod
   fam <- get_data(m, "mTimesliceFamily", type = "mapping")
-  m <- update_mapping(m, "mTimesliceFamily",
-                      rbind(fam, data.frame(timeslice = "FAL_DAY", timeslicep = "FAL")))
+  m <- update_mapping(
+    m, "mTimesliceFamily",
+    rbind(fam, data.frame(timeslice = "FAL_DAY", timeslicep = "FAL"))
+  )
   # with a weight, or the term has no coefficient and no link
   agg <- get_data(m, "pTimesliceAgg")
   yrs <- unique(agg$year)
-  m <- update_parameter(m, "pTimesliceAgg",
-                        rbind(agg, data.frame(year = yrs, timeslice = "FAL_DAY", timeslicep = "FAL", value = 1)))
+  m <- update_parameter(
+    m, "pTimesliceAgg",
+    rbind(agg, data.frame(year = yrs, timeslice = "FAL_DAY", timeslicep = "FAL", value = 1))
+  )
   f <- file.path(withr::local_tempdir(), "model.mps")
   expect_error(write_mps(m, f, stream = TRUE, substitute = "eqOutTot"), "cyclic")
 })
@@ -139,8 +149,10 @@ test_that("deferred substituted variables are written as the expanded ones", {
   defs <- c("eqTechActSng", "eqTechOutTot", "eqTechInpTot", "eqDemInp")
   d <- withr::local_tempdir()
   f <- file.path(d, "model.mps")
-  withr::with_options(list(multimod.engine = "native"),
-    write_mps(m, f, stream = TRUE, substitute = defs))
+  withr::with_options(
+    list(multimod.engine = "native"),
+    write_mps(m, f, stream = TRUE, substitute = defs)
+  )
   r <- solve_mps(f, verbose = FALSE)
   out <- lapply(c("expand", "defer"), function(how) {
     s <- read_mps_solution(r$sol_file, index_dir = d, substituted = how)
@@ -151,8 +163,10 @@ test_that("deferred substituted variables are written as the expanded ones", {
   expect_false("vTechOut" %in% out[[2]]$s$primal$symbol)
   fa <- sort(list.files(out[[1]]$o))
   expect_identical(fa, sort(list.files(out[[2]]$o)))
-  for (v in intersect(c("vTechOut", "vTechOutTot", "vTechInpTot", "vDemInp", "vTechAct"),
-                      sub("[.]parquet$", "", fa))) {
+  for (v in intersect(
+    c("vTechOut", "vTechOutTot", "vTechInpTot", "vDemInp", "vTechAct"),
+    sub("[.]parquet$", "", fa)
+  )) {
     a <- as.data.frame(arrow::read_parquet(file.path(out[[1]]$o, paste0(v, ".parquet"))))
     b <- as.data.frame(arrow::read_parquet(file.path(out[[2]]$o, paste0(v, ".parquet"))))
     key <- function(x) x[do.call(order, x[setdiff(names(x), "value")]), , drop = FALSE]
@@ -197,8 +211,10 @@ test_that("the objective's definitions are substituted and the objective written
   # the deferred decode writes the scalar from its parts
   d <- withr::local_tempdir()
   f <- file.path(d, "model.mps")
-  withr::with_options(list(multimod.engine = "native"),
-    write_mps(m, f, stream = TRUE, substitute = chain))
+  withr::with_options(
+    list(multimod.engine = "native"),
+    write_mps(m, f, stream = TRUE, substitute = chain)
+  )
   rs <- solve_mps(f, verbose = FALSE)
   s <- read_mps_solution(rs$sol_file, index_dir = d, substituted = "defer")
   write_energyrt_output(s, file.path(d, "out"), format = "parquet")

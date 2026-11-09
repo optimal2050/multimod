@@ -44,21 +44,26 @@ test_that("a model authored through mm_equation solves to the same optimum", {
 
   m2 <- m
   m2$equations$eqCapLim <- mm_equation(m, gmpl_cap)
-  m2$equations$eqDemand <- mm_equation(m,
-    "eqDemand{region in mR}: sum{tech} vGen[tech,region] >= pDemand[region]")
-  m2$equations$eqCost <- mm_equation(m,
+  m2$equations$eqDemand <- mm_equation(
+    m,
+    "eqDemand{region in mR}: sum{tech} vGen[tech,region] >= pDemand[region]"
+  )
+  m2$equations$eqCost <- mm_equation(
+    m,
     "eqCost: vCost = sum{(tech,region) in mTR}
                (pCapCost[tech] * vCap[tech,region]
-              + pVarCost[tech] * vGen[tech,region])")
+              + pVarCost[tech] * vGen[tech,region])"
+  )
 
   expect_true(validate(m2, stop_on_error = FALSE)$valid)
   expect_equal(solve_highs(m2, attach = FALSE)$objective, ref$objective,
-               tolerance = 1e-9)
+    tolerance = 1e-9
+  )
 })
 
 test_that("the statement is accepted with s.t., across lines, and with a semicolon", {
   m <- example_models$toy
-  one  <- mm_equation(m, "s.t. eqD{region in mR}: sum{tech} vGen[tech,region] >= pDemand[region];")
+  one <- mm_equation(m, "s.t. eqD{region in mR}: sum{tech} vGen[tech,region] >= pDemand[region];")
   many <- mm_equation(m, "eqD{region in mR}:
                             sum{tech} vGen[tech,region]
                               >= pDemand[region]")

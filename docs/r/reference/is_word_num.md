@@ -24,12 +24,12 @@ underscores, `FALSE` otherwise.
 ## Examples
 
 ``` r
-is_word_num("alpha123")     # TRUE
+is_word_num("alpha123") # TRUE
 #> [1] TRUE
-is_word_num("var_1")        # TRUE
+is_word_num("var_1") # TRUE
 #> [1] TRUE
-is_word_num("a-b")          # FALSE
+is_word_num("a-b") # FALSE
 #> [1] FALSE
-is_word_num(c("abc", "123", "a_b", "x-y"))  # TRUE, TRUE, TRUE, FALSE
+is_word_num(c("abc", "123", "a_b", "x-y")) # TRUE, TRUE, TRUE, FALSE
 #> [1]  TRUE  TRUE  TRUE FALSE
 ```

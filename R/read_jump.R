@@ -51,7 +51,9 @@ jump_known_funcs <- c(
 
 # Split on commas that are outside every bracket.
 .jump_split_args <- function(str) {
-  if (!nzchar(trimws(str))) return(character())
+  if (!nzchar(trimws(str))) {
+    return(character())
+  }
   lv <- .jump_level(str)
   cuts <- which(lv$char == "," & lv$level == 0L)
   starts <- c(1L, cuts + 1L)
@@ -66,7 +68,9 @@ jump_known_funcs <- c(
 .jump_find_keyword <- function(str, word) {
   lv <- .jump_level(str)
   at <- gregexpr(paste0("\\b", word, "\\b"), str, perl = TRUE)[[1]]
-  if (at[1] < 0L) return(NA_integer_)
+  if (at[1] < 0L) {
+    return(NA_integer_)
+  }
   at <- at[lv$level[at] == 0L]
   if (length(at) == 0L) NA_integer_ else at[1]
 }
@@ -74,8 +78,12 @@ jump_known_funcs <- c(
 # TRUE when the whole string is one bracketed group, e.g. "(a + b)".
 .jump_is_enclosed <- function(expr, open = "(", close = ")") {
   n <- nchar(expr)
-  if (n < 2L) return(FALSE)
-  if (substr(expr, 1L, 1L) != open || substr(expr, n, n) != close) return(FALSE)
+  if (n < 2L) {
+    return(FALSE)
+  }
+  if (substr(expr, 1L, 1L) != open || substr(expr, n, n) != close) {
+    return(FALSE)
+  }
   lv <- .jump_level(expr)
   all(lv$level[2:(n - 1L)] >= 1L)
 }
@@ -83,21 +91,31 @@ jump_known_funcs <- c(
 # `name` followed by a bracketed index list: returns the two parts, or NULL.
 .jump_split_indexed <- function(expr) {
   at <- regexpr("^[A-Za-z_][A-Za-z0-9_]*", expr)
-  if (at < 0L) return(NULL)
+  if (at < 0L) {
+    return(NULL)
+  }
   name <- regmatches(expr, at)
   rest <- substring(expr, attr(at, "match.length") + 1L)
-  if (!startsWith(rest, "[") || !endsWith(rest, "]")) return(NULL)
-  if (!.jump_is_enclosed(rest, "[", "]")) return(NULL)
+  if (!startsWith(rest, "[") || !endsWith(rest, "]")) {
+    return(NULL)
+  }
+  if (!.jump_is_enclosed(rest, "[", "]")) {
+    return(NULL)
+  }
   list(name = name, index = substr(rest, 2L, nchar(rest) - 1L))
 }
 
 # `name(` ... `)` spanning the whole string: returns name and argument text.
 .jump_split_call <- function(expr) {
   at <- regexpr("^[A-Za-z_][A-Za-z0-9_]*", expr)
-  if (at < 0L) return(NULL)
+  if (at < 0L) {
+    return(NULL)
+  }
   name <- regmatches(expr, at)
   rest <- substring(expr, attr(at, "match.length") + 1L)
-  if (!.jump_is_enclosed(rest, "(", ")")) return(NULL)
+  if (!.jump_is_enclosed(rest, "(", ")")) {
+    return(NULL)
+  }
   list(name = name, args = substr(rest, 2L, nchar(rest) - 1L))
 }
 
@@ -125,26 +143,44 @@ jump_known_funcs <- c(
 
 # The index list of a reference: `(h, r)` and `h, r` are the same thing.
 .jump_index_dims <- function(index_str, aliases, symbols = NULL, model = NULL) {
-  if (is.null(index_str) || length(index_str) == 0L) return(NULL)
+  if (is.null(index_str) || length(index_str) == 0L) {
+    return(NULL)
+  }
   s <- trimws(index_str)
-  if (!nzchar(s)) return(NULL)
+  if (!nzchar(s)) {
+    return(NULL)
+  }
   if (.jump_is_enclosed(s, "(", ")")) s <- substr(s, 2L, nchar(s) - 1L)
   parts <- .jump_split_args(s)
   parts <- parts[nzchar(parts)]
-  if (length(parts) == 0L) return(NULL)
-  entries <- lapply(parts, .jump_index_entry, aliases = aliases,
-                    symbols = symbols, model = model)
+  if (length(parts) == 0L) {
+    return(NULL)
+  }
+  entries <- lapply(parts, .jump_index_entry,
+    aliases = aliases,
+    symbols = symbols, model = model
+  )
   do.call(ast_dims, entries)
 }
 
 # A declared symbol, classified by the symbol table.
 .jump_reference <- function(name, index_str, symbols, aliases, model = NULL) {
   dims <- .jump_index_dims(index_str, aliases, symbols, model)
-  if (name %in% symbols$variables) return(ast_variable(name, dims = dims))
-  if (name %in% symbols$parameters) return(ast_parameter(name, dims = dims))
-  if (name %in% symbols$mappings) return(ast_mapping(name, dims = dims))
-  if (name %in% symbols$sets) return(ast_set(name))
-  if (is.null(dims)) return(ast_symbol(name))
+  if (name %in% symbols$variables) {
+    return(ast_variable(name, dims = dims))
+  }
+  if (name %in% symbols$parameters) {
+    return(ast_parameter(name, dims = dims))
+  }
+  if (name %in% symbols$mappings) {
+    return(ast_mapping(name, dims = dims))
+  }
+  if (name %in% symbols$sets) {
+    return(ast_set(name))
+  }
+  if (is.null(dims)) {
+    return(ast_symbol(name))
+  }
   # Unknown name carrying indices: keep it as a call so nothing is lost.
   ast_call(name, args = list(ast_symbol(trimws(index_str))))
 }
@@ -163,8 +199,10 @@ jump_known_funcs <- c(
       # A bare name iterates over a set of the same name.
       nm <- trimws(sp)
       taken <- c(taken, nm)
-      out[[length(out) + 1L]] <- list(vars = nm, dims = nm, set = nm,
-                                      tuple = FALSE, rename = FALSE)
+      out[[length(out) + 1L]] <- list(
+        vars = nm, dims = nm, set = nm,
+        tuple = FALSE, rename = FALSE
+      )
       next
     }
     var_part <- trimws(substr(sp, 1L, at - 1L))
@@ -176,7 +214,8 @@ jump_known_funcs <- c(
     cand <- .jump_set_dim_names(set_part, vars, symbols, model)
     rename <- TRUE
     if (all(vapply(vars, .jump_declared_alias, logical(1),
-                   set_name = set_part, model = model))) {
+      set_name = set_part, model = model
+    ))) {
       # The model declares this name as an alias of the set. That is how the
       # other readers represent it - dims carry the set, references the alias -
       # so the references are left as the text wrote them.
@@ -206,9 +245,13 @@ jump_known_funcs <- c(
   if (!is.null(model) && set_name %in% symbols$mappings) {
     mp <- model$mappings[[set_name]]
     nms <- if (!is.null(mp)) get_dim_names(mp$dims) else NULL
-    if (length(nms) == length(vars)) return(nms)
+    if (length(nms) == length(vars)) {
+      return(nms)
+    }
   }
-  if (length(vars) == 1L && set_name %in% symbols$sets) return(set_name)
+  if (length(vars) == 1L && set_name %in% symbols$sets) {
+    return(set_name)
+  }
   vars
 }
 
@@ -239,9 +282,13 @@ jump_known_funcs <- c(
 
 # Does the model declare `nm` as an alias of `set_name`?
 .jump_declared_alias <- function(nm, set_name, model) {
-  if (is.null(model) || is.null(model$aliases)) return(FALSE)
+  if (is.null(model) || is.null(model$aliases)) {
+    return(FALSE)
+  }
   for (grp in model$aliases) {
-    if (set_name %in% grp && nm %in% grp) return(TRUE)
+    if (set_name %in% grp && nm %in% grp) {
+      return(TRUE)
+    }
   }
   FALSE
 }
@@ -270,7 +317,9 @@ jump_known_funcs <- c(
 # text does not have that shape, so the caller can carry on.
 .jump_if_block <- function(expr, symbols, aliases, model, depth, max_depth) {
   inner <- trimws(substr(expr, 3L, nchar(expr) - 3L))
-  if (!nzchar(inner)) return(NULL)
+  if (!nzchar(inner)) {
+    return(NULL)
+  }
 
   at_else <- .jump_find_keyword(inner, "else")
   if (is.na(at_else)) {
@@ -282,10 +331,14 @@ jump_known_funcs <- c(
   }
 
   at_sep <- .jump_find_separator(head_txt)
-  if (is.na(at_sep)) return(NULL)
+  if (is.na(at_sep)) {
+    return(NULL)
+  }
   cond_txt <- trimws(substr(head_txt, 1L, at_sep - 1L))
   then_txt <- trimws(substring(head_txt, at_sep + 1L))
-  if (!nzchar(cond_txt) || !nzchar(then_txt)) return(NULL)
+  if (!nzchar(cond_txt) || !nzchar(then_txt)) {
+    return(NULL)
+  }
 
   ast_when(
     condition = .jump_condition(cond_txt, symbols, aliases, model, depth, max_depth),
@@ -306,7 +359,7 @@ jump_known_funcs <- c(
     lhs <- trimws(substr(txt, 1L, at - 1L))
     nm <- trimws(substring(txt, at + 2L))
     if (grepl("^[A-Za-z_][A-Za-z0-9_]*$", nm) &&
-        (nm %in% symbols$mappings || nm %in% symbols$parameters)) {
+      (nm %in% symbols$mappings || nm %in% symbols$parameters)) {
       return(.jump_reference(nm, lhs, symbols, aliases, model))
     }
   }
@@ -334,15 +387,19 @@ parse_jump_expr <- function(expr, symbols, aliases = character(),
                             model = NULL, depth = 0L, max_depth = 100L) {
   if (depth > max_depth) {
     stop("Expression nests deeper than ", max_depth, " levels: ",
-         substr(expr, 1L, 60L), call. = FALSE)
+      substr(expr, 1L, 60L),
+      call. = FALSE
+    )
   }
   expr <- trimws(expr)
   if (!nzchar(expr)) stop("Empty JuMP expression.", call. = FALSE)
 
   # Drop one layer of enclosing parentheses.
   if (.jump_is_enclosed(expr, "(", ")")) {
-    inner <- parse_jump_expr(substr(expr, 2L, nchar(expr) - 1L), symbols,
-                             aliases, model, depth + 1L, max_depth)
+    inner <- parse_jump_expr(
+      substr(expr, 2L, nchar(expr) - 1L), symbols,
+      aliases, model, depth + 1L, max_depth
+    )
     if (inherits(inner, "expression")) inner$brackets <- TRUE
     return(inner)
   }
@@ -352,7 +409,9 @@ parse_jump_expr <- function(expr, symbols, aliases = character(),
   # operator split, or an operator in the condition would tear the block apart.
   if (grepl("^if\\b", expr) && grepl("\\bend$", expr)) {
     blk <- .jump_if_block(expr, symbols, aliases, model, depth, max_depth)
-    if (!is.null(blk)) return(blk)
+    if (!is.null(blk)) {
+      return(blk)
+    }
   }
 
   # Top-level operators, loosest binding first. A left-associative group splits
@@ -360,8 +419,10 @@ parse_jump_expr <- function(expr, symbols, aliases = character(),
   # right-associative and splits at its leftmost.
   lv <- .jump_level(expr)
   op_tbl <- find_top_level_operators(
-    expr, ops = jump_ops, precedence = operator_precedence,
-    descending = TRUE, expr_lev = lv)
+    expr,
+    ops = jump_ops, precedence = operator_precedence,
+    descending = TRUE, expr_lev = lv
+  )
   op_tbl <- op_tbl[!is.na(op_tbl$op), , drop = FALSE]
 
   for (p in unique(op_tbl$prec)) {
@@ -377,13 +438,15 @@ parse_jump_expr <- function(expr, symbols, aliases = character(),
       return(ast_expression(
         op,
         lhs = parse_jump_expr(lhs_txt, symbols, aliases, model, depth + 1L, max_depth),
-        rhs = parse_jump_expr(rhs_txt, symbols, aliases, model, depth + 1L, max_depth)))
+        rhs = parse_jump_expr(rhs_txt, symbols, aliases, model, depth + 1L, max_depth)
+      ))
     }
     if (!nzchar(lhs_txt) && nzchar(rhs_txt)) {
       if (op %in% c("-", "!", "not")) {
         return(ast_unary(
           if (op == "!") "not" else op,
-          parse_jump_expr(rhs_txt, symbols, aliases, model, depth + 1L, max_depth)))
+          parse_jump_expr(rhs_txt, symbols, aliases, model, depth + 1L, max_depth)
+        ))
       }
       if (op == "+") {
         return(parse_jump_expr(rhs_txt, symbols, aliases, model, depth, max_depth))
@@ -398,29 +461,39 @@ parse_jump_expr <- function(expr, symbols, aliases = character(),
   if (!is.null(cl)) {
     low <- tolower(cl$name)
     if (low %in% c("sum", "prod", "minimum", "maximum")) {
-      agg <- .jump_generator(cl$name, cl$args, symbols, aliases, model,
-                             depth, max_depth)
-      if (!is.null(agg)) return(agg)
+      agg <- .jump_generator(
+        cl$name, cl$args, symbols, aliases, model,
+        depth, max_depth
+      )
+      if (!is.null(agg)) {
+        return(agg)
+      }
     }
     if (cl$name == "parse") {
       pargs <- .jump_split_args(cl$args)
       if (length(pargs) == 2L &&
-          trimws(pargs[1]) %in% c("Int", "Int64", "Float64")) {
+        trimws(pargs[1]) %in% c("Int", "Int64", "Float64")) {
         # Julia casts a set element to a number to use it in arithmetic;
         # multimod keeps the plain index.
-        return(parse_jump_expr(pargs[2], symbols, aliases, model,
-                               depth + 1L, max_depth))
+        return(parse_jump_expr(
+          pargs[2], symbols, aliases, model,
+          depth + 1L, max_depth
+        ))
       }
     }
     if (cl$name == "get") {
       g <- .jump_get_default(cl$args, symbols, aliases, model)
-      if (!is.null(g)) return(g)
+      if (!is.null(g)) {
+        return(g)
+      }
     }
     args <- .jump_split_args(cl$args)
     args <- args[nzchar(args)]
-    parsed <- lapply(args, parse_jump_expr, symbols = symbols,
-                     aliases = aliases, model = model, depth = depth + 1L,
-                     max_depth = max_depth)
+    parsed <- lapply(args, parse_jump_expr,
+      symbols = symbols,
+      aliases = aliases, model = model, depth = depth + 1L,
+      max_depth = max_depth
+    )
     if (cl$name %in% jump_known_funcs || !(cl$name %in% unlist(symbols[1:5]))) {
       return(ast_call(cl$name, args = parsed))
     }
@@ -441,8 +514,10 @@ parse_jump_expr <- function(expr, symbols, aliases = character(),
 
   # A bare name.
   if (grepl("^[A-Za-z_][A-Za-z0-9_]*$", expr)) {
-    return(.jump_reference(.jump_resolve_alias(expr, aliases), NULL,
-                           symbols, aliases, model))
+    return(.jump_reference(
+      .jump_resolve_alias(expr, aliases), NULL,
+      symbols, aliases, model
+    ))
   }
 
   stop("Could not parse JuMP expression: ", expr, call. = FALSE)
@@ -453,10 +528,16 @@ parse_jump_expr <- function(expr, symbols, aliases = character(),
 # that needs to come back.
 .jump_get_default <- function(args_str, symbols, aliases, model = NULL) {
   args <- .jump_split_args(args_str)
-  if (length(args) != 3L) return(NULL)
+  if (length(args) != 3L) {
+    return(NULL)
+  }
   nm <- trimws(args[1])
-  if (!grepl("^[A-Za-z_][A-Za-z0-9_]*$", nm)) return(NULL)
-  if (!(nm %in% symbols$parameters)) return(NULL)
+  if (!grepl("^[A-Za-z_][A-Za-z0-9_]*$", nm)) {
+    return(NULL)
+  }
+  if (!(nm %in% symbols$parameters)) {
+    return(NULL)
+  }
   .jump_reference(nm, args[2], symbols, aliases, model)
 }
 
@@ -466,7 +547,9 @@ parse_jump_expr <- function(expr, symbols, aliases = character(),
 .jump_generator <- function(func, args_str, symbols, aliases, model,
                             depth, max_depth) {
   at <- .jump_find_keyword(args_str, "for")
-  if (is.na(at)) return(NULL)
+  if (is.na(at)) {
+    return(NULL)
+  }
 
   value_txt <- trimws(substr(args_str, 1L, at - 1L))
   iter_txt <- trimws(substring(args_str, at + 3L))
@@ -482,7 +565,9 @@ parse_jump_expr <- function(expr, symbols, aliases = character(),
   bound <- attr(aliases, "bound")
   if (is.null(bound)) bound <- character()
   iters <- .jump_iterators(iter_txt, symbols, model, used = bound)
-  if (length(iters) == 0L) return(NULL)
+  if (length(iters) == 0L) {
+    return(NULL)
+  }
 
   dim_names <- unlist(lapply(iters, function(it) it$dims), use.names = FALSE)
   inner <- c(aliases, .jump_alias_map(iters))
@@ -496,7 +581,9 @@ parse_jump_expr <- function(expr, symbols, aliases = character(),
   for (it in iters) {
     if (it$tuple && it$set %in% symbols$mappings) {
       maps[[length(maps) + 1L]] <- ast_mapping(
-        it$set, dims = do.call(ast_dims, as.list(it$dims)))
+        it$set,
+        dims = do.call(ast_dims, as.list(it$dims))
+      )
     }
   }
   if (length(maps) > 0L) {
@@ -510,13 +597,15 @@ parse_jump_expr <- function(expr, symbols, aliases = character(),
   value <- parse_jump_expr(value_txt, symbols, inner, model, depth + 1L, max_depth)
   if (!is.null(cond_txt) && nzchar(cond_txt)) {
     value <- ast_when(
-      condition = parse_jump_expr(cond_txt, symbols, inner, model,
-                                  depth + 1L, max_depth),
-      then = value, otherwise = ast_constant(0))
+      condition = parse_jump_expr(
+        cond_txt, symbols, inner, model,
+        depth + 1L, max_depth
+      ),
+      then = value, otherwise = ast_constant(0)
+    )
   }
 
-  switch(
-    tolower(func),
+  switch(tolower(func),
     sum = ast_sum(index = index, value = value),
     prod = ast_prod(index = index, value = value),
     minimum = ast_setmin(index = index, value = value),
@@ -535,7 +624,9 @@ parse_jump_expr <- function(expr, symbols, aliases = character(),
     rest <- trimws(substring(s, 12L))
     if (!.jump_is_enclosed(rest, "(", ")")) {
       stop("Not a @constraint statement - its arguments are not bracketed:\n  ",
-           s, call. = FALSE)
+        s,
+        call. = FALSE
+      )
     }
     args <- .jump_split_args(substr(rest, 2L, nchar(rest) - 1L))
     args <- args[nzchar(args)]
@@ -546,15 +637,19 @@ parse_jump_expr <- function(expr, symbols, aliases = character(),
       # JuMP allows an anonymous constraint; a multimod equation is keyed on
       # its name, so there is nothing to store it under.
       stop("This constraint has no name, and a multimod equation needs one: ",
-           "write @constraint(model, name, expression).", call. = FALSE)
+        "write @constraint(model, name, expression).",
+        call. = FALSE
+      )
     } else {
       stop("A @constraint takes the model, an optional name and the ",
-           "expression; found ", length(args), " arguments:\n  ", s,
-           call. = FALSE)
+        "expression; found ", length(args), " arguments:\n  ", s,
+        call. = FALSE
+      )
     }
   } else {
     stop("Not a JuMP constraint - it does not start with @constraint:\n  ", s,
-         call. = FALSE)
+      call. = FALSE
+    )
   }
 
   name <- NULL
@@ -569,7 +664,8 @@ parse_jump_expr <- function(expr, symbols, aliases = character(),
     if (is.null(ix)) {
       if (!grepl("^[A-Za-z_][A-Za-z0-9_]*$", trimws(header))) {
         stop("Could not read the constraint name from:\n  ", header,
-             call. = FALSE)
+          call. = FALSE
+        )
       }
       name <- trimws(header)
     } else {
@@ -594,13 +690,16 @@ parse_jump_expr <- function(expr, symbols, aliases = character(),
       if (length(iters) == 1L && iters[[1]]$set %in% symbols$mappings) {
         domain <- ast_mapping(
           iters[[1]]$set,
-          dims = do.call(ast_dims, as.list(iters[[1]]$dims)))
+          dims = do.call(ast_dims, as.list(iters[[1]]$dims))
+        )
       }
     }
   }
 
-  list(name = name, dims = dims, domain = domain, condition = condition,
-       aliases = aliases, index_aliases = index_aliases, body = trimws(body))
+  list(
+    name = name, dims = dims, domain = domain, condition = condition,
+    aliases = aliases, index_aliases = index_aliases, body = trimws(body)
+  )
 }
 
 # The first ==, <= or >= outside every bracket.
@@ -610,7 +709,9 @@ parse_jump_expr <- function(expr, symbols, aliases = character(),
     at <- gregexpr(op, body, fixed = TRUE)[[1]]
     if (at[1] < 0L) next
     at <- at[lv$level[at] == 0L]
-    if (length(at) > 0L) return(list(op = op, at = at[1]))
+    if (length(at) > 0L) {
+      return(list(op = op, at = at[1]))
+    }
   }
   NULL
 }
@@ -633,7 +734,8 @@ parse_jump_equation <- function(text, symbols, model = NULL, desc = "") {
   rel <- .jump_relation(body)
   if (is.null(rel)) {
     stop("No relational operator (==, <=, >=) found in:\n  ", body,
-         call. = FALSE)
+      call. = FALSE
+    )
   }
 
   lhs_txt <- trimws(substr(body, 1L, rel$at - 1L))

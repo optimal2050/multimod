@@ -89,17 +89,23 @@ check_matrix_numbers <- function(lp, small = 1e-4, large = 1e6, top = 15,
   # matrix; findInterval() over the column pointers costs nothing.
   tally <- function(sym, label) {
     t <- sort(table(sym), decreasing = TRUE)
-    out <- data.frame(family = names(t), n = as.integer(t),
-                      stringsAsFactors = FALSE)
+    out <- data.frame(
+      family = names(t), n = as.integer(t),
+      stringsAsFactors = FALSE
+    )
     names(out)[2] <- label
     out[seq_len(min(nrow(out), top)), , drop = FALSE]
   }
   attribute <- function(k, label) {
-    if (!length(k)) return(list(row = data.frame(), col = data.frame()))
+    if (!length(k)) {
+      return(list(row = data.frame(), col = data.frame()))
+    }
     i <- lp$A@i[k] + 1L
     j <- findInterval(k - 1L, lp$A@p)
-    list(row = tally(lp$row_index$symbol[i], label),
-         col = tally(lp$col_index$symbol[j], label))
+    list(
+      row = tally(lp$row_index$symbol[i], label),
+      col = tally(lp$col_index$symbol[j], label)
+    )
   }
 
   sm <- attribute(which(abs(ax) > 0 & abs(ax) < small), "n_small")
@@ -122,13 +128,15 @@ check_matrix_numbers <- function(lp, small = 1e-4, large = 1e6, top = 15,
     stringsAsFactors = FALSE
   )
 
-  res <- list(summary = summ, decades = decades,
-              offenders_row = offenders_row, offenders_col = offenders_col,
-              nonfinite_row = nf$row, nonfinite_col = nf$col,
-              structure = structure_tbl,
-              empty_col_symbols = unique(lp$col_index$symbol[empty_cols]),
-              empty_row_symbols = unique(lp$row_index$symbol[empty_rows]),
-              small = small, large = large)
+  res <- list(
+    summary = summ, decades = decades,
+    offenders_row = offenders_row, offenders_col = offenders_col,
+    nonfinite_row = nf$row, nonfinite_col = nf$col,
+    structure = structure_tbl,
+    empty_col_symbols = unique(lp$col_index$symbol[empty_cols]),
+    empty_row_symbols = unique(lp$row_index$symbol[empty_rows]),
+    small = small, large = large
+  )
 
   if (verbose) {
     print(summ, row.names = FALSE)
@@ -136,10 +144,14 @@ check_matrix_numbers <- function(lp, small = 1e-4, large = 1e6, top = 15,
     if (n_bad > 0) {
       # A solver refuses the matrix for these, so they come first: nothing else
       # in this report matters until they are gone.
-      cat(sprintf("\nERROR-LEVEL: %d non-finite coefficient(s) (Inf/NaN).\n",
-                  n_bad))
-      cat("  by EQUATION:\n"); print(nf$row, row.names = FALSE)
-      cat("  by VARIABLE:\n"); print(nf$col, row.names = FALSE)
+      cat(sprintf(
+        "\nERROR-LEVEL: %d non-finite coefficient(s) (Inf/NaN).\n",
+        n_bad
+      ))
+      cat("  by EQUATION:\n")
+      print(nf$row, row.names = FALSE)
+      cat("  by VARIABLE:\n")
+      print(nf$col, row.names = FALSE)
       cat("  Usually a division by a parameter whose default is 0.\n")
     }
     if (nrow(offenders_row)) {
@@ -149,23 +161,32 @@ check_matrix_numbers <- function(lp, small = 1e-4, large = 1e6, top = 15,
       print(offenders_col, row.names = FALSE)
     }
     if (length(res$empty_col_symbols) || length(res$empty_row_symbols)) {
-      cat("\nStructure:", structure_tbl$empty_cols, "empty column(s),",
-          structure_tbl$empty_rows, "empty row(s)\n")
+      cat(
+        "\nStructure:", structure_tbl$empty_cols, "empty column(s),",
+        structure_tbl$empty_rows, "empty row(s)\n"
+      )
       if (length(res$empty_col_symbols)) {
-        cat("  variables with no entries:",
-            paste(utils::head(res$empty_col_symbols, top), collapse = ", "), "\n")
+        cat(
+          "  variables with no entries:",
+          paste(utils::head(res$empty_col_symbols, top), collapse = ", "), "\n"
+        )
       }
       if (length(res$empty_row_symbols)) {
-        cat("  equations with no entries:",
-            paste(utils::head(res$empty_row_symbols, top), collapse = ", "), "\n")
+        cat(
+          "  equations with no entries:",
+          paste(utils::head(res$empty_row_symbols, top), collapse = ", "), "\n"
+        )
       }
     }
     if (structure_tbl$empty_cols_in_objective > 0) {
-      cat(sprintf(paste0(
-        "\nWARNING: %d column(s) carry an objective coefficient but appear in\n",
-        "  no constraint. The solve will push them to a bound and report a\n",
-        "  plausible wrong objective rather than failing.\n"),
-        structure_tbl$empty_cols_in_objective))
+      cat(sprintf(
+        paste0(
+          "\nWARNING: %d column(s) carry an objective coefficient but appear in\n",
+          "  no constraint. The solve will push them to a bound and report a\n",
+          "  plausible wrong objective rather than failing.\n"
+        ),
+        structure_tbl$empty_cols_in_objective
+      ))
     }
 
     o <- summ$orders[summ$section == "COLUMNS"]
@@ -173,7 +194,8 @@ check_matrix_numbers <- function(lp, small = 1e-4, large = 1e6, top = 15,
       cat(sprintf(paste0(
         "\nWARNING: matrix coefficients span %.1f orders of magnitude.\n",
         "  First-order solvers (PDLP) degrade beyond ~8; consider clipping or\n",
-        "  rescaling the families above.\n"), o))
+        "  rescaling the families above.\n"
+      ), o))
     }
   }
   invisible(res)

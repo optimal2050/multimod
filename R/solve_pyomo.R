@@ -80,9 +80,11 @@ solve_pyomo <- function(model = NULL,
   chk <- mm_check_python(env_name = env_name, python = python_exec)
   if (!isTRUE(chk$ok)) {
     stop("The Python interpreter '", python_exec, "' cannot import ",
-         paste(chk$missing, collapse = ", "), ". Set up an environment with ",
-         "mm_setup_python(), or name an interpreter with the 'python' argument ",
-         "or set_multimod_python().", call. = FALSE)
+      paste(chk$missing, collapse = ", "), ". Set up an environment with ",
+      "mm_setup_python(), or name an interpreter with the 'python' argument ",
+      "or set_multimod_python().",
+      call. = FALSE
+    )
   }
 
   extra_env <- character(0)
@@ -125,8 +127,10 @@ solve_pyomo <- function(model = NULL,
     if (is.null(model)) {
       stop("`load_results = TRUE` needs the `model` the scaffold was written from.")
     }
-    model <- load_pyomo_solution(model, model_dir, solver_dir = solver_dir,
-                                 verbose = verbose_mode != "quiet")
+    model <- load_pyomo_solution(model, model_dir,
+      solver_dir = solver_dir,
+      verbose = verbose_mode != "quiet"
+    )
     result$model <- model
   }
 
@@ -145,9 +149,11 @@ solve_pyomo <- function(model = NULL,
 load_pyomo_solution <- function(model, model_dir, solver_dir = "pyomo", verbose = TRUE) {
   sol_file <- file.path(model_dir, "solvers", solver_dir, "solution", "variables.json")
   if (!file.exists(sol_file)) {
-    stop("No ", file.path("solvers", solver_dir, "solution", "variables.json"),
-         " in ", model_dir, ": write the scaffold with ",
-         "write_pyomo(export_vars = TRUE) and solve again.")
+    stop(
+      "No ", file.path("solvers", solver_dir, "solution", "variables.json"),
+      " in ", model_dir, ": write the scaffold with ",
+      "write_pyomo(export_vars = TRUE) and solve again."
+    )
   }
   values <- jsonlite::read_json(sol_file, simplifyVector = FALSE)
 
@@ -176,12 +182,17 @@ load_pyomo_solution <- function(model, model_dir, solver_dir = "pyomo", verbose 
 #' Split Python index strings into one column per dimension
 #' @noRd
 .pyomo_index_columns <- function(keys, dim_names) {
-  if (length(dim_names) == 0) return(data.frame(row.names = seq_along(keys)))
+  if (length(dim_names) == 0) {
+    return(data.frame(row.names = seq_along(keys)))
+  }
   inner <- sub("^[(](.*?),?[)]$", "\\1", keys, perl = TRUE)
   inner <- gsub("['\"]", "", inner)
   parts <- strsplit(inner, ",[[:space:]]*")
   n <- length(dim_names)
-  parts <- lapply(parts, function(p) { length(p) <- n; p })
+  parts <- lapply(parts, function(p) {
+    length(p) <- n
+    p
+  })
   out <- as.data.frame(do.call(rbind, parts), stringsAsFactors = FALSE)
   names(out) <- dim_names
   out
@@ -200,12 +211,15 @@ run_pyomo_process <- function(python_exec, script, verbose = c("buffer", "stream
   if (length(env_named)) {
     previous <- Sys.getenv(names(env_named), unset = NA_character_, names = TRUE)
     do.call(Sys.setenv, as.list(env_named))
-    on.exit({
-      keep <- previous[!is.na(previous)]
-      if (length(keep)) do.call(Sys.setenv, as.list(keep))
-      gone <- names(previous)[is.na(previous)]
-      if (length(gone)) Sys.unsetenv(gone)
-    }, add = TRUE)
+    on.exit(
+      {
+        keep <- previous[!is.na(previous)]
+        if (length(keep)) do.call(Sys.setenv, as.list(keep))
+        gone <- names(previous)[is.na(previous)]
+        if (length(gone)) Sys.unsetenv(gone)
+      },
+      add = TRUE
+    )
   }
 
   use_processx <- !is.null(timeout) || identical(verbose, "stream")
@@ -218,7 +232,9 @@ run_pyomo_process <- function(python_exec, script, verbose = c("buffer", "stream
       stop("The 'processx' package is required for streaming output or timeouts.")
     }
     split_lines <- function(text) {
-      if (is.null(text) || !nzchar(text)) return(character(0))
+      if (is.null(text) || !nzchar(text)) {
+        return(character(0))
+      }
       strsplit(text, "\n", fixed = TRUE)[[1]]
     }
     px <- processx::run(

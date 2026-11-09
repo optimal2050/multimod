@@ -55,10 +55,14 @@ test_that("trim_model marks empty parameters", {
       region = new_set("region", data = c("R1", "R2"))
     ),
     parameters = list(
-      pDemand = new_parameter("pDemand", dims = "region",
-                              data = data.frame(region = c("R1", "R2"), value = c(100, 200))),
-      pEmpty = new_parameter("pEmpty", dims = "region",
-                            data = data.frame(region = character(0), value = numeric(0)))
+      pDemand = new_parameter("pDemand",
+        dims = "region",
+        data = data.frame(region = c("R1", "R2"), value = c(100, 200))
+      ),
+      pEmpty = new_parameter("pEmpty",
+        dims = "region",
+        data = data.frame(region = character(0), value = numeric(0))
+      )
     )
   )
 
@@ -80,10 +84,14 @@ test_that("trim_model marks empty mappings", {
       region = new_set("region", data = c("R1", "R2"))
     ),
     mappings = list(
-      mTechRegion = new_mapping("mTechRegion", dims = c("tech", "region"),
-                                data = data.frame(tech = c("T1", "T2"), region = c("R1", "R2"))),
-      mEmptyMapping = new_mapping("mEmptyMapping", dims = c("tech", "region"),
-                                  data = data.frame(tech = character(0), region = character(0)))
+      mTechRegion = new_mapping("mTechRegion",
+        dims = c("tech", "region"),
+        data = data.frame(tech = c("T1", "T2"), region = c("R1", "R2"))
+      ),
+      mEmptyMapping = new_mapping("mEmptyMapping",
+        dims = c("tech", "region"),
+        data = data.frame(tech = character(0), region = character(0))
+      )
     )
   )
 
@@ -169,8 +177,10 @@ test_that("trim_model untrim required elements", {
       region = new_set("region", data = c("R1", "R2"))
     ),
     parameters = list(
-      pDemand = new_parameter("pDemand", dims = "region",
-                             data = data.frame(region = character(0), value = numeric(0)))
+      pDemand = new_parameter("pDemand",
+        dims = "region",
+        data = data.frame(region = character(0), value = numeric(0))
+      )
     ),
     variables = list(
       vSupply = new_variable("vSupply", dims = "region", vtype = "continuous")
@@ -254,10 +264,14 @@ test_that("get_trim_summary returns correct statistics", {
       empty_set = new_set("empty_set", data = character(0))
     ),
     parameters = list(
-      pDemand = new_parameter("pDemand", dims = "region",
-                             data = data.frame(region = c("R1", "R2"), value = c(100, 200))),
-      pEmpty = new_parameter("pEmpty", dims = "region",
-                            data = data.frame(region = character(0), value = numeric(0)))
+      pDemand = new_parameter("pDemand",
+        dims = "region",
+        data = data.frame(region = c("R1", "R2"), value = c(100, 200))
+      ),
+      pEmpty = new_parameter("pEmpty",
+        dims = "region",
+        data = data.frame(region = character(0), value = numeric(0))
+      )
     )
   )
 
@@ -311,8 +325,10 @@ test_that("untrim_model can selectively untrim elements", {
       empty_set = new_set("empty_set", data = character(0))
     ),
     parameters = list(
-      pEmpty = new_parameter("pEmpty", dims = "empty_set",
-                            data = data.frame(empty_set = character(0), value = numeric(0)))
+      pEmpty = new_parameter("pEmpty",
+        dims = "empty_set",
+        data = data.frame(empty_set = character(0), value = numeric(0))
+      )
     )
   )
 
@@ -323,8 +339,8 @@ test_that("untrim_model can selectively untrim elements", {
 
   # Untrim only parameters
   partial_untrim <- untrim_model(trimmed, elements = "parameters")
-  expect_true(isTRUE(partial_untrim$sets$empty_set$trimmed))  # Still trimmed
-  expect_false(isTRUE(partial_untrim$parameters$pEmpty$trimmed))  # Untrimmed
+  expect_true(isTRUE(partial_untrim$sets$empty_set$trimmed)) # Still trimmed
+  expect_false(isTRUE(partial_untrim$parameters$pEmpty$trimmed)) # Untrimmed
 })
 
 test_that("write_jump skips trimmed elements", {
@@ -338,8 +354,10 @@ test_that("write_jump skips trimmed elements", {
       empty_tech = new_set("empty_tech", data = character(0))
     ),
     parameters = list(
-      pDemand = new_parameter("pDemand", dims = "region",
-                             data = data.frame(region = c("R1", "R2"), value = c(100, 200)))
+      pDemand = new_parameter("pDemand",
+        dims = "region",
+        data = data.frame(region = c("R1", "R2"), value = c(100, 200))
+      )
     ),
     variables = list(
       vSupply = new_variable("vSupply", dims = "region", vtype = "continuous"),
@@ -406,10 +424,14 @@ test_that("save_model skips trimmed elements in metadata CSVs", {
       empty_set = new_set("empty_set", data = character(0))
     ),
     parameters = list(
-      pDemand = new_parameter("pDemand", dims = "region",
-                             data = data.frame(region = c("R1", "R2"), value = c(100, 200))),
-      pEmpty = new_parameter("pEmpty", dims = "region",
-                            data = data.frame(region = character(0), value = numeric(0)))
+      pDemand = new_parameter("pDemand",
+        dims = "region",
+        data = data.frame(region = c("R1", "R2"), value = c(100, 200))
+      ),
+      pEmpty = new_parameter("pEmpty",
+        dims = "region",
+        data = data.frame(region = character(0), value = numeric(0))
+      )
     )
   )
 
@@ -450,8 +472,10 @@ test_that("save_model skips trimmed elements in metadata CSVs", {
 test_that("Trimming UTOPIA preserves solution - JuMP", {
   skip_on_cran()
   skip_if_not_installed("arrow")
-  skip_if_not(system2("julia", "--version", stdout = FALSE, stderr = FALSE) == 0,
-              "Julia not available")
+  skip_if_not(
+    system2("julia", "--version", stdout = FALSE, stderr = FALSE) == 0,
+    "Julia not available"
+  )
 
   data(example_models, package = "multimod")
   demo_model <- example_models$energyRt$multimod
@@ -464,15 +488,19 @@ test_that("Trimming UTOPIA preserves solution - JuMP", {
   # Solve original model
   save_model(demo_model, dir_original, format = "ipc", verbose = FALSE)
   write_jump(demo_model, model_dir = dir_original)
-  result_orig <- solve_jump(demo_model, dir_original, method = "system",
-                            verbose = FALSE, load_results = FALSE)
+  result_orig <- solve_jump(demo_model, dir_original,
+    method = "system",
+    verbose = FALSE, load_results = FALSE
+  )
 
   # Trim and solve
   utopia_trimmed <- trim_model(demo_model, verbose = FALSE)
   save_model(utopia_trimmed, dir_trimmed, format = "ipc", verbose = FALSE)
   write_jump(utopia_trimmed, model_dir = dir_trimmed)
-  result_trim <- solve_jump(utopia_trimmed, dir_trimmed, method = "system",
-                           verbose = FALSE, load_results = FALSE)
+  result_trim <- solve_jump(utopia_trimmed, dir_trimmed,
+    method = "system",
+    verbose = FALSE, load_results = FALSE
+  )
 
   # Compare results
   expect_true(result_orig$success)
@@ -501,8 +529,10 @@ test_that("Trimming UTOPIA preserves solution - GMPL", {
 test_that("Fold+Trim UTOPIA preserves solution - JuMP", {
   skip_on_cran()
   skip_if_not_installed("arrow")
-  skip_if_not(system2("julia", "--version", stdout = FALSE, stderr = FALSE) == 0,
-              "Julia not available")
+  skip_if_not(
+    system2("julia", "--version", stdout = FALSE, stderr = FALSE) == 0,
+    "Julia not available"
+  )
 
   data(example_models, package = "multimod")
   demo_model <- example_models$energyRt$multimod
@@ -516,8 +546,10 @@ test_that("Fold+Trim UTOPIA preserves solution - JuMP", {
   # Solve original model
   save_model(demo_model, dir_original, format = "ipc", verbose = FALSE)
   write_jump(demo_model, model_dir = dir_original)
-  result_orig <- solve_jump(demo_model, dir_original, method = "system",
-                            verbose = FALSE, load_results = FALSE)
+  result_orig <- solve_jump(demo_model, dir_original,
+    method = "system",
+    verbose = FALSE, load_results = FALSE
+  )
 
   # Fold model (3x: tech-slice, comm-slice, sup-slice)
   fold_spec <- create_fold_spec(
@@ -536,15 +568,19 @@ test_that("Fold+Trim UTOPIA preserves solution - JuMP", {
   # Solve folded model
   save_model(utopia_folded, dir_folded, format = "ipc", verbose = FALSE)
   write_jump(utopia_folded, model_dir = dir_folded, use_folded = TRUE)
-  result_fold <- solve_jump(utopia_folded, dir_folded, method = "system",
-                            verbose = FALSE, load_results = FALSE)
+  result_fold <- solve_jump(utopia_folded, dir_folded,
+    method = "system",
+    verbose = FALSE, load_results = FALSE
+  )
 
   # Fold+Trim model
   utopia_fold_trim <- trim_model(utopia_folded, verbose = FALSE)
   save_model(utopia_fold_trim, dir_fold_trim, format = "ipc", verbose = FALSE)
   write_jump(utopia_fold_trim, model_dir = dir_fold_trim, use_folded = TRUE)
-  result_fold_trim <- solve_jump(utopia_fold_trim, dir_fold_trim, method = "system",
-                                 verbose = FALSE, load_results = FALSE)
+  result_fold_trim <- solve_jump(utopia_fold_trim, dir_fold_trim,
+    method = "system",
+    verbose = FALSE, load_results = FALSE
+  )
 
   # Compare results
   expect_true(result_orig$success)
@@ -599,7 +635,8 @@ test_that("Trimmed UTOPIA matches original objective - JuMP", {
   save_model(demo_model, temp_original, format = "ipc", verbose = FALSE)
   write_jump(demo_model, model_dir = temp_original)
   result_original <- solve_jump(demo_model, temp_original,
-                                 method = "system", verbose = FALSE, load_results = FALSE)
+    method = "system", verbose = FALSE, load_results = FALSE
+  )
 
   # Trim model
   utopia_trimmed <- trim_model(demo_model, verbose = FALSE)
@@ -608,13 +645,16 @@ test_that("Trimmed UTOPIA matches original objective - JuMP", {
   save_model(utopia_trimmed, temp_trimmed, format = "ipc", verbose = FALSE)
   write_jump(utopia_trimmed, model_dir = temp_trimmed)
   result_trimmed <- solve_jump(utopia_trimmed, temp_trimmed,
-                                method = "system", verbose = FALSE, load_results = FALSE)
+    method = "system", verbose = FALSE, load_results = FALSE
+  )
 
   # Compare objectives
   expect_true(result_original$success, label = "Original model should solve successfully")
   expect_true(result_trimmed$success, label = "Trimmed model should solve successfully")
-  expect_equal(result_original$objective, result_trimmed$objective, tolerance = 1e-4,
-               label = "Trimmed model objective should match original")
+  expect_equal(result_original$objective, result_trimmed$objective,
+    tolerance = 1e-4,
+    label = "Trimmed model objective should match original"
+  )
 
   # Check that trimming actually removed elements
   trim_stats <- get_trim_summary(utopia_trimmed, format = "list")
@@ -640,7 +680,8 @@ test_that("Slice-Folded UTOPIA matches original objective - JuMP", {
   save_model(demo_model, temp_original, format = "ipc", verbose = FALSE)
   write_jump(demo_model, model_dir = temp_original)
   result_original <- solve_jump(demo_model, temp_original,
-                                 method = "system", verbose = FALSE, load_results = FALSE)
+    method = "system", verbose = FALSE, load_results = FALSE
+  )
 
   # Create fold specification for slice dimension only
   fold_spec <- create_fold_spec(
@@ -662,13 +703,16 @@ test_that("Slice-Folded UTOPIA matches original objective - JuMP", {
   save_model(utopia_folded, temp_folded, format = "ipc", verbose = FALSE)
   write_jump(utopia_folded, model_dir = temp_folded, use_folded = TRUE)
   result_folded <- solve_jump(utopia_folded, temp_folded,
-                               method = "system", verbose = FALSE, load_results = FALSE)
+    method = "system", verbose = FALSE, load_results = FALSE
+  )
 
   # Compare objectives
   expect_true(result_original$success, label = "Original model should solve successfully")
   expect_true(result_folded$success, label = "Folded model should solve successfully")
-  expect_equal(result_original$objective, result_folded$objective, tolerance = 1e-4,
-               label = "Folded model objective should match original")
+  expect_equal(result_original$objective, result_folded$objective,
+    tolerance = 1e-4,
+    label = "Folded model objective should match original"
+  )
 
   # Check that folding actually reduced data
   fold_stats <- fold_spec[fold_spec$can_fold, ]
@@ -693,7 +737,8 @@ test_that("Fold+Trim UTOPIA matches original objective - JuMP", {
   save_model(demo_model, temp_original, format = "ipc", verbose = FALSE)
   write_jump(demo_model, model_dir = temp_original)
   result_original <- solve_jump(demo_model, temp_original,
-                                 method = "system", verbose = FALSE, load_results = FALSE)
+    method = "system", verbose = FALSE, load_results = FALSE
+  )
 
   # Create comprehensive 3D fold specification (slice + region + year)
   fold_spec <- create_fold_spec(
@@ -733,13 +778,16 @@ test_that("Fold+Trim UTOPIA matches original objective - JuMP", {
   save_model(utopia_fold_trim, temp_fold_trim, format = "ipc", verbose = FALSE)
   write_jump(utopia_fold_trim, model_dir = temp_fold_trim, use_folded = TRUE)
   result_fold_trim <- solve_jump(utopia_fold_trim, temp_fold_trim,
-                                  method = "system", verbose = FALSE, load_results = FALSE)
+    method = "system", verbose = FALSE, load_results = FALSE
+  )
 
   # Compare objectives
   expect_true(result_original$success, label = "Original model should solve successfully")
   expect_true(result_fold_trim$success, label = "Fold+Trim model should solve successfully")
-  expect_equal(result_original$objective, result_fold_trim$objective, tolerance = 1e-4,
-               label = "Fold+Trim model objective should match original")
+  expect_equal(result_original$objective, result_fold_trim$objective,
+    tolerance = 1e-4,
+    label = "Fold+Trim model objective should match original"
+  )
 
   # Check that both operations occurred
   trim_stats <- get_trim_summary(utopia_fold_trim, format = "list")
@@ -768,7 +816,8 @@ test_that("Trimmed UTOPIA matches original objective - GMPL", {
   save_model(demo_model, temp_original, format = "csv", verbose = FALSE)
   write_gmpl(demo_model, model_dir = temp_original)
   result_original <- solve_gmpl(demo_model, temp_original,
-                                 verbose = FALSE, load_results = FALSE)
+    verbose = FALSE, load_results = FALSE
+  )
 
   # Trim model
   utopia_trimmed <- trim_model(demo_model, verbose = FALSE)
@@ -777,13 +826,16 @@ test_that("Trimmed UTOPIA matches original objective - GMPL", {
   save_model(utopia_trimmed, temp_trimmed, format = "csv", verbose = FALSE)
   write_gmpl(utopia_trimmed, model_dir = temp_trimmed)
   result_trimmed <- solve_gmpl(utopia_trimmed, temp_trimmed,
-                                verbose = FALSE, load_results = FALSE)
+    verbose = FALSE, load_results = FALSE
+  )
 
   # Compare objectives
   expect_true(result_original$success, label = "Original model should solve successfully")
   expect_true(result_trimmed$success, label = "Trimmed model should solve successfully")
-  expect_equal(result_original$objective, result_trimmed$objective, tolerance = 1e-4,
-               label = "Trimmed model objective should match original")
+  expect_equal(result_original$objective, result_trimmed$objective,
+    tolerance = 1e-4,
+    label = "Trimmed model objective should match original"
+  )
 
   # Check that trimming actually removed elements
   trim_stats <- get_trim_summary(utopia_trimmed, format = "list")
@@ -809,7 +861,8 @@ test_that("Slice-Folded UTOPIA matches original objective - GMPL", {
   save_model(demo_model, temp_original, format = "csv", verbose = FALSE)
   write_gmpl(demo_model, model_dir = temp_original)
   result_original <- solve_gmpl(demo_model, temp_original,
-                                 verbose = FALSE, load_results = FALSE)
+    verbose = FALSE, load_results = FALSE
+  )
 
   # Create fold specification for slice dimension only
   fold_spec <- create_fold_spec(
@@ -831,13 +884,16 @@ test_that("Slice-Folded UTOPIA matches original objective - GMPL", {
   save_model(utopia_folded, temp_folded, format = "csv", verbose = FALSE)
   write_gmpl(utopia_folded, model_dir = temp_folded, use_folded = TRUE)
   result_folded <- solve_gmpl(utopia_folded, temp_folded,
-                               verbose = FALSE, load_results = FALSE)
+    verbose = FALSE, load_results = FALSE
+  )
 
   # Compare objectives
   expect_true(result_original$success, label = "Original model should solve successfully")
   expect_true(result_folded$success, label = "Folded model should solve successfully")
-  expect_equal(result_original$objective, result_folded$objective, tolerance = 1e-4,
-               label = "Folded model objective should match original")
+  expect_equal(result_original$objective, result_folded$objective,
+    tolerance = 1e-4,
+    label = "Folded model objective should match original"
+  )
 
   # Check that folding actually reduced data
   fold_stats <- fold_spec[fold_spec$can_fold, ]
@@ -862,7 +918,8 @@ test_that("Fold+Trim UTOPIA matches original objective - GMPL", {
   save_model(demo_model, temp_original, format = "csv", verbose = FALSE)
   write_gmpl(demo_model, model_dir = temp_original)
   result_original <- solve_gmpl(demo_model, temp_original,
-                                 verbose = FALSE, load_results = FALSE)
+    verbose = FALSE, load_results = FALSE
+  )
 
   # Create comprehensive 3D fold specification (slice + region + year)
   fold_spec <- create_fold_spec(
@@ -902,19 +959,19 @@ test_that("Fold+Trim UTOPIA matches original objective - GMPL", {
   save_model(utopia_fold_trim, temp_fold_trim, format = "csv", verbose = FALSE)
   write_gmpl(utopia_fold_trim, model_dir = temp_fold_trim, use_folded = TRUE)
   result_fold_trim <- solve_gmpl(utopia_fold_trim, temp_fold_trim,
-                                  verbose = FALSE, load_results = FALSE)
+    verbose = FALSE, load_results = FALSE
+  )
 
   # Compare objectives
   expect_true(result_original$success, label = "Original model should solve successfully")
   expect_true(result_fold_trim$success, label = "Fold+Trim model should solve successfully")
-  expect_equal(result_original$objective, result_fold_trim$objective, tolerance = 1e-4,
-               label = "Fold+Trim model objective should match original")
+  expect_equal(result_original$objective, result_fold_trim$objective,
+    tolerance = 1e-4,
+    label = "Fold+Trim model objective should match original"
+  )
 
   # Check that both operations occurred
   trim_stats <- get_trim_summary(utopia_fold_trim, format = "list")
   expect_gt(trim_stats$parameters$trimmed, 0, label = "Should have trimmed some parameters")
   expect_gt(trim_stats$variables$trimmed, 0, label = "Should have trimmed some variables")
 })
-
-
-

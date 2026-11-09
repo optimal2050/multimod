@@ -8,7 +8,7 @@ operator_precedence <- c(
   "+" = 3, "-" = 3,
   "==" = 4, "!=" = 4, "<>" = 4, "<=" = 4, ">=" = 4, "=" = 4, "<" = 4, ">" = 4,
   "and" = 7, "&" = 7,
-  "or"  = 6, "|" = 6,
+  "or" = 6, "|" = 6,
   "not" = 5, "!" = 5
 )
 # "$" = 9 # !!! double check
@@ -43,8 +43,7 @@ sort_by_precedence <- function(ops,
     d <- d[order(d$ranks), ]
   }
 
-  return(d$ops)
-
+  d$ops
 }
 
 # Retrieve the rank of an operator from the precedence table
@@ -52,14 +51,15 @@ get_operator_precedence <- function(op, precedence = operator_precedence) {
   if (op %in% names(precedence)) {
     return(precedence[[op]])
   }
-  return(NA_integer_)
+  NA_integer_
 }
 
 # Identify nested expression levels in an expression
 get_expression_level <- function(
-    expr,
-    inc_parens = FALSE,
-    as_data_frame = FALSE) {
+  expr,
+  inc_parens = FALSE,
+  as_data_frame = FALSE
+) {
   chars <- strsplit(expr, "")[[1]]
   ii <- rep(NA, length(chars))
   level <- 0
@@ -83,17 +83,18 @@ get_expression_level <- function(
     return(data.frame(index = seq_along(chars), char = chars, level = ii))
   }
 
-  return(ii)
+  ii
 }
 
 # Find and return the top-level operators in an expression
 find_top_level_operators <- function(
-    expr,
-    ops = gams_ops,
-    precedence = operator_precedence,
-    descending = FALSE,
-    expr_lev = NULL,
-    full_table = FALSE) {
+  expr,
+  ops = gams_ops,
+  precedence = operator_precedence,
+  descending = FALSE,
+  expr_lev = NULL,
+  full_table = FALSE
+) {
   # expr_chars <- strsplit(expr, "")[[1]]
   # word_buffer <- ""
   if (is.null(expr_lev)) {
@@ -127,7 +128,7 @@ find_top_level_operators <- function(
     }
     op_nn <- gregexpr(op_sp, expr, fixed = fixed, ignore.case = !fixed)[[1]]
     if (op_nn[1] == -1) next
-    
+
     # Mark all positions covered by multi-character operators
     # But only if those positions aren't already marked by a longer operator
     match_lengths <- attr(op_nn, "match.length")
@@ -135,15 +136,15 @@ find_top_level_operators <- function(
       start_pos <- op_nn[i]
       end_pos <- start_pos + match_lengths[i] - 1
       positions <- start_pos:end_pos
-      
+
       # Only mark if not already marked (longer operators processed first)
       if (is.na(expr_lev$op[start_pos])) {
         expr_lev$op[positions] <- op
-        expr_lev$pos[positions] <- start_pos  # Store the start position for all chars
+        expr_lev$pos[positions] <- start_pos # Store the start position for all chars
         expr_lev$prec[positions] <- get_operator_precedence(op, precedence = precedence)
       }
     }
-    
+
     # `expr` is never modified here: positions must stay consistent throughout.
   }
 
@@ -155,16 +156,17 @@ find_top_level_operators <- function(
   expr_lev <- expr_lev[order(expr_lev$prec, decreasing = isTRUE(descending)), ]
   expr_lev <- expr_lev[, names(expr_lev) %in% c("op", "pos", "prec")]
 
-  return(expr_lev)
+  expr_lev
 }
 
 # Split an expression into tokens based on top-level operators
 split_top_level <- function(
-    expr,
-    ops,
-    expr_lev = NULL,
-    keep_op = TRUE,
-    as_list = FALSE) {
+  expr,
+  ops,
+  expr_lev = NULL,
+  keep_op = TRUE,
+  as_list = FALSE
+) {
   if (is.null(expr_lev)) {
     expr_lev <- get_expression_level(expr, as_data_frame = TRUE)
   } else {
@@ -262,7 +264,7 @@ split_top_level <- function(
     return(tokens)
   }
 
-  return(unlist(tokens))
+  unlist(tokens)
 }
 
 
@@ -283,32 +285,39 @@ parse_function_expr <- function(expr, symbols,
   is_indexed <- fn_name_lower %in% tolower(known_funcs_indexed)
   is_known <- fn_name_lower %in% tolower(known_funcs)
 
-  if (!(is_indexed || is_known)) return(NULL)
+  if (!(is_indexed || is_known)) {
+    return(NULL)
+  }
 
   if (is_indexed) {
     # Indexed function: func(index, value)
     parts <- split_indexed_operator(expr, func_name = fn_name)
-    if (is.null(parts) || length(parts) != 2) return(NULL)
+    if (is.null(parts) || length(parts) != 2) {
+      return(NULL)
+    }
 
-    index <- parse_gams_expr(parts[[1]], symbols = symbols,
-                             # known_funcs = known_funcs,
-                             # known_funcs_indexed =known_funcs_indexed,
-                             ...)
+    index <- parse_gams_expr(parts[[1]],
+      symbols = symbols,
+      # known_funcs = known_funcs,
+      # known_funcs_indexed =known_funcs_indexed,
+      ...
+    )
     if (!inherits(index, "ast")) index <- ast_dims(index)
 
-    value_expr <- parse_gams_expr(parts[[2]], symbols = symbols,
-                                  # known_funcs = known_funcs,
-                                  # known_funcs_indexed = known_funcs_indexed,
-                                  ...)
-    return(ast_func(fn_name, index = index, value = value_expr))
-
+    value_expr <- parse_gams_expr(parts[[2]],
+      symbols = symbols,
+      # known_funcs = known_funcs,
+      # known_funcs_indexed = known_funcs_indexed,
+      ...
+    )
+    ast_func(fn_name, index = index, value = value_expr)
   } else {
     # Scalar function: func(arg1, arg2, ...)
     # Extract string inside the outermost parentheses
     args_str <- sub("^[^(]*\\((.*)\\)$", "\\1", expr)
     args_raw <- split_top_level_args(args_str)
     parsed_args <- lapply(args_raw, function(a) parse_gams_expr(a, symbols, known_funcs, ...))
-    return(ast_func(fn_name, value = parsed_args))
+    ast_func(fn_name, value = parsed_args)
 
     # args_raw <- split_top_level_args(expr)
     # args_parsed <- lapply(args_raw, function(a) parse_gams_expr(a, symbols, known_funcs, known_funcs_indexed, ...))
@@ -345,7 +354,7 @@ split_top_level_args <- function(expr_str) {
     arg <- substring(expr_str, start)
     args <- c(args, trimws(arg))
   }
-  return(args)
+  args
 }
 
 
@@ -377,4 +386,3 @@ split_top_level_args <- function(expr_str) {
 #
 #   return(ast_func(fn_name, index = index, value = value_expr))
 # }
-

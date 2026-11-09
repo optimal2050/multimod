@@ -16,7 +16,9 @@
 
 # values below `tol` in absolute value set to exactly 0 (infinite ones kept)
 .zero_small <- function(x, tol) {
-  if (is.null(x)) return(x)
+  if (is.null(x)) {
+    return(x)
+  }
   x[is.finite(x) & abs(x) < tol] <- 0
   x
 }
@@ -60,8 +62,10 @@
 model_to_lp <- function(model, col_index = NULL, row_index = NULL,
                         on_duplicate = c("error", "last", "first"),
                         verbose = FALSE, index_names = FALSE,
-                        on_empty_row = c("user_constraints", "all", "warn",
-                                         "ignore"),
+                        on_empty_row = c(
+                          "user_constraints", "all", "warn",
+                          "ignore"
+                        ),
                         chunk_rows = 1000000L) {
   on_duplicate <- match.arg(on_duplicate)
   on_empty_row <- match.arg(on_empty_row)
@@ -69,14 +73,24 @@ model_to_lp <- function(model, col_index = NULL, row_index = NULL,
   t0 <- Sys.time()
   if (verbose) message(format(t0, "[%H:%M:%S] "), "building matrix")
   model <- .mx_materialise_formulas(model, verbose = verbose)
-  if (is.null(col_index)) col_index <- build_col_index(model, verbose = verbose,
-                                                       names = index_names)
-  if (is.null(row_index)) row_index <- build_row_index(model, verbose = verbose,
-                                                       names = index_names)
+  if (is.null(col_index)) {
+    col_index <- build_col_index(model,
+      verbose = verbose,
+      names = index_names
+    )
+  }
+  if (is.null(row_index)) {
+    row_index <- build_row_index(model,
+      verbose = verbose,
+      names = index_names
+    )
+  }
 
-  tr <- build_triplets(model, col_index = col_index, row_index = row_index,
-                       on_duplicate = on_duplicate, verbose = verbose,
-                       chunk_rows = chunk_rows)
+  tr <- build_triplets(model,
+    col_index = col_index, row_index = row_index,
+    on_duplicate = on_duplicate, verbose = verbose,
+    chunk_rows = chunk_rows
+  )
   trip <- tr$triplets
   nrow_lp <- nrow(row_index)
   ncol_lp <- nrow(col_index)
@@ -94,8 +108,10 @@ model_to_lp <- function(model, col_index = NULL, row_index = NULL,
   # in they widen the right-hand-side range the solvers report and scale on
   ztol <- as.numeric(getOption("multimod.zero_tol", 1e-12))
   tiny <- function(x) sum(is.finite(x) & x != 0 & abs(x) < ztol)
-  n_zeroed <- c(rhs = tiny(rhs), col_lo = tiny(col_index$lo),
-                col_up = tiny(col_index$up))
+  n_zeroed <- c(
+    rhs = tiny(rhs), col_lo = tiny(col_index$lo),
+    col_up = tiny(col_index$up)
+  )
   rhs[abs(rhs) < ztol] <- 0
   # the row index carries the right-hand side it was built for; a shallow
   # rewrap keeps a caller-supplied table untouched
@@ -103,7 +119,7 @@ model_to_lp <- function(model, col_index = NULL, row_index = NULL,
   data.table::set(row_index, j = "rhs", value = rhs)
   sense <- row_index$sense
   row_lo <- ifelse(sense == "<=", -Inf, rhs)
-  row_up <- ifelse(sense == ">=",  Inf, rhs)
+  row_up <- ifelse(sense == ">=", Inf, rhs)
 
   obj_spec <- .lp_objective(model, col_index)
 
@@ -121,18 +137,24 @@ model_to_lp <- function(model, col_index = NULL, row_index = NULL,
   )
   lp$zeroed <- n_zeroed
   if (sum(n_zeroed) > 0) {
-    message(sprintf(paste0("model_to_lp(): set to 0 values below %g: %d right-hand ",
-                           "side(s), %d lower and %d upper bound(s)"),
-                    ztol, n_zeroed[["rhs"]], n_zeroed[["col_lo"]], n_zeroed[["col_up"]]))
+    message(sprintf(
+      paste0(
+        "model_to_lp(): set to 0 values below %g: %d right-hand ",
+        "side(s), %d lower and %d upper bound(s)"
+      ),
+      ztol, n_zeroed[["rhs"]], n_zeroed[["col_lo"]], n_zeroed[["col_up"]]
+    ))
   }
   .check_empty_rows(lp, on_empty_row)
   if (verbose) {
-    message(sprintf("%sLP: %d rows x %d cols, %d nonzeros (%s %s), built in %.0f s",
-                    format(Sys.time(), "[%H:%M:%S] "),
-                    nrow_lp, ncol_lp, length(A@x),
-                    if (obj_spec$maximum) "maximise" else "minimise",
-                    obj_spec$symbol,
-                    as.numeric(difftime(Sys.time(), t0, units = "secs"))))
+    message(sprintf(
+      "%sLP: %d rows x %d cols, %d nonzeros (%s %s), built in %.0f s",
+      format(Sys.time(), "[%H:%M:%S] "),
+      nrow_lp, ncol_lp, length(A@x),
+      if (obj_spec$maximum) "maximise" else "minimise",
+      obj_spec$symbol,
+      as.numeric(difftime(Sys.time(), t0, units = "secs"))
+    ))
   }
   lp
 }
@@ -145,7 +167,9 @@ model_to_lp <- function(model, col_index = NULL, row_index = NULL,
 #' @keywords internal
 #' @noRd
 .check_empty_rows <- function(lp, on_empty_row) {
-  if (identical(on_empty_row, "ignore") || !nrow(lp$row_index)) return(invisible())
+  if (identical(on_empty_row, "ignore") || !nrow(lp$row_index)) {
+    return(invisible())
+  }
   empty <- setdiff(seq_len(nrow(lp$A)), unique(lp$A@i + 1L))
   .report_empty_rows(empty, lp$row_index, on_empty_row)
 }
@@ -153,7 +177,9 @@ model_to_lp <- function(model, col_index = NULL, row_index = NULL,
 #' @keywords internal
 #' @noRd
 .report_empty_rows <- function(empty, row_index, on_empty_row) {
-  if (identical(on_empty_row, "ignore") || !length(empty)) return(invisible())
+  if (identical(on_empty_row, "ignore") || !length(empty)) {
+    return(invisible())
+  }
   lp <- list(row_index = row_index)
 
   syms <- unique(lp$row_index$symbol[empty])
@@ -161,24 +187,33 @@ model_to_lp <- function(model, col_index = NULL, row_index = NULL,
   fmt <- function(s) {
     n <- vapply(s, function(x) sum(lp$row_index$symbol[empty] == x), integer(1))
     paste0(sprintf("%s (%d row%s)", s, n, ifelse(n == 1, "", "s")),
-           collapse = ", ")
+      collapse = ", "
+    )
   }
-  msg <- function(s) paste0(
-    "model_to_lp(): ", length(empty), " equation row(s) carry no coefficients",
-    " and so constrain nothing: ", fmt(s),
-    ". A row like this still assembles and still solves to Optimal, so the",
-    " result answers a different model. Check the gating maps and index names",
-    " of the equation(s) named above; check_matrix_numbers() reports the same.")
+  msg <- function(s) {
+    paste0(
+      "model_to_lp(): ", length(empty), " equation row(s) carry no coefficients",
+      " and so constrain nothing: ", fmt(s),
+      ". A row like this still assembles and still solves to Optimal, so the",
+      " result answers a different model. Check the gating maps and index names",
+      " of the equation(s) named above; check_matrix_numbers() reports the same."
+    )
+  }
 
   fatal <- switch(on_empty_row,
-                  all = syms,
-                  user_constraints = user,
-                  warn = character())
+    all = syms,
+    user_constraints = user,
+    warn = character()
+  )
   if (length(fatal)) {
     stop(msg(fatal), if (identical(on_empty_row, "user_constraints") &&
-                         length(setdiff(syms, user)))
-      paste0(" Other empty rows: ", fmt(setdiff(syms, user)), ".") else "",
-      call. = FALSE)
+      length(setdiff(syms, user))) {
+      paste0(" Other empty rows: ", fmt(setdiff(syms, user)), ".")
+    } else {
+      ""
+    },
+    call. = FALSE
+    )
   }
   warning(msg(syms), call. = FALSE)
   invisible()
@@ -195,12 +230,16 @@ model_to_lp <- function(model, col_index = NULL, row_index = NULL,
   vname <- o$symbol
   jj <- col_index$j[col_index$symbol == vname]
   if (!length(jj)) {
-    stop("model_to_lp: objective variable '", vname,
-         "' has no column in the LP.")
+    stop(
+      "model_to_lp: objective variable '", vname,
+      "' has no column in the LP."
+    )
   }
   if (length(jj) > 1L) {
-    stop("model_to_lp: objective variable '", vname, "' resolves to ",
-         length(jj), " columns; expected a scalar.")
+    stop(
+      "model_to_lp: objective variable '", vname, "' resolves to ",
+      length(jj), " columns; expected a scalar."
+    )
   }
   obj <- numeric(nrow(col_index))
   obj[jj] <- 1
@@ -250,8 +289,10 @@ model_to_lp <- function(model, col_index = NULL, row_index = NULL,
 solve_highs <- function(model, lp = NULL, attach = TRUE, control = list(),
                         verbose = FALSE) {
   if (!requireNamespace("highs", quietly = TRUE)) {
-    stop("solve_highs() needs the 'highs' package. Install it with ",
-         "install.packages(\"highs\").")
+    stop(
+      "solve_highs() needs the 'highs' package. Install it with ",
+      "install.packages(\"highs\")."
+    )
   }
   if (is.null(lp)) lp <- model_to_lp(model, verbose = verbose)
 
@@ -276,12 +317,16 @@ solve_highs <- function(model, lp = NULL, attach = TRUE, control = list(),
   # per-variable reshape and write_energyrt_output() work off either path.
   primal <- data.table::copy(ci)
   data.table::set(primal, j = "value", value = sol$col_value)
-  data.table::set(primal, j = "reduced_cost",
-                  value = if (isTRUE(sol$dual_valid)) sol$col_dual else NA_real_)
+  data.table::set(primal,
+    j = "reduced_cost",
+    value = if (isTRUE(sol$dual_valid)) sol$col_dual else NA_real_
+  )
   dual <- data.table::copy(ri)
   data.table::set(dual, j = "value", value = sol$row_value)
-  data.table::set(dual, j = "marginal",
-                  value = if (isTRUE(sol$dual_valid)) sol$row_dual else NA_real_)
+  data.table::set(dual,
+    j = "marginal",
+    value = if (isTRUE(sol$dual_valid)) sol$row_dual else NA_real_
+  )
   data.table::setattr(primal, "dim_names", attr(ci, "dim_names"))
 
   objective <- sum(lp$obj * sol$col_value)
@@ -289,8 +334,10 @@ solve_highs <- function(model, lp = NULL, attach = TRUE, control = list(),
     message(sprintf("HiGHS: %s, objective %.10f", msg, objective))
   }
 
-  out <- list(objective = objective, status = status, status_message = msg,
-              primal = primal, dual = dual, lp = lp)
+  out <- list(
+    objective = objective, status = status, status_message = msg,
+    primal = primal, dual = dual, lp = lp
+  )
   if (attach) out$model <- .attach_primal(model, ci, sol$col_value)
   out
 }
@@ -376,14 +423,18 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
   format <- match.arg(format)
   if (isTRUE(stream)) {
     if (!is.null(lp)) stop("write_mps(stream = TRUE) builds the matrix itself; `lp` cannot be given.")
-    return(.mx_stream_mps(model, file, index_dir = index_dir, format = format,
-                          buckets = buckets, presolve = isTRUE(presolve),
-                          verbose = verbose, substitute = substitute))
+    return(.mx_stream_mps(model, file,
+      index_dir = index_dir, format = format,
+      buckets = buckets, presolve = isTRUE(presolve),
+      verbose = verbose, substitute = substitute
+    ))
   }
   if (length(substitute)) stop("write_mps(): `substitute` needs `stream = TRUE`.", call. = FALSE)
   if (!requireNamespace("highs", quietly = TRUE)) {
-    stop("write_mps() needs the 'highs' package. Install it with ",
-         "install.packages(\"highs\").")
+    stop(
+      "write_mps() needs the 'highs' package. Install it with ",
+      "install.packages(\"highs\")."
+    )
   }
   if (is.null(lp)) lp <- model_to_lp(model, verbose = verbose)
   if (isTRUE(presolve)) lp <- lp_presolve(lp, verbose = verbose)
@@ -400,14 +451,20 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
   )
   highs::highs_write_model(hm, file)
 
-  paths <- .write_index_tables(lp$col_index, lp$row_index, lp$eliminated,
-                               index_dir, tools::file_path_sans_ext(basename(file)), format)
+  paths <- .write_index_tables(
+    lp$col_index, lp$row_index, lp$eliminated,
+    index_dir, tools::file_path_sans_ext(basename(file)), format
+  )
 
   if (verbose) {
-    message(format(Sys.time(), "[%H:%M:%S] "), "wrote MPS ", file, " (",
-            nrow(lp$row_index), " rows x ", nrow(lp$col_index),
-            " cols) plus index tables in ", index_dir, sprintf(", %.0f s",
-            as.numeric(difftime(Sys.time(), t0, units = "secs"))))
+    message(
+      format(Sys.time(), "[%H:%M:%S] "), "wrote MPS ", file, " (",
+      nrow(lp$row_index), " rows x ", nrow(lp$col_index),
+      " cols) plus index tables in ", index_dir, sprintf(
+        ", %.0f s",
+        as.numeric(difftime(Sys.time(), t0, units = "secs"))
+      )
+    )
   }
   invisible(list(mps = file, col_index = paths$col_index, row_index = paths$row_index))
 }
@@ -428,7 +485,10 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
   if (!is.null(eliminated) && nrow(eliminated) == 0L) {
     eliminated <- NULL
     drop <- function(x, col) {
-      if (col %in% names(x)) { x <- data.table::setDT(as.list(x)); data.table::set(x, j = col, value = NULL) }
+      if (col %in% names(x)) {
+        x <- data.table::setDT(as.list(x))
+        data.table::set(x, j = col, value = NULL)
+      }
       x
     }
     col_index <- drop(col_index, "jred")
@@ -449,8 +509,10 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
     if (.mx_is_codes(codes) && format == "csv") {
       for (cl in grep("^i[0-9]+$", keep, value = TRUE)) {
         # the codes are the factor's integer codes; no re-matching
-        data.table::set(df, j = cl, value = structure(df[[cl]], levels = codes$levels,
-                                                     class = "factor"))
+        data.table::set(df, j = cl, value = structure(df[[cl]],
+          levels = codes$levels,
+          class = "factor"
+        ))
       }
     }
     # the symbol and type columns take a few values over millions of rows:
@@ -471,7 +533,9 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
   unlink(paste0(elim_path, c("", ".parquet", ".arrow", ".feather", ".ipc", ".csv")))
   if (!is.null(eliminated)) {
     .save_dataframe(data.table::setDF(data.table::copy(eliminated)),
-                    elim_path, format = format)
+      elim_path,
+      format = format
+    )
   }
   # dim_names rides along inside parquet/feather but is lost by CSV, so write it
   # explicitly too - otherwise a csv bundle cannot be mapped back to symbols
@@ -523,10 +587,14 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
   codes <- .index_codes(TRUE)
   subst <- .mx_subst_prepare(model, unique(as.character(substitute)), codes)
   subst <- .mx_subst_restrict(model, subst, codes, verbose = verbose)
-  col_index <- build_col_index(model, verbose = verbose, names = FALSE, codes = codes,
-                               exclude = .mx_subst_exclude(subst))
-  row_index <- build_row_index(model, verbose = verbose, names = FALSE, codes = codes,
-                               skip = .mx_subst_skip(subst))
+  col_index <- build_col_index(model,
+    verbose = verbose, names = FALSE, codes = codes,
+    exclude = .mx_subst_exclude(subst)
+  )
+  row_index <- build_row_index(model,
+    verbose = verbose, names = FALSE, codes = codes,
+    skip = .mx_subst_skip(subst)
+  )
   base <- tools::file_path_sans_ext(basename(file))
   subst_dir <- file.path(index_dir, paste0(base, "_subst"))
   unlink(subst_dir, recursive = TRUE)
@@ -541,16 +609,21 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
   on.exit(unlink(parts, recursive = TRUE), add = TRUE)
 
   build <- function(target) {
-    build_triplets(model, col_index = col_index, row_index = row_index,
-                   on_duplicate = on_duplicate, verbose = verbose,
-                   chunk_rows = chunk_rows, sink = target, substitute = subst)
+    build_triplets(model,
+      col_index = col_index, row_index = row_index,
+      on_duplicate = on_duplicate, verbose = verbose,
+      chunk_rows = chunk_rows, sink = target, substitute = subst
+    )
   }
   # the definitions evaluated over their domains, for the decode
   export <- function(tr) {
-    if (!length(subst)) return(invisible())
+    if (!length(subst)) {
+      return(invisible())
+    }
     if (verbose) message(format(Sys.time(), "[%H:%M:%S] "), "writing the substituted definitions")
     .mx_subst_export(attr(tr, "ctx"), as.numeric(col_index$lo), subst_dir, format, ztol,
-                     verbose = verbose)
+      verbose = verbose
+    )
   }
   rhs_of <- function(tr) {
     rhs <- rep(0, nrow_lp)
@@ -565,7 +638,9 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
   sense_code <- match(row_index$sense, c("==", "<=", ">=")) - 1L
   if (anyNA(sense_code)) {
     stop("write_mps: unknown relation(s): ",
-         paste(unique(row_index$sense[is.na(sense_code)]), collapse = ", "), call. = FALSE)
+      paste(unique(row_index$sense[is.na(sense_code)]), collapse = ", "),
+      call. = FALSE
+    )
   }
   # the objective: an indicator on the declared variable's column or, when
   # that variable is substituted, its definition evaluated once over the
@@ -574,7 +649,9 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
   flattened <- obj_sym$symbol %in% names(subst)
   obj_spec <- if (flattened) NULL else .lp_objective(model, col_index)
   objective_of <- function(tr) {
-    if (!flattened) return(list(j = as.integer(obj_spec$j), x = rep(1, length(obj_spec$j)), offset = 0))
+    if (!flattened) {
+      return(list(j = as.integer(obj_spec$j), x = rep(1, length(obj_spec$j)), offset = 0))
+    }
     ctx <- attr(tr, "ctx")
     ev <- .mx_subst_eval(obj_sym$symbol, ctx, .mx_subst_def(obj_sym$symbol, ctx))
     tt <- ev$tt[, list(coef = sum(coef)), by = "j"]
@@ -593,20 +670,24 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
     sink <- mm_sink_open(parts, as.integer(buckets), nrow_lp, ncol_lp)
     # only an equality row can be substituted away: the others just count
     scan <- structure(mm_scan_open(nrow_lp, ncol_lp, track, sense_code == 0L, .mx_threads()),
-                      class = "mm_scan")
+      class = "mm_scan"
+    )
     mm_scan_attach(scan, sink)
     tr <- build(scan)
     mm_sink_close(sink)
     export(tr)
     ob <- objective_of(tr)
     rhs <- rhs_of(tr)
-    rm(tr); gc(FALSE)
+    rm(tr)
+    gc(FALSE)
     .report_empty_rows(which(mm_scan_counts(scan)$row_counts == 0L), row_index, on_empty_row)
     vt <- if ("vtype" %in% names(col_index)) col_index[["vtype"]] else NULL
     if (verbose) message(format(Sys.time(), "[%H:%M:%S] "), "composing the substitution")
     pm <- .mx_presolve_map(scan, row_index$sense, rhs, col_index$lo, col_index$up, vt,
-                           tol = ztol, verbose = verbose)
-    rm(scan); gc(FALSE)
+      tol = ztol, verbose = verbose
+    )
+    rm(scan)
+    gc(FALSE)
     map <- pm$map
     eliminated <- pm$eliminated
     rm(pm)
@@ -622,9 +703,11 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
     export(tr)
     ob <- objective_of(tr)
     rhs <- rhs_of(tr)
-    rm(tr); gc(FALSE)
+    rm(tr)
+    gc(FALSE)
     .report_empty_rows(which(closed$row_counts == 0L), row_index, on_empty_row)
-    nrow_out <- nrow_lp; ncol_out <- ncol_lp
+    nrow_out <- nrow_lp
+    ncol_out <- ncol_lp
   }
   row_index <- data.table::setDT(as.list(row_index))
   data.table::set(row_index, j = "rhs", value = rhs)
@@ -635,21 +718,30 @@ write_mps <- function(model, file, index_dir = dirname(file), lp = NULL,
   }
 
   if (verbose) message(format(Sys.time(), "[%H:%M:%S] "), "writing MPS ", file)
-  nnz <- mm_mps_write(file, sink, map, sense_code, rhs, ob$j, ob$x,
-                      as.numeric(col_index$lo), as.numeric(col_index$up),
-                      isTRUE(obj_sym$maximum), ztol)
-  rm(sink, map); gc(FALSE)
+  nnz <- mm_mps_write(
+    file, sink, map, sense_code, rhs, ob$j, ob$x,
+    as.numeric(col_index$lo), as.numeric(col_index$up),
+    isTRUE(obj_sym$maximum), ztol
+  )
+  rm(sink, map)
+  gc(FALSE)
   paths <- .write_index_tables(col_index, row_index, eliminated, index_dir,
-                               base, format, keep_subst = length(subst) > 0,
-                               objective = list(symbol = obj_sym$symbol,
-                                                sense = if (obj_sym$maximum) "max" else "min",
-                                                offset = ob$offset, flattened = flattened))
+    base, format,
+    keep_subst = length(subst) > 0,
+    objective = list(
+      symbol = obj_sym$symbol,
+      sense = if (obj_sym$maximum) "max" else "min",
+      offset = ob$offset, flattened = flattened
+    )
+  )
   if (verbose) {
-    message(format(Sys.time(), "[%H:%M:%S] "), "wrote MPS ", file, " (",
-            nrow_out, " rows x ", ncol_out, " cols, ", nnz, " nonzeros",
-            if (!is.null(eliminated)) sprintf(", %d columns eliminated", nrow(eliminated)) else "",
-            ") plus index tables in ", index_dir,
-            sprintf(", %.0f s", as.numeric(difftime(Sys.time(), t0, units = "secs"))))
+    message(
+      format(Sys.time(), "[%H:%M:%S] "), "wrote MPS ", file, " (",
+      nrow_out, " rows x ", ncol_out, " cols, ", nnz, " nonzeros",
+      if (!is.null(eliminated)) sprintf(", %d columns eliminated", nrow(eliminated)) else "",
+      ") plus index tables in ", index_dir,
+      sprintf(", %.0f s", as.numeric(difftime(Sys.time(), t0, units = "secs")))
+    )
   }
   invisible(list(mps = file, col_index = paths$col_index, row_index = paths$row_index))
 }

@@ -4,10 +4,14 @@ test_that("export_model_source() writes a workspace with the requested backends"
   skip_on_cran()
   d <- file.path(withr::local_tempdir(), "ws")
   files <- export_model_source("energyrt", d, format = "gmpl", verbose = FALSE)
-  rel <- sub(paste0("^", normalizePath(d, winslash = "/"), "/"), "",
-             normalizePath(files, winslash = "/"))
-  expect_setequal(rel, c("model.rds", "README.txt", "solvers/gmpl/model.mod",
-                         "solvers/gmpl/data.dat"))
+  rel <- sub(
+    paste0("^", normalizePath(d, winslash = "/"), "/"), "",
+    normalizePath(files, winslash = "/")
+  )
+  expect_setequal(rel, c(
+    "model.rds", "README.txt", "solvers/gmpl/model.mod",
+    "solvers/gmpl/data.dat"
+  ))
   expect_gt(length(readLines(file.path(d, "solvers", "gmpl", "data.dat"))), 100)
 
   # a second backend joins the same workspace; the first is kept
@@ -18,7 +22,8 @@ test_that("export_model_source() writes a workspace with the requested backends"
 
   # an existing backend is skipped unless overwrite = TRUE
   msgs <- testthat::capture_messages(
-    files <- export_model_source("energyrt", d, format = "gams"))
+    files <- export_model_source("energyrt", d, format = "gams")
+  )
   expect_true(any(grepl("Skipped", msgs)))
   expect_length(files, 0)
   files <- export_model_source("energyrt", d, format = "gams", overwrite = TRUE, verbose = FALSE)
@@ -29,9 +34,13 @@ test_that("export_model_source() renders JuMP and Pyomo from the parsed model", 
   skip_on_cran()
   d <- file.path(withr::local_tempdir(), "ws")
   export_model_source("energyrt", d, format = "all", verbose = FALSE)
-  expect_true(all(file.exists(file.path(d, "solvers",
-    c("gams/model.gms", "gmpl/model.mod", "gmpl/data.dat", "jump/model.jl",
-      "jump/data.jl", "pyomo/model.py", "pyomo/data.py")))))
+  expect_true(all(file.exists(file.path(
+    d, "solvers",
+    c(
+      "gams/model.gms", "gmpl/model.mod", "gmpl/data.dat", "jump/model.jl",
+      "jump/data.jl", "pyomo/model.py", "pyomo/data.py"
+    )
+  ))))
   jl <- paste(readLines(file.path(d, "solvers", "jump", "model.jl")), collapse = "\n")
   expect_match(jl, "@constraint", fixed = TRUE)
 })

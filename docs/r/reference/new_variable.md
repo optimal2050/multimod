@@ -78,8 +78,10 @@ a variable object
 ## Examples
 
 ``` r
-new_variable("vGen", desc = "generation, MWh", dims = c("tech", "region"),
-             domain = "mTR", vtype = "positive", bounds = list(lo = 0))
+new_variable("vGen",
+  desc = "generation, MWh", dims = c("tech", "region"),
+  domain = "mTR", vtype = "positive", bounds = list(lo = 0)
+)
 #> <AST variable> vGen
 #>   dims:  [tech,region] 
 ```

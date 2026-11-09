@@ -36,7 +36,7 @@ test_that("parse_equation_header splits a header and declines a non-header", {
 # ---------------------------------------------------------------------------
 
 test_that("create_fold_spec and its energyRt alias agree", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   # Until 2026-09-24 `create_fold_spec` was defined TWICE in fold.R.
   # The first definition delegated to create_fold_spec(), which delegated
   # straight back - infinite mutual recursion, avoided only because the second
@@ -64,7 +64,7 @@ test_that("create_fold_spec does not call anything energyRt-named", {
 # ---------------------------------------------------------------------------
 
 test_that("write_solution writes one table per variable with real set names", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   skip_if_not_installed("highs")
   data(example_models, package = "multimod")
   r <- solve_highs(example_models$energyRt$multimod, attach = FALSE)
@@ -81,7 +81,7 @@ test_that("write_solution writes one table per variable with real set names", {
 })
 
 test_that("write_energyrt_output adds its scaffolding on top of write_solution", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   skip_if_not_installed("highs")
   data(example_models, package = "multimod")
   r <- solve_highs(example_models$energyRt$multimod, attach = FALSE)
@@ -89,7 +89,7 @@ test_that("write_energyrt_output adds its scaffolding on top of write_solution",
   d1 <- withr::local_tempdir()
   d2 <- withr::local_tempdir()
   plain <- write_solution(r, d1, format = "csv")
-  ert   <- write_energyrt_output(r, d2, format = "csv")
+  ert <- write_energyrt_output(r, d2, format = "csv")
 
   # energyRt's layout is a superset: the same per-variable tables plus the
   # three files energyRt::read_solution() additionally requires
@@ -99,7 +99,7 @@ test_that("write_energyrt_output adds its scaffolding on top of write_solution",
 })
 
 test_that("the session's write_output takes a writer and defaults to multimod's", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   skip_if_not_installed("R6")
   skip_if_not_installed("highs")
   data(example_models, package = "multimod")
@@ -118,8 +118,10 @@ test_that("the session's write_output takes a writer and defaults to multimod's"
 test_that("the session does not name energyRt anywhere in write_output", {
   skip_if_not_installed("R6")
   s <- mm_session()
-  expect_false(grepl("energyrt|energyRt",
-                     paste(deparse(s$write_output), collapse = " ")))
+  expect_false(grepl(
+    "energyrt|energyRt",
+    paste(deparse(s$write_output), collapse = " ")
+  ))
 })
 
 # ---------------------------------------------------------------------------
@@ -127,7 +129,7 @@ test_that("the session does not name energyRt anywhere in write_output", {
 # ---------------------------------------------------------------------------
 
 test_that("fold_model records mode = 'drop' in fold_info", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   # Both packages compute the same whole-column fold but serialise it
   # differently: energyRt keeps the column with NA ("wildcard"), multimod
   # removes it ("drop"). Without the field a reader cannot tell which it has,
@@ -139,16 +141,22 @@ test_that("fold_model records mode = 'drop' in fold_info", {
   skip_if(sum(spec$can_fold) == 0, "nothing foldable in the fixture")
 
   folded <- fold_model(m, fold_spec = spec, verbose = FALSE)
-  infos <- Filter(Negate(is.null),
-                  lapply(folded$parameters, function(p) p$misc$fold_info))
+  infos <- Filter(
+    Negate(is.null),
+    lapply(folded$parameters, function(p) p$misc$fold_info)
+  )
   infos <- Filter(function(fi) isTRUE(fi$folded), infos)
   skip_if(length(infos) == 0, "no parameter was folded")
 
-  expect_true(all(vapply(infos, function(fi) identical(fi$mode, "drop"),
-                         logical(1))))
+  expect_true(all(vapply(
+    infos, function(fi) identical(fi$mode, "drop"),
+    logical(1)
+  )))
   # and the key naming the folded dims, which energyRt calls wildcard_dims
-  expect_true(all(vapply(infos, function(fi) !is.null(fi$removed_dims),
-                         logical(1))))
+  expect_true(all(vapply(
+    infos, function(fi) !is.null(fi$removed_dims),
+    logical(1)
+  )))
 })
 
 # The companion test - that .scenario_is_folded() only fires for a WILDCARD

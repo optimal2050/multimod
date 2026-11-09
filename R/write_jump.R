@@ -43,13 +43,13 @@
 #' @param model_name Name for the JuMP model variable (default: "model")
 #' @param optimizer Julia optimizer to use (e.g., "HiGHS.Optimizer", "GLPK.Optimizer")
 #' @param optimizer_attributes Named list of optimizer attributes to set (e.g., list(solver = "ipm", presolve = "on", parallel = "on")).
-#'   For HiGHS: solver can be "simplex", "ipm" (interior point/barrier), or "choose" (default). 
+#'   For HiGHS: solver can be "simplex", "ipm" (interior point/barrier), or "choose" (default).
 #'   "ipm" is usually faster than simplex on large models.
 #'   If NULL, uses solver defaults with automatic barrier method selection for large models (>1M constraints).
 #' @param use_folded logical; whether to use folded equations if available (default: TRUE)
 #' @param cleanup logical; whether to remove existing solver_dir before generating new files (default: TRUE)
 #' @param export_data logical; whether to export parameter data to CSV files in data_export/ directory (default: FALSE)
-#' @param export_vars logical; whether to export variable values to CSV files in vars_export/ directory after solve (default: FALSE). 
+#' @param export_vars logical; whether to export variable values to CSV files in vars_export/ directory after solve (default: FALSE).
 #'   Note: Solution is always saved to solution/ directory regardless of this setting (required for load_results).
 #' @param export_lp logical or character; if TRUE, exports model to LP format; if character, specifies filename (default: FALSE)
 #' @param export_mps logical or character; if TRUE, exports model to MPS format; if character, specifies filename (default: FALSE)
@@ -72,8 +72,10 @@
 #' write_jump(m, model_dir = ws, solver_dir = "jump-highs")
 #'
 #' # Barrier method for large models
-#' write_jump(m, model_dir = ws,
-#'            optimizer_attributes = list(solver = "ipm", parallel = "on"))
+#' write_jump(m,
+#'   model_dir = ws,
+#'   optimizer_attributes = list(solver = "ipm", parallel = "on")
+#' )
 write_jump <- function(model, file = NULL, model_dir = NULL, solver_dir = "jump",
                        output_name = "model.jl", model_name = "model",
                        optimizer = "HiGHS.Optimizer", optimizer_attributes = NULL,
@@ -86,48 +88,51 @@ write_jump <- function(model, file = NULL, model_dir = NULL, solver_dir = "jump"
 
 #' @export
 write_jump.mm_model <- function(model, file = NULL, model_dir = NULL, solver_dir = "jump",
-                              output_name = "model.jl", model_name = "model",
-                              optimizer = "HiGHS.Optimizer", optimizer_attributes = NULL,
-                              use_folded = TRUE, cleanup = TRUE,
-                              export_data = FALSE, export_vars = FALSE,
-            export_lp = FALSE, export_mps = FALSE,
-            data_mode = c("external", "embedded"),
-                              use_haskey = TRUE, ...) {
-  write_jump_internal(model, file, model_dir, solver_dir, output_name, model_name, 
-                      optimizer, optimizer_attributes, use_folded, cleanup,
-          export_data, export_vars, export_lp, export_mps,
-          use_haskey = use_haskey, data_mode = data_mode, ...)
+                                output_name = "model.jl", model_name = "model",
+                                optimizer = "HiGHS.Optimizer", optimizer_attributes = NULL,
+                                use_folded = TRUE, cleanup = TRUE,
+                                export_data = FALSE, export_vars = FALSE,
+                                export_lp = FALSE, export_mps = FALSE,
+                                data_mode = c("external", "embedded"),
+                                use_haskey = TRUE, ...) {
+  write_jump_internal(model, file, model_dir, solver_dir, output_name, model_name,
+    optimizer, optimizer_attributes, use_folded, cleanup,
+    export_data, export_vars, export_lp, export_mps,
+    use_haskey = use_haskey, data_mode = data_mode, ...
+  )
 }
 
 #' @export
 write_jump.multimod <- function(model, file = NULL, model_dir = NULL, solver_dir = "jump",
-                                 output_name = "model.jl", model_name = "model",
-                                 optimizer = "HiGHS.Optimizer", optimizer_attributes = NULL,
-                                 use_folded = TRUE, cleanup = TRUE,
-                                 export_data = FALSE, export_vars = FALSE,
-                                 export_lp = FALSE, export_mps = FALSE,
-                                 data_mode = c("external", "embedded"),
-                                 use_haskey = TRUE, ...) {
-  write_jump_internal(model, file, model_dir, solver_dir, output_name, model_name, 
-                      optimizer, optimizer_attributes, use_folded, cleanup,
-                      export_data, export_vars, export_lp, export_mps,
-                      use_haskey = use_haskey, data_mode = data_mode, ...)
+                                output_name = "model.jl", model_name = "model",
+                                optimizer = "HiGHS.Optimizer", optimizer_attributes = NULL,
+                                use_folded = TRUE, cleanup = TRUE,
+                                export_data = FALSE, export_vars = FALSE,
+                                export_lp = FALSE, export_mps = FALSE,
+                                data_mode = c("external", "embedded"),
+                                use_haskey = TRUE, ...) {
+  write_jump_internal(model, file, model_dir, solver_dir, output_name, model_name,
+    optimizer, optimizer_attributes, use_folded, cleanup,
+    export_data, export_vars, export_lp, export_mps,
+    use_haskey = use_haskey, data_mode = data_mode, ...
+  )
 }
 
 #' @export
 write_jump.model_structure <- function(model, file = NULL, model_dir = NULL, solver_dir = "jump",
-                                        output_name = "model.jl", model_name = "model",
-                                        optimizer = "HiGHS.Optimizer", optimizer_attributes = NULL,
-                                        use_folded = TRUE, cleanup = TRUE,
-                                        export_data = FALSE, export_vars = FALSE,
-                                        export_lp = FALSE, export_mps = FALSE,
-                                        data_mode = c("external", "embedded"),
-                                        use_haskey = TRUE, ...) {
+                                       output_name = "model.jl", model_name = "model",
+                                       optimizer = "HiGHS.Optimizer", optimizer_attributes = NULL,
+                                       use_folded = TRUE, cleanup = TRUE,
+                                       export_data = FALSE, export_vars = FALSE,
+                                       export_lp = FALSE, export_mps = FALSE,
+                                       data_mode = c("external", "embedded"),
+                                       use_haskey = TRUE, ...) {
   stopifnot(inherits(model, "model_structure"))
-  write_jump_internal(model, file, model_dir, solver_dir, output_name, model_name, 
-                      optimizer, optimizer_attributes, use_folded, cleanup,
-                      export_data, export_vars, export_lp, export_mps,
-                      use_haskey = use_haskey, data_mode = data_mode, ...)
+  write_jump_internal(model, file, model_dir, solver_dir, output_name, model_name,
+    optimizer, optimizer_attributes, use_folded, cleanup,
+    export_data, export_vars, export_lp, export_mps,
+    use_haskey = use_haskey, data_mode = data_mode, ...
+  )
 }
 
 #' Generate data.jl file that loads all data upfront (energyRt.jl compatible)
@@ -227,7 +232,7 @@ write_jump.model_structure <- function(model, file = NULL, model_dir = NULL, sol
   if (file.exists(sets_csv)) {
     sets_df <- read.csv(sets_csv, stringsAsFactors = FALSE)
     set_names <- sets_df$name
-    for (i in 1:nrow(sets_df)) {
+    for (i in seq_len(nrow(sets_df))) {
       set_name <- sets_df$name[i]
       desc <- sanitize_description(sets_df$desc[i], set_name)
       data_lines <- c(data_lines, sprintf("%s = _load_set_file(\"%s\")  # %s", set_name, set_name, desc))
@@ -244,7 +249,7 @@ write_jump.model_structure <- function(model, file = NULL, model_dir = NULL, sol
       }
     }
   }
-  
+
   # Declare aliases (alternative names for sets)
   if (!is.null(model) && !is.null(model$aliases)) {
     data_lines <- c(data_lines, "# Set aliases")
@@ -261,26 +266,30 @@ write_jump.model_structure <- function(model, file = NULL, model_dir = NULL, sol
     }
   }
   data_lines <- c(data_lines, "")
-  
+
   # Generate shift dictionaries (collected during constraint generation)
   if (!is.null(shifts_needed) && length(as.list(shifts_needed)) > 0) {
     shifts_list <- as.list(shifts_needed)
     data_lines <- c(data_lines, "# Index shift dictionaries for ordered sets")
-    
+
     for (shift_info in shifts_list) {
       set_name <- shift_info$set_name
       offset <- shift_info$offset
-      
+
       if (offset < 0) {
         dict_name <- paste0(tolower(set_name), "_lag", abs(offset))
         comment <- sprintf("Maps %s to previous element (offset %d)", set_name, offset)
-        dict_def <- sprintf("%s = Dict(%s[i] => %s[i%d] for i in %d:length(%s))",
-                           dict_name, set_name, set_name, offset, abs(offset) + 1, set_name)
+        dict_def <- sprintf(
+          "%s = Dict(%s[i] => %s[i%d] for i in %d:length(%s))",
+          dict_name, set_name, set_name, offset, abs(offset) + 1, set_name
+        )
       } else {
         dict_name <- paste0(tolower(set_name), "_lead", offset)
         comment <- sprintf("Maps %s to next element (offset +%d)", set_name, offset)
-        dict_def <- sprintf("%s = Dict(%s[i] => %s[i+%d] for i in 1:(length(%s)-%d))",
-                           dict_name, set_name, set_name, offset, set_name, offset)
+        dict_def <- sprintf(
+          "%s = Dict(%s[i] => %s[i+%d] for i in 1:(length(%s)-%d))",
+          dict_name, set_name, set_name, offset, set_name, offset
+        )
       }
       data_lines <- c(data_lines, paste0(dict_def, "  # ", comment))
     }
@@ -291,14 +300,14 @@ write_jump.model_structure <- function(model, file = NULL, model_dir = NULL, sol
   data_lines <- c(data_lines, "# Load mappings (valid index combinations)")
   if (file.exists(mappings_csv)) {
     mappings_df <- read.csv(mappings_csv, stringsAsFactors = FALSE)
-    for (i in 1:nrow(mappings_df)) {
+    for (i in seq_len(nrow(mappings_df))) {
       mapping_name <- mappings_df$name[i]
       # A subset declaration registers its name in BOTH sets and mappings, so
       # bare and parenthesised usage each resolve. Only one side carries the
       # members; emitting both loaders lets the second assignment win, and the
       # one whose directory is empty returns Set() - blanking the symbol.
       if (mapping_name %in% set_names &&
-          length(Sys.glob(file.path(base_dir, "mappings", mapping_name, "data.*"))) == 0L) {
+        length(Sys.glob(file.path(base_dir, "mappings", mapping_name, "data.*"))) == 0L) {
         next
       }
       desc <- sanitize_description(mappings_df$desc[i], mapping_name)
@@ -311,7 +320,7 @@ write_jump.model_structure <- function(model, file = NULL, model_dir = NULL, sol
   data_lines <- c(data_lines, "# Load parameters")
   if (file.exists(params_csv)) {
     params_df <- read.csv(params_csv, stringsAsFactors = FALSE)
-    for (i in 1:nrow(params_df)) {
+    for (i in seq_len(nrow(params_df))) {
       param_name <- params_df$name[i]
       dims_str <- params_df$dims[i]
       desc <- sanitize_description(params_df$desc[i], param_name)
@@ -349,10 +358,10 @@ write_jump.model_structure <- function(model, file = NULL, model_dir = NULL, sol
       # Check for default value
       default_val <- params_df$default_value[i]
       has_default <- !is.na(default_val) && default_val != "NA"
-      
+
       # Check if default is an ast_formula or expression (starts with <formula: or <expr:)
       is_formula <- has_default && grepl("^<(formula|expr):", default_val)
-      
+
       # Check if parameter is symbolic (string type) - need to quote the value
       is_symbolic <- FALSE
       if (!is.null(model) && !is.null(model$parameters[[param_name]])) {
@@ -372,20 +381,22 @@ write_jump.model_structure <- function(model, file = NULL, model_dir = NULL, sol
           default_val
         }
       } else {
-        "0.0"  # Universal default
+        "0.0" # Universal default
       }
 
       data_lines <- c(data_lines, sprintf("%sDef = %s", param_name, def_value))
       # Pass use_folded_path flag to _load_param_file
       use_folded_str <- if (use_folded_for_param) "true" else "false"
-      data_lines <- c(data_lines, sprintf("%s = _load_param_file(\"%s\", %s, %s)  # %s",
-                                          param_name, param_name, dims_vec, use_folded_str, desc))
+      data_lines <- c(data_lines, sprintf(
+        "%s = _load_param_file(\"%s\", %s, %s)  # %s",
+        param_name, param_name, dims_vec, use_folded_str, desc
+      ))
     }
   }
   data_lines <- c(data_lines, "")
-  
+
   data_lines <- c(data_lines, .build_computed_params_block(model, shifts_needed))
-  
+
   data_lines <- c(data_lines, "println(\"Data loaded successfully\")")
   data_lines <- c(data_lines, "")
 
@@ -433,8 +444,8 @@ write_jump.model_structure <- function(model, file = NULL, model_dir = NULL, sol
       # as_jump() reads var_names as set name -> iterator (REGION -> r)
       var_names <- setNames(as.list(iter_vars), dim_names)
       formula_expr <- as_jump(formula_ast, model = model, var_names = var_names, use_haskey = FALSE, shifts_tracker = shifts_needed)
-      key_tuple <- if (length(iter_vars) == 1) iter_vars else paste0("(", paste(iter_vars, collapse=","), ")")
-      iter_clauses <- paste(iter_vars, "in", dim_names, collapse=", ")
+      key_tuple <- if (length(iter_vars) == 1) iter_vars else paste0("(", paste(iter_vars, collapse = ","), ")")
+      iter_clauses <- paste(iter_vars, "in", dim_names, collapse = ", ")
       comp_expr <- sprintf("%s = Dict(%s => %s for %s)", param_name, key_tuple, formula_expr, iter_clauses)
       lines <- c(lines, comp_expr)
     } else {
@@ -483,34 +494,34 @@ write_jump.model_structure <- function(model, file = NULL, model_dir = NULL, sol
         lines <- c(lines, sprintf('CSV.write(joinpath(export_dir, "%s.csv"), DataFrame(value = [%s]))', param_name, param_name))
       } else if (length(dims) == 1) {
         dim_name <- if (is.character(dims[[1]])) dims[[1]] else dims[[1]]$name
-        lines <- c(lines, sprintf('# Export %s (1D)', param_name))
-        lines <- c(lines, 'begin')
+        lines <- c(lines, sprintf("# Export %s (1D)", param_name))
+        lines <- c(lines, "begin")
         if (has_default && !inherits(default_val, "ast_formula")) {
           default_str <- if (is.numeric(default_val)) {
             if (default_val == as.integer(default_val)) sprintf("%.1f", default_val) else as.character(default_val)
           } else {
             paste0('"', default_val, '"')
           }
-          lines <- c(lines, '    # Iterate over all dimension values, filtering non-zero')
-          lines <- c(lines, sprintf('    dim_vals = [k for k in %s if get(%s, k, %s) != 0]', dim_name, param_name, default_str))
-          lines <- c(lines, sprintf('    param_vals = [get(%s, k, %s) for k in dim_vals]', param_name, default_str))
-          lines <- c(lines, sprintf('    # Create DataFrame with default row first, then append data'))
-          lines <- c(lines, sprintf('    df_data = DataFrame(%s = Union{Missing, String}[missing], value = [%s])', dim_name, default_str))
-          lines <- c(lines, '    for (k, v) in zip(dim_vals, param_vals)')
-          lines <- c(lines, '        push!(df_data, (k, v))')
-          lines <- c(lines, '    end')
+          lines <- c(lines, "    # Iterate over all dimension values, filtering non-zero")
+          lines <- c(lines, sprintf("    dim_vals = [k for k in %s if get(%s, k, %s) != 0]", dim_name, param_name, default_str))
+          lines <- c(lines, sprintf("    param_vals = [get(%s, k, %s) for k in dim_vals]", param_name, default_str))
+          lines <- c(lines, sprintf("    # Create DataFrame with default row first, then append data"))
+          lines <- c(lines, sprintf("    df_data = DataFrame(%s = Union{Missing, String}[missing], value = [%s])", dim_name, default_str))
+          lines <- c(lines, "    for (k, v) in zip(dim_vals, param_vals)")
+          lines <- c(lines, "        push!(df_data, (k, v))")
+          lines <- c(lines, "    end")
         } else {
-          lines <- c(lines, '    # Export only explicit non-zero values')
-          lines <- c(lines, sprintf('    dim_vals = [k for k in %s if haskey(%s, k) && %s[k] != 0]', dim_name, param_name, param_name))
-          lines <- c(lines, sprintf('    param_vals = [%s[k] for k in dim_vals]', param_name))
-          lines <- c(lines, sprintf('    df_data = DataFrame(%s = dim_vals, value = param_vals)', dim_name))
+          lines <- c(lines, "    # Export only explicit non-zero values")
+          lines <- c(lines, sprintf("    dim_vals = [k for k in %s if haskey(%s, k) && %s[k] != 0]", dim_name, param_name, param_name))
+          lines <- c(lines, sprintf("    param_vals = [%s[k] for k in dim_vals]", param_name))
+          lines <- c(lines, sprintf("    df_data = DataFrame(%s = dim_vals, value = param_vals)", dim_name))
         }
         lines <- c(lines, sprintf('    CSV.write(joinpath(export_dir, "%s.csv"), df_data)', param_name))
-        lines <- c(lines, 'end')
+        lines <- c(lines, "end")
       } else {
         dim_names <- sapply(dims, function(d) if (is.character(d)) d else d$name)
-        lines <- c(lines, sprintf('# Export %s (%dD)', param_name, length(dim_names)))
-        lines <- c(lines, 'begin')
+        lines <- c(lines, sprintf("# Export %s (%dD)", param_name, length(dim_names)))
+        lines <- c(lines, "begin")
         iter_vars <- paste0("k", seq_along(dim_names))
         iter_clauses <- paste(sprintf("%s in %s", iter_vars, dim_names), collapse = ", ")
         tuple_access <- paste0("(", paste(iter_vars, collapse = ", "), ")")
@@ -520,35 +531,35 @@ write_jump.model_structure <- function(model, file = NULL, model_dir = NULL, sol
           } else {
             paste0('"', default_val, '"')
           }
-          lines <- c(lines, '    # Iterate over all dimension combinations, filtering non-zero')
-          lines <- c(lines, sprintf('    all_keys = [%s for %s if get(%s, %s, %s) != 0]', tuple_access, iter_clauses, param_name, tuple_access, default_str))
-          lines <- c(lines, sprintf('    all_vals = [get(%s, k, %s) for k in all_keys]', param_name, default_str))
+          lines <- c(lines, "    # Iterate over all dimension combinations, filtering non-zero")
+          lines <- c(lines, sprintf("    all_keys = [%s for %s if get(%s, %s, %s) != 0]", tuple_access, iter_clauses, param_name, tuple_access, default_str))
+          lines <- c(lines, sprintf("    all_vals = [get(%s, k, %s) for k in all_keys]", param_name, default_str))
         } else {
-          lines <- c(lines, '    # Export only explicit non-zero values')
-          lines <- c(lines, sprintf('    all_keys = [%s for %s if haskey(%s, %s) && %s[%s] != 0]', tuple_access, iter_clauses, param_name, tuple_access, param_name, paste(iter_vars, collapse = ", ")))
-          lines <- c(lines, sprintf('    all_vals = [%s[k...] for k in all_keys]', param_name))
+          lines <- c(lines, "    # Export only explicit non-zero values")
+          lines <- c(lines, sprintf("    all_keys = [%s for %s if haskey(%s, %s) && %s[%s] != 0]", tuple_access, iter_clauses, param_name, tuple_access, param_name, paste(iter_vars, collapse = ", ")))
+          lines <- c(lines, sprintf("    all_vals = [%s[k...] for k in all_keys]", param_name))
         }
-        lines <- c(lines, '    # Build DataFrame with proper column names')
+        lines <- c(lines, "    # Build DataFrame with proper column names")
         if (has_default && !inherits(default_val, "ast_formula")) {
-          lines <- c(lines, '    df_data = DataFrame()')
+          lines <- c(lines, "    df_data = DataFrame()")
           for (i in seq_along(dim_names)) {
             lines <- c(lines, sprintf('    df_data[!, "%s"] = Union{Missing, String}[missing]', dim_names[i]))
           }
           lines <- c(lines, sprintf('    df_data[!, "value"] = [%s]', default_str))
-          lines <- c(lines, '    # Append non-zero values')
-          lines <- c(lines, '    for (k, v) in zip(all_keys, all_vals)')
-          col_pushes <- paste(sprintf('k[%d]', seq_along(dim_names)), collapse = ", ")
-          lines <- c(lines, sprintf('        push!(df_data, (%s, v))', col_pushes))
-          lines <- c(lines, '    end')
+          lines <- c(lines, "    # Append non-zero values")
+          lines <- c(lines, "    for (k, v) in zip(all_keys, all_vals)")
+          col_pushes <- paste(sprintf("k[%d]", seq_along(dim_names)), collapse = ", ")
+          lines <- c(lines, sprintf("        push!(df_data, (%s, v))", col_pushes))
+          lines <- c(lines, "    end")
         } else {
-          lines <- c(lines, '    df_data = DataFrame()')
+          lines <- c(lines, "    df_data = DataFrame()")
           for (i in seq_along(dim_names)) {
             lines <- c(lines, sprintf('    df_data[!, "%s"] = [k[%d] for k in all_keys]', dim_names[i], i))
           }
           lines <- c(lines, '    df_data[!, "value"] = all_vals')
         }
         lines <- c(lines, sprintf('    CSV.write(joinpath(export_dir, "%s.csv"), df_data)', param_name))
-        lines <- c(lines, 'end')
+        lines <- c(lines, "end")
       }
     }
     lines <- c(lines, "")
@@ -706,15 +717,15 @@ write_jump.model_structure <- function(model, file = NULL, model_dir = NULL, sol
 #'   given (the lines are also written to it).
 #' @keywords internal
 write_jump_internal <- function(model, file = NULL, model_dir = NULL, solver_dir = "jump",
-                                 output_name = "model.jl", model_name = "model",
-                                 optimizer = "HiGHS.Optimizer", optimizer_attributes = NULL,
-                                 use_folded = TRUE, cleanup = TRUE,
-                                 export_data = FALSE, export_vars = FALSE,
-                                 export_lp = FALSE, export_mps = FALSE,
-                                 use_haskey = TRUE, data_mode = c("external", "embedded"), ...) {
+                                output_name = "model.jl", model_name = "model",
+                                optimizer = "HiGHS.Optimizer", optimizer_attributes = NULL,
+                                use_folded = TRUE, cleanup = TRUE,
+                                export_data = FALSE, export_vars = FALSE,
+                                export_lp = FALSE, export_mps = FALSE,
+                                use_haskey = TRUE, data_mode = c("external", "embedded"), ...) {
   if (inherits(model, "mm_model") || inherits(model, "multimod")) model <- load_model_data(model)
-  
-  data_mode <- match.arg(data_mode)  # Create environment to track shift dictionaries needed
+
+  data_mode <- match.arg(data_mode) # Create environment to track shift dictionaries needed
   shifts_needed <- new.env(parent = emptyenv())
 
   # Determine output file path
@@ -737,7 +748,7 @@ write_jump_internal <- function(model, file = NULL, model_dir = NULL, solver_dir
 
       dir.create(solver_path, recursive = TRUE, showWarnings = FALSE)
       file <- file.path(solver_path, output_name)
-      
+
       # Note: data.jl will be generated AFTER model.jl so we can collect shift dictionaries
     }
   }
@@ -795,14 +806,16 @@ write_jump_internal <- function(model, file = NULL, model_dir = NULL, solver_dir
   }
 
   lines <- c(lines, paste0("required_packages = [\"", paste(required_pkgs, collapse = "\", \""), "\"]"))
-  lines <- c(lines,
-    'missing_packages = filter(p -> Base.find_package(p) === nothing, required_packages)',
-    'if !isempty(missing_packages)',
+  lines <- c(
+    lines,
+    "missing_packages = filter(p -> Base.find_package(p) === nothing, required_packages)",
+    "if !isempty(missing_packages)",
     '    error("Julia packages not installed: " * join(missing_packages, ", ") *',
     '          ". Install them once with: import Pkg; Pkg.add([\\"" *',
     '          join(missing_packages, "\\", \\"") * "\\"])")',
-    'end',
-    "")
+    "end",
+    ""
+  )
 
   lines <- c(lines, "using JuMP")
 
@@ -824,7 +837,7 @@ write_jump_internal <- function(model, file = NULL, model_dir = NULL, solver_dir
   lines <- c(lines, "# Create optimization model")
   lines <- c(lines, paste0(model_name, " = Model(", optimizer, ")"))
   lines <- c(lines, "")
-  
+
   # Set optimizer attributes if provided
   if (!is.null(optimizer_attributes) && length(optimizer_attributes) > 0) {
     lines <- c(lines, "# Configure optimizer attributes")
@@ -838,11 +851,11 @@ write_jump_internal <- function(model, file = NULL, model_dir = NULL, solver_dir
       } else {
         attr_value_str <- as.character(attr_value)
       }
-      lines <- c(lines, paste0('set_optimizer_attribute(', model_name, ', "', attr_name, '", ', attr_value_str, ')'))
+      lines <- c(lines, paste0("set_optimizer_attribute(", model_name, ', "', attr_name, '", ', attr_value_str, ")"))
     }
     lines <- c(lines, "")
   }
-  
+
   # Auto-enable barrier method for large models (HiGHS specific)
   # Only if optimizer_attributes not explicitly provided and using HiGHS
   if (is.null(optimizer_attributes) && grepl("HiGHS", optimizer, fixed = TRUE)) {
@@ -851,7 +864,7 @@ write_jump_internal <- function(model, file = NULL, model_dir = NULL, solver_dir
   } else {
     auto_barrier <- FALSE
   }
-  
+
   lines <- c(lines, "")
 
   # Sets - already loaded in data.jl
@@ -885,20 +898,25 @@ write_jump_internal <- function(model, file = NULL, model_dir = NULL, solver_dir
         eq_source <- model$equations[[eq_name]]
       }
       if (!is.null(eq_source) && !is.null(eq_source$rhs)) {
-        expr_candidate <- tryCatch({
-          # Use equation-specific dims_index_aliases (e.g., REGION -> r, YEAR -> y)
-          # rather than model$index_aliases, so iterators match the equation's original variables
-          var_names_for_obj <- if (!is.null(eq_source$dims_index_aliases)) {
-            eq_source$dims_index_aliases
-          } else {
+        expr_candidate <- tryCatch(
+          {
+            # Use equation-specific dims_index_aliases (e.g., REGION -> r, YEAR -> y)
+            # rather than model$index_aliases, so iterators match the equation's original variables
+            var_names_for_obj <- if (!is.null(eq_source$dims_index_aliases)) {
+              eq_source$dims_index_aliases
+            } else {
+              NULL
+            }
+            as_jump(eq_source$rhs,
+              model = model, var_names = var_names_for_obj,
+              use_haskey = use_haskey, model_dir = model_dir, shifts_tracker = shifts_needed
+            )
+          },
+          error = function(e) {
+            warning("Failed to convert objective RHS from equation '", eq_name, "': ", conditionMessage(e))
             NULL
           }
-          as_jump(eq_source$rhs, model = model, var_names = var_names_for_obj, 
-                  use_haskey = use_haskey, model_dir = model_dir, shifts_tracker = shifts_needed)
-        }, error = function(e) {
-          warning("Failed to convert objective RHS from equation '", eq_name, "': ", conditionMessage(e))
-          NULL
-        })
+        )
         if (!is.null(expr_candidate) && nzchar(expr_candidate)) {
           objective_expr <- expr_candidate
           objective_helper_var <- obj_info$variable
@@ -912,7 +930,6 @@ write_jump_internal <- function(model, file = NULL, model_dir = NULL, solver_dir
   lines <- c(lines, "# Variables")
   if (!is.null(model$variables) && length(model$variables) > 0) {
     for (var_name in names(model$variables)) {
-
       if (!is.null(objective_helper_var) && identical(var_name, objective_helper_var)) {
         next
       }
@@ -937,9 +954,13 @@ write_jump_internal <- function(model, file = NULL, model_dir = NULL, solver_dir
       if (!is.null(v$dims) && length(v$dims) > 0) {
         # Extract dimension names
         dim_names <- sapply(v$dims, function(d) {
-          if (inherits(d, "symbol")) d$name
-          else if (is.character(d)) d
-          else as.character(d)
+          if (inherits(d, "symbol")) {
+            d$name
+          } else if (is.character(d)) {
+            d
+          } else {
+            as.character(d)
+          }
         })
 
         # Check for sparse domain mapping
@@ -957,8 +978,10 @@ write_jump_internal <- function(model, file = NULL, model_dir = NULL, solver_dir
             index_str <- paste0("[", mapping_name, "]")
           } else {
             # Mapping not found - warn and fall back to Cartesian
-            warning("Variable '", var_name, "' specifies domain '", mapping_name,
-                    "' but mapping not found. Using Cartesian product instead.")
+            warning(
+              "Variable '", var_name, "' specifies domain '", mapping_name,
+              "' but mapping not found. Using Cartesian product instead."
+            )
             index_str <- paste0("[", paste(dim_names, collapse = ", "), "]")
           }
         } else {
@@ -970,12 +993,20 @@ write_jump_internal <- function(model, file = NULL, model_dir = NULL, solver_dir
       }
 
       # Add bounds - support both bounds list (lo/up) and old lb/ub fields
-      lb <- if (!is.null(v$bounds) && !is.null(v$bounds$lo)) v$bounds$lo
-            else if (!is.null(v$bounds) && !is.null(v$bounds$lb)) v$bounds$lb
-            else v$lb
-      ub <- if (!is.null(v$bounds) && !is.null(v$bounds$up)) v$bounds$up
-            else if (!is.null(v$bounds) && !is.null(v$bounds$ub)) v$bounds$ub
-            else v$ub
+      lb <- if (!is.null(v$bounds) && !is.null(v$bounds$lo)) {
+        v$bounds$lo
+      } else if (!is.null(v$bounds) && !is.null(v$bounds$lb)) {
+        v$bounds$lb
+      } else {
+        v$lb
+      }
+      ub <- if (!is.null(v$bounds) && !is.null(v$bounds$up)) {
+        v$bounds$up
+      } else if (!is.null(v$bounds) && !is.null(v$bounds$ub)) {
+        v$bounds$ub
+      } else {
+        v$ub
+      }
 
       # Handle "positive" or "positive variables" type (implies >= 0)
       if (!is.null(v$vtype) && tolower(v$vtype) == "positive" && is.null(lb)) {
@@ -987,7 +1018,7 @@ write_jump_internal <- function(model, file = NULL, model_dir = NULL, solver_dir
       # Add bounds only if they are finite (skip -Inf lower and Inf upper)
       has_lower <- !is.null(lb) && is.numeric(lb) && is.finite(lb)
       has_upper <- !is.null(ub) && is.numeric(ub) && is.finite(ub)
-      
+
       if (has_lower && has_upper) {
         var_decl <- paste0(var_decl, " >= ", lb, ", <= ", ub)
       } else if (has_lower) {
@@ -1183,11 +1214,14 @@ write_jump_internal <- function(model, file = NULL, model_dir = NULL, solver_dir
       }
 
       # Generate constraint using as_jump()
-      constraint_code <- tryCatch({
-        as_jump(eq, model = model, use_haskey = use_haskey, model_dir = model_dir, shifts_tracker = shifts_needed)
-      }, error = function(e) {
-        stop("Failed to convert equation ", eq_name, ": ", e$message, call. = FALSE)
-      })
+      constraint_code <- tryCatch(
+        {
+          as_jump(eq, model = model, use_haskey = use_haskey, model_dir = model_dir, shifts_tracker = shifts_needed)
+        },
+        error = function(e) {
+          stop("Failed to convert equation ", eq_name, ": ", e$message, call. = FALSE)
+        }
+      )
 
       lines <- c(lines, constraint_code)
 
@@ -1206,7 +1240,7 @@ write_jump_internal <- function(model, file = NULL, model_dir = NULL, solver_dir
     lines <- c(lines, "println(\"All constraints built.\")")
     lines <- c(lines, "close(constraint_stats)")
     lines <- c(lines, "")
-    
+
     # Memory cleanup: drop parameter and mapping data (no longer needed)
     lines <- c(lines, "# Memory cleanup: free parameter and mapping data")
     if (!is.null(model$parameters) && length(model$parameters) > 0) {
@@ -1226,7 +1260,7 @@ write_jump_internal <- function(model, file = NULL, model_dir = NULL, solver_dir
     lines <- c(lines, "GC.gc()  # Run garbage collection")
     lines <- c(lines, "println(\"Used memory: \", round(Sys.total_memory() / 1e9, digits=1), \" GB total, \", round((Sys.total_memory() - Sys.free_memory()) / 1e9, digits=1), \" GB used\")")
     lines <- c(lines, "")
-    
+
     # Auto-configure barrier method for large models (HiGHS only)
     if (auto_barrier) {
       lines <- c(lines, "# Auto-configure solver for large models")
@@ -1272,20 +1306,20 @@ write_jump_internal <- function(model, file = NULL, model_dir = NULL, solver_dir
   # Export LP/MPS files if requested
   export_lp_enabled <- !isFALSE(export_lp)
   export_mps_enabled <- !isFALSE(export_mps)
-  
+
   if (export_lp_enabled || export_mps_enabled) {
     lines <- c(lines, "# Export model files")
     if (export_lp_enabled) {
       lp_file <- if (is.character(export_lp)) export_lp else "model.lp"
       lines <- c(lines, sprintf('lp_file = joinpath(@__DIR__, "%s")', lp_file))
       lines <- c(lines, sprintf('println("Exporting LP format to: ", lp_file)'))
-      lines <- c(lines, paste0('write_to_file(', model_name, ', lp_file; format = MOI.FileFormats.FORMAT_LP)'))
+      lines <- c(lines, paste0("write_to_file(", model_name, ", lp_file; format = MOI.FileFormats.FORMAT_LP)"))
     }
     if (export_mps_enabled) {
       mps_file <- if (is.character(export_mps)) export_mps else "model.mps"
       lines <- c(lines, sprintf('mps_file = joinpath(@__DIR__, "%s")', mps_file))
       lines <- c(lines, sprintf('println("Exporting MPS format to: ", mps_file)'))
-      lines <- c(lines, paste0('write_to_file(', model_name, ', mps_file; format = MOI.FileFormats.FORMAT_MPS)'))
+      lines <- c(lines, paste0("write_to_file(", model_name, ", mps_file; format = MOI.FileFormats.FORMAT_MPS)"))
     }
     lines <- c(lines, "")
   }
@@ -1297,8 +1331,8 @@ write_jump_internal <- function(model, file = NULL, model_dir = NULL, solver_dir
   lines <- c(lines, "")
   lines <- c(lines, "# Display results")
   lines <- c(lines, "println(\"Solve complete: \", Dates.format(now(), \"HH:MM:SS\"))")
-  lines <- c(lines, paste0('println("Termination status: ", termination_status(', model_name, '))'))
-  lines <- c(lines, paste0('println("Objective value: ", objective_value(', model_name, '))'))
+  lines <- c(lines, paste0('println("Termination status: ", termination_status(', model_name, "))"))
+  lines <- c(lines, paste0('println("Objective value: ", objective_value(', model_name, "))"))
   lines <- c(lines, "")
 
   # Add solution saving function
@@ -1381,13 +1415,13 @@ write_jump_internal <- function(model, file = NULL, model_dir = NULL, solver_dir
   lines <- c(lines, "    println(\"Solution saved: \", saved_count, \" variables with non-zero values\\n\")")
   lines <- c(lines, "end")
   lines <- c(lines, "")
-  
+
   # Save solution if optimal (ALWAYS save for load_results to work)
   lines <- c(lines, "# Save solution if optimal")
   lines <- c(lines, "if termination_status(model) in [MOI.OPTIMAL, MOI.LOCALLY_SOLVED]")
   lines <- c(lines, "    solution_dir = joinpath(@__DIR__, \"solution\")")
   lines <- c(lines, "    save_solution(model, solution_dir)")
-  
+
   # Optional: Export variables to separate directory for debugging
   if (export_vars) {
     lines <- c(lines, "    ")
@@ -1395,19 +1429,19 @@ write_jump_internal <- function(model, file = NULL, model_dir = NULL, solver_dir
     lines <- c(lines, "    vars_export_dir = joinpath(@__DIR__, \"vars_export\")")
     lines <- c(lines, "    save_solution(model, vars_export_dir)")
   }
-  
+
   lines <- c(lines, "end")
   lines <- c(lines, "")
 
   # Write to file or return as character vector
   if (!is.null(file)) {
     writeLines(lines, file)
-    
+
     # Now generate data.jl with collected shift dictionaries
     if (!is.null(model_dir)) {
       .generate_data_jl(model_dir, solver_dir, model, use_folded, shifts_needed, export_data, data_mode = data_mode)
     }
-    
+
     invisible(lines)
   } else {
     lines

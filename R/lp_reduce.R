@@ -40,7 +40,9 @@
 lp_presolve <- function(lp, steps = "doubletons", max_pass = 50L,
                         tol = 1e-12, verbose = FALSE) {
   steps <- match.arg(steps, "doubletons", several.ok = TRUE)
-  if (!is.null(lp$eliminated)) return(lp)
+  if (!is.null(lp$eliminated)) {
+    return(lp)
+  }
   A <- methods::as(lp$A, "CsparseMatrix")
   rid <- seq_len(nrow(A))
   cid <- seq_len(ncol(A))
@@ -50,8 +52,11 @@ lp_presolve <- function(lp, steps = "doubletons", max_pass = 50L,
   rlo <- lp$row_lo
   rup <- lp$row_up
   vt <- if ("vtype" %in% names(lp$col_index)) lp$col_index[["vtype"]] else NULL
-  int <- if (is.null(vt)) rep(FALSE, length(cid)) else
+  int <- if (is.null(vt)) {
+    rep(FALSE, length(cid))
+  } else {
     tolower(as.character(vt)) %in% c("integer", "binary", "int", "bin", "i", "b")
+  }
   elim <- list()
   n0r <- nrow(A)
   n0c <- ncol(A)
@@ -92,14 +97,18 @@ lp_presolve <- function(lp, steps = "doubletons", max_pass = 50L,
     k <- k & !(x %in% y[k])
     k <- k & !(y %in% x[k])
     if (!any(k)) break
-    r <- r[k]; x <- x[k]; y <- y[k]
+    r <- r[k]
+    x <- x[k]
+    y <- y[k]
     cf <- -ay[k] / ax[k]
 
     # x's bounds, divided by c, bound y (the sign of c swaps them)
     lo_y <- ifelse(cf > 0, clo[x] / cf, cup[x] / cf)
     up_y <- ifelse(cf > 0, cup[x] / cf, clo[x] / cf)
     b <- data.table::data.table(y = y, lo = lo_y, up = up_y)[
-      , list(lo = max(lo), up = min(up)), by = "y"]
+      , list(lo = max(lo), up = min(up)),
+      by = "y"
+    ]
     clo[b$y] <- pmax(clo[b$y], b$lo)
     cup[b$y] <- pmin(cup[b$y], b$up)
 
@@ -109,13 +118,16 @@ lp_presolve <- function(lp, steps = "doubletons", max_pass = 50L,
     kc <- which(keepc)
     Tm <- Matrix::sparseMatrix(
       i = c(kc, x), j = c(newpos[kc], newpos[y]),
-      x = c(rep(1, length(kc)), cf), dims = c(ncol(A), length(kc)))
+      x = c(rep(1, length(kc)), cf), dims = c(ncol(A), length(kc))
+    )
     keepr <- rep(TRUE, nrow(A))
     keepr[r] <- FALSE
     A <- Matrix::drop0(A[keepr, , drop = FALSE] %*% Tm, tol = tol)
     obj <- as.numeric(Matrix::crossprod(Tm, obj))
-    elim[[pass]] <- data.table::data.table(col = cid[x], ref = cid[y],
-                                           coef = cf, pass = pass)
+    elim[[pass]] <- data.table::data.table(
+      col = cid[x], ref = cid[y],
+      coef = cf, pass = pass
+    )
     cid <- cid[keepc]
     clo <- clo[keepc]
     cup <- cup[keepc]
@@ -124,8 +136,10 @@ lp_presolve <- function(lp, steps = "doubletons", max_pass = 50L,
     rlo <- rlo[keepr]
     rup <- rup[keepr]
     if (verbose) {
-      message(sprintf("doubletons pass %d: %d columns and rows eliminated",
-                      pass, length(x)))
+      message(sprintf(
+        "doubletons pass %d: %d columns and rows eliminated",
+        pass, length(x)
+      ))
     }
   }
 
@@ -142,8 +156,9 @@ lp_presolve <- function(lp, steps = "doubletons", max_pass = 50L,
   bad <- which(clo > cup + 1e-9 * pmax(1, abs(clo)))
   if (length(bad)) {
     warning("lp_presolve(): ", length(bad), " column(s) have ",
-            "crossing bounds after substitution; the LP is infeasible.",
-            call. = FALSE)
+      "crossing bounds after substitution; the LP is infeasible.",
+      call. = FALSE
+    )
   }
 
   ci <- data.table::copy(data.table::as.data.table(lp$col_index))
@@ -153,12 +168,16 @@ lp_presolve <- function(lp, steps = "doubletons", max_pass = 50L,
   data.table::set(ri2, j = "ired", value = match(seq_len(n0r), rid))
   el <- data.table::rbindlist(elim)
   if (!nrow(el)) {
-    el <- data.table::data.table(col = integer(), ref = integer(),
-                                 coef = numeric(), pass = integer())
+    el <- data.table::data.table(
+      col = integer(), ref = integer(),
+      coef = numeric(), pass = integer()
+    )
   }
   if (verbose) {
-    message(sprintf("doubletons: %d -> %d columns, %d -> %d rows, %d nonzeros",
-                    n0c, ncol(A), n0r, nrow(A), length(A@x)))
+    message(sprintf(
+      "doubletons: %d -> %d columns, %d -> %d rows, %d nonzeros",
+      n0c, ncol(A), n0r, nrow(A), length(A@x)
+    ))
   }
   lp$A <- A
   lp$obj <- obj
@@ -203,15 +222,21 @@ lp_presolve <- function(lp, steps = "doubletons", max_pass = 50L,
   ncol <- length(col_lo)
   int <- .mx_int_cols(vtype, ncol)
   cand <- sense == "==" & rhs == 0
-  m <- mm_presolve_map(scan, cand, int, as.numeric(col_lo), as.numeric(col_up),
-                       as.integer(max_pass), as.numeric(tol), .mx_threads(), isTRUE(verbose))
+  m <- mm_presolve_map(
+    scan, cand, int, as.numeric(col_lo), as.numeric(col_up),
+    as.integer(max_pass), as.numeric(tol), .mx_threads(), isTRUE(verbose)
+  )
   if (m$crossing > 0) {
     warning("presolve: ", m$crossing, " column(s) have crossing bounds after ",
-            "substitution; the LP is infeasible.", call. = FALSE)
+      "substitution; the LP is infeasible.",
+      call. = FALSE
+    )
   }
-  out <- list(map = m$map,
-              eliminated = data.table::data.table(col = m$col, ref = m$ref, coef = m$coef, pass = m$pass),
-              passes = m$passes)
+  out <- list(
+    map = m$map,
+    eliminated = data.table::data.table(col = m$col, ref = m$ref, coef = m$coef, pass = m$pass),
+    passes = m$passes
+  )
   # the map's full-index vectors are left in the core; `full = TRUE` brings
   # them over for a comparison
   if (isTRUE(full)) out <- c(out, mm_map_vectors(m$map))
@@ -222,7 +247,9 @@ lp_presolve <- function(lp, steps = "doubletons", max_pass = 50L,
 #' @keywords internal
 #' @noRd
 .mx_int_cols <- function(vtype, ncol) {
-  if (is.null(vtype)) return(rep(FALSE, ncol))
+  if (is.null(vtype)) {
+    return(rep(FALSE, ncol))
+  }
   # a handful of distinct values over millions of columns
   u <- unique(vtype)
   (tolower(as.character(u)) %in% c("integer", "binary", "int", "bin", "i", "b"))[match(vtype, u)]
@@ -241,26 +268,32 @@ lp_presolve <- function(lp, steps = "doubletons", max_pass = 50L,
   nrow <- length(sense)
   int <- .mx_int_cols(vtype, ncol)
   nnz <- as.numeric(scan$col_counts)
-  clo <- col_lo; cup <- col_up
+  clo <- col_lo
+  cup <- col_up
   # the tracked rows' entries; only equality rows with a zero right-hand side
   # can ever be candidates, the others are not needed
-  T <- data.table::data.table(r = scan$row, c = scan$col, x = scan$x)
-  T <- T[sense[r] == "==" & rhs[r] == 0]
+  tab <- data.table::data.table(r = scan$row, c = scan$col, x = scan$x)
+  tab <- tab[sense[r] == "==" & rhs[r] == 0]
   elim <- list()
   dropped_row <- rep(FALSE, nrow)
   elim_col <- rep(FALSE, ncol)
   # where an eliminated column currently resolves to, and with which factor
-  ref <- seq_len(ncol); coef <- rep(1, ncol)
+  ref <- seq_len(ncol)
+  coef <- rep(1, ncol)
 
   for (pass in seq_len(max_pass)) {
-    if (!nrow(T)) break
+    if (!nrow(tab)) break
     # candidates: tracked rows with exactly two entries, columns ascending
-    cnt <- T[, list(n = .N), by = "r"]
+    cnt <- tab[, list(n = .N), by = "r"]
     two <- cnt$r[cnt$n == 2L]
     if (!length(two)) break
-    d <- T[r %in% two][order(r, c)]
+    d <- tab[r %in% two][order(r, c)]
     first <- seq(1L, nrow(d), by = 2L)
-    r <- d$r[first]; u <- d$c[first]; au <- d$x[first]; v <- d$c[first + 1L]; av <- d$x[first + 1L]
+    r <- d$r[first]
+    u <- d$c[first]
+    au <- d$x[first]
+    v <- d$c[first + 1L]
+    av <- d$x[first + 1L]
     pref <- function(w, other) {
       (!int[w]) * 4L + (!(w %in% c(u, v)[duplicated(c(u, v))])) * 2L +
         (nnz[w] <= nnz[other])
@@ -275,20 +308,25 @@ lp_presolve <- function(lp, steps = "doubletons", max_pass = 50L,
     k <- k & !(x %in% y[k])
     k <- k & !(y %in% x[k])
     if (!any(k)) break
-    rk <- r[k]; xk <- x[k]; yk <- y[k]
+    rk <- r[k]
+    xk <- x[k]
+    yk <- y[k]
     cf <- -ay[k] / ax[k]
 
     lo_y <- ifelse(cf > 0, clo[xk] / cf, cup[xk] / cf)
     up_y <- ifelse(cf > 0, cup[xk] / cf, clo[xk] / cf)
     b <- data.table::data.table(y = yk, lo = lo_y, up = up_y)[
-      , list(lo = max(lo), up = min(up)), by = "y"]
+      , list(lo = max(lo), up = min(up)),
+      by = "y"
+    ]
     clo[b$y] <- pmax(clo[b$y], b$lo)
     cup[b$y] <- pmin(cup[b$y], b$up)
 
     elim[[pass]] <- data.table::data.table(col = xk, ref = yk, coef = cf, pass = pass)
     elim_col[xk] <- TRUE
     dropped_row[rk] <- TRUE
-    ref[xk] <- yk; coef[xk] <- cf
+    ref[xk] <- yk
+    coef[xk] <- cf
     # the eliminated column's other entries move to the target, and the
     # target loses its own entry in the dropped row
     moved <- data.table::data.table(y = yk, n = nnz[xk] - 2)[, list(n = sum(n)), by = "y"]
@@ -300,17 +338,18 @@ lp_presolve <- function(lp, steps = "doubletons", max_pass = 50L,
     # the tracked rows after this pass: eliminated rows gone, eliminated
     # columns moved to their reference, entries on one column merged, exact
     # zeros dropped (the merges reduce the column counts)
-    T <- T[!(r %in% rk)]
-    if (!nrow(T)) break
-    this <- logical(ncol); this[xk] <- TRUE
-    e <- this[T$c]
+    tab <- tab[!(r %in% rk)]
+    if (!nrow(tab)) break
+    this <- logical(ncol)
+    this[xk] <- TRUE
+    e <- this[tab$c]
     if (any(e)) {
-      data.table::set(T, i = which(e), j = "x", value = T$x[e] * coef[T$c[e]])
-      data.table::set(T, i = which(e), j = "c", value = ref[T$c[e]])
-      before <- T[, list(n = .N), by = "c"]
-      T <- T[, list(x = sum(x)), by = c("r", "c")]
-      T <- T[abs(x) > tol]
-      after <- T[, list(n = .N), by = "c"]
+      data.table::set(tab, i = which(e), j = "x", value = tab$x[e] * coef[tab$c[e]])
+      data.table::set(tab, i = which(e), j = "c", value = ref[tab$c[e]])
+      before <- tab[, list(n = .N), by = "c"]
+      tab <- tab[, list(x = sum(x)), by = c("r", "c")]
+      tab <- tab[abs(x) > tol]
+      after <- tab[, list(n = .N), by = "c"]
       # entries merged or cancelled in the tracked rows leave the column counts
       left <- after$n[match(before$c, after$c)]
       gone <- before$n - ifelse(is.na(left), 0L, left)
@@ -326,7 +365,8 @@ lp_presolve <- function(lp, steps = "doubletons", max_pass = 50L,
     el <- data.table::data.table(col = integer(), ref = integer(), coef = numeric(), pass = integer())
   }
   # resolve every eliminated column to a kept one (chains over passes)
-  final_ref <- seq_len(ncol); final_coef <- rep(1, ncol)
+  final_ref <- seq_len(ncol)
+  final_coef <- rep(1, ncol)
   if (nrow(el)) {
     for (p in sort(unique(el$pass), decreasing = TRUE)) {
       e <- el[el$pass == p]
@@ -337,13 +377,19 @@ lp_presolve <- function(lp, steps = "doubletons", max_pass = 50L,
   bad <- which(clo > cup + 1e-9 * pmax(1, abs(clo)))
   if (length(bad)) {
     warning("presolve: ", length(bad), " column(s) have crossing bounds after ",
-            "substitution; the LP is infeasible.", call. = FALSE)
+      "substitution; the LP is infeasible.",
+      call. = FALSE
+    )
   }
-  jred <- integer(ncol); jred[!elim_col] <- seq_len(sum(!elim_col))
-  ired <- integer(nrow); ired[!dropped_row] <- seq_len(sum(!dropped_row))
-  list(eliminated = el, jred = jred, ired = ired,
-       ref = ifelse(elim_col, final_ref, 0L), coef = ifelse(elim_col, final_coef, 1),
-       col_lo = clo, col_up = cup, nnz = nnz)
+  jred <- integer(ncol)
+  jred[!elim_col] <- seq_len(sum(!elim_col))
+  ired <- integer(nrow)
+  ired[!dropped_row] <- seq_len(sum(!dropped_row))
+  list(
+    eliminated = el, jred = jred, ired = ired,
+    ref = ifelse(elim_col, final_ref, 0L), coef = ifelse(elim_col, final_coef, 1),
+    col_lo = clo, col_up = cup, nnz = nnz
+  )
 }
 
 #' Expand a reduced-LP column vector to the full index

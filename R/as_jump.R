@@ -13,7 +13,9 @@ as_jump <- function(x, ...) {
 
 #' @export
 as_jump.default <- function(x, ...) {
-  if (is.null(x)) return(NULL)
+  if (is.null(x)) {
+    return(NULL)
+  }
   if (is.numeric(x) && length(x) == 1) {
     return(format(x, scientific = FALSE))
   }
@@ -59,7 +61,9 @@ as_jump.default <- function(x, ...) {
 }
 
 .dim_name <- function(dim) {
-  if (is.null(dim)) return(NULL)
+  if (is.null(dim)) {
+    return(NULL)
+  }
   if (is.character(dim)) {
     return(dim)
   }
@@ -187,22 +191,27 @@ as_jump.mm_set <- function(x, declaration = FALSE, desc = declaration, model = N
 #' @method as_jump dims
 as_jump.dims <- function(x, model = NULL, var_names = NULL, use_index_aliases = TRUE, ...) {
   dim_names <- sapply(x, function(d) {
-    set_name <- if (inherits(d, "symbol")) d$name 
-    else if (inherits(d, "mm_set")) d$name
-    else if (inherits(d, "character")) d
-    else return(as_jump(d, model = model, var_names = var_names, use_index_aliases = use_index_aliases, ...))
-    
+    set_name <- if (inherits(d, "symbol")) {
+      d$name
+    } else if (inherits(d, "mm_set")) {
+      d$name
+    } else if (inherits(d, "character")) {
+      d
+    } else {
+      return(as_jump(d, model = model, var_names = var_names, use_index_aliases = use_index_aliases, ...))
+    }
+
     # First check var_names mapping (for domain expressions in constraints)
     if (!is.null(var_names) && set_name %in% names(var_names)) {
       return(var_names[[set_name]])
     }
-    
+
     # Check if set_name is an iterator variable (appears as a VALUE in var_names)
     # If so, it's already the correct iterator name, return it unchanged
     if (!is.null(var_names) && set_name %in% var_names) {
       return(set_name)
     }
-    
+
     # Use index alias if available and not disabled
     if (use_index_aliases && !is.null(model) && !is.null(model$index_aliases) && set_name %in% names(model$index_aliases)) {
       return(model$index_aliases[[set_name]])
@@ -247,38 +256,38 @@ as_jump.mm_mapping <- function(x, declaration = FALSE, desc = declaration, model
 #     "AvailabilityFactor" = "1.0",
 #     "CapacityToActivityUnit" = "1.0",
 #     "SpecifiedDemandProfile" = "1.0",
-    
+
 #     # Ratios that should default to 0.0 (no input/output if not specified)
 #     "InputActivityRatio" = "0.0",
 #     "OutputActivityRatio" = "0.0",
 #     "EmissionActivityRatio" = "0.0",
-    
+
 #     # Costs that should default to 0.0
 #     "CapitalCost" = "0.0",
 #     "FixedCost" = "0.0",
 #     "VariableCost" = "0.0",
 #     "EmissionsPenalty" = "0.0",
-    
+
 #     # Capacities and quantities that should default to 0.0
 #     "ResidualCapacity" = "0.0",
 #     "SpecifiedAnnualDemand" = "0.0",
 #     "AccumulatedAnnualDemand" = "0.0",
-    
+
 #     # Lifetimes default to 1 (avoid infinite/undefined lifetimes)
 #     "OperationalLife" = "1.0",
 #     "OperationalLifeStorage" = "1.0",
-    
+
 #     # YearSplit: Critical! Default 0 causes division by zero
 #     # Should equal 1/number of timeslices, but we don't have that info here
 #     # Use 1.0 as safe default (means 100% of year if only one timeslice active)
 #     "YearSplit" = "1.0",
-    
+
 #     # Storage parameters
 #     "StorageLevelStart" = "0.0",
 #     "MinStorageCharge" = "0.0",
 #     "StorageMaxChargeRate" = "1e12",  # Effectively no limit (JuMP doesn't allow Inf in constraints)
 #     "StorageMaxDischargeRate" = "1e12",  # Effectively no limit
-    
+
 #     # Days in period (should be positive)
 #     "DaysInDayType" = "1.0",
 #     "DaySplit" = "1.0",
@@ -286,7 +295,7 @@ as_jump.mm_mapping <- function(x, declaration = FALSE, desc = declaration, model
 #     "Conversionld" = "1.0",
 #     "Conversionlh" = "1.0"
 #   )
-  
+
 #   # Return specific default if defined, otherwise 0.0
 #   if (param_name %in% names(defaults)) {
 #     defaults[[param_name]]
@@ -321,8 +330,10 @@ as_jump.mm_parameter <- function(x, declaration = FALSE, desc = declaration, mod
       default_val <- paste0(x$name, "Def")
       decl <- if (!is.null(model) && !is.null(model$parameters)) model$parameters[[x$name]] else NULL
       if (!is.null(decl) && inherits(decl$defVal, "ast_formula") && !is.null(decl$defVal$expr)) {
-        default_val <- as_jump(decl$defVal$expr, model = model, var_names = var_names,
-                               use_index_aliases = use_index_aliases, in_filter = in_filter, ...)
+        default_val <- as_jump(decl$defVal$expr,
+          model = model, var_names = var_names,
+          use_index_aliases = use_index_aliases, in_filter = in_filter, ...
+        )
       }
       paste0("get(", x$name, ", ", tuple_index, ", ", default_val, ")")
     } else {
@@ -344,32 +355,37 @@ as_jump.mm_variable <- function(x, declaration = FALSE, desc = declaration, mode
   if (context == "declaration") {
     # Build variable declaration with bounds
     var_decl <- paste0("@variable(model, ", x$name)
-    
+
     # Add index set if variable has domain (sparse indexing)
     if (!is.null(x$domain) && is.character(x$domain) && length(x$domain) == 1 && nzchar(x$domain)) {
       var_decl <- paste0(var_decl, "[", x$domain, "]")
     } else if (!is.null(x$dims) && length(x$dims) > 0) {
       # Cartesian product indexing
       dim_names <- sapply(x$dims, function(d) {
-        if (inherits(d, "symbol")) d$name
-        else if (inherits(d, "mm_set")) d$name
-        else if (is.character(d)) d
-        else as_jump(d, model = model, ...)
+        if (inherits(d, "symbol")) {
+          d$name
+        } else if (inherits(d, "mm_set")) {
+          d$name
+        } else if (is.character(d)) {
+          d
+        } else {
+          as_jump(d, model = model, ...)
+        }
       })
       var_decl <- paste0(var_decl, "[", paste(dim_names, collapse = ", "), "]")
     }
-    
+
     # Add bounds (skip default -Inf/Inf bounds)
     bounds_str <- ""
     if (!is.null(x$bounds)) {
       lo <- x$bounds$lo
       up <- x$bounds$up
-      
+
       # Skip default bounds: -Inf lower and Inf upper
       # Note: is.finite() returns FALSE for -Inf/Inf, and we only add bounds if they are finite
       has_lower <- !is.null(lo) && is.finite(lo)
       has_upper <- !is.null(up) && is.finite(up)
-      
+
       if (has_lower && has_upper) {
         # Both bounds are non-default
         if (lo == up) {
@@ -386,7 +402,7 @@ as_jump.mm_variable <- function(x, declaration = FALSE, desc = declaration, mode
       }
       # Otherwise no bounds_str (default -Inf to Inf)
     }
-    
+
     # Add variable type (binary, integer)
     vtype_str <- ""
     if (!is.null(x$vtype)) {
@@ -396,19 +412,19 @@ as_jump.mm_variable <- function(x, declaration = FALSE, desc = declaration, mode
         vtype_str <- ", Int"
       }
     }
-    
+
     var_decl <- paste0(var_decl, bounds_str, vtype_str, ")")
-    
+
     if (desc && !is.null(x$desc) && nzchar(x$desc)) {
       var_decl <- paste0(var_decl, "  # ", x$desc)
     }
-    
-    return(var_decl)
+
+    var_decl
   } else {
     # Include subscripts if variable is indexed
     if (!is.null(x$dims) && length(x$dims) > 0) {
       subscripts <- as_jump(x$dims, model = model, var_names = var_names, use_index_aliases = use_index_aliases, ...)
-      
+
       # Check if variable uses sparse indexing (domain mapping)
       # If domain is a mapping name (character string), wrap in parentheses for tuple indexing
       # Otherwise, use comma-separated for Cartesian product
@@ -416,10 +432,10 @@ as_jump.mm_variable <- function(x, declaration = FALSE, desc = declaration, mode
       if (!is.null(model) && !is.null(model$variables) && x$name %in% names(model$variables)) {
         var_obj <- model$variables[[x$name]]
         # Variable uses sparse indexing if domain is a non-empty string (mapping name)
-        use_tuple <- !is.null(var_obj$domain) && is.character(var_obj$domain) && 
-                     length(var_obj$domain) == 1 && nzchar(var_obj$domain)
+        use_tuple <- !is.null(var_obj$domain) && is.character(var_obj$domain) &&
+          length(var_obj$domain) == 1 && nzchar(var_obj$domain)
       }
-      
+
       if (use_tuple) {
         # Sparse variable: use tuple indexing varname[(dim1, dim2, dim3)]
         paste0(x$name, "[(", subscripts, ")]")
@@ -447,11 +463,11 @@ as_jump.symbol <- function(x, model = NULL, in_filter = FALSE, use_haskey = FALS
     # Check if this is a parameter with data
     param_name <- x$name
     is_parameter <- !is.null(model) && !is.null(model$parameters) && param_name %in% names(model$parameters)
-    
+
     if (is_parameter) {
       param_obj <- model$parameters[[param_name]]
       has_data <- FALSE
-      
+
       # Check if parameter has data
       if (!is.null(param_obj$data) && nrow(param_obj$data) > 0) {
         has_data <- TRUE
@@ -459,7 +475,7 @@ as_jump.symbol <- function(x, model = NULL, in_filter = FALSE, use_haskey = FALS
         data_file <- file.path(model$base_path, "parameters", param_name, "data.csv")
         has_data <- file.exists(data_file) && file.size(data_file) > 100
       }
-      
+
       if (has_data) {
         # Generate haskey(param, (indices))
         index_names <- sapply(x$dims, function(d) {
@@ -473,7 +489,7 @@ as_jump.symbol <- function(x, model = NULL, in_filter = FALSE, use_haskey = FALS
       }
     }
   }
-  
+
   # Regular symbol handling: include indexing if present
   if (!is.null(x$dims) && length(x$dims) > 0) {
     # x$dims is a list of symbol AST nodes
@@ -485,31 +501,31 @@ as_jump.symbol <- function(x, model = NULL, in_filter = FALSE, use_haskey = FALS
         as_jump(d, model = model, in_filter = in_filter, use_haskey = use_haskey, in_arithmetic = in_arithmetic, var_names = var_names, ...)
       }
     })
-    
+
     # Check if this symbol is a parameter (not a variable) - parameters need get() for sparse data
     # BUT: computed parameters (with formulas) should use direct indexing
     is_parameter <- !is.null(model) && !is.null(model$parameters) && x$name %in% names(model$parameters)
     is_variable <- !is.null(model) && !is.null(model$variables) && x$name %in% names(model$variables)
-    
+
     # Check if parameter is computed (has formula) - if so, treat like variable (direct indexing)
     is_computed_param <- FALSE
     if (is_parameter && !is.null(model$parameters[[x$name]]$formula)) {
       is_computed_param <- TRUE
     }
-    
+
     if (is_parameter && !is_variable && !is_computed_param) {
       # This is a data parameter - use get() with default to handle sparse data
       is_single_dim <- length(x$dims) == 1
       if (is_single_dim) {
-        tuple_index <- index_names  # Scalar key
+        tuple_index <- index_names # Scalar key
       } else {
-        tuple_index <- paste0("(", paste(index_names, collapse = ","), ")")  # Tuple key
+        tuple_index <- paste0("(", paste(index_names, collapse = ","), ")") # Tuple key
       }
-      
+
       # Check if parameter has a parametric default (ast_formula) vs constant default
       param_obj <- model$parameters[[x$name]]
       has_parametric_default <- !is.null(param_obj$defVal) && inherits(param_obj$defVal, "ast_formula")
-      
+
       if (has_parametric_default) {
         # Default is an expression like DiscountRate[r] - evaluate it inline
         # Build var_names mapping for the default expression
@@ -520,8 +536,8 @@ as_jump.symbol <- function(x, model = NULL, in_filter = FALSE, use_haskey = FALS
         # Constant default - use the Def variable
         default_val <- paste0(x$name, "Def")
       }
-      
-      return(paste0("get(", x$name, ", ", tuple_index, ", ", default_val, ")"))
+
+      paste0("get(", x$name, ", ", tuple_index, ", ", default_val, ")")
     } else {
       # Variable, computed parameter, or other indexed symbol - use direct indexing
       paste0(x$name, "[", paste(index_names, collapse = ","), "]")
@@ -546,19 +562,19 @@ as_jump.symbol <- function(x, model = NULL, in_filter = FALSE, use_haskey = FALS
 as_jump.shift <- function(x, model = NULL, var_names = NULL, shifts_tracker = NULL, ...) {
   stopifnot(inherits(x, "shift"))
   if (isTRUE(x$circular)) .mm_no_circular("JuMP")
-  
+
   # Get the set name from the symbol using var_names (local scope) or index_aliases (global)
   symbol <- x$symbol
   offset <- x$offset
-  
+
   # Determine the set name (check var_names first for local scope, then index_aliases)
   set_name <- NULL
-  
+
   # First check var_names for local iterator variable mappings (e.g., in sums)
   if (!is.null(var_names) && symbol %in% names(var_names)) {
     set_name <- var_names[[symbol]]
   }
-  
+
   # Fall back to index_aliases for global scope
   if (is.null(set_name) && !is.null(model) && !is.null(model$index_aliases)) {
     # index_aliases is a named vector mapping set name -> iterator alias
@@ -568,12 +584,12 @@ as_jump.shift <- function(x, model = NULL, var_names = NULL, shifts_tracker = NU
       set_name <- matching_sets[1]
     }
   }
-  
+
   # If we couldn't find the set name, use the symbol itself in uppercase
   if (is.null(set_name)) {
     set_name <- toupper(symbol)
   }
-  
+
   # Record this shift in tracker (if provided)
   if (!is.null(shifts_tracker)) {
     key <- paste0(set_name, "_", offset)
@@ -581,14 +597,14 @@ as_jump.shift <- function(x, model = NULL, var_names = NULL, shifts_tracker = NU
       shifts_tracker[[key]] <- list(set_name = set_name, offset = offset)
     }
   }
-  
+
   # Generate shift dictionary name
   if (offset < 0) {
     dict_name <- paste0(tolower(set_name), "_lag", abs(offset))
   } else {
     dict_name <- paste0(tolower(set_name), "_lead", offset)
   }
-  
+
   # Return dictionary lookup syntax with get() to handle missing keys
   # Use the symbol itself as fallback (for boundary conditions)
   paste0("get(", dict_name, ", ", symbol, ", ", symbol, ")")
@@ -600,7 +616,7 @@ as_jump.unary <- function(x, ...) {
   stopifnot(inherits(x, "unary"))
   op <- x$op
   rhs_expr <- as_jump(x$rhs, ...)
-  
+
   if (op == "-") {
     # For negation, parentheses may be needed for complex expressions
     # But simple variables/numbers don't need them: -x, -5
@@ -624,14 +640,14 @@ as_jump.unary <- function(x, ...) {
 as_jump.call <- function(x, model = NULL, in_filter = FALSE, ...) {
   # Convert regular function calls (ast_call)
   # Similar logic to as_jump.func but for class "call"
-  
+
   func_name <- x$name
-  
+
   # Convert arguments
   args_str <- sapply(x$args, function(arg) {
     as_jump(arg, model = model, in_filter = in_filter, ...)
   })
-  
+
   # Generate function call
   paste0(func_name, "(", paste(args_str, collapse = ", "), ")")
 }
@@ -643,7 +659,7 @@ as_jump.func <- function(x, model = NULL, in_filter = FALSE, ...) {
   if (tolower(x$name) %in% c("sum", "prod") && !is.null(x$index)) {
     return(as_jump_sum_prod(x, model = model, in_filter = in_filter, ...))
   }
-  
+
   # GAMS-specific function conversions
   if (tolower(x$name) == "val") {
     # y.val -> the member's numeric value; `.val` applies to numeric sets
@@ -652,7 +668,7 @@ as_jump.func <- function(x, model = NULL, in_filter = FALSE, ...) {
     # But if it's a string, parse it
     return(paste0("parse(Int, string(", val, "))"))
   }
-  
+
   if (tolower(x$name) == "ord") {
     # ord(y) - ordinal position in set
     # Handle x$value being a list with one element
@@ -661,11 +677,11 @@ as_jump.func <- function(x, model = NULL, in_filter = FALSE, ...) {
     } else if (inherits(x$value, "ast")) {
       x$value
     } else {
-      stop("ord() requires a single symbol, got: ", paste(class(x$value), collapse="/"))
+      stop("ord() requires a single symbol, got: ", paste(class(x$value), collapse = "/"))
     }
     val <- as_jump(val_obj, model = model, in_filter = in_filter, ...)
     set_name <- resolve_alias_to_set(val, model)
-    
+
     if (in_filter) {
       # In JuMP constraint filter: can't use anonymous functions
       # Return a marker for pattern-based replacement
@@ -675,7 +691,7 @@ as_jump.func <- function(x, model = NULL, in_filter = FALSE, ...) {
       return(paste0("findfirst(x -> x == ", val, ", ", set_name, ")"))
     }
   }
-  
+
   if (tolower(x$name) == "card") {
     # card(SET) -> length(SET)
     val_obj <- if (is.list(x$value) && length(x$value) == 1 && inherits(x$value[[1]], "ast")) {
@@ -683,11 +699,11 @@ as_jump.func <- function(x, model = NULL, in_filter = FALSE, ...) {
     } else if (inherits(x$value, "ast")) {
       x$value
     } else {
-      stop("card() requires a single symbol, got: ", paste(class(x$value), collapse="/"))
+      stop("card() requires a single symbol, got: ", paste(class(x$value), collapse = "/"))
     }
     val <- as_jump(val_obj, model = model, in_filter = in_filter, ...)
     set_name <- resolve_alias_to_set(val, model)
-    
+
     if (in_filter) {
       # In filter context, return marker for pattern replacement
       return(paste0("__CARD__", set_name, "__"))
@@ -695,7 +711,7 @@ as_jump.func <- function(x, model = NULL, in_filter = FALSE, ...) {
       return(paste0("length(", set_name, ")"))
     }
   }
-  
+
   if (tolower(x$name) %in% c("smax", "smin")) {
     # smax(iterator, expr) / smin(iterator, expr)
     # Two distinct use cases:
@@ -703,43 +719,43 @@ as_jump.func <- function(x, model = NULL, in_filter = FALSE, ...) {
     #    → Converts to: ld != last(DAYTYPE)
     # 2. Value computation: smax(yy, y.val) where iterator != value symbol
     #    → Converts to: parse(Int, string(last(YEAR)))
-    
+
     if (is.null(x$index)) {
       stop("smax/smin requires an index")
     }
-    
+
     idx_symbol <- as_jump(x$index, model = model, in_filter = in_filter, ...)
     base_set <- resolve_alias_to_set(idx_symbol, model)
-    
+
     if (in_filter) {
       # Distinguish between boundary check and value computation
       # Check if value is val(symbol) and extract that symbol
       value_symbol <- NULL
-      if (!is.null(x$value) && inherits(x$value, "func") && 
-          tolower(x$value$name) == "val" && 
-          !is.null(x$value$value) && inherits(x$value$value, "symbol")) {
+      if (!is.null(x$value) && inherits(x$value, "func") &&
+        tolower(x$value$name) == "val" &&
+        !is.null(x$value$value) && inherits(x$value$value, "symbol")) {
         value_symbol <- x$value$value$name
       }
-      
+
       # If index is doubled/repeated AND matches value symbol, it's a boundary check
       # Examples:
       #   smax(ldld, anything) → ld != last(DAYTYPE) [boundary]
       #   smax(yy, y.val) → parse(Int, string(last(YEAR))) [value computation]
-      
+
       is_doubled <- nchar(idx_symbol) >= 4 && nchar(idx_symbol) %% 2 == 0 &&
-                   substr(idx_symbol, 1, nchar(idx_symbol)/2) == substr(idx_symbol, nchar(idx_symbol)/2 + 1, nchar(idx_symbol))
-      
+        substr(idx_symbol, 1, nchar(idx_symbol) / 2) == substr(idx_symbol, nchar(idx_symbol) / 2 + 1, nchar(idx_symbol))
+
       is_repeated_2char <- nchar(idx_symbol) == 2 && substr(idx_symbol, 1, 1) == substr(idx_symbol, 2, 2)
-      
+
       # Extract base from iterator
       constraint_var <- if (is_doubled) {
-        substr(idx_symbol, 1, nchar(idx_symbol)/2)
+        substr(idx_symbol, 1, nchar(idx_symbol) / 2)
       } else if (is_repeated_2char) {
         substr(idx_symbol, 1, 1)
       } else {
         NULL
       }
-      
+
       # Check if this iterator matches the value symbol
       # If iterator is yy and value is y, they match → value computation
       # If iterator is ldld and we're checking ld bounds → boundary check
@@ -785,7 +801,7 @@ as_jump.func <- function(x, model = NULL, in_filter = FALSE, ...) {
       return(paste0(func, "(", val, " for ", idx_symbol, " in ", base_set, ")"))
     }
   }
-  
+
   # Generic function handling
   val <- if (inherits(x$value, "ast") || inherits(x$value, "multimod")) {
     # Single AST object
@@ -796,21 +812,25 @@ as_jump.func <- function(x, model = NULL, in_filter = FALSE, ...) {
       # List of AST objects (multi-argument function)
       sapply(x$value, as_jump, model = model, ...)
     } else {
-      stop("Unsupported value type for func '", x$name, "': list with ", length(x$value), 
-           " elements, but elements are not all AST objects. ",
-           "Element classes: ", paste(sapply(x$value, function(v) paste(class(v), collapse="/")), collapse=", "))
+      stop(
+        "Unsupported value type for func '", x$name, "': list with ", length(x$value),
+        " elements, but elements are not all AST objects. ",
+        "Element classes: ", paste(sapply(x$value, function(v) paste(class(v), collapse = "/")), collapse = ", ")
+      )
     }
   } else {
-    stop("Unsupported value type for func '", x$name, "': ", paste(class(x$value), collapse=", "), 
-         ". Expected ast object or list of ast objects.")
+    stop(
+      "Unsupported value type for func '", x$name, "': ", paste(class(x$value), collapse = ", "),
+      ". Expected ast object or list of ast objects."
+    )
   }
   val_str <- paste(val, collapse = ", ")
 
   if (!is.null(x$index)) {
     idx <- as_jump(x$index, model = model, ...)
-    return(paste0(x$name, "(", idx, ", ", val_str, ")"))
+    paste0(x$name, "(", idx, ", ", val_str, ")")
   } else {
-    return(paste0(x$name, "(", val_str, ")"))
+    paste0(x$name, "(", val_str, ")")
   }
 }
 
@@ -820,17 +840,19 @@ as_jump.func <- function(x, model = NULL, in_filter = FALSE, ...) {
 #' @return Base set name (e.g., "REGION", "YEAR") or the original name if not found
 #' @keywords internal
 resolve_alias_to_set <- function(alias_name, model) {
-  if (is.null(model) || is.null(model$aliases)) return(alias_name)
-  
+  if (is.null(model) || is.null(model$aliases)) {
+    return(alias_name)
+  }
+
   for (alias_group in model$aliases) {
     if (alias_name %in% alias_group) {
       # First element is the base set name
       return(alias_group[1])
     }
   }
-  
+
   # Not found in aliases, return as-is (might already be a set name)
-  return(alias_name)
+  alias_name
 }
 
 #' Convert sum/prod with conditional indexing to JuMP syntax
@@ -842,80 +864,92 @@ as_jump_sum_prod <- function(x, model = NULL, ...) {
   # Handle sum/prod with when-based conditional indexing
   # GMPL: sum{c in comm: (tech,group,c) in mTechGroupComm}(expr)
   # JuMP: sum(expr for c in COMM if (tech, group, c) in mTechGroupComm)
-  
+
   if (!inherits(x$index, "when")) {
     # Fallback: simple index without condition
     # Need to generate proper "for var1 in SET1, var2 in SET2" syntax
     val <- as_jump(x$value, model = model, ...)
-    
+
     # Build iterator specifications
     if (inherits(x$index, "dims")) {
       # Multiple iterators
       iter_specs <- sapply(x$index, function(d) {
-        alias_name <- if (inherits(d, "symbol")) d$name 
-        else if (inherits(d, "mm_set")) d$name
-        else as.character(d)
-        
+        alias_name <- if (inherits(d, "symbol")) {
+          d$name
+        } else if (inherits(d, "mm_set")) {
+          d$name
+        } else {
+          as.character(d)
+        }
+
         # Apply index alias if available (for display)
         display_name <- alias_name
         if (!is.null(model) && !is.null(model$index_aliases) && alias_name %in% names(model$index_aliases)) {
           display_name <- model$index_aliases[[alias_name]]
         }
-        
+
         # Resolve to base set for iteration
         base_set <- resolve_alias_to_set(alias_name, model)
-        
+
         paste0(display_name, " in ", base_set)
       })
-      
+
       iter_str <- paste(iter_specs, collapse = ", ")
     } else {
       # Single iterator
-      alias_name <- if (inherits(x$index, "symbol")) x$index$name 
-      else if (inherits(x$index, "mm_set")) x$index$name
-      else as.character(x$index)
-      
+      alias_name <- if (inherits(x$index, "symbol")) {
+        x$index$name
+      } else if (inherits(x$index, "mm_set")) {
+        x$index$name
+      } else {
+        as.character(x$index)
+      }
+
       display_name <- alias_name
       if (!is.null(model) && !is.null(model$index_aliases) && alias_name %in% names(model$index_aliases)) {
         display_name <- model$index_aliases[[alias_name]]
       }
-      
+
       base_set <- resolve_alias_to_set(alias_name, model)
       iter_str <- paste0(display_name, " in ", base_set)
     }
-    
+
     return(paste0(x$name, "(", val, " for ", iter_str, ")"))
   }
-  
+
   idx_when <- x$index
-  iterator <- idx_when$then  # The set/symbol being iterated (e.g., comm or commp)
-  condition <- idx_when$condition  # The filter condition (e.g., mTechGroupComm)
-  
+  iterator <- idx_when$then # The set/symbol being iterated (e.g., comm or commp)
+  condition <- idx_when$condition # The filter condition (e.g., mTechGroupComm)
+
   # Process the value expression (which might be a when object for domain checks)
   val_expr <- as_jump(x$value, model = model, ...)
-  
+
   # Get iterator name - can be single or tuple of iterators
   if (inherits(iterator, "symbol") || inherits(iterator, "mm_set")) {
     # Single iterator
     iter_set_name <- iterator$name
-    
+
     # Use short alias if available (for display)
     iter_name <- iter_set_name
     if (!is.null(model) && !is.null(model$index_aliases) && iter_set_name %in% names(model$index_aliases)) {
       iter_name <- model$index_aliases[[iter_set_name]]
     }
-    
+
     # Resolve alias to base set for iteration
     iter_base_set <- resolve_alias_to_set(iter_set_name, model)
   } else if (inherits(iterator, "dims")) {
     # Multiple iterators as tuple: (year, timeslice) or (region, year)
     # Extract names from dims
     iter_set_names <- sapply(iterator, function(d) {
-      if (inherits(d, "symbol")) d$name
-      else if (inherits(d, "mm_set")) d$name
-      else as.character(d)
+      if (inherits(d, "symbol")) {
+        d$name
+      } else if (inherits(d, "mm_set")) {
+        d$name
+      } else {
+        as.character(d)
+      }
     })
-    
+
     # Apply index aliases
     iter_names <- sapply(iter_set_names, function(sn) {
       if (!is.null(model) && !is.null(model$index_aliases) && sn %in% names(model$index_aliases)) {
@@ -924,14 +958,14 @@ as_jump_sum_prod <- function(x, model = NULL, ...) {
         sn
       }
     })
-    
+
     # Check if mapping dimensions match iterator dimensions
     condition_dims <- if (inherits(condition, "mm_mapping") && !is.null(condition$dims)) {
       length(condition$dims)
     } else {
       0
     }
-    
+
     if (condition_dims == length(iter_names)) {
       # Tuple dimensions match mapping dimensions: iterate directly over mapping
       # e.g., for (r, y) in mvTotalCost
@@ -941,44 +975,48 @@ as_jump_sum_prod <- function(x, model = NULL, ...) {
       # Tuple dimensions < mapping dimensions: nested iteration with filter
       # e.g., for y in year for s in timeslice if (..., y, s) in mSupAva
       # Convert to nested for loops (handled later)
-      iter_name <- NULL  # Signal that we need nested loops
+      iter_name <- NULL # Signal that we need nested loops
       iter_base_set <- NULL
     }
   } else {
     iter_name <- as.character(iterator)
     iter_base_set <- iter_name
   }
-  
+
   # Build the filter condition from mapping
   if (inherits(iterator, "dims") && is.null(iter_name)) {
     # Nested iteration case: tuple dimensions < mapping dimensions
     # Generate nested for loops with filter
     # e.g., for y in year for s in timeslice if (sup, comm, region, y, s) in mSupAva
-    
+
     # Build nested for loops with aliases
     nested_loops <- paste(sapply(seq_along(iterator), function(i) {
       d <- iterator[[i]]
       d_set_name <- if (inherits(d, "symbol")) d$name else if (inherits(d, "mm_set")) d$name else as.character(d)
-      
+
       # Use short alias if available (for display)
       d_name <- d_set_name
       if (!is.null(model) && !is.null(model$index_aliases) && d_set_name %in% names(model$index_aliases)) {
         d_name <- model$index_aliases[[d_set_name]]
       }
-      
+
       # Resolve alias to base set
       base_set <- resolve_alias_to_set(d_set_name, model)
-      
+
       paste0("for ", d_name, " in ", base_set)
     }), collapse = " ")
-    
+
     # Build filter with all dimensions from mapping (using aliases)
     if (inherits(condition, "mm_mapping") && !is.null(condition$dims) && length(condition$dims) > 0) {
       dim_names <- sapply(condition$dims, function(d) {
-        set_name <- if (inherits(d, "symbol")) d$name 
-        else if (inherits(d, "mm_set")) d$name
-        else return(as.character(d))
-        
+        set_name <- if (inherits(d, "symbol")) {
+          d$name
+        } else if (inherits(d, "mm_set")) {
+          d$name
+        } else {
+          return(as.character(d))
+        }
+
         # Use alias if available
         if (!is.null(model) && !is.null(model$index_aliases) && set_name %in% names(model$index_aliases)) {
           return(model$index_aliases[[set_name]])
@@ -990,19 +1028,22 @@ as_jump_sum_prod <- function(x, model = NULL, ...) {
     } else {
       filter_str <- ""
     }
-    
+
     return(paste0(x$name, "(", val_expr, " ", nested_loops, filter_str, ")"))
-    
   } else if (inherits(iterator, "dims")) {
     # For tuple iterators matching mapping dimensions, no separate filter needed
     filter_str <- ""
   } else if (inherits(condition, "mm_mapping") && !is.null(condition$dims) && length(condition$dims) > 0) {
     # Single iterator with mapping condition: add filter (using aliases)
     dim_names <- sapply(condition$dims, function(d) {
-      set_name <- if (inherits(d, "symbol")) d$name 
-      else if (inherits(d, "mm_set")) d$name
-      else return(as.character(d))
-      
+      set_name <- if (inherits(d, "symbol")) {
+        d$name
+      } else if (inherits(d, "mm_set")) {
+        d$name
+      } else {
+        return(as.character(d))
+      }
+
       # Use alias if available
       if (!is.null(model) && !is.null(model$index_aliases) && set_name %in% names(model$index_aliases)) {
         return(model$index_aliases[[set_name]])
@@ -1018,7 +1059,7 @@ as_jump_sum_prod <- function(x, model = NULL, ...) {
     # No filter or simple condition
     filter_str <- ""
   }
-  
+
   # JuMP: sum(val for iter_name in base_set if condition)
   # Use iter_name as the variable, iter_base_set as the collection
   # Add init=1 for prod() to handle empty collections
@@ -1043,7 +1084,9 @@ convert_filter_with_haskey <- function(expr, model, ...) {
 #' @return A list of AST nodes, the factors of `node` in order; empty for `NULL`.
 #' @keywords internal
 collect_product_factors <- function(node) {
-  if (is.null(node)) return(list())
+  if (is.null(node)) {
+    return(list())
+  }
   if (inherits(node, "expression") && identical(node$op, "*")) {
     c(collect_product_factors(node$lhs), collect_product_factors(node$rhs))
   } else {
@@ -1073,10 +1116,14 @@ build_product_ast <- function(factors) {
 #' @keywords internal
 distribute_sum_product <- function(expr_node) {
   factors <- collect_product_factors(expr_node)
-  if (length(factors) == 0) return(NULL)
+  if (length(factors) == 0) {
+    return(NULL)
+  }
   sum_idx <- which(vapply(factors, function(f) inherits(f, "sum"), logical(1)))
   # Only handle the single-sum case to avoid creating multiple nested sums
-  if (length(sum_idx) != 1) return(NULL)
+  if (length(sum_idx) != 1) {
+    return(NULL)
+  }
   sum_node <- factors[[sum_idx]]
   other_factors <- factors[-sum_idx]
   if (length(other_factors) == 0) {
@@ -1093,7 +1140,7 @@ distribute_sum_product <- function(expr_node) {
 #' @keywords internal
 extract_parameters_from_expr <- function(node) {
   params <- list()
-  
+
   if (inherits(node, "mm_parameter")) {
     return(list(node))
   } else if (inherits(node, "expression")) {
@@ -1104,8 +1151,8 @@ extract_parameters_from_expr <- function(node) {
       params <- c(params, extract_parameters_from_expr(arg))
     }
   }
-  
-  return(params)
+
+  params
 }
 
 #' @export
@@ -1116,7 +1163,7 @@ as_jump.sum <- function(x, model = NULL, ...) {
     # JuMP: sum(value for i in set if condition)
     iter_vars <- x$index$then
     condition_expr <- x$index$condition
-    
+
     # Extract iterator variable name(s) and set
     if (inherits(iter_vars, "symbol")) {
       iter_name <- iter_vars$name
@@ -1137,12 +1184,12 @@ as_jump.sum <- function(x, model = NULL, ...) {
       # Multiple iterators - need tuple
       iter_names <- sapply(iter_vars, function(v) if (inherits(v, c("symbol", "mm_set"))) v$name else as.character(v))
       iter_name <- paste0("(", paste(iter_names, collapse = ", "), ")")
-      iter_set <- "???"  # Not clear what set for multiple iterators
+      iter_set <- "???" # Not clear what set for multiple iterators
     } else {
       iter_name <- as_jump(iter_vars, model = model, ...)
       iter_set <- iter_name
     }
-    
+
     # Condition becomes the filter - manually construct membership test
     if (inherits(condition_expr, "mm_mapping")) {
       # Mapping: convert dims to tuple and create membership test
@@ -1168,17 +1215,17 @@ as_jump.sum <- function(x, model = NULL, ...) {
     } else {
       filter_str <- ""
     }
-    
+
     # Convert value expression
     val_str <- as_jump(x$value, model = model, ...)
-    
+
     paste0("sum(", val_str, " for ", iter_name, " in ", iter_set, filter_str, ")")
   } else {
     # Simple sum without condition
     # x$index can be either:
     # 1. A dims object directly (e.g., dims with r=REGION, y=YEAR)
     # 2. A structured index with $then and $index fields
-    
+
     if (inherits(x$index, "dims")) {
       # Direct dims object - extract iterator variables and their sets
       idx_pairs <- character(0)
@@ -1214,17 +1261,17 @@ as_jump.sum <- function(x, model = NULL, ...) {
     } else {
       # Structured index
       idxs <- as_jump(x$index$then, model = model, ...)
-      idx  <- as_jump(x$index$index, model = model, ...)
+      idx <- as_jump(x$index$index, model = model, ...)
       idx_txt <- paste(idxs, collapse = ", ")
       idx_txt <- paste(idx_txt, "in", idx)
       # Build var_names mapping for single iterator case
       # Map Set Name -> Iterator Name (e.g., REGION -> r)
       sum_var_names <- character(0)
       if (is.character(idxs) && length(idxs) == 1 && is.character(idx)) {
-        sum_var_names[idx] <- idxs  # Changed: was sum_var_names[idxs] <- idx (backwards)
+        sum_var_names[idx] <- idxs # Changed: was sum_var_names[idxs] <- idx (backwards)
       }
     }
-    
+
     # Merge var_names from outer scope (passed in ...) with sum's own iterators
     # Sum iterators take precedence (shadow outer variables)
     dots <- list(...)
@@ -1234,13 +1281,13 @@ as_jump.sum <- function(x, model = NULL, ...) {
     # outer entries stay in the list: a symbol is recognised as an iterator by
     # appearing among the values (y in the body of a sum over yy).
     merged_var_names <- c(as.list(sum_var_names), as.list(outer_var_names))
-    
+
     # Remove var_names from dots to avoid duplication
     dots$var_names <- NULL
-    
+
     # Convert value expression, passing merged var_names for arithmetic context
     val <- do.call(as_jump, c(list(x$value, model = model, var_names = merged_var_names), dots))
-    
+
     paste0("sum(", val, " for ", idx_txt, ")")
   }
 }
@@ -1249,8 +1296,8 @@ as_jump.sum <- function(x, model = NULL, ...) {
 #' @method as_jump prod
 as_jump.prod <- function(x, model = NULL, ...) {
   idxs <- as_jump(x$index$then, model = model, ...)
-  idx  <- as_jump(x$index$index, model = model, ...)
-  val  <- as_jump(x$value, model = model, ...)
+  idx <- as_jump(x$index$index, model = model, ...)
+  val <- as_jump(x$value, model = model, ...)
 
   idx_txt <- paste(idxs, collapse = ", ")
   paste0("prod(", val, " for ", idx_txt, " in ", idx, "; init = 1)")
@@ -1261,7 +1308,7 @@ as_jump.prod <- function(x, model = NULL, ...) {
 as_jump.setmin <- function(x, model = NULL, ...) {
   # Convert GMPL min{i in SET} expr to Julia minimum(SET)
   # or minimum(expr for i in SET) if expression depends on iterator
-  
+
   # Check if value expression references the index variable
   if (inherits(x$index, "dims") && length(x$index) > 0) {
     # Extract iterator variable names and build var_names mapping
@@ -1280,29 +1327,29 @@ as_jump.setmin <- function(x, model = NULL, ...) {
         var_names_map[var_name] <- set_name
       }
     }
-    
+
     # Remove conflicting parameters from dots
     dots <- list(...)
     dots$var_names <- NULL
     dots$in_arithmetic <- NULL
-    
+
     # Special case: if value is a call to min() or max() with single argument, unwrap it
     # GMPL often has redundant min{i in SET} min(i) which should just be minimum(i for i in SET)
     value_expr <- x$value
-    if (inherits(value_expr, "call") && 
-        value_expr$name %in% c("min", "max") && 
-        length(value_expr$args) == 1) {
+    if (inherits(value_expr, "call") &&
+      value_expr$name %in% c("min", "max") &&
+      length(value_expr$args) == 1) {
       # Unwrap: use the argument directly
       value_expr <- value_expr$args[[1]]
     }
-    
+
     # Convert value expression with var_names and in_arithmetic context
     # This ensures symbols like 'yy' get converted to parse(Int, yy)
     value_str <- do.call(as_jump, c(list(value_expr, model = model, var_names = var_names_map, in_arithmetic = TRUE), dots))
-    
+
     # Check if value expression uses any iterator
     uses_iter <- any(sapply(iter_vars, function(v) grepl(paste0("\\b", v, "\\b"), value_str)))
-    
+
     if (uses_iter) {
       # Value depends on iterator: minimum(expr for i in SET)
       index_specs <- sapply(names(x$index), function(var_name) {
@@ -1339,7 +1386,7 @@ as_jump.setmin <- function(x, model = NULL, ...) {
 as_jump.setmax <- function(x, model = NULL, ...) {
   # Convert GMPL max{i in SET} expr to Julia maximum(SET)
   # or maximum(expr for i in SET) if expression depends on iterator
-  
+
   # Check if value expression references the index variable
   if (inherits(x$index, "dims") && length(x$index) > 0) {
     # Extract iterator variable names and build var_names mapping
@@ -1358,29 +1405,29 @@ as_jump.setmax <- function(x, model = NULL, ...) {
         var_names_map[var_name] <- set_name
       }
     }
-    
+
     # Remove conflicting parameters from dots
     dots <- list(...)
     dots$var_names <- NULL
     dots$in_arithmetic <- NULL
-    
+
     # Special case: if value is a call to min() or max() with single argument, unwrap it
     # GMPL often has redundant max{i in SET} max(i) which should just be maximum(i for i in SET)
     value_expr <- x$value
-    if (inherits(value_expr, "call") && 
-        value_expr$name %in% c("min", "max") && 
-        length(value_expr$args) == 1) {
+    if (inherits(value_expr, "call") &&
+      value_expr$name %in% c("min", "max") &&
+      length(value_expr$args) == 1) {
       # Unwrap: use the argument directly
       value_expr <- value_expr$args[[1]]
     }
-    
+
     # Convert value expression with var_names and in_arithmetic context
     # This ensures symbols like 'yy' get converted to parse(Int, yy)
     value_str <- do.call(as_jump, c(list(value_expr, model = model, var_names = var_names_map, in_arithmetic = TRUE), dots))
-    
+
     # Check if value expression uses any iterator
     uses_iter <- any(sapply(iter_vars, function(v) grepl(paste0("\\b", v, "\\b"), value_str)))
-    
+
     if (uses_iter) {
       # Value depends on iterator: maximum(expr for i in SET)
       index_specs <- sapply(names(x$index), function(var_name) {
@@ -1417,22 +1464,26 @@ as_jump.setmax <- function(x, model = NULL, ...) {
 as_jump.when <- function(x, model = NULL, var_names = NULL, ...) {
   then <- as_jump(x$then, model = model, var_names = var_names, ...)
   otherwise <- if (!is.null(x$otherwise)) as_jump(x$otherwise, model = model, var_names = var_names, ...) else "0"
-  
+
   # Check if condition is a mapping with dimensions (membership test)
   # or a parameter with dimensions (get check)
   if (inherits(x$condition, "mm_mapping") && !is.null(x$condition$dims) && length(x$condition$dims) > 0) {
     # Mapping membership test: (tuple) in mapping
     # Use var_names if provided (from equation context), otherwise use index aliases
     dim_names <- sapply(x$condition$dims, function(d) {
-      set_name <- if (inherits(d, "symbol")) d$name 
-      else if (inherits(d, "mm_set")) d$name
-      else return(as.character(d))
-      
+      set_name <- if (inherits(d, "symbol")) {
+        d$name
+      } else if (inherits(d, "mm_set")) {
+        d$name
+      } else {
+        return(as.character(d))
+      }
+
       # First check var_names mapping (for consistency with equation iterators)
       if (!is.null(var_names) && set_name %in% names(var_names)) {
         return(var_names[[set_name]])
       }
-      
+
       # Fallback to index alias if available
       if (!is.null(model) && !is.null(model$index_aliases) && set_name %in% names(model$index_aliases)) {
         return(model$index_aliases[[set_name]])
@@ -1445,15 +1496,19 @@ as_jump.when <- function(x, model = NULL, var_names = NULL, ...) {
     # Parameter check: use get() pattern instead of haskey
     # Use var_names if provided (from equation context), otherwise use index aliases
     dim_names <- sapply(x$condition$dims, function(d) {
-      set_name <- if (inherits(d, "symbol")) d$name 
-      else if (inherits(d, "mm_set")) d$name
-      else return(as.character(d))
-      
+      set_name <- if (inherits(d, "symbol")) {
+        d$name
+      } else if (inherits(d, "mm_set")) {
+        d$name
+      } else {
+        return(as.character(d))
+      }
+
       # First check var_names mapping (for consistency with equation iterators)
       if (!is.null(var_names) && set_name %in% names(var_names)) {
         return(var_names[[set_name]])
       }
-      
+
       # Fallback to index alias if available
       if (!is.null(model) && !is.null(model$index_aliases) && set_name %in% names(model$index_aliases)) {
         return(model$index_aliases[[set_name]])
@@ -1467,7 +1522,7 @@ as_jump.when <- function(x, model = NULL, var_names = NULL, ...) {
     # Generic condition (expression, etc.)
     cond_str <- as_jump(x$condition, model = model, var_names = var_names, ...)
   }
-  
+
   # Use if-end syntax for JuMP compatibility (works inside sum comprehensions)
   # Add newlines for readability and proper parsing
   paste0("(if ", cond_str, "\n        ", then, "\n    else\n        ", otherwise, "\n    end)")
@@ -1487,54 +1542,64 @@ as_jump.expression <- function(x, use_index_aliases = TRUE, in_filter = FALSE, i
   if (identical(x$op, "*")) {
     distributed_sum <- distribute_sum_product(x)
     if (!is.null(distributed_sum)) {
-      return(do.call(as_jump, c(list(distributed_sum,
-                                    use_index_aliases = use_index_aliases,
-                                    in_filter = in_filter,
-                                    in_arithmetic = in_arithmetic),
-                                dots)))
+      return(do.call(as_jump, c(
+        list(distributed_sum,
+          use_index_aliases = use_index_aliases,
+          in_filter = in_filter,
+          in_arithmetic = in_arithmetic
+        ),
+        dots
+      )))
     }
   }
 
   # Determine if operands are in arithmetic context
   is_arithmetic_op <- x$op %in% c("+", "-", "*", "/", "**", "^", "div", "mod")
   is_comparison_op <- x$op %in% c("GT", "LT", "GE", "LE", "EQ", "NE", "==", "!=", "<>", "=", ">", "<", ">=", "<=")
-  
+
   # For comparison and arithmetic operators, operands should not be in filter context
   # Comparison: already part of boolean expression
   # Arithmetic: need numeric values, not boolean haskey results
-  operand_in_filter <- if (x$op %in% c("GT", "LT", "GE", "LE", "EQ", "NE", "==", "!=", "<>", "=", 
-                                       "+", "-", "*", "/", "**", "^", "div", "mod")) {
+  operand_in_filter <- if (x$op %in% c(
+    "GT", "LT", "GE", "LE", "EQ", "NE", "==", "!=", "<>", "=",
+    "+", "-", "*", "/", "**", "^", "div", "mod"
+  )) {
     FALSE
   } else {
     in_filter
   }
-  
+
   # Pass in_arithmetic=TRUE for arithmetic operands AND comparison operands (need numeric conversion)
   operand_in_arithmetic <- is_arithmetic_op || is_comparison_op || in_arithmetic
-  
-  lhs <- do.call(as_jump, c(list(x$lhs, use_index_aliases = use_index_aliases,
-                                 in_filter = operand_in_filter,
-                                 in_arithmetic = operand_in_arithmetic), dots))
-  rhs <- do.call(as_jump, c(list(x$rhs, use_index_aliases = use_index_aliases,
-                                 in_filter = operand_in_filter,
-                                 in_arithmetic = operand_in_arithmetic), dots))
+
+  lhs <- do.call(as_jump, c(list(x$lhs,
+    use_index_aliases = use_index_aliases,
+    in_filter = operand_in_filter,
+    in_arithmetic = operand_in_arithmetic
+  ), dots))
+  rhs <- do.call(as_jump, c(list(x$rhs,
+    use_index_aliases = use_index_aliases,
+    in_filter = operand_in_filter,
+    in_arithmetic = operand_in_arithmetic
+  ), dots))
   op <- x$op
 
   # Convert operators to Julia syntax
   op <- switch(op,
-               "==" = "==",
-               "!=" = "!=",
-               "<>" = "!=",
-               "and" = "&&",
-               "or" = "||",
-               "**" = "^",  # Exponentiation
-               "GT" = ">",  # GAMS greater than
-               "LT" = "<",  # GAMS less than
-               "GE" = ">=", # GAMS greater or equal
-               "LE" = "<=", # GAMS less or equal
-               "=" = "==",  # GAMS assignment in filter context becomes comparison
-               op)
-  
+    "==" = "==",
+    "!=" = "!=",
+    "<>" = "!=",
+    "and" = "&&",
+    "or" = "||",
+    "**" = "^", # Exponentiation
+    "GT" = ">", # GAMS greater than
+    "LT" = "<", # GAMS less than
+    "GE" = ">=", # GAMS greater or equal
+    "LE" = "<=", # GAMS less or equal
+    "=" = "==", # GAMS assignment in filter context becomes comparison
+    op
+  )
+
   # Special handling for ord/card patterns in filter context
   # Replace all occurrences of markers with appropriate Julia expressions
   if (in_filter) {
@@ -1546,15 +1611,15 @@ as_jump.expression <- function(x, use_index_aliases = TRUE, in_filter = FALSE, i
       result <- gsub("__ORD__(.+)__IN__(.+)__ (?:==|=) __CARD__\\2__", "\\1 == last(\\2)", result, perl = TRUE)
       return(result)
     }
-    
+
     # Pattern 3: ord(x) > 1 -> findfirst(==(x), SET) > 1
     # Pattern 4: ord(x) = 1 -> x == first(SET)
     # Pattern 5: ord(x) < card(SET) -> findfirst(==(x), SET) < length(SET)
-    
+
     # Replace __ORD__var__IN__SET__ with findfirst(==(var), SET)
     lhs <- gsub("__ORD__(.+)__IN__(.+)__", "findfirst(==(\\1), \\2)", lhs)
     rhs <- gsub("__ORD__(.+)__IN__(.+)__", "findfirst(==(\\1), \\2)", rhs)
-    
+
     # Replace __CARD__SET__ with length(SET)
     lhs <- gsub("__CARD__(.+)__", "length(\\1)", lhs)
     rhs <- gsub("__CARD__(.+)__", "length(\\1)", rhs)
@@ -1571,33 +1636,43 @@ as_jump.expression <- function(x, use_index_aliases = TRUE, in_filter = FALSE, i
 #' @method as_jump mm_equation
 as_jump.mm_equation <- function(x, model = NULL, ...) {
   eqname <- x$name
-  
+
   # Handle indexing and domain - do this BEFORE converting LHS/RHS
   if (!is.null(x$dims) && length(x$dims) > 0) {
     # Get domain dimension names (which may include aliases like 'dst', 'src')
     # These are the names specified in the equation's domain
     if (!is.null(x$domain) && !is.null(x$domain$dims) && length(x$domain$dims) > 0) {
       domain_dim_names <- sapply(x$domain$dims, function(d) {
-        if (inherits(d, "symbol")) d$name 
-        else if (inherits(d, "mm_set")) d$name
-        else if (is.character(d)) d
-        else as.character(d)
+        if (inherits(d, "symbol")) {
+          d$name
+        } else if (inherits(d, "mm_set")) {
+          d$name
+        } else if (is.character(d)) {
+          d
+        } else {
+          as.character(d)
+        }
       })
     } else {
       # No domain - use base set names from dims
       domain_dim_names <- sapply(x$dims, function(d) {
-        if (inherits(d, "symbol")) d$name 
-        else if (inherits(d, "mm_set")) d$name
-        else if (is.character(d)) d
-        else as.character(d)
+        if (inherits(d, "symbol")) {
+          d$name
+        } else if (inherits(d, "mm_set")) {
+          d$name
+        } else if (is.character(d)) {
+          d
+        } else {
+          as.character(d)
+        }
       })
     }
-    
+
     # Apply index_aliases to domain names to get short iterator names for constraint header
     # Prioritize equation-specific dims_index_aliases over model-wide index_aliases
     iter_var_names <- character(length(domain_dim_names))
     used_names <- character(0)
-    
+
     # Check if equation has dims_index_aliases (equation-specific iterator names)
     if (!is.null(x$dims_index_aliases) && length(x$dims_index_aliases) > 0) {
       # Use equation-specific dims_index_aliases directly
@@ -1616,11 +1691,11 @@ as_jump.mm_equation <- function(x, model = NULL, ...) {
       # Fallback to model-wide index_aliases with duplicate handling
       for (i in seq_along(domain_dim_names)) {
         dim_name <- domain_dim_names[i]
-        
+
         # Determine the base set for this dimension
         base_set <- NULL
         candidate_name <- NULL
-        
+
         if (!is.null(model$index_aliases) && dim_name %in% names(model$index_aliases)) {
           # dim_name is a base set name
           base_set <- dim_name
@@ -1629,20 +1704,20 @@ as_jump.mm_equation <- function(x, model = NULL, ...) {
           # dim_name might be an alias - find which set it belongs to
           for (alias_group in model$aliases) {
             if (dim_name %in% alias_group) {
-              base_set <- alias_group[1]  # First element is the base set name
-              candidate_name <- dim_name  # Use the alias as-is initially
+              base_set <- alias_group[1] # First element is the base set name
+              candidate_name <- dim_name # Use the alias as-is initially
               break
             }
           }
         }
-        
+
         if (is.null(base_set)) {
           stop(sprintf(
             "Equation '%s': dimension '%s' is not a known set or alias.\n  Add it to index_aliases or define as alias in GAMS.",
             eqname, dim_name
           ))
         }
-        
+
         # Check if candidate_name is already used (duplicate dimension)
         if (candidate_name %in% used_names) {
           # Find the alias group for this base set
@@ -1655,31 +1730,31 @@ as_jump.mm_equation <- function(x, model = NULL, ...) {
               }
             }
           }
-          
+
           if (is.null(alias_group) || length(alias_group) < 2) {
             stop(sprintf(
               "Equation '%s': dimension '%s' appears multiple times, but no additional aliases are defined.\n  Define additional aliases in GAMS: alias(%s, %s2, %s3, ...);",
               eqname, base_set, base_set, candidate_name, candidate_name
             ))
           }
-          
+
           # Find the first unused alias in the group (excluding base set name)
           available_aliases <- setdiff(alias_group, c(base_set, used_names))
           if (length(available_aliases) == 0) {
             stop(sprintf(
               "Equation '%s': dimension '%s' appears too many times. Available aliases: %s\n  Define more aliases in GAMS.",
-              eqname, base_set, paste(alias_group, collapse=", ")
+              eqname, base_set, paste(alias_group, collapse = ", ")
             ))
           }
-          
+
           candidate_name <- available_aliases[1]
         }
-        
+
         iter_var_names[i] <- candidate_name
         used_names <- c(used_names, candidate_name)
       }
     }
-    
+
     # Build name_map for symbol renaming in equation body
     # Priority: equation-specific dims_index_aliases > model-wide index_aliases
     if (!is.null(x$dims_index_aliases) && length(x$dims_index_aliases) > 0) {
@@ -1691,24 +1766,26 @@ as_jump.mm_equation <- function(x, model = NULL, ...) {
     } else {
       name_map <- list()
     }
-    
+
     # Add explicit mappings for each dimension to its iterator name
     # This ensures symbols in the equation body use the correct iterator variables
     for (i in seq_along(domain_dim_names)) {
       dim_name <- domain_dim_names[i]
       iter_name <- iter_var_names[i]
-      
+
       # Add to name_map if not already present
       if (!dim_name %in% names(name_map)) {
         name_map[[dim_name]] <- iter_name
       }
     }
-    
+
     # Rename symbols in LHS and RHS to match iterator names
     # protected_names: names that should NOT be renamed (local iterators from nested sum/prod)
     rename_symbols_in_ast <- function(node, name_map, model, protected_names = character(0)) {
-      if (is.null(node)) return(node)
-      
+      if (is.null(node)) {
+        return(node)
+      }
+
       # If node has dims, rename the symbols in dims to use iterator names
       if (!is.null(node$dims) && length(node$dims) > 0) {
         dims_obj <- normalize_symbol_dims(node$dims)
@@ -1726,7 +1803,7 @@ as_jump.mm_equation <- function(x, model = NULL, ...) {
         }
         node$dims <- dims_obj
       }
-      
+
       # Recursively process child nodes for ALL node types
       if (inherits(node, "expression")) {
         node$lhs <- rename_symbols_in_ast(node$lhs, name_map, model, protected_names)
@@ -1737,7 +1814,7 @@ as_jump.mm_equation <- function(x, model = NULL, ...) {
         if (tolower(node$name) %in% c("sum", "prod") && !is.null(node$index) && inherits(node$index, "when")) {
           # Extract iterator set names from when$then
           iter_vars <- node$index$then
-          
+
           if (inherits(iter_vars, "symbol") || inherits(iter_vars, "mm_set")) {
             # Single iterator: add it and all its aliases to protected list
             set_name <- iter_vars$name
@@ -1751,14 +1828,17 @@ as_jump.mm_equation <- function(x, model = NULL, ...) {
                 }
               }
             }
-            
           } else if (inherits(iter_vars, "dims") || is.list(iter_vars)) {
             # Multiple iterators: add each and their aliases
             for (v in iter_vars) {
-              set_name <- if (inherits(v, "symbol")) v$name
-              else if (inherits(v, "mm_set")) v$name
-              else as.character(v)
-              
+              set_name <- if (inherits(v, "symbol")) {
+                v$name
+              } else if (inherits(v, "mm_set")) {
+                v$name
+              } else {
+                as.character(v)
+              }
+
               local_protected <- c(local_protected, set_name)
               # Add all aliases
               if (!is.null(model$aliases)) {
@@ -1772,10 +1852,10 @@ as_jump.mm_equation <- function(x, model = NULL, ...) {
             }
           }
         }
-        
+
         # Rename in the aggregation body with protected names
         node$value <- rename_symbols_in_ast(node$value, name_map, model, local_protected)
-        
+
         # Rename in the index/condition (these reference outer scope, use original protected list)
         if (!is.null(node$index)) {
           node$index <- rename_symbols_in_ast(node$index, name_map, model, protected_names)
@@ -1786,7 +1866,7 @@ as_jump.mm_equation <- function(x, model = NULL, ...) {
         if (!is.null(node$index) && inherits(node$index, "when")) {
           # Extract iterator set names from when$then
           iter_vars <- node$index$then
-          
+
           if (inherits(iter_vars, "symbol") || inherits(iter_vars, "mm_set")) {
             # Single iterator: add it and all its aliases to protected list
             set_name <- iter_vars$name
@@ -1800,14 +1880,17 @@ as_jump.mm_equation <- function(x, model = NULL, ...) {
                 }
               }
             }
-            
           } else if (inherits(iter_vars, "dims") || is.list(iter_vars)) {
             # Multiple iterators: add each and their aliases
             for (v in iter_vars) {
-              set_name <- if (inherits(v, "symbol")) v$name
-              else if (inherits(v, "mm_set")) v$name
-              else as.character(v)
-              
+              set_name <- if (inherits(v, "symbol")) {
+                v$name
+              } else if (inherits(v, "mm_set")) {
+                v$name
+              } else {
+                as.character(v)
+              }
+
               local_protected <- c(local_protected, set_name)
               # Add all aliases
               if (!is.null(model$aliases)) {
@@ -1820,7 +1903,7 @@ as_jump.mm_equation <- function(x, model = NULL, ...) {
               }
             }
           }
-          
+
           # Rename the when node specially:
           # - then part (iterator set) uses outer scope
           # - condition part (filter) uses local_protected to preserve iterator variable
@@ -1834,7 +1917,7 @@ as_jump.mm_equation <- function(x, model = NULL, ...) {
           # No when node, just rename the index normally
           node$index <- rename_symbols_in_ast(node$index, name_map, model, protected_names)
         }
-        
+
         # Rename in the value with protected names
         if (!is.null(node$value)) {
           node$value <- rename_symbols_in_ast(node$value, name_map, model, local_protected)
@@ -1849,15 +1932,15 @@ as_jump.mm_equation <- function(x, model = NULL, ...) {
       }
       # Note: variable, parameter, and mapping nodes are leaf nodes with dims already processed above
       # No further recursion needed for these - dims have been renamed
-      
+
       node
     }
-    
+
     # Rename symbols in LHS and RHS to use iterator variables, then convert to Julia
     # Pass a list of local iterators that should NOT be renamed (from nested sum/prod)
     lhs_renamed <- rename_symbols_in_ast(x$lhs, name_map, model, protected_names = character(0))
     rhs_renamed <- rename_symbols_in_ast(x$rhs, name_map, model, protected_names = character(0))
-    
+
     # Create var_names mapping (iterator variable -> set name) for arithmetic operations
     # This is the inverse of name_map (set name -> iterator variable)
     if (length(name_map)) {
@@ -1865,7 +1948,7 @@ as_jump.mm_equation <- function(x, model = NULL, ...) {
     } else {
       var_names_for_arithmetic <- character(0)
     }
-    
+
     lhs <- as_jump(lhs_renamed, model = model, var_names = var_names_for_arithmetic, ...)
     rhs <- as_jump(rhs_renamed, model = model, var_names = var_names_for_arithmetic, ...)
   } else {
@@ -1875,24 +1958,25 @@ as_jump.mm_equation <- function(x, model = NULL, ...) {
   }
 
   rel <- switch(x$relation,
-                "==" = "==",
-                "<=" = "<=",
-                ">=" = ">=",
-                stop("Unsupported relation: ", x$relation))
+    "==" = "==",
+    "<=" = "<=",
+    ">=" = ">=",
+    stop("Unsupported relation: ", x$relation)
+  )
 
   constraint_expr <- paste(lhs, rel, rhs)
-  
+
   # Handle indexing and domain
   if (!is.null(x$dims) && length(x$dims) > 0) {
     # iter_var_names, dim_set_names, and name_map are already computed above
-    
+
     if (!is.null(x$domain)) {
       # Check if domain is a mapping or a boolean expression
       if (inherits(x$domain, "mm_mapping")) {
         # Domain is a mapping: use JuMP's inline tuple unpacking
         # @constraint(model, eqName[(vars...) in mapping], ...)
         domain_name <- x$domain$name
-        
+
         paste0(
           "@constraint(\n    model,\n    ",
           eqname, "[(", paste(iter_var_names, collapse = ", "), ") in ", domain_name, "],\n    ",
@@ -1902,21 +1986,21 @@ as_jump.mm_equation <- function(x, model = NULL, ...) {
       } else {
         # Domain is a boolean expression: use as filter condition
         # @constraint(model, eqName[var1 in SET1, var2 in SET2; condition], ...)
-        
+
         # Build iterator specifications using iter_var_names and domain_dim_names
         iter_specs <- sapply(seq_along(domain_dim_names), function(i) {
           var_name <- iter_var_names[i]
           dim_name <- domain_dim_names[i]
-          
+
           # Resolve to base set for iteration
           base_set <- resolve_alias_to_set(dim_name, model)
-          
+
           paste0(var_name, " in ", base_set)
         })
-        
+
         # Rename symbols in domain to match iterators (reuse function and name_map from above)
         domain_renamed <- rename_symbols_in_ast(x$domain, name_map, model, protected_names = character(0))
-        
+
         # Create var_names mapping (iterator variable -> set name) for arithmetic operations in domain
         # This is the inverse of name_map (set name -> iterator variable)
         # This allows arithmetic expressions like "y + param[r,s] - 1" to parse y as integer
@@ -1925,32 +2009,34 @@ as_jump.mm_equation <- function(x, model = NULL, ...) {
         } else {
           var_names_for_domain <- character(0)
         }
-        
+
         # Convert domain expression to Julia boolean condition
         # Pass var_names=var_names_for_domain to enable parse(Int, ...) for iterator variables in arithmetic
         # Set in_filter=TRUE so parameters use get() with default 0 for sparse data
-        
+
         # IMPORTANT: Domain conditions should ALWAYS evaluate the actual condition expression,
         # not just check key existence. The use_haskey mode is ONLY for constraint body expressions
         # to handle sparse data access, but constraint filter conditions must always evaluate
         # the comparison (e.g., AvailabilityFactor[r,t,y] < 1 must check the VALUE, not just existence).
-        # 
+        #
         # Using haskey() for domain conditions causes wrong constraints to be generated:
         # - Constraints are generated for keys that exist even when condition is false
         # - Constraints are NOT generated for keys that don't exist even when default would satisfy condition
         #
         # Therefore, ALWAYS use use_haskey=FALSE for domain conditions regardless of global setting
-        
+
         # Remove use_haskey from ... to avoid duplicate argument error
         extra_args <- list(...)
         extra_args$use_haskey <- NULL
-        
+
         domain_condition <- do.call(as_jump, c(
-          list(x = domain_renamed, model = model, var_names = var_names_for_domain, 
-               use_index_aliases = FALSE, in_filter = TRUE, use_haskey = FALSE),
+          list(
+            x = domain_renamed, model = model, var_names = var_names_for_domain,
+            use_index_aliases = FALSE, in_filter = TRUE, use_haskey = FALSE
+          ),
           extra_args
         ))
-        
+
         paste0(
           "@constraint(\n    model,\n    ",
           eqname, "[", paste(iter_specs, collapse = ", "), "; ", domain_condition, "],\n    ",
@@ -1964,13 +2050,13 @@ as_jump.mm_equation <- function(x, model = NULL, ...) {
       iter_specs <- sapply(seq_along(domain_dim_names), function(i) {
         var_name <- iter_var_names[i]
         dim_name <- domain_dim_names[i]
-        
+
         # Resolve to base set for iteration
         base_set <- resolve_alias_to_set(dim_name, model)
-        
+
         paste0(var_name, " in ", base_set)
       })
-      
+
       paste0(
         "@constraint(\n    model,\n    ",
         eqname, "[", paste(iter_specs, collapse = ", "), "],\n    ",
@@ -1988,5 +2074,3 @@ as_jump.mm_equation <- function(x, model = NULL, ...) {
     )
   }
 }
-
-

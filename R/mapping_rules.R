@@ -32,10 +32,14 @@
 #' @export
 #' @examples
 #' pf <- data.frame(tech = c("coal", "wind"), frame = c("ANNUAL", "HOUR"))
-#' fs <- data.frame(frame = c("ANNUAL", "HOUR", "HOUR"),
-#'                  slice = c("y", "h1", "h2"))
-#' r <- mapping_rule(of = c("pf", "fs"), tables = list(pf = pf, fs = fs),
-#'                   cols = c("tech", "slice"))
+#' fs <- data.frame(
+#'   frame = c("ANNUAL", "HOUR", "HOUR"),
+#'   slice = c("y", "h1", "h2")
+#' )
+#' r <- mapping_rule(
+#'   of = c("pf", "fs"), tables = list(pf = pf, fs = fs),
+#'   cols = c("tech", "slice")
+#' )
 #' m <- new_mapping("mTechSlice", dims = c("tech", "slice"), rule = r)
 #' materialise_rule(list(), r)
 mapping_rule <- function(of, gate = NULL, minus = NULL, tables = NULL, cols = NULL) {
@@ -84,7 +88,9 @@ print.mm_rule <- function(x, ...) {
 #' @noRd
 .rule_leaf <- function(model, rule, nm) {
   t <- rule$tables[[nm]]
-  if (!is.null(t)) return(data.table::as.data.table(t))
+  if (!is.null(t)) {
+    return(data.table::as.data.table(t))
+  }
   if (!is.null(model$mappings[[nm]])) {
     if (!is.null(model$mappings[[nm]]$rule) && !NROW(model$mappings[[nm]]$data)) {
       # a rule of a rule: its own enumeration
@@ -105,7 +111,8 @@ print.mm_rule <- function(x, ...) {
     return(data.table::setDT(stats::setNames(list(as.character(mem %||% character())), nm)))
   }
   stop("mapping rule: '", nm, "' is neither an embedded table nor a mapping or set of the model.",
-       call. = FALSE)
+    call. = FALSE
+  )
 }
 
 #' Evaluate a rule over its leaves
@@ -119,7 +126,10 @@ print.mm_rule <- function(x, ...) {
   out <- NULL
   for (nm in rule$of) {
     t <- leaf(nm)
-    if (is.null(out)) { out <- t; next }
+    if (is.null(out)) {
+      out <- t
+      next
+    }
     shared <- intersect(names(out), names(t))
     if (length(shared)) {
       out <- merge(out, t, by = shared, allow.cartesian = TRUE, sort = FALSE)
@@ -147,7 +157,8 @@ print.mm_rule <- function(x, ...) {
   miss <- setdiff(rule$cols, names(out))
   if (length(miss)) {
     stop("mapping rule: column(s) ", paste(miss, collapse = ", "), " are in none of the joined tables.",
-         call. = FALSE)
+      call. = FALSE
+    )
   }
   out <- out[, rule$cols, with = FALSE]
   if (ncol(out) < length(rule$cols) || anyDuplicated(names(out))) stop("mapping rule: ambiguous columns.", call. = FALSE)
@@ -184,7 +195,9 @@ materialise_rule <- function(model, rule) {
 rule_tuples_coded <- function(model, rule, codes) {
   key <- paste0(rule$hash, "|", paste(.rule_leaf_ids(model, rule), collapse = "|"))
   hit <- codes$rules[[key]]
-  if (!is.null(hit)) return(hit)
+  if (!is.null(hit)) {
+    return(hit)
+  }
   hidden <- .mx_new_codes()
   leaf <- function(nm) {
     t <- .rule_leaf(model, rule, nm)
@@ -209,10 +222,16 @@ rule_tuples_coded <- function(model, rule, codes) {
 .rule_leaf_ids <- function(model, rule) {
   vapply(setdiff(.rule_leaves(rule), names(rule$tables)), function(nm) {
     obj <- model$mappings[[nm]] %||% model$sets[[nm]]
-    if (is.null(obj)) return(nm)
-    if (!is.null(obj$rule)) return(paste0(nm, "@", obj$rule$hash))
+    if (is.null(obj)) {
+      return(nm)
+    }
+    if (!is.null(obj$rule)) {
+      return(paste0(nm, "@", obj$rule$hash))
+    }
     d <- obj$data
-    if (!is.null(d)) return(paste0(nm, "#", NROW(d), ":", rlang::hash(d)))
+    if (!is.null(d)) {
+      return(paste0(nm, "#", NROW(d), ":", rlang::hash(d)))
+    }
     paste0(nm, "~", .data_memo_key(obj, get_data_path(obj, model$base_path)))
   }, character(1), USE.NAMES = FALSE)
 }
@@ -232,8 +251,12 @@ rule_tuples_coded <- function(model, rule, codes) {
 #' @noRd
 .mapping_data <- function(model, name) {
   m <- model$mappings[[name]]
-  if (is.null(m)) return(NULL)
-  if (NROW(m$data) > 0 || is.null(m$rule)) return(m$data)
+  if (is.null(m)) {
+    return(NULL)
+  }
+  if (NROW(m$data) > 0 || is.null(m$rule)) {
+    return(m$data)
+  }
   get_data(model, name, type = "mapping")
 }
 
@@ -241,8 +264,10 @@ rule_tuples_coded <- function(model, rule, codes) {
 #' @keywords internal
 #' @noRd
 .rule_write <- function(rule, file) {
-  payload <- list(of = rule$of, gate = rule$gate, minus = rule$minus, cols = rule$cols,
-                  tables = rule$tables, hash = rule$hash)
+  payload <- list(
+    of = rule$of, gate = rule$gate, minus = rule$minus, cols = rule$cols,
+    tables = rule$tables, hash = rule$hash
+  )
   jsonlite::write_json(payload, file, dataframe = "columns", auto_unbox = FALSE, pretty = TRUE, null = "null")
 }
 
@@ -250,7 +275,9 @@ rule_tuples_coded <- function(model, rule, codes) {
   p <- jsonlite::read_json(file, simplifyVector = TRUE)
   tables <- p$tables
   if (!length(tables)) tables <- NULL else tables <- lapply(tables, function(t) as.data.frame(t, stringsAsFactors = FALSE))
-  mapping_rule(of = as.character(p$of), gate = as.character(p$gate %||% character()),
-               minus = as.character(p$minus %||% character()), tables = tables,
-               cols = as.character(p$cols))
+  mapping_rule(
+    of = as.character(p$of), gate = as.character(p$gate %||% character()),
+    minus = as.character(p$minus %||% character()), tables = tables,
+    cols = as.character(p$cols)
+  )
 }

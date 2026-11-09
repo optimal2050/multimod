@@ -3,7 +3,7 @@
 #' @description
 #' These functions manage solver executable paths for multimod. Configuration
 #' can be set via R options, environment variables, or a YAML config file.
-#' 
+#'
 #' **Priority order** (highest to lowest):
 #' 1. R option: `getOption("multimod.<solver>_path")`
 #' 2. Environment variable: `MULTIMOD_<SOLVER>`
@@ -39,7 +39,8 @@
 #' # write a configuration file, here to a temporary location
 #' if (requireNamespace("yaml", quietly = TRUE)) {
 #'   f <- multimod_config_write(list(julia = list(path = "julia")),
-#'                              file = tempfile(fileext = ".yml"))
+#'     file = tempfile(fileext = ".yml")
+#'   )
 #'   readLines(f)
 #' }
 #'
@@ -53,28 +54,28 @@
 #' set_multimod_python("C:/Python310/python.exe")
 #' set_multimod_julia("C:/Julia-1.10/bin/julia.exe")
 #' set_multimod_glpsol("C:/glpk/bin/glpsol.exe")
-#' 
+#'
 #' # Get configured paths
 #' get_multimod_python()
 #' get_multimod_julia()
 #' get_multimod_glpsol()
-#' 
+#'
 #' # Set in .Rprofile for persistence across sessions:
 #' options(
 #'   multimod.python_path = "C:/Users/me/.conda/envs/multimod/python.exe",
 #'   multimod.julia_path = "C:/Julia-1.10/bin/julia.exe"
 #' )
-#' 
+#'
 #' # Or use environment variables (system-wide):
 #' Sys.setenv(MULTIMOD_PYTHON = "C:/Python310/python.exe")
-#' 
+#'
 #' # Or a YAML file, here the user-level one multimod_config_read() finds:
 #' multimod_config_write(list(
 #'   python = list(path = "C:/Python310/python.exe", env_name = "multimod"),
 #'   julia = list(path = "C:/Julia-1.10/bin/julia.exe"),
 #'   glpsol = list(path = "C:/glpk/bin/glpsol.exe")
 #' ), file = file.path(tools::R_user_dir("multimod", "config"), "config.yml"))
-#' 
+#'
 #' # View current configuration
 #' multimod_config_show()
 #' }
@@ -100,24 +101,33 @@ set_multimod_python <- function(path = NULL) {
 get_multimod_python <- function(env_name = "multimod") {
   # 1. Check R option
   opt_path <- getOption("multimod.python_path")
-  if (!is.null(opt_path) && nzchar(opt_path)) return(normalizePath(opt_path, mustWork = FALSE))
-  
+  if (!is.null(opt_path) && nzchar(opt_path)) {
+    return(normalizePath(opt_path, mustWork = FALSE))
+  }
+
   # 2. Check environment variable
   env_path <- Sys.getenv("MULTIMOD_PYTHON", unset = "")
-  if (nzchar(env_path)) return(normalizePath(env_path, mustWork = FALSE))
-  
+  if (nzchar(env_path)) {
+    return(normalizePath(env_path, mustWork = FALSE))
+  }
+
   # 3. Check YAML config
   yaml_path <- .get_config_value("python", "path")
-  if (!is.null(yaml_path)) return(normalizePath(yaml_path, mustWork = FALSE))
-  
+  if (!is.null(yaml_path)) {
+    return(normalizePath(yaml_path, mustWork = FALSE))
+  }
+
   # 4. The conda environment `env_name`, when a conda binary exists. Only
   #    looked up: Python is not started and nothing is installed.
   if (!is.null(env_name) && nzchar(env_name) &&
-      requireNamespace("reticulate", quietly = TRUE)) {
+    requireNamespace("reticulate", quietly = TRUE)) {
     py <- tryCatch(
       reticulate::conda_python(env_name, conda = reticulate::conda_binary()),
-      error = function(e) NULL)
-    if (length(py) == 1L && !is.na(py) && file.exists(py)) return(normalizePath(py))
+      error = function(e) NULL
+    )
+    if (length(py) == 1L && !is.na(py) && file.exists(py)) {
+      return(normalizePath(py))
+    }
   }
 
   # 5. Fall back to system python
@@ -141,23 +151,33 @@ get_multimod_python <- function(env_name = "multimod") {
 mm_check_python <- function(env_name = "multimod", packages = "pyomo",
                             python = NULL) {
   path <- python %||% get_multimod_python(env_name = env_name)
-  out <- list(ok = FALSE, path = path, version = NA_character_,
-              missing = as.character(packages))
-  if (is.null(path) || is.na(path) || !nzchar(path)) return(out)
+  out <- list(
+    ok = FALSE, path = path, version = NA_character_,
+    missing = as.character(packages)
+  )
+  if (is.null(path) || is.na(path) || !nzchar(path)) {
+    return(out)
+  }
 
   ver <- tryCatch(
     suppressWarnings(system2(path, c("-c", shQuote("import sys; print(sys.version.split()[0])")),
-                             stdout = TRUE, stderr = FALSE)),
-    error = function(e) character(0))
-  if (length(ver) == 0 || !grepl("^[0-9]", ver[1])) return(out)
+      stdout = TRUE, stderr = FALSE
+    )),
+    error = function(e) character(0)
+  )
+  if (length(ver) == 0 || !grepl("^[0-9]", ver[1])) {
+    return(out)
+  }
   out$version <- ver[1]
 
   missing <- character(0)
   for (p in packages) {
     probe <- tryCatch(
       suppressWarnings(system2(path, c("-c", shQuote(paste0("import ", p))),
-                               stdout = TRUE, stderr = TRUE)),
-      error = function(e) "error")
+        stdout = TRUE, stderr = TRUE
+      )),
+      error = function(e) "error"
+    )
     if (!is.null(attr(probe, "status")) && attr(probe, "status") != 0) {
       missing <- c(missing, p)
     }
@@ -184,16 +204,22 @@ set_multimod_julia <- function(path = NULL) {
 get_multimod_julia <- function() {
   # 1. Check R option
   opt_path <- getOption("multimod.julia_path")
-  if (!is.null(opt_path) && nzchar(opt_path)) return(normalizePath(opt_path, mustWork = FALSE))
-  
+  if (!is.null(opt_path) && nzchar(opt_path)) {
+    return(normalizePath(opt_path, mustWork = FALSE))
+  }
+
   # 2. Check environment variable
   env_path <- Sys.getenv("MULTIMOD_JULIA", unset = "")
-  if (nzchar(env_path)) return(normalizePath(env_path, mustWork = FALSE))
-  
+  if (nzchar(env_path)) {
+    return(normalizePath(env_path, mustWork = FALSE))
+  }
+
   # 3. Check YAML config
   yaml_path <- .get_config_value("julia", "path")
-  if (!is.null(yaml_path)) return(normalizePath(yaml_path, mustWork = FALSE))
-  
+  if (!is.null(yaml_path)) {
+    return(normalizePath(yaml_path, mustWork = FALSE))
+  }
+
   # 4. Fall back to system julia
   "julia"
 }
@@ -215,22 +241,30 @@ set_multimod_glpsol <- function(path = NULL) {
 get_multimod_glpsol <- function() {
   # 1. Check R option
   opt_path <- getOption("multimod.glpsol_path")
-  if (!is.null(opt_path) && nzchar(opt_path)) return(normalizePath(opt_path, mustWork = FALSE))
-  
+  if (!is.null(opt_path) && nzchar(opt_path)) {
+    return(normalizePath(opt_path, mustWork = FALSE))
+  }
+
   # 2. Check environment variable
   env_path <- Sys.getenv("MULTIMOD_GLPSOL", unset = "")
-  if (nzchar(env_path)) return(normalizePath(env_path, mustWork = FALSE))
-  
+  if (nzchar(env_path)) {
+    return(normalizePath(env_path, mustWork = FALSE))
+  }
+
   # 3. Check YAML config
   yaml_path <- .get_config_value("glpsol", "path")
-  if (!is.null(yaml_path)) return(normalizePath(yaml_path, mustWork = FALSE))
-  
+  if (!is.null(yaml_path)) {
+    return(normalizePath(yaml_path, mustWork = FALSE))
+  }
+
   # 4. The glpsol package, which ships the executable itself. Preferred over
   #    the ambient copies below: its version is known and it needs no separate
   #    GLPK installation.
   if (requireNamespace("glpsol", quietly = TRUE)) {
     hit <- tryCatch(glpsol::glpsol_path(), error = function(e) NULL)
-    if (!is.null(hit) && nzchar(hit) && file.exists(hit)) return(hit)
+    if (!is.null(hit) && nzchar(hit) && file.exists(hit)) {
+      return(hit)
+    }
   }
 
   # 5. The conda environment, whose bin directory is not on PATH unless it
@@ -238,11 +272,15 @@ get_multimod_glpsol <- function() {
   py <- tryCatch(get_multimod_python(), error = function(e) NULL)
   if (!is.null(py) && nzchar(py) && py != "python" && file.exists(py)) {
     root <- dirname(py)
-    cand <- c(file.path(root, "Library", "bin", "glpsol.exe"),
-              file.path(root, "glpsol"),
-              file.path(root, "bin", "glpsol"))
+    cand <- c(
+      file.path(root, "Library", "bin", "glpsol.exe"),
+      file.path(root, "glpsol"),
+      file.path(root, "bin", "glpsol")
+    )
     hit <- cand[file.exists(cand)]
-    if (length(hit) > 0) return(normalizePath(hit[1], winslash = "/"))
+    if (length(hit) > 0) {
+      return(normalizePath(hit[1], winslash = "/"))
+    }
   }
 
   # 6. Fall back to system glpsol
@@ -268,21 +306,27 @@ set_multimod_solver <- function(solver_name, path = NULL) {
 #' @export
 get_multimod_solver <- function(solver_name) {
   solver_name <- tolower(solver_name)
-  
+
   # 1. Check R option
   opt_name <- paste0("multimod.", solver_name, "_path")
   opt_path <- getOption(opt_name)
-  if (!is.null(opt_path) && nzchar(opt_path)) return(normalizePath(opt_path, mustWork = FALSE))
-  
+  if (!is.null(opt_path) && nzchar(opt_path)) {
+    return(normalizePath(opt_path, mustWork = FALSE))
+  }
+
   # 2. Check environment variable
   env_name <- paste0("MULTIMOD_", toupper(solver_name))
   env_path <- Sys.getenv(env_name, unset = "")
-  if (nzchar(env_path)) return(normalizePath(env_path, mustWork = FALSE))
-  
+  if (nzchar(env_path)) {
+    return(normalizePath(env_path, mustWork = FALSE))
+  }
+
   # 3. Check YAML config
   yaml_path <- .get_config_value(solver_name, "path")
-  if (!is.null(yaml_path)) return(normalizePath(yaml_path, mustWork = FALSE))
-  
+  if (!is.null(yaml_path)) {
+    return(normalizePath(yaml_path, mustWork = FALSE))
+  }
+
   # 4. Fall back to system PATH
   solver_name
 }
@@ -302,8 +346,10 @@ multimod_config_write <- function(config, file) {
     stop("'file' must name the YAML file to write.", call. = FALSE)
   }
   if (!requireNamespace("yaml", quietly = TRUE)) {
-    stop("The 'yaml' package is required for config file support.\n",
-         "Install it with: install.packages('yaml')")
+    stop(
+      "The 'yaml' package is required for config file support.\n",
+      "Install it with: install.packages('yaml')"
+    )
   }
 
   config_file <- file
@@ -313,7 +359,7 @@ multimod_config_write <- function(config, file) {
   if (!dir.exists(config_dir)) {
     dir.create(config_dir, recursive = TRUE)
   }
-  
+
   yaml::write_yaml(config, config_file)
   message("Configuration written to: ", config_file)
   invisible(config_file)
@@ -325,23 +371,23 @@ multimod_config_read <- function(global = FALSE) {
   if (!requireNamespace("yaml", quietly = TRUE)) {
     return(NULL)
   }
-  
+
   # Try project-level first, then global
   config_files <- c(
     file.path(getwd(), ".multimod.yml"),
     file.path(tools::R_user_dir("multimod", "config"), "config.yml")
   )
-  
+
   if (global) {
     config_files <- rev(config_files)
   }
-  
+
   for (config_file in config_files) {
     if (file.exists(config_file)) {
       return(yaml::read_yaml(config_file))
     }
   }
-  
+
   NULL
 }
 
@@ -353,11 +399,11 @@ multimod_config_path <- function(global = FALSE) {
   } else {
     file.path(getwd(), ".multimod.yml")
   }
-  
+
   if (file.exists(config_file)) {
     return(normalizePath(config_file))
   }
-  
+
   paste0(config_file, " (not found)")
 }
 
@@ -365,29 +411,29 @@ multimod_config_path <- function(global = FALSE) {
 #' @export
 multimod_config_show <- function() {
   cat("Current multimod configuration:\n\n")
-  
+
   cat("Python:\n")
   cat("  Path:    ", get_multimod_python(), "\n")
   cat("  Option:  ", getOption("multimod.python_path") %||% "(not set)", "\n")
   cat("  Env var: ", Sys.getenv("MULTIMOD_PYTHON", "(not set)"), "\n\n")
-  
+
   cat("Julia:\n")
   cat("  Path:    ", get_multimod_julia(), "\n")
   cat("  Option:  ", getOption("multimod.julia_path") %||% "(not set)", "\n")
   cat("  Env var: ", Sys.getenv("MULTIMOD_JULIA", "(not set)"), "\n\n")
-  
+
   cat("glpsol:\n")
   cat("  Path:    ", get_multimod_glpsol(), "\n")
   cat("  Option:  ", getOption("multimod.glpsol_path") %||% "(not set)", "\n")
   cat("  Env var: ", Sys.getenv("MULTIMOD_GLPSOL", "(not set)"), "\n\n")
-  
+
   yaml_config <- multimod_config_read()
   if (!is.null(yaml_config)) {
     cat("YAML config file: ", multimod_config_path(), "\n")
   } else {
     cat("YAML config file: (none found)\n")
   }
-  
+
   invisible(NULL)
 }
 
@@ -395,10 +441,14 @@ multimod_config_show <- function() {
 
 .get_config_value <- function(solver, key) {
   config <- multimod_config_read()
-  if (is.null(config)) return(NULL)
-  
+  if (is.null(config)) {
+    return(NULL)
+  }
+
   solver_config <- config[[solver]]
-  if (is.null(solver_config)) return(NULL)
-  
+  if (is.null(solver_config)) {
+    return(NULL)
+  }
+
   solver_config[[key]]
 }

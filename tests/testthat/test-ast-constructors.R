@@ -17,16 +17,18 @@
 
 test_that("cross-language names return exactly what the originals return", {
   expect_identical(Set("tech", desc = "t"), new_set("tech", desc = "t"))
-  expect_identical(SetRef("tech"),          ast_set("tech"))
-  expect_identical(Symbol("a"),             ast_symbol("a"))
-  expect_identical(Constant(3),             ast_constant(3))
-  expect_identical(Expression("*", ast_symbol("a"), ast_symbol("b")),
-                   ast_expression("*", ast_symbol("a"), ast_symbol("b")))
-  expect_identical(Dims(ast_set("a")),      ast_dims(ast_set("a")))
+  expect_identical(SetRef("tech"), ast_set("tech"))
+  expect_identical(Symbol("a"), ast_symbol("a"))
+  expect_identical(Constant(3), ast_constant(3))
+  expect_identical(
+    Expression("*", ast_symbol("a"), ast_symbol("b")),
+    ast_expression("*", ast_symbol("a"), ast_symbol("b"))
+  )
+  expect_identical(Dims(ast_set("a")), ast_dims(ast_set("a")))
 })
 
 test_that("the bare name is the declaration and Ref is the reference", {
-  expect_equal(schema_type(Set("tech")),    "set_decl")
+  expect_equal(schema_type(Set("tech")), "set_decl")
   expect_equal(schema_type(SetRef("tech")), "set_ref")
   expect_true(is_declaration(Set("tech")))
   expect_false(is_declaration(SetRef("tech")))
@@ -37,7 +39,7 @@ test_that("the bare name is the declaration and Ref is the reference", {
 test_that("Set() does not collide with data.table::set() or the class 'set'", {
   skip_if_not_installed("data.table")
   d <- data.table::data.table(a = 1:3)
-  data.table::set(d, j = "b", value = 4:6)     # the generic `set`, untouched
+  data.table::set(d, j = "b", value = 4:6) # the generic `set`, untouched
   expect_equal(names(d), c("a", "b"))
   # and the S3 class is still lowercase, so dispatch is unaffected
   expect_equal(class(Set("tech"))[1], "mm_set")
@@ -47,15 +49,21 @@ test_that("Set() does not collide with data.table::set() or the class 'set'", {
 # --- construction-time validation --------------------------------------------
 
 test_that("a node missing a required field is refused where it is built", {
-  expect_error(new_ast("expression", op = "*", lhs = ast_symbol("a")),
-               "required field 'rhs' is missing")
-  expect_error(new_ast("when", condition = ast_symbol("a")),
-               "required field 'then' is missing")
+  expect_error(
+    new_ast("expression", op = "*", lhs = ast_symbol("a")),
+    "required field 'rhs' is missing"
+  )
+  expect_error(
+    new_ast("when", condition = ast_symbol("a")),
+    "required field 'then' is missing"
+  )
 })
 
 test_that("a node carrying an undeclared field is refused", {
-  expect_error(new_ast("symbol", name = "a", bogus = 1),
-               "undeclared field")
+  expect_error(
+    new_ast("symbol", name = "a", bogus = 1),
+    "undeclared field"
+  )
   expect_error(new_ast("symbol", name = "a", bogus = 1), "bogus")
 })
 
@@ -76,7 +84,8 @@ test_that("validation can be switched off for a hot loop", {
 
 test_that("the error names the schema so it is actionable", {
   err <- tryCatch(new_ast("symbol", name = "a", bogus = 1),
-                  error = function(e) conditionMessage(e))
+    error = function(e) conditionMessage(e)
+  )
   expect_match(err, "ast_schema")
 })
 
@@ -92,7 +101,7 @@ test_that("validate_ast recurses by default and can be told not to", {
 })
 
 test_that("validate_ast accepts the packaged model", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   data(example_models, package = "multimod")
   expect_equal(validate_ast(example_models$energyRt$multimod), character())
 })

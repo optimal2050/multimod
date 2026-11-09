@@ -1,4 +1,3 @@
-
 #' Write a GAMS model file from a multimod object
 #'
 #' @param model A `multimod` model object
@@ -35,8 +34,8 @@ write_gams <- function(model, file = NULL, format_expr = TRUE, ...) {
 #' @method write_gams mm_model
 #' @export
 write_gams.mm_model <- function(model, file = NULL, format_expr = TRUE,
-                             gdx = NULL, include_solve = FALSE,
-                             objective = "vObjective", ...) {
+                                gdx = NULL, include_solve = FALSE,
+                                objective = "vObjective", ...) {
   stopifnot(inherits(model, "mm_model"))
 
   lines <- character()
@@ -75,10 +74,13 @@ write_gams.mm_model <- function(model, file = NULL, format_expr = TRUE,
   }
   # Iterators of a MathProg-style model (`{r in REGION}`) are rendered as GAMS
   # aliases of their sets; see .gams_equation_aliases().
-  declared <- c(names(model$sets), names(model$mappings), names(model$parameters),
-                names(model$variables), unlist(model$aliases))
+  declared <- c(
+    names(model$sets), names(model$mappings), names(model$parameters),
+    names(model$variables), unlist(model$aliases)
+  )
   iter_pairs <- unique(unlist(lapply(model$equations, .gams_equation_aliases),
-                              recursive = FALSE))
+    recursive = FALSE
+  ))
   for (p in iter_pairs) {
     if (p[2] %in% declared) next
     lines <- c(lines, paste0("alias (", p[1], ", ", p[2], ");"))
@@ -113,8 +115,10 @@ write_gams.mm_model <- function(model, file = NULL, format_expr = TRUE,
       f <- p$formula
       if (!inherits(f, "ast_formula")) {
         # a bare expression: assign it over the parameter's own dimensions
-        f <- new_ast_formula(target = p$name, field = "value", expr = f,
-                             index_vars = get_dim_names(p$dims))
+        f <- new_ast_formula(
+          target = p$name, field = "value", expr = f,
+          index_vars = get_dim_names(p$dims)
+        )
       }
       lines <- c(lines, as_gams(f))
     }
@@ -149,8 +153,10 @@ write_gams.mm_model <- function(model, file = NULL, format_expr = TRUE,
   # Equations (definitions)
   for (eq in model$equations) {
     # Declared over its sets; the definition below may index it by aliases
-    lines <- c(lines, paste0("equation ", eq$name, .gams_equation_domain(eq),
-                             "   ", eq$desc, ";"))
+    lines <- c(lines, paste0(
+      "equation ", eq$name, .gams_equation_domain(eq),
+      "   ", eq$desc, ";"
+    ))
     gams_eq <- as_gams(eq)
     if (format_expr) {
       gams_eq <- format_gams_expression(gams_eq, ...)
@@ -183,8 +189,10 @@ write_gams.mm_model <- function(model, file = NULL, format_expr = TRUE,
       dims <- get_dim_names(p$dims)
       if (length(dims) == 0) next
       idx <- paste0("(", paste(dims, collapse = ","), ")")
-      lines <- c(lines, paste0(nm, idx, "$(not ", nm, idx, ") = ",
-                               format(dv, scientific = FALSE), ";"))
+      lines <- c(lines, paste0(
+        nm, idx, "$(not ", nm, idx, ") = ",
+        format(dv, scientific = FALSE), ";"
+      ))
       defaulted <- c(defaulted, nm)
     }
     # Every parameter that stores a zero is restored, not only the defaulted
@@ -194,7 +202,9 @@ write_gams.mm_model <- function(model, file = NULL, format_expr = TRUE,
     stores_zero <- function(p) {
       for (d in list(p$data, p$folded_data)) {
         if (!is.null(d) && nrow(d) > 0 && "value" %in% names(d) &&
-            any(d$value == 0, na.rm = TRUE)) return(TRUE)
+          any(d$value == 0, na.rm = TRUE)) {
+          return(TRUE)
+        }
       }
       FALSE
     }
@@ -213,18 +223,20 @@ write_gams.mm_model <- function(model, file = NULL, format_expr = TRUE,
   if (isTRUE(include_solve)) {
     mdl <- model$name %||% "mm_model"
     mdl <- gsub("[^A-Za-z0-9_]", "_", mdl)
-    lines <- c(lines,
-               paste0("model ", mdl, " / all / ;"),
-               paste0("solve ", mdl, " minimizing ", objective, " using LP;"),
-               paste0("display ", objective, ".l;"),
-               "")
+    lines <- c(
+      lines,
+      paste0("model ", mdl, " / all / ;"),
+      paste0("solve ", mdl, " minimizing ", objective, " using LP;"),
+      paste0("display ", objective, ".l;"),
+      ""
+    )
   }
 
   # Output
   if (!is.null(file)) {
     writeLines(lines, con = file, useBytes = TRUE)
   } else {
-    return(lines)
+    lines
   }
 }
 
@@ -254,7 +266,8 @@ format_gams_expression <- function(gams_lines, indent = 4) {
   extract_sum_parts <- function(part) {
     inside <- sub("^sum\\((.*)\\)$", "\\1", part)
     chars <- strsplit(inside, "")[[1]]
-    depth <- 0; i <- 1
+    depth <- 0
+    i <- 1
     while (i <= length(chars)) {
       ch <- chars[i]
       if (ch %in% c("(", "[")) depth <- depth + 1
@@ -280,14 +293,20 @@ format_gams_expression <- function(gams_lines, indent = 4) {
 
   split_recursive <- function(expr, current_indent) {
     chars <- strsplit(expr, "")[[1]]
-    depth <- 0; buffer <- ""; parts <- character(); i <- 1
+    depth <- 0
+    buffer <- ""
+    parts <- character()
+    i <- 1
     while (i <= length(chars)) {
       ch <- chars[i]
       if (ch %in% c("(", "[")) depth <- depth + 1
       if (ch %in% c(")", "]")) depth <- depth - 1
       if (depth == 0 && ch == "+") {
-        parts <- c(parts, trimws(buffer)); buffer <- ""
-      } else buffer <- paste0(buffer, ch)
+        parts <- c(parts, trimws(buffer))
+        buffer <- ""
+      } else {
+        buffer <- paste0(buffer, ch)
+      }
       i <- i + 1
     }
     if (nzchar(trimws(buffer))) parts <- c(parts, trimws(buffer))
@@ -298,12 +317,15 @@ format_gams_expression <- function(gams_lines, indent = 4) {
 
       if (grepl("^sum\\(.*\\)$", term)) {
         nested <- format_sum_expression(term, current_indent + indent)
-        nested[1] <- strrep(" ", current_indent) %+% "    " %+% trimws(nested[1])  # indent first line
+        nested[1] <- strrep(" ", current_indent) %+% "    " %+% trimws(nested[1]) # indent first line
         result <- c(result, nested)
       } else {
         # split on * and /
         chars <- strsplit(term, "")[[1]]
-        depth <- 0; buffer <- ""; subparts <- character(); i <- 1
+        depth <- 0
+        buffer <- ""
+        subparts <- character()
+        i <- 1
         while (i <= length(chars)) {
           ch <- chars[i]
           if (ch %in% c("(", "[")) depth <- depth + 1
@@ -311,7 +333,9 @@ format_gams_expression <- function(gams_lines, indent = 4) {
           if (depth == 0 && chars[i] %in% c("*", "/")) {
             subparts <- c(subparts, trimws(buffer), chars[i])
             buffer <- ""
-          } else buffer <- paste0(buffer, ch)
+          } else {
+            buffer <- paste0(buffer, ch)
+          }
           i <- i + 1
         }
         if (nzchar(trimws(buffer))) subparts <- c(subparts, trimws(buffer))
@@ -338,8 +362,8 @@ format_gams_expression <- function(gams_lines, indent = 4) {
   stopifnot(length(gams_lines) >= 3)
 
   eq_header <- gams_lines[1]
-  lhs_line  <- gams_lines[2]
-  rhs_expr  <- sub(";$", "", gams_lines[3])
+  lhs_line <- gams_lines[2]
+  rhs_expr <- sub(";$", "", gams_lines[3])
 
   formatted <- c(
     eq_header,
@@ -348,6 +372,5 @@ format_gams_expression <- function(gams_lines, indent = 4) {
     ";"
   )
 
-  return(formatted)
+  formatted
 }
-

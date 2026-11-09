@@ -19,7 +19,8 @@ new_ast <- function(node_type, ..., inherits_class = NULL) {
   stopifnot(length(node_type) == 1)
   stopifnot(is.null(inherits_class) || !is.na(inherits_class) || is.character(inherits_class))
   out <- structure(list(...),
-                   class = c(node_type, inherits_class, "ast"))
+    class = c(node_type, inherits_class, "ast")
+  )
   # Checked against ast_schema() at construction: a node missing a required
   # field otherwise travels until a renderer declines to dispatch on it and
   # emits nothing at all, which is the trap CLAUDE.md warns about. The check is
@@ -41,7 +42,7 @@ new_ast <- function(node_type, ..., inherits_class = NULL) {
 #' @export
 #' @rdname new_ast
 #' @examples
-#' ast_set("b")                     # standalone set
+#' ast_set("b") # standalone set
 ast_set <- function(name) {
   stopifnot(is.character(name), length(name) == 1)
   # if (!is.null(domain)) stopifnot(inherits(domain, "ast") && domain$type == "set")
@@ -100,7 +101,9 @@ ast_dims <- function(...) {
   # an explicit `symbols = NULL` would otherwise count as a dimension
   args <- args[!vapply(args, is.null, logical(1))]
   # a dims node passed on its own is returned as it is, not wrapped in another
-  if (length(args) == 1L && inherits(args[[1]], "dims")) return(args[[1]])
+  if (length(args) == 1L && inherits(args[[1]], "dims")) {
+    return(args[[1]])
+  }
   dims <- args
 
   is_simple_identifier <- function(value) {
@@ -148,16 +151,16 @@ ast_dims <- function(...) {
   # iterated over its own fields, so `ast_dims(ast_shift("y", -1))` tried to
   # parse "y" and -1 as separate dimensions.
   if (length(dims) == 1 && !inherits(dims, "ast") &&
-      !inherits(dims[[1]], "ast") &&
-      (is.list(dims[[1]]) || is.vector(dims[[1]]))
-      ) {
+    !inherits(dims[[1]], "ast") &&
+    (is.list(dims[[1]]) || is.vector(dims[[1]]))
+  ) {
     # Unwrap single-element list but preserve names if they exist
     if (!is.null(dims_names) && !is.na(dims_names[1]) && dims_names[1] != "") {
       # Keep as list to preserve name
       # dims stays as is
     } else {
       dims <- dims[[1]]
-      dims_names <- names(dims)  # Get names from unwrapped list
+      dims_names <- names(dims) # Get names from unwrapped list
     }
   }
 
@@ -168,7 +171,7 @@ ast_dims <- function(...) {
     if (is_simple_identifier(x)) {
       return(ast_symbol(x))
     }
-    
+
     # Parse as expression with language context (handles set names with hyphens, etc.)
     ast_parse_expr(x, symbols = symb_list)
   })
@@ -189,7 +192,7 @@ ast_dims <- function(...) {
   # }
   if (!is.list(dims)) .dev_break("ast-classes.R:177")
   out <- do.call(new_ast, c("dims", dims))
-  return(out)
+  out
 }
 
 #' Create a mapping AST node
@@ -214,7 +217,6 @@ ast_mapping <- function(name, dims = ast_dims(), ...) {
 }
 # @param domain An optional `mapping` object representing the parent mapping,
 # indicating that this mapping is a subset of the parent mapping.
-
 
 
 #' Create a variable AST node
@@ -256,7 +258,9 @@ ast_parameter <- function(name, dims = ast_dims(), ...) {
 # (including character(0) for a scalar) is converted, so it cannot be stored as
 # a bare vector that the renderers and the JSON writer do not recognise.
 .as_ref_dims <- function(dims) {
-  if (is.character(dims)) return(do.call(ast_dims, as.list(dims)))
+  if (is.character(dims)) {
+    return(do.call(ast_dims, as.list(dims)))
+  }
   dims
 }
 
@@ -289,21 +293,23 @@ ast_symbol <- function(name, ...) {
 #' @return A `shift` S3 object (subclass of `ast`).
 #' @export
 #' @examples
-#' ast_shift("y", -1)  # y-1 (previous year)
-#' ast_shift("y", 1)   # y+1 (next year)
+#' ast_shift("y", -1) # y-1 (previous year)
+#' ast_shift("y", 1) # y+1 (next year)
 #' ast_shift("ls", -1) # ls-1 (previous season)
 ast_shift <- function(symbol, offset, circular = FALSE, ...) {
   stopifnot(is.character(symbol), length(symbol) == 1)
   stopifnot(is.numeric(offset), length(offset) == 1)
-  stopifnot(offset == round(offset))  # must be integer
-  stopifnot(offset != 0)  # zero offset doesn't make sense
+  stopifnot(offset == round(offset)) # must be integer
+  stopifnot(offset != 0) # zero offset doesn't make sense
   stopifnot(is.logical(circular), length(circular) == 1, !is.na(circular))
   # The offset counts positions in the set's member order. `circular` wraps at
   # the ends, as GAMS's `y--1` does; a linear lag off the end yields no member
   # and the term it sits in drops out.
   if (circular) {
-    new_ast("shift", symbol = symbol, offset = as.integer(offset),
-            circular = TRUE, ...)
+    new_ast("shift",
+      symbol = symbol, offset = as.integer(offset),
+      circular = TRUE, ...
+    )
   } else {
     new_ast("shift", symbol = symbol, offset = as.integer(offset), ...)
   }
@@ -348,8 +354,10 @@ ast_when <- function(condition, then, otherwise = NULL, ...) {
   stopifnot(inherits(then, "ast") || is.null(then))
   stopifnot(inherits(condition, "ast"))
 
-  new_ast("when", condition = condition, then = then,
-          otherwise = otherwise, ...)
+  new_ast("when",
+    condition = condition, then = then,
+    otherwise = otherwise, ...
+  )
 }
 
 #' Create a summation AST node
@@ -416,7 +424,6 @@ ast_func <- function(name, value, index = NULL, ...) {
 }
 
 
-
 # ast_func <- function(name, index = NULL, ...) {
 #   stopifnot(is.character(name), length(name) == 1)
 #   stopifnot(is.null(index) || inherits(index, "ast"))
@@ -433,7 +440,6 @@ ast_func <- function(name, value, index = NULL, ...) {
 #     class = c("func_indexed", "ast")
 #   )
 # }
-
 
 
 #' Create an expression AST node
@@ -476,8 +482,10 @@ ast_unary <- function(op, rhs) {
   # Check if the operator is valid
   valid_operators <- c("-", "not", "+", "!")
   if (!op %in% valid_operators) {
-    stop("Invalid unary operator: ", op,
-         "\nValid operators: ", paste(valid_operators, collapse = ", "))
+    stop(
+      "Invalid unary operator: ", op,
+      "\nValid operators: ", paste(valid_operators, collapse = ", ")
+    )
   }
   # Create the unary AST node
   new_ast("unary", op = op, rhs = rhs)
@@ -587,7 +595,6 @@ node_type <- function(x) {
 #' ast <- ast_expression("+", ast_variable("x"), ast_constant(5))
 #' hash <- node_hash(ast)
 node_hash <- function(node, algo = NULL) {
-
   stopifnot(inherits(node, c("ast", "multimod")))
 
   if (is.null(algo)) {
@@ -611,7 +618,6 @@ node_hash <- function(node, algo = NULL) {
   # Generate digest
   digest::digest(ast_clean, algo = algo)
 }
-
 
 
 #' Create a function call AST node
@@ -705,7 +711,9 @@ first_non_null <- function(...) {
 }
 
 extract_language <- function(obj) {
-  if (is.null(obj)) return(NULL)
+  if (is.null(obj)) {
+    return(NULL)
+  }
 
   if (!is.null(obj$language)) {
     return(obj$language)
@@ -722,7 +730,9 @@ extract_language <- function(obj) {
 }
 
 normalize_ast_language <- function(language) {
-  if (is.null(language)) return("gams")
+  if (is.null(language)) {
+    return("gams")
+  }
   lang <- tolower(language)
   if (lang %in% c("gmpl", "glpk", "mathprog")) {
     return("gmpl")
@@ -737,8 +747,10 @@ get_ast_parser <- function(language) {
   } else if (lang == "gmpl") {
     return(parse_gmpl_expr)
   } else if (lang == "linopy") {
-    stop("linopy AST parsing is not part of the package; ",
-         "the experimental reader lives in drafts/R/read_linopy.R")
+    stop(
+      "linopy AST parsing is not part of the package; ",
+      "the experimental reader lives in drafts/R/read_linopy.R"
+    )
   }
   stop("No AST parser registered for language: ", language)
 }
@@ -752,7 +764,9 @@ get_ast_parser <- function(language) {
 #' @return An AST node.
 #' @keywords internal
 ast_parse_expr <- function(expr, symbols = NULL, language = NULL, context = NULL, ...) {
-  if (inherits(expr, "ast")) return(expr)
+  if (inherits(expr, "ast")) {
+    return(expr)
+  }
 
   lang <- resolve_ast_language(language, symbols, context)
   parser <- get_ast_parser(lang)
@@ -763,4 +777,3 @@ ast_parse_expr <- function(expr, symbols = NULL, language = NULL, context = NULL
 
   parser(expr, symbols = symbols, ...)
 }
-

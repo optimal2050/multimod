@@ -32,7 +32,8 @@ test_that("write_jump emits one loader per dual-registered symbol", {
   write_jump(model, model_dir = model_dir)
 
   data_jl <- readLines(file.path(model_dir, "solvers", "jump", "data.jl"),
-                       warn = FALSE)
+    warn = FALSE
+  )
 
   for (nm in dual) {
     assigns <- grep(paste0("^", nm, " = _load_"), data_jl, value = TRUE)
@@ -66,7 +67,8 @@ test_that("process subsets keep their members in generated data.jl", {
   write_jump(model, model_dir = model_dir)
 
   data_jl <- readLines(file.path(model_dir, "solvers", "jump", "data.jl"),
-                       warn = FALSE)
+    warn = FALSE
+  )
 
   for (nm in c("sup", "dem", "tech", "stg", "trade", "expp", "imp")) {
     skip_if_not(length(Sys.glob(file.path(model_dir, "sets", nm, "data.*"))) > 0)

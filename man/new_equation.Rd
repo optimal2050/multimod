@@ -51,7 +51,8 @@ right-hand side (RHS), relation operator (e.g., equality or inequality), and an 
 }
 \examples{
 lhs <- ast_variable("vTechOut", dims = c("tech", "region"))
-rhs <- ast_expression("*",
+rhs <- ast_expression(
+  "*",
   ast_parameter("pTechEff", dims = c("tech")),
   ast_variable("vTechInp", dims = c("tech", "region"))
 )

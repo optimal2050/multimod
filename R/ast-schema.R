@@ -66,19 +66,16 @@
 .f <- function(type, required = FALSE) list(type = type, required = required)
 
 .mm_schema_nodes <- list(
-
   # --- declarations: S3 class c(<s3>, "multimod", "ast") ------------------
-
   set_decl = list(
     kind = "decl", s3 = "mm_set",
     fields = list(
       name      = .f("string", TRUE),
       desc      = .f("string"),
       subset_of = .f("string"),
-      data      = .f("string_vector")   # set members are a character vector
+      data      = .f("string_vector") # set members are a character vector
     )
   ),
-
   mapping_decl = list(
     kind = "decl", s3 = "mm_mapping",
     fields = list(
@@ -88,13 +85,12 @@
       dims        = .f("node"),
       active_dims = .f("node"),
       data        = .f("table"),
-      rule        = .f("any"),           # an mm_rule: tuples by joins (R/mapping_rules.R)
+      rule        = .f("any"), # an mm_rule: tuples by joins (R/mapping_rules.R)
       defVal      = .f("number"),
       auto_fold   = .f("logical"),
       misc        = .f("any")
     )
   ),
-
   parameter_decl = list(
     kind = "decl", s3 = "mm_parameter",
     fields = list(
@@ -112,7 +108,6 @@
       misc        = .f("any")
     )
   ),
-
   variable_decl = list(
     kind = "decl", s3 = "mm_variable",
     fields = list(
@@ -129,7 +124,6 @@
       misc        = .f("any")
     )
   ),
-
   equation_decl = list(
     kind = "decl", s3 = "mm_equation",
     fields = list(
@@ -148,90 +142,139 @@
 
   # --- references: S3 class c(<s3>, "ast"), no "multimod" marker ----------
 
-  set_ref       = list(kind = "ref", s3 = "mm_set",
-                       fields = list(name = .f("string", TRUE))),
-
-  mapping_ref   = list(kind = "ref", s3 = "mm_mapping",
-                       fields = list(name = .f("string", TRUE),
-                                     dims = .f("node"))),
-
-  parameter_ref = list(kind = "ref", s3 = "mm_parameter",
-                       fields = list(name = .f("string", TRUE),
-                                     dims = .f("node"))),
-
-  variable_ref  = list(kind = "ref", s3 = "mm_variable",
-                       fields = list(name = .f("string", TRUE),
-                                     dims = .f("node"))),
-
-  symbol        = list(kind = "ref", s3 = "symbol",
-                       fields = list(name = .f("string", TRUE))),
+  set_ref = list(
+    kind = "ref", s3 = "mm_set",
+    fields = list(name = .f("string", TRUE))
+  ),
+  mapping_ref = list(
+    kind = "ref", s3 = "mm_mapping",
+    fields = list(
+      name = .f("string", TRUE),
+      dims = .f("node")
+    )
+  ),
+  parameter_ref = list(
+    kind = "ref", s3 = "mm_parameter",
+    fields = list(
+      name = .f("string", TRUE),
+      dims = .f("node")
+    )
+  ),
+  variable_ref = list(
+    kind = "ref", s3 = "mm_variable",
+    fields = list(
+      name = .f("string", TRUE),
+      dims = .f("node")
+    )
+  ),
+  symbol = list(
+    kind = "ref", s3 = "symbol",
+    fields = list(name = .f("string", TRUE))
+  ),
 
   # --- containers and expressions ----------------------------------------
 
   # `dims` is the one node with UNNAMED contents: a positional list of
   # set/symbol nodes, not a record. It gets an explicit `items` field in JSON
   # so the node type survives the round trip.
-  dims = list(kind = "expr", s3 = "dims", unnamed = TRUE,
-              fields = list(items = .f("node_list", TRUE))),
-
-  constant   = list(kind = "expr", s3 = "constant",
-                    fields = list(value = .f("any", TRUE))),
-
-  expression = list(kind = "expr", s3 = "expression",
-                    fields = list(op       = .f("string", TRUE),
-                                  lhs      = .f("node", TRUE),
-                                  rhs      = .f("node", TRUE),
-                                  brackets = .f("logical"))),
-
-  unary      = list(kind = "expr", s3 = "unary",
-                    fields = list(op  = .f("string", TRUE),
-                                  rhs = .f("node", TRUE))),
-
-  when       = list(kind = "expr", s3 = "when",
-                    fields = list(condition = .f("node", TRUE),
-                                  then      = .f("node", TRUE),
-                                  otherwise = .f("node"))),
-
-  func       = list(kind = "expr", s3 = "func",
-                    fields = list(name  = .f("string", TRUE),
-                                  value = .f("node_or_list", TRUE),
-                                  index = .f("node"))),
-
-  sum        = list(kind = "expr", s3 = "sum",
-                    fields = list(index  = .f("node", TRUE),
-                                  value  = .f("node", TRUE),
-                                  domain = .f("node"))),
-
-  prod       = list(kind = "expr", s3 = "prod",
-                    fields = list(index  = .f("node", TRUE),
-                                  value  = .f("node", TRUE),
-                                  domain = .f("node"))),
-
-  setmin     = list(kind = "expr", s3 = "setmin",
-                    fields = list(index = .f("node", TRUE),
-                                  value = .f("node", TRUE))),
-
-  setmax     = list(kind = "expr", s3 = "setmax",
-                    fields = list(index = .f("node", TRUE),
-                                  value = .f("node", TRUE))),
+  dims = list(
+    kind = "expr", s3 = "dims", unnamed = TRUE,
+    fields = list(items = .f("node_list", TRUE))
+  ),
+  constant = list(
+    kind = "expr", s3 = "constant",
+    fields = list(value = .f("any", TRUE))
+  ),
+  expression = list(
+    kind = "expr", s3 = "expression",
+    fields = list(
+      op = .f("string", TRUE),
+      lhs = .f("node", TRUE),
+      rhs = .f("node", TRUE),
+      brackets = .f("logical")
+    )
+  ),
+  unary = list(
+    kind = "expr", s3 = "unary",
+    fields = list(
+      op = .f("string", TRUE),
+      rhs = .f("node", TRUE)
+    )
+  ),
+  when = list(
+    kind = "expr", s3 = "when",
+    fields = list(
+      condition = .f("node", TRUE),
+      then = .f("node", TRUE),
+      otherwise = .f("node")
+    )
+  ),
+  func = list(
+    kind = "expr", s3 = "func",
+    fields = list(
+      name = .f("string", TRUE),
+      value = .f("node_or_list", TRUE),
+      index = .f("node")
+    )
+  ),
+  sum = list(
+    kind = "expr", s3 = "sum",
+    fields = list(
+      index = .f("node", TRUE),
+      value = .f("node", TRUE),
+      domain = .f("node")
+    )
+  ),
+  prod = list(
+    kind = "expr", s3 = "prod",
+    fields = list(
+      index = .f("node", TRUE),
+      value = .f("node", TRUE),
+      domain = .f("node")
+    )
+  ),
+  setmin = list(
+    kind = "expr", s3 = "setmin",
+    fields = list(
+      index = .f("node", TRUE),
+      value = .f("node", TRUE)
+    )
+  ),
+  setmax = list(
+    kind = "expr", s3 = "setmax",
+    fields = list(
+      index = .f("node", TRUE),
+      value = .f("node", TRUE)
+    )
+  ),
 
   # `circular` distinguishes a wrap from a plain lag: linear when absent, as
   # GAMS's `y-1` is, and TRUE for its `y--1`. The offset counts positions in
   # the set's member order, not arithmetic on the member's label, so it means
   # the same thing on a sparse set (2025, 2026, 2030) as on a consecutive one.
-  shift      = list(kind = "expr", s3 = "shift",
-                    fields = list(symbol   = .f("node", TRUE),
-                                  offset   = .f("integer", TRUE),
-                                  circular = .f("logical"))),
-
-  call       = list(kind = "expr", s3 = "call",
-                    fields = list(name = .f("string", TRUE),
-                                  args = .f("node_list", TRUE))),
-
-  where      = list(kind = "expr", s3 = "where",
-                    fields = list(name    = .f("string", TRUE),
-                                  content = .f("node", TRUE),
-                                  hash    = .f("string")))
+  shift = list(
+    kind = "expr", s3 = "shift",
+    fields = list(
+      symbol = .f("node", TRUE),
+      offset = .f("integer", TRUE),
+      circular = .f("logical")
+    )
+  ),
+  call = list(
+    kind = "expr", s3 = "call",
+    fields = list(
+      name = .f("string", TRUE),
+      args = .f("node_list", TRUE)
+    )
+  ),
+  where = list(
+    kind = "expr", s3 = "where",
+    fields = list(
+      name = .f("string", TRUE),
+      content = .f("node", TRUE),
+      hash = .f("string")
+    )
+  )
 )
 
 # The model container itself.
@@ -284,9 +327,11 @@
 #' names(s$nodes)
 #' s$nodes$expression$fields
 ast_schema <- function() {
-  list(version = .mm_schema_version,
-       nodes   = .mm_schema_nodes,
-       model   = .mm_schema_model)
+  list(
+    version = .mm_schema_version,
+    nodes = .mm_schema_nodes,
+    model = .mm_schema_model
+  )
 }
 
 # Lookup tables, built once when the package is sourced. `schema_type()` and
@@ -296,20 +341,29 @@ ast_schema <- function() {
 .mm_lookup <- local({
   # lists, not character vectors: `[[` on a named character vector errors for
   # an absent name, where a list returns NULL
-  decl <- list(); ref <- list()
+  decl <- list()
+  ref <- list()
   for (ty in names(.mm_schema_nodes)) {
     sp <- .mm_schema_nodes[[ty]]
     if (identical(sp$kind, "decl")) decl[[sp$s3]] <- ty else ref[[sp$s3]] <- ty
   }
   list(
-    decl     = decl,
-    ref      = ref,
-    required = lapply(.mm_schema_nodes,
-                      function(sp) names(Filter(function(f) isTRUE(f$required),
-                                                sp$fields))),
-    allowed  = lapply(.mm_schema_nodes, function(sp) names(sp$fields)),
-    unnamed  = vapply(.mm_schema_nodes, function(sp) isTRUE(sp$unnamed),
-                      logical(1))
+    decl = decl,
+    ref = ref,
+    required = lapply(
+      .mm_schema_nodes,
+      function(sp) {
+        names(Filter(
+          function(f) isTRUE(f$required),
+          sp$fields
+        ))
+      }
+    ),
+    allowed = lapply(.mm_schema_nodes, function(sp) names(sp$fields)),
+    unnamed = vapply(
+      .mm_schema_nodes, function(sp) isTRUE(sp$unnamed),
+      logical(1)
+    )
   )
 })
 
@@ -326,10 +380,12 @@ ast_schema <- function() {
 #' @export
 #' @examples
 #' schema_type(ast_symbol("t"))
-#' schema_type(ast_set("tech"))   # a reference
-#' schema_type(new_set("tech"))   # a declaration
+#' schema_type(ast_set("tech")) # a reference
+#' schema_type(new_set("tech")) # a declaration
 schema_type <- function(x) {
-  if (!inherits(x, "ast")) return(NA_character_)
+  if (!inherits(x, "ast")) {
+    return(NA_character_)
+  }
   cl <- class(x)[1]
   ty <- if (inherits(x, "multimod")) .mm_lookup$decl[[cl]] else NULL
   if (is.null(ty)) ty <- .mm_lookup$ref[[cl]]
@@ -360,22 +416,30 @@ schema_node_types <- function() names(.mm_schema_nodes)
 .validate_node <- function(x, path = "") {
   ty <- schema_type(x)
   if (is.na(ty)) {
-    return(sprintf("%s: unknown node class '%s'", path,
-                   paste(class(x), collapse = "/")))
+    return(sprintf(
+      "%s: unknown node class '%s'", path,
+      paste(class(x), collapse = "/")
+    ))
   }
-  if (.mm_lookup$unnamed[[ty]]) return(character())
+  if (.mm_lookup$unnamed[[ty]]) {
+    return(character())
+  }
   nms <- names(x)
   probs <- character()
   for (fn in .mm_lookup$required[[ty]]) {
     if (is.null(x[[fn]])) {
-      probs <- c(probs, sprintf("%s (%s): required field '%s' is missing",
-                                path, ty, fn))
+      probs <- c(probs, sprintf(
+        "%s (%s): required field '%s' is missing",
+        path, ty, fn
+      ))
     }
   }
   extra <- nms[!(nms %in% .mm_lookup$allowed[[ty]])]
   if (length(extra)) {
-    probs <- c(probs, sprintf("%s (%s): undeclared field(s) %s", path, ty,
-                              paste(extra, collapse = ", ")))
+    probs <- c(probs, sprintf(
+      "%s (%s): undeclared field(s) %s", path, ty,
+      paste(extra, collapse = ", ")
+    ))
   }
   probs
 }
@@ -383,11 +447,15 @@ schema_node_types <- function() names(.mm_schema_nodes)
 # Called by the constructors. Off via options(multimod.validate = FALSE) for
 # code that builds nodes in a hot loop and knows what it is doing.
 .check_node <- function(x, what = NULL) {
-  if (!isTRUE(getOption("multimod.validate", TRUE))) return(invisible(x))
+  if (!isTRUE(getOption("multimod.validate", TRUE))) {
+    return(invisible(x))
+  }
   p <- .validate_node(x, what %||% class(x)[1])
   if (length(p)) {
     stop("multimod: invalid AST node.\n  ", paste(p, collapse = "\n  "),
-         "\n  The node shapes are declared in ast_schema().", call. = FALSE)
+      "\n  The node shapes are declared in ast_schema().",
+      call. = FALSE
+    )
   }
   invisible(x)
 }
@@ -429,9 +497,13 @@ validate_ast <- function(x, path = "", recursive = TRUE) {
     }
     return(probs)
   }
-  if (!inherits(x, "ast")) return(probs)
+  if (!inherits(x, "ast")) {
+    return(probs)
+  }
   probs <- .validate_node(x, path)
-  if (!recursive) return(probs)
+  if (!recursive) {
+    return(probs)
+  }
   for (i in seq_along(x)) {
     nm <- if (is.null(names(x))) as.character(i) else names(x)[i]
     v <- x[[i]]

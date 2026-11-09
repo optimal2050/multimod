@@ -85,7 +85,7 @@ add_index_aliases <- function(model, index_aliases = NULL, overwrite = FALSE) {
         used_names = unname(index_aliases)
       )
       index_aliases <- c(index_aliases, auto_aliases)
-    # } else {
+      # } else {
       # index_aliases <- index_aliases
     }
   } else {
@@ -115,7 +115,7 @@ add_index_aliases <- function(model, index_aliases = NULL, overwrite = FALSE) {
 #' @examples
 #' model <- example_models$energyRt$multimod
 #' model <- add_index_aliases(model)
-#' get_index_alias(model, "tech")  # "h"
+#' get_index_alias(model, "tech") # "h"
 #'
 #' @export
 get_index_alias <- function(model, set_name) {
@@ -156,11 +156,11 @@ has_index_aliases <- function(model) {
 #'   first letter of the set name.
 #' @keywords internal
 preferred_dummy_names <- list(
-  tech = "h",      # technology (avoid 't' conflict with time, trade)
-  trade = "a",     # trade (avoid 't' conflict)
-  sup = "u",       # supply (avoid 's' conflict with timeslice, stg)
-  timeslice = "ts",    # time timeslice (avoid 's' conflict)
-  stg = "o",       # storage (avoid 's' conflict)
+  tech = "h", # technology (avoid 't' conflict with time, trade)
+  trade = "a", # trade (avoid 't' conflict)
+  sup = "u", # supply (avoid 's' conflict with timeslice, stg)
+  timeslice = "ts", # time timeslice (avoid 's' conflict)
+  stg = "o", # storage (avoid 's' conflict)
   region = "r",
   comm = "c",
   year = "y",
@@ -218,8 +218,8 @@ generate_index_alias <- function(set_name, used_names = character(0),
     for (pattern in c("pp$", "p$", "2$", "3$")) {
       potential_base <- sub(pattern, "", name_lower)
       # Check for NA values before comparison
-      if (!is.na(potential_base) && !is.na(name_lower) && 
-          potential_base != name_lower && nchar(potential_base) > 0) {
+      if (!is.na(potential_base) && !is.na(name_lower) &&
+        potential_base != name_lower && nchar(potential_base) > 0) {
         # Check if base exists in all_set_names (case-insensitive)
         if (any(tolower(all_set_names) == potential_base)) {
           is_alias <- TRUE
@@ -254,15 +254,15 @@ generate_index_alias <- function(set_name, used_names = character(0),
     } else if (suffix_used %in% c("p", "2", "3")) {
       suffix_used
     } else {
-      "p"  # default
+      "p" # default
     }
 
     candidates <- c(
       candidates,
-      paste0(base_dummy, suffix_indicator),  # commp -> cp, groupp -> gp
-      paste0(substr(base, 1, 1), suffix_indicator),  # fallback to first letter
-      paste0(substr(base, 1, 1), "p"),       # another fallback
-      substr(name_lower, 1, 2)               # first two letters of full name
+      paste0(base_dummy, suffix_indicator), # commp -> cp, groupp -> gp
+      paste0(substr(base, 1, 1), suffix_indicator), # fallback to first letter
+      paste0(substr(base, 1, 1), "p"), # another fallback
+      substr(name_lower, 1, 2) # first two letters of full name
     )
   } else {
     # For regular sets, try single letter or preferred name
@@ -331,5 +331,3 @@ generate_index_aliases <- function(set_names, all_set_names = set_names,
 
   index_aliases
 }
-
-

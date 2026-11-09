@@ -21,10 +21,13 @@
 gams_gdx_tables <- function(model, use_folded = FALSE) {
   model <- load_model_data(model)
   empty_frame <- function(cols, value = FALSE) {
-    if (length(cols) == 0 && !value) return(NULL)
+    if (length(cols) == 0 && !value) {
+      return(NULL)
+    }
     df <- as.data.frame(
       stats::setNames(rep(list(character(0)), length(cols)), cols),
-      stringsAsFactors = FALSE)
+      stringsAsFactors = FALSE
+    )
     if (value) df$value <- numeric(0)
     df
   }
@@ -99,9 +102,11 @@ gams_gdx_records <- function(tbl) {
   record <- function(nm, df, type) {
     n_key <- if (type == "parameter") ncol(df) - 1L else ncol(df)
     if (n_key == 0L) {
-      return(list(name = nm, type = type, dim = 0L,
-                  val = matrix(as.numeric(df$value), nrow = 1L),
-                  uels = list(), domains = character(0), ts = ""))
+      return(list(
+        name = nm, type = type, dim = 0L,
+        val = matrix(as.numeric(df$value), nrow = 1L),
+        uels = list(), domains = character(0), ts = ""
+      ))
     }
     uels <- vector("list", n_key)
     val <- matrix(0, nrow = nrow(df), ncol = if (type == "parameter") n_key + 1L else n_key)
@@ -111,12 +116,16 @@ gams_gdx_records <- function(tbl) {
       val[, j] <- as.numeric(f)
     }
     if (type == "parameter") val[, n_key + 1L] <- as.numeric(df$value)
-    list(name = nm, type = type, dim = n_key, val = val, uels = uels,
-         domains = rep("*", n_key), ts = "")
+    list(
+      name = nm, type = type, dim = n_key, val = val, uels = uels,
+      domains = rep("*", n_key), ts = ""
+    )
   }
 
-  c(lapply(names(tbl$sets), function(nm) record(nm, tbl$sets[[nm]], "set")),
-    lapply(names(tbl$params), function(nm) record(nm, tbl$params[[nm]], "parameter")))
+  c(
+    lapply(names(tbl$sets), function(nm) record(nm, tbl$sets[[nm]], "set")),
+    lapply(names(tbl$params), function(nm) record(nm, tbl$params[[nm]], "parameter"))
+  )
 }
 
 #' Write a model's data to a GDX for GAMS
@@ -153,16 +162,26 @@ write_gams_data <- function(model, file, use_folded = FALSE, gams_dir = NULL,
                             verbose = FALSE) {
   if (!requireNamespace("gdxtools", quietly = TRUE)) {
     stop("Writing a GDX needs the 'gdxtools' package.\n",
-         '  install.packages("gdxtools")', call. = FALSE)
+      '  install.packages("gdxtools")',
+      call. = FALSE
+    )
   }
-  loaded <- tryCatch({
-    if (is.null(gams_dir)) gdxtools::igdx(silent = TRUE) else
-      gdxtools::igdx(gams_dir, silent = TRUE)
-    TRUE
-  }, error = function(e) FALSE)
+  loaded <- tryCatch(
+    {
+      if (is.null(gams_dir)) {
+        gdxtools::igdx(silent = TRUE)
+      } else {
+        gdxtools::igdx(gams_dir, silent = TRUE)
+      }
+      TRUE
+    },
+    error = function(e) FALSE
+  )
   if (!isTRUE(loaded)) {
     stop("Could not load the GAMS GDX library. Point 'gams_dir' at a GAMS ",
-         "installation; writing a GDX needs no licence.", call. = FALSE)
+      "installation; writing a GDX needs no licence.",
+      call. = FALSE
+    )
   }
 
   tbl <- gams_gdx_tables(model, use_folded = use_folded)
@@ -175,8 +194,10 @@ write_gams_data <- function(model, file, use_folded = FALSE, gams_dir = NULL,
 
   written <- c(names(tbl$sets), names(tbl$params))
   if (verbose) {
-    message("Wrote ", basename(file), ": ", length(tbl$sets), " sets/mappings, ",
-            length(tbl$params), " parameters")
+    message(
+      "Wrote ", basename(file), ": ", length(tbl$sets), " sets/mappings, ",
+      length(tbl$params), " parameters"
+    )
   }
   invisible(written)
 }

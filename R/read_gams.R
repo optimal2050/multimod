@@ -33,7 +33,7 @@ split_top_level_dollar <- function(expr_str) {
       ))
     }
   }
-  return(NULL) # No top-level $
+  NULL # No top-level $
 }
 
 #' Strip GAMS block comments
@@ -102,7 +102,7 @@ gams_expand_includes <- function(lines, base_path = ".") {
     }
   }
 
-  return(expanded)
+  expanded
 }
 
 
@@ -187,19 +187,16 @@ normalize_gams_lines <- function(lines) {
     result <- c(result, trimws(buffer))
   }
 
-  return(result)
+  result
 }
 
 
 strip_gams_data_block <- function(lines) {
   out <- character()
   in_decl <- FALSE
-  in_block <- FALSE
   block_lines <- character()
 
   is_decl_start <- function(line) grepl("^\\s*(set|sets|parameter|parameters)\\b", line, ignore.case = TRUE)
-  is_block_start <- function(line) grepl("^\\s*/\\s*$", line)
-  is_block_end   <- function(line) grepl("^\\s*/\\s*[;,]?$", line)
 
   flush_block <- function(block) {
     # Replace all /.../ groups inside the block with a space
@@ -238,7 +235,7 @@ strip_gams_data_block <- function(lines) {
     out <- c(out, unlist(strsplit(cleaned, "\n", fixed = TRUE)))
   }
 
-  return(out)
+  out
 }
 
 split_indexed_operator <- function(expr_str, func_name) {
@@ -261,27 +258,28 @@ split_indexed_operator <- function(expr_str, func_name) {
       return(c(trimws(index), trimws(value_expr)))
     }
   }
-  return(NULL) # malformed or no split point
+  NULL # malformed or no split point
 }
-
 
 
 # Known indexed GAMS functions
 known_funcs_indexed <- c("sum", "prod", "smin", "smax", "sand", "sor")
 
 parse_gams_expr <- function(
-    expr,
-    symbols = list(),
-    known_funcs = c("log", "exp", "abs", "sqrt", "ord", "card"),
-    # known_funcs_indexed = known_funcs_indexed,
-    depth = 0, max_depth = 50,
-    brackets = FALSE, # whether to wrap in brackets, passed to ast_*
-    ...
-    ) {
+  expr,
+  symbols = list(),
+  known_funcs = c("log", "exp", "abs", "sqrt", "ord", "card"),
+  # known_funcs_indexed = known_funcs_indexed,
+  depth = 0, max_depth = 50,
+  brackets = FALSE, # whether to wrap in brackets, passed to ast_*
+  ...
+) {
   if (depth > max_depth) {
-    stop("Maximum expression nesting depth exceeded (max_depth = ", max_depth,
-         "). Binary operators are split recursively, so a flat sum of N terms ",
-         "consumes N levels: a long chain trips this without being deeply nested.")
+    stop(
+      "Maximum expression nesting depth exceeded (max_depth = ", max_depth,
+      "). Binary operators are split recursively, so a flat sum of N terms ",
+      "consumes N levels: a long chain trips this without being deeply nested."
+    )
   }
 
   expr <- trimws(expr)
@@ -303,7 +301,8 @@ parse_gams_expr <- function(
   # the set, `y--1` wraps onto the other end.
   if (grepl("^[a-zA-Z][a-zA-Z0-9_]*(\\+\\+|--|[+-])[0-9]+$", expr)) {
     match <- regmatches(expr, regexec(
-      "^([a-zA-Z][a-zA-Z0-9_]*)(\\+\\+|--|[+-])([0-9]+)$", expr))[[1]]
+      "^([a-zA-Z][a-zA-Z0-9_]*)(\\+\\+|--|[+-])([0-9]+)$", expr
+    ))[[1]]
     if (length(match) == 4) {
       symbol <- match[2]
       op <- match[3]
@@ -375,8 +374,6 @@ parse_gams_expr <- function(
     }
   }
 
-  # Has top-level operator(s)
-  top_dollar <- find_top_level_operators(expr, ops = "$", precedence = NULL)
   # top-level $ condition ####
   dollar_parts <- split_top_level_dollar(expr)
   if (!is.null(dollar_parts)) {
@@ -401,12 +398,15 @@ parse_gams_expr <- function(
   # known functions ####
   if (grepl("^[a-zA-Z0-9_]+\\(", expr)) {
     result <- parse_function_expr(expr,
-                                  symbols = symbols,
-                                  known_funcs = known_funcs,
-                                  known_funcs_indexed = known_funcs_indexed,
-                                  depth = depth + 1,
-                                  max_depth = max_depth)
-    if (!is.null(result)) return(result)
+      symbols = symbols,
+      known_funcs = known_funcs,
+      known_funcs_indexed = known_funcs_indexed,
+      depth = depth + 1,
+      max_depth = max_depth
+    )
+    if (!is.null(result)) {
+      return(result)
+    }
   }
 
   # sum(...), prod(...)
@@ -422,8 +422,7 @@ parse_gams_expr <- function(
     }
     value_expr <- parse_gams_expr(trimws(parts[2]), symbols, known_funcs)
 
-    parsed_expr <- switch(
-      agg_type,
+    parsed_expr <- switch(agg_type,
       "sum" = ast_sum(index, value_expr),
       "prod" = ast_prod(index, value_expr)
       # "sum" = ast_sum(index, domain, value_expr),
@@ -456,7 +455,8 @@ parse_gams_expr <- function(
     dims <- gsub("[()]", "", sub("^[^(]+\\(", "", expr))
     dims <- trimws(strsplit(dims, ",")[[1]])
     symbol_type <- detect_symbol_type(name, symbols, known_funcs,
-                                      indexed = TRUE)
+      indexed = TRUE
+    )
     dims <- ast_dims(dims, symbols = symbols)
     return(do.call(paste0("ast_", symbol_type), list(name, dims)))
   }
@@ -470,8 +470,10 @@ parse_gams_expr <- function(
       # operands. An index parsed as " timeslice" matches no set, so a
       # sum over the tuple binds nothing and the constraint row is emitted
       # with its RHS and no coefficients -- a silently relaxed model.
-      symb <- trimws(split_top_level(expr, ",", keep_op = FALSE,
-                                     as_list = FALSE))
+      symb <- trimws(split_top_level(expr, ",",
+        keep_op = FALSE,
+        as_list = FALSE
+      ))
     } else {
       # check if expr is a word-like symbol
       if (grepl("^[a-zA-Z][a-zA-Z0-9_]*$", expr)) {
@@ -486,8 +488,10 @@ parse_gams_expr <- function(
     # assign
     symb <- symb |>
       lapply(function(x) {
-        sb <- detect_symbol_type(x, symbols = symbols,
-                                 known_funcs = known_funcs, indexed = FALSE)
+        sb <- detect_symbol_type(x,
+          symbols = symbols,
+          known_funcs = known_funcs, indexed = FALSE
+        )
         do.call(paste0("ast_", sb), list(x))
       })
     # return(ast_dims(symb))
@@ -503,7 +507,7 @@ parse_gams_expr <- function(
     stop("Expression has unrecognized operators or structure: ", expr)
   }
 
-  return(ast_symbol(expr))
+  ast_symbol(expr)
 }
 
 # Split a declaration line of several symbols, `tech, region` or
@@ -525,7 +529,7 @@ parse_gams_expr <- function(
 #'
 #' This function reads a GAMS model file or text, expands any included files, removes comments, and parses the core structure into sets, parameters, variables, equations, and aliases, returning a `model_structure` object.
 #'
-#' @param file_or_text A path to a GAMS file, or a character vector containing GAMS code 
+#' @param file_or_text A path to a GAMS file, or a character vector containing GAMS code
 #'   (either as a single string with newlines, or as a vector with one line per element).
 #' @param include Logical indicating whether to expand included files (default is `TRUE`).
 #'   Only applies when reading from a file path.
@@ -547,16 +551,16 @@ parse_gams_expr <- function(
 #' m <- as_multimod(structure)
 #' as_gmpl(m$equations$eqDemand, model = m)
 read_gams <- function(
-    file_or_text,
-    include = TRUE,
-    interim_file = NULL,
-    strict = TRUE,
-    verbose = FALSE,
-    ...) {
-  
+  file_or_text,
+  include = TRUE,
+  interim_file = NULL,
+  strict = TRUE,
+  verbose = FALSE,
+  ...
+) {
   # Determine if input is file path or content
   is_file <- length(file_or_text) == 1 && file.exists(file_or_text)
-  
+
   if (is_file) {
     # Read from file
     lines <- readLines(file_or_text, encoding = "UTF-8")
@@ -570,9 +574,9 @@ read_gams <- function(
       # Already a vector of lines
       lines <- file_or_text
     }
-    base_path <- getwd()  # Use current directory for any relative paths
+    base_path <- getwd() # Use current directory for any relative paths
   }
-  
+
   # Replace non-UTF-8 characters with '?' if any
   lines <- iconv(lines, from = "", to = "UTF-8", sub = "?")
 
@@ -631,7 +635,7 @@ read_gams <- function(
   parameters <- list()
   variables <- list()
   equations <- list()
-  objective <- NULL  # Store objective metadata from Solve statement
+  objective <- NULL # Store objective metadata from Solve statement
 
   mode <- NULL
   i <- 1
@@ -700,7 +704,7 @@ read_gams <- function(
         var_name <- matches[4]
         solver <- matches[5]
         objective <- list(
-          model = model_name,  # Use 'model' instead of 'model_name'
+          model = model_name, # Use 'model' instead of 'model_name'
           variable = var_name,
           sense = sense,
           optimization_problem = solver,
@@ -755,12 +759,14 @@ read_gams <- function(
       }
       i <- i + 1
       next
-    # } else if (grepl("^((positive|free|integer)\\s+)?variable(s)?\\b", line, ignore.case = TRUE)) {
+      # } else if (grepl("^((positive|free|integer)\\s+)?variable(s)?\\b", line, ignore.case = TRUE)) {
     } else if (grepl("^([a-zA-Z0-9_]+\\s+)?variable(s)?\\b", line, ignore.case = TRUE)) {
       mode <- "variables"
       # extract variable type
       match_type <- regexec("^([a-zA-Z0-9_]+)\\s+variable(s)?\\b",
-                       line, ignore.case = TRUE)
+        line,
+        ignore.case = TRUE
+      )
       var_type <- regmatches(line, match_type)[[1]][2]
       if (is.na(var_type)) var_type <- NULL
 
@@ -894,7 +900,7 @@ read_gams <- function(
             symbol_obj$bounds <- list(lo = -Inf, up = 0)
           } else if (tolower(var_type) == "binary") {
             symbol_obj$bounds <- list(lo = 0, up = 1)
-            symbol_obj$vtype <- "binary"  # Override to standard name
+            symbol_obj$vtype <- "binary" # Override to standard name
           } else if (tolower(var_type) == "integer") {
             symbol_obj$bounds <- list(lo = -Inf, up = Inf)
           } else if (tolower(var_type) == "free") {
@@ -974,7 +980,8 @@ read_gams <- function(
           )
         }
       }
-      eq_name <- NULL; body_accum <- NULL
+      eq_name <- NULL
+      body_accum <- NULL
       next
     }
 
@@ -983,7 +990,7 @@ read_gams <- function(
 
   # Wrap objectives in unnamed list for consistency
   objectives_list <- if (!is.null(objective)) {
-    list(objective)  # Unnamed list element
+    list(objective) # Unnamed list element
   } else {
     list()
   }
@@ -995,8 +1002,8 @@ read_gams <- function(
     parameters = parameters,
     variables = variables,
     equations = equations,
-    objectives = objectives_list,  # Use plural, wrap in list
-    models = list(),  # TODO: Parse model definitions from GAMS
+    objectives = objectives_list, # Use plural, wrap in list
+    models = list(), # TODO: Parse model definitions from GAMS
     source = file_or_text,
     language = "GAMS"
   )
@@ -1023,7 +1030,9 @@ read_gams <- function(
 parse_equation_header <- function(line) {
   pattern_step1 <- "^\\s*(.*?)\\s*\\.\\.\\s*$"
   # if (!grepl(pattern_step1, line)) stop("Invalid GAMS equation header")
-  if (!grepl(pattern_step1, line)) return(NULL) # not an equation header
+  if (!grepl(pattern_step1, line)) {
+    return(NULL)
+  } # not an equation header
 
   header <- sub(pattern_step1, "\\1", line)
 
@@ -1031,12 +1040,12 @@ parse_equation_header <- function(line) {
 
   if (!is.null(header_parts) && length(header_parts) == 2) {
     name_and_dims <- header_parts[[1]]
-    condition = header_parts[[2]]
+    condition <- header_parts[[2]]
     # condition <- parse_gams_expr(hparts[[2]], symbols = symbols)
     # if (is.null(condition)) condition <- NULL
   } else if (is.null(header_parts)) {
     name_and_dims <- header
-    condition     <- NULL
+    condition <- NULL
   } else {
     stop("Unrecognized equation header format: ", line)
   }

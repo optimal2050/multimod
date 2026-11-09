@@ -41,10 +41,10 @@ A `shift` S3 object (subclass of `ast`).
 ## Examples
 
 ``` r
-ast_shift("y", -1)  # y-1 (previous year)
+ast_shift("y", -1) # y-1 (previous year)
 #> <ast> 
 #> [1] "y"  "-1"
-ast_shift("y", 1)   # y+1 (next year)
+ast_shift("y", 1) # y+1 (next year)
 #> <ast> 
 #> [1] "y" "1"
 ast_shift("ls", -1) # ls-1 (previous season)

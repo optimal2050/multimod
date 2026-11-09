@@ -33,3 +33,4 @@
 ^src/.*\.dll$
 ^src/.*\.so$
 ^vignettes/\.DS_Store$
+^\.lintr$

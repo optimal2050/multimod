@@ -50,6 +50,8 @@ pairs <- expand.grid(
   region = c("north", "south"),
   stringsAsFactors = FALSE
 )
-new_mapping("mTR", desc = "technology x region pairs",
-            dims = c("tech", "region"), data = pairs)
+new_mapping("mTR",
+  desc = "technology x region pairs",
+  dims = c("tech", "region"), data = pairs
+)
 }

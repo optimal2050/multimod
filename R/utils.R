@@ -10,7 +10,6 @@
 #' @return NULL (writes to log file as side effect)
 #' @export
 log_solution_load <- function(model_dir, solver_name, variables_loaded, verbose = TRUE) {
-
   # Create log entry
   log_file <- file.path(model_dir, "solution_log.txt")
   log_entry <- sprintf(
@@ -48,14 +47,14 @@ log_solution_load <- function(model_dir, solver_name, variables_loaded, verbose 
 #' is_gams_expression("x") # FALSE
 #'
 is_gams_expression <- function(
-    s,
-    ops = c(
-      "+", "-", "*", "/", "^",
-      "=", "==", "<", "<=", ">", ">=",
-      "=e=", "=l=", "=g=", "=le=", "=ge=",
-      "and", "or", "not"
-    )) {
-
+  s,
+  ops = c(
+    "+", "-", "*", "/", "^",
+    "=", "==", "<", "<=", ">", ">=",
+    "=e=", "=l=", "=g=", "=le=", "=ge=",
+    "and", "or", "not"
+  )
+) {
   if (!is.character(s) || length(s) != 1) {
     return(FALSE)
   }
@@ -79,7 +78,7 @@ is_gams_expression <- function(
 
   # Check for top-level operators
   top_ops <- find_top_level_operators(s, ops = ops, precedence = NULL)
-  return(nrow(top_ops) > 0)
+  nrow(top_ops) > 0
 }
 
 #' Get the depth of a nested list structure (AST, multimod, and other objects)
@@ -109,7 +108,7 @@ depth <- function(x) {
 #' is_special(1) # FALSE
 #' is_special("#") # TRUE
 is_special <- function(ch) {
-  return(grepl("^[[:punct:]]+$", ch))
+  grepl("^[[:punct:]]+$", ch)
 }
 
 #' Check if a string is a word (alphabetic characters only)
@@ -125,12 +124,12 @@ is_special <- function(ch) {
 #' @export
 #'
 #' @examples
-#' is_word("alpha")     # TRUE
-#' is_word("123")       # FALSE
-#' is_word("var_1")     # FALSE
-#' is_word(c("a", "B", "C3"))  # TRUE, TRUE, FALSE
+#' is_word("alpha") # TRUE
+#' is_word("123") # FALSE
+#' is_word("var_1") # FALSE
+#' is_word(c("a", "B", "C3")) # TRUE, TRUE, FALSE
 is_word <- function(ch) {
-  return(grepl("^[a-zA-Z]+$", ch))
+  grepl("^[a-zA-Z]+$", ch)
 }
 
 sanitize_description <- function(desc, name = NULL) {
@@ -163,12 +162,12 @@ sanitize_description <- function(desc, name = NULL) {
 #' @export
 #'
 #' @examples
-#' is_word_num("alpha123")     # TRUE
-#' is_word_num("var_1")        # TRUE
-#' is_word_num("a-b")          # FALSE
-#' is_word_num(c("abc", "123", "a_b", "x-y"))  # TRUE, TRUE, TRUE, FALSE
+#' is_word_num("alpha123") # TRUE
+#' is_word_num("var_1") # TRUE
+#' is_word_num("a-b") # FALSE
+#' is_word_num(c("abc", "123", "a_b", "x-y")) # TRUE, TRUE, TRUE, FALSE
 is_word_num <- function(ch) {
-  return(grepl("^[a-zA-Z0-9_]+$", ch))
+  grepl("^[a-zA-Z0-9_]+$", ch)
 }
 
 
@@ -177,22 +176,28 @@ is_word_num <- function(ch) {
                                    position = c("before", "after", "both"),
                                    ignore.case = FALSE) {
   position <- match.arg(position)
-  if (length(pattern) == 0) return(line)
+  if (length(pattern) == 0) {
+    return(line)
+  }
 
   # Escape special characters
   # safe_patterns <- sapply(pattern, function(p) {
   #   if (grepl("^[a-zA-Z0-9_]+$", p)) return(p)
   #   return(sprintf("(?<!\\\\)%s", gsub("([\\^$.|?*+(){}])", "\\\\\\1", p)))
   # })
-  safe_patterns <- pattern #!!! reconsider later
+  safe_patterns <- pattern # !!! reconsider later
 
   combined_pattern <- paste0("(", paste(safe_patterns, collapse = "|"), ")")
 
-  if (!grepl(combined_pattern, line, perl = TRUE, ignore.case = ignore.case)) return(line)
+  if (!grepl(combined_pattern, line, perl = TRUE, ignore.case = ignore.case)) {
+    return(line)
+  }
 
   # Match and split
   m <- gregexpr(combined_pattern, line, perl = TRUE, ignore.case = ignore.case)[[1]]
-  if (m[1] == -1) return(line)
+  if (m[1] == -1) {
+    return(line)
+  }
 
   matches <- regmatches(line, gregexpr(combined_pattern, line, perl = TRUE, ignore.case = ignore.case))[[1]]
   result <- character()
@@ -219,20 +224,21 @@ is_word_num <- function(ch) {
     result <- c(result, substr(line, start, nchar(line)))
   }
 
-  return(trimws(result))
+  trimws(result)
 }
 
 split_line_on_pattern <- function(
-    lines,
-    pattern,
-    position = c("before", "after", "both"),
-    ignore.case = FALSE) {
+  lines,
+  pattern,
+  position = c("before", "after", "both"),
+  ignore.case = FALSE
+) {
   position <- match.arg(position)
   out <- list()
 
   for (line in lines) {
     if (!nzchar(trimws(line))) {
-      out <- c(out, "")  # preserve blank lines
+      out <- c(out, "") # preserve blank lines
       next
     }
 
@@ -246,7 +252,7 @@ split_line_on_pattern <- function(
     out <- c(out, split_line)
   }
 
-  return(unlist(out))
+  unlist(out)
 }
 
 #' Recursively extract elements by name from a nested structure
@@ -318,9 +324,10 @@ remap_ast_elements <- function(obj,
                                name_prefix = "m",
                                n = 0L,
                                latex_max = 10,
-                               ...
-                               ) {
-  if (is_empty(ast_type) || is_empty(obj)) return(obj)
+                               ...) {
+  if (is_empty(ast_type) || is_empty(obj)) {
+    return(obj)
+  }
 
   tmp_name <- "s"
 
@@ -328,10 +335,11 @@ remap_ast_elements <- function(obj,
     if (inherits(ob, names(ast_type))) {
       slot_names <- names(ob)
       for (slot_name in slot_names) {
-        if (slot_name %in% ast_type[[node_type(ob)]])  {
+        if (slot_name %in% ast_type[[node_type(ob)]]) {
           tex_str <- as_latex(ob[[slot_name]])
           if (estimate_latex_length(tex_str) < latex_max) next
-          n <<- n + 1L; map_name <- paste0(tmp_name, n)
+          n <<- n + 1L
+          map_name <- paste0(tmp_name, n)
           ob[[slot_name]] <- ast_where(name = map_name, content = ob[[slot_name]])
         } else {
           ob[[slot_name]] <- remap_fun(ob[[slot_name]])
@@ -369,7 +377,7 @@ extract_where_nodes <- function(ast) {
 
   walk <- function(x) {
     if (inherits(x, "where")) {
-      result[[x$name]] <<- x #$content
+      result[[x$name]] <<- x # $content
     }
     if (is.list(x) && !is.data.frame(x)) {
       lapply(x, walk)
@@ -381,9 +389,10 @@ extract_where_nodes <- function(ast) {
 }
 
 replace_where_duplicates <- function(obj) {
-
   w <- extract_where_nodes(obj)
-  if (length(w) == 0) return(obj)  # no "where" nodes to process
+  if (length(w) == 0) {
+    return(obj)
+  } # no "where" nodes to process
   h <- sapply(w, extract_ast_elements, name = "hash")
   d <- data.frame(
     name = names(w),
@@ -391,7 +400,9 @@ replace_where_duplicates <- function(obj) {
     stringsAsFactors = FALSE
   )
   d$duplicates <- duplicated(d$hash)
-  if (nrow(d) == 0) return(obj)  # no duplicates, nothing to do
+  if (nrow(d) == 0) {
+    return(obj)
+  } # no duplicates, nothing to do
   d$new_name <- NA_character_
   d$new_name[!d$duplicates] <- paste0("m", seq_len(sum(!d$duplicates)))
   for (i in seq_len(nrow(d))) {
@@ -403,7 +414,9 @@ replace_where_duplicates <- function(obj) {
 
   # replace names in obj with d$new_name
   rename_fun <- function(x) {
-    if (is_empty(x)) return(x)
+    if (is_empty(x)) {
+      return(x)
+    }
     # message(as.character(x))
     if (inherits(x, "where") && isTRUE(x$name %in% d$name)) {
       new_name <- d$new_name[d$name == x$name][1]
@@ -425,7 +438,7 @@ replace_where_duplicates <- function(obj) {
     x
   }
   obj <- rename_fun(obj)
-  return(obj)
+  obj
 }
 
 
@@ -448,7 +461,9 @@ alias_ast_names <- function(ast, alias_map, classes = NULL, ...) {
 
   rename_walk <- function(x) {
     n <- length(x)
-    if (n == 0L) return(x)
+    if (n == 0L) {
+      return(x)
+    }
 
     if (inherits(x, "ast")) {
       if (is.null(classes) || class(x)[1L] %in% classes) {
@@ -516,11 +531,11 @@ alias_ast_names <- function(ast, alias_map, classes = NULL, ...) {
 #   unique()
 
 short_names_sets <- list(
-  tech = "h",      # technology (avoid 't' conflict with time, trade)
-  trade = "a",     # trade (avoid 't' conflict)
-  sup = "u",       # supply (avoid 's' conflict with slice, stg)
-  slice = "ts",    # time slice (avoid 's' conflict)
-  stg = "o",       # storage (avoid 's' conflict)
+  tech = "h", # technology (avoid 't' conflict with time, trade)
+  trade = "a", # trade (avoid 't' conflict)
+  sup = "u", # supply (avoid 's' conflict with slice, stg)
+  slice = "ts", # time slice (avoid 's' conflict)
+  stg = "o", # storage (avoid 's' conflict)
   region = "r",
   comm = "c",
   year = "y",
@@ -530,7 +545,6 @@ short_names_sets <- list(
   expp = "e",
   weather = "w"
 )
-
 
 
 #' Recursively apply a function to all nodes of an AST
@@ -570,16 +584,18 @@ map_ast <- function(node, func, include_class = TRUE) {
 #' collect_ast_classes(m)
 collect_ast_classes <- function(obj) {
   classes_found <- character(0)
-  
+
   walk <- function(node) {
-    if (is.null(node)) return()
-    
+    if (is.null(node)) {
+      return()
+    }
+
     # If it's an AST node, record its class
     if (inherits(node, "ast")) {
-      node_class <- class(node)[1]  # First class is the specific type
+      node_class <- class(node)[1] # First class is the specific type
       classes_found <<- c(classes_found, node_class)
     }
-    
+
     # Recurse into lists (including AST nodes which are lists)
     if (is.list(node) && !is.data.frame(node)) {
       for (elem in node) {
@@ -589,7 +605,7 @@ collect_ast_classes <- function(obj) {
       }
     }
   }
-  
+
   walk(obj)
   unique(classes_found)
 }
@@ -606,12 +622,16 @@ collect_ast_classes <- function(obj) {
 #' @return Character vector of unique names found
 #' @keywords internal
 extract_ast_names <- function(ast, types = c("variable", "parameter", "mapping")) {
-  if (is.null(ast)) return(character(0))
+  if (is.null(ast)) {
+    return(character(0))
+  }
 
   names_found <- character(0)
 
   walk <- function(node) {
-    if (is.null(node)) return()
+    if (is.null(node)) {
+      return()
+    }
 
     # Check if this node matches one of the target types
     node_class <- node_type(node)
@@ -666,22 +686,32 @@ extract_ast_names <- function(ast, types = c("variable", "parameter", "mapping")
 #' # the statistics files of two JuMP runs; solve_jump() writes them
 #' d1 <- file.path(tempfile("jump1-"), "solvers", "jump")
 #' d2 <- file.path(tempfile("jump2-"), "solvers", "jump")
-#' dir.create(d1, recursive = TRUE); dir.create(d2, recursive = TRUE)
-#' write.csv(data.frame(name = c("eqDemand", "eqCap"), count = c(4, 6),
-#'                      nnz_total = c(8, 12)),
-#'           file.path(d1, "constraint_stats.csv"), row.names = FALSE)
-#' write.csv(data.frame(name = c("eqDemand", "eqCap"), count = c(4, 6),
-#'                      nnz_total = c(8, 14)),
-#'           file.path(d2, "constraint_stats.csv"), row.names = FALSE)
+#' dir.create(d1, recursive = TRUE)
+#' dir.create(d2, recursive = TRUE)
+#' write.csv(
+#'   data.frame(
+#'     name = c("eqDemand", "eqCap"), count = c(4, 6),
+#'     nnz_total = c(8, 12)
+#'   ),
+#'   file.path(d1, "constraint_stats.csv"),
+#'   row.names = FALSE
+#' )
+#' write.csv(
+#'   data.frame(
+#'     name = c("eqDemand", "eqCap"), count = c(4, 6),
+#'     nnz_total = c(8, 14)
+#'   ),
+#'   file.path(d2, "constraint_stats.csv"),
+#'   row.names = FALSE
+#' )
 #'
 #' comp <- compare_jump_stats(d1, d2, verbose = FALSE)
 #' comp$nnz_differences
 #' comp$summary$all_match
 compare_jump_stats <- function(model_dir1,
-                              model_dir2,
-                              file = NULL,
-                              verbose = TRUE) {
-
+                               model_dir2,
+                               file = NULL,
+                               verbose = TRUE) {
   # Helper to find constraint_stats.csv
   find_stats_file <- function(dir) {
     # Try direct path
@@ -692,7 +722,7 @@ compare_jump_stats <- function(model_dir1,
     if (file.exists(file.path(dir, "solvers", "jump", "constraint_stats.csv"))) {
       return(file.path(dir, "solvers", "jump", "constraint_stats.csv"))
     }
-    return(NULL)
+    NULL
   }
 
   stats_file1 <- find_stats_file(model_dir1)
@@ -727,8 +757,10 @@ compare_jump_stats <- function(model_dir1,
   merged$count_diff <- merged$count_2 - merged$count_1
 
   # Check for constraint count differences
-  constraint_mismatches <- merged[merged$count_diff != 0,
-                                 c("name", "count_1", "count_2", "count_diff")]
+  constraint_mismatches <- merged[
+    merged$count_diff != 0,
+    c("name", "count_1", "count_2", "count_diff")
+  ]
 
   if (nrow(constraint_mismatches) > 0) {
     if (verbose) {
@@ -742,8 +774,10 @@ compare_jump_stats <- function(model_dir1,
 
   # Check nnz differences
   merged$nnz_diff <- merged$nnz_total_2 - merged$nnz_total_1
-  nnz_differences <- merged[abs(merged$nnz_diff) > 0,
-                           c("name", "nnz_total_1", "nnz_total_2", "nnz_diff")]
+  nnz_differences <- merged[
+    abs(merged$nnz_diff) > 0,
+    c("name", "nnz_total_1", "nnz_total_2", "nnz_diff")
+  ]
 
   if (nrow(nnz_differences) > 0) {
     if (verbose) {
@@ -787,8 +821,6 @@ compare_jump_stats <- function(model_dir1,
 }
 
 
-
-
 #' Marker for a state the author believed unreachable
 #'
 #' Replaces `browser()` calls left in package code. `browser()` stops an
@@ -802,8 +834,9 @@ compare_jump_stats <- function(model_dir1,
 #' @keywords internal
 .dev_break <- function(context = "") {
   warning("multimod: reached a state believed unreachable",
-          if (nzchar(context)) paste0(" (", context, ")") else "",
-          call. = FALSE)
+    if (nzchar(context)) paste0(" (", context, ")") else "",
+    call. = FALSE
+  )
   invisible(NULL)
 }
 
@@ -821,7 +854,9 @@ compare_jump_stats <- function(model_dir1,
 .need_pkg <- function(pkg, what) {
   if (!requireNamespace(pkg, quietly = TRUE)) {
     stop("multimod: package '", pkg, "' is required for ", what,
-         "; install it with install.packages(\"", pkg, "\").", call. = FALSE)
+      "; install it with install.packages(\"", pkg, "\").",
+      call. = FALSE
+    )
   }
   invisible(TRUE)
 }
@@ -847,15 +882,19 @@ compare_jump_stats <- function(model_dir1,
   # what the writers and solve_*() leave behind beside the workspace data
   own <- c("solvers", "variables", "solution_log.txt")
   if (length(setdiff(entries, own)) > 0) {
-    stop("`model_dir` (", model_dir, ") is not empty and holds no model ",
-         "workspace (model.rds or model.json); pass an empty directory or one ",
-         "written by save_model().")
+    stop(
+      "`model_dir` (", model_dir, ") is not empty and holds no model ",
+      "workspace (model.rds or model.json); pass an empty directory or one ",
+      "written by save_model()."
+    )
   }
   staging <- tempfile("mm_ws_")
   save_model(model, staging, format = "csv", verbose = FALSE)
   dir.create(model_dir, recursive = TRUE, showWarnings = FALSE)
   file.copy(list.files(staging, full.names = TRUE, all.files = TRUE, no.. = TRUE),
-            model_dir, recursive = TRUE)
+    model_dir,
+    recursive = TRUE
+  )
   unlink(staging, recursive = TRUE)
   invisible(model_dir)
 }
@@ -865,7 +904,9 @@ compare_jump_stats <- function(model_dir1,
 # those writers stop here instead.
 .mm_no_circular <- function(lang) {
   stop("multimod: ", lang, " has no syntax for a circular lag or lead, so ",
-       "`circular = TRUE` cannot be written to it without changing the ",
-       "model. Render to GAMS, which spells it `y--1`, or solve through the ",
-       "matrix backend, which resolves the wrap directly.", call. = FALSE)
+    "`circular = TRUE` cannot be written to it without changing the ",
+    "model. Render to GAMS, which spells it `y--1`, or solve through the ",
+    "matrix backend, which resolves the wrap directly.",
+    call. = FALSE
+  )
 }

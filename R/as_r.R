@@ -72,17 +72,17 @@ as_r.ast_constant <- function(x, ...) {
 as_r.expression <- function(x, ...) {
   lhs_code <- as_r(x$lhs, ...)
   rhs_code <- as_r(x$rhs, ...)
-  
+
   # Handle indexing operator specially
   if (x$op == "[") {
     return(paste0(lhs_code, "[", rhs_code, "]"))
   }
-  
+
   # Handle binary operators
   if (x$op %in% c("+", "-", "*", "/", "^", "==", "!=", "<", ">", "<=", ">=", "&&", "||")) {
     return(paste0("(", lhs_code, " ", x$op, " ", rhs_code, ")"))
   }
-  
+
   # Default: space-separated
   paste0(lhs_code, " ", x$op, " ", rhs_code)
 }
@@ -91,17 +91,17 @@ as_r.expression <- function(x, ...) {
 as_r.ast_expression <- function(x, ...) {
   lhs_code <- as_r(x$lhs, ...)
   rhs_code <- as_r(x$rhs, ...)
-  
+
   # Handle indexing operator specially
   if (x$op == "[") {
     return(paste0(lhs_code, "[", rhs_code, "]"))
   }
-  
+
   # Handle binary operators
   if (x$op %in% c("+", "-", "*", "/", "^", "==", "!=", "<", ">", "<=", ">=", "&&", "||")) {
     return(paste0("(", lhs_code, " ", x$op, " ", rhs_code, ")"))
   }
-  
+
   # Default: space-separated
   paste0(lhs_code, " ", x$op, " ", rhs_code)
 }
@@ -147,7 +147,7 @@ as_r.setmin <- function(x, ...) {
     # Extract set name from dims
     if (inherits(x$index, "dims") && length(x$index) > 0) {
       index_name <- names(x$index)[1]
-      set_name <- x$index[[1]]$name  # The set the index iterates over
+      set_name <- x$index[[1]]$name # The set the index iterates over
     }
     # value is the call to min()
     if (inherits(x$value, "call") && x$value$name == "min") {
@@ -180,7 +180,7 @@ as_r.ast_setmin <- function(x, ...) {
     # Extract set name from dims
     if (inherits(x$index, "dims") && length(x$index) > 0) {
       index_name <- names(x$index)[1]
-      set_name <- x$index[[1]]$name  # The set the index iterates over
+      set_name <- x$index[[1]]$name # The set the index iterates over
     }
     # value is the call to min()
     if (inherits(x$value, "call") && x$value$name == "min") {
@@ -261,7 +261,7 @@ as_r.if <- function(x, ...) {
   cond_code <- as_r(x$condition, ...)
   then_code <- as_r(x$then_expr, ...)
   else_code <- if (!is.null(x$else_expr)) as_r(x$else_expr, ...) else NULL
-  
+
   if (!is.null(else_code)) {
     paste0("if (", cond_code, ") { ", then_code, " } else { ", else_code, " }")
   } else {
@@ -274,7 +274,7 @@ as_r.ast_if <- function(x, ...) {
   cond_code <- as_r(x$condition, ...)
   then_code <- as_r(x$then_expr, ...)
   else_code <- if (!is.null(x$else_expr)) as_r(x$else_expr, ...) else NULL
-  
+
   if (!is.null(else_code)) {
     paste0("if (", cond_code, ") { ", then_code, " } else { ", else_code, " }")
   } else {
@@ -415,7 +415,7 @@ extract_args.setmin <- function(x, args = character()) {
     }
     if (!is.null(x$expr)) {
       expr_args <- extract_args(x$expr, character())
-      expr_args <- setdiff(expr_args, x$index)  # Exclude lambda parameter
+      expr_args <- setdiff(expr_args, x$index) # Exclude lambda parameter
       args <- unique(c(args, expr_args))
     }
   } else if (!is.null(x$index) && !is.null(x$value)) {
@@ -427,7 +427,7 @@ extract_args.setmin <- function(x, args = character()) {
       # Extract args from the value (call to min)
       if (inherits(x$value, "call") && length(x$value$args) > 0) {
         expr_args <- extract_args(x$value$args[[1]], character())
-        expr_args <- setdiff(expr_args, index_name)  # Exclude lambda parameter
+        expr_args <- setdiff(expr_args, index_name) # Exclude lambda parameter
         args <- unique(c(args, expr_args))
       }
     }
@@ -445,7 +445,7 @@ extract_args.ast_setmin <- function(x, args = character()) {
     }
     if (!is.null(x$expr)) {
       expr_args <- extract_args(x$expr, character())
-      expr_args <- setdiff(expr_args, x$index)  # Exclude lambda parameter
+      expr_args <- setdiff(expr_args, x$index) # Exclude lambda parameter
       args <- unique(c(args, expr_args))
     }
   } else if (!is.null(x$index) && !is.null(x$value)) {
@@ -457,7 +457,7 @@ extract_args.ast_setmin <- function(x, args = character()) {
       # Extract args from the value (call to min)
       if (inherits(x$value, "call") && length(x$value$args) > 0) {
         expr_args <- extract_args(x$value$args[[1]], character())
-        expr_args <- setdiff(expr_args, index_name)  # Exclude lambda parameter
+        expr_args <- setdiff(expr_args, index_name) # Exclude lambda parameter
         args <- unique(c(args, expr_args))
       }
     }
@@ -621,29 +621,29 @@ extract_args.ast_formula <- function(x, args = character()) {
 as_rfunction <- function(x, args = NULL, envir = parent.frame(), ...) {
   # Convert AST to R code string
   body_code <- as_r(x, ...)
-  
+
   # Auto-detect arguments if not provided
   if (is.null(args)) {
     args <- extract_args(x)
   }
-  
+
   # Create formal arguments (all required, no defaults)
   formals_list <- setNames(
-    rep(list(quote(expr=)), length(args)),
+    rep(list(quote(expr = )), length(args)),
     args
   )
-  
+
   # Parse the body code into an expression
   body_expr <- str2lang(body_code)
-  
+
   # Create the function
   fn <- as.function(c(formals_list, body_expr), envir = envir)
-  
+
   # Add attributes for debugging/inspection
   attr(fn, "ast") <- x
   attr(fn, "code") <- body_code
   attr(fn, "args") <- args
-  
+
   fn
 }
 

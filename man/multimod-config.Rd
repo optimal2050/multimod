@@ -99,7 +99,8 @@ multimod_config_path()
 # write a configuration file, here to a temporary location
 if (requireNamespace("yaml", quietly = TRUE)) {
   f <- multimod_config_write(list(julia = list(path = "julia")),
-                             file = tempfile(fileext = ".yml"))
+    file = tempfile(fileext = ".yml")
+  )
   readLines(f)
 }
 

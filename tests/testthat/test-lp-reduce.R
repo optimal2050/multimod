@@ -4,12 +4,16 @@
 
 test_that("a chain of doubletons is eliminated and expanded exactly", {
   # min x1 + 2 x2 + 3 x3   s.t.  x1 - 2 x2 = 0,  x2 - x3 = 0,  x1 + x3 >= 3
-  A <- Matrix::sparseMatrix(i = c(1, 1, 2, 2, 3, 3), j = c(1, 2, 2, 3, 1, 3),
-                            x = c(1, -2, 1, -1, 1, 1), dims = c(3, 3))
-  lp <- list(A = A, obj = c(1, 2, 3), row_lo = c(0, 0, 3), row_up = c(0, 0, Inf),
-             col_lo = c(0, 0, 0), col_up = c(Inf, 10, Inf), maximum = FALSE,
-             col_index = data.table::data.table(j = 1:3, symbol = "v"),
-             row_index = data.table::data.table(i = 1:3, symbol = "e"))
+  A <- Matrix::sparseMatrix(
+    i = c(1, 1, 2, 2, 3, 3), j = c(1, 2, 2, 3, 1, 3),
+    x = c(1, -2, 1, -1, 1, 1), dims = c(3, 3)
+  )
+  lp <- list(
+    A = A, obj = c(1, 2, 3), row_lo = c(0, 0, 3), row_up = c(0, 0, Inf),
+    col_lo = c(0, 0, 0), col_up = c(Inf, 10, Inf), maximum = FALSE,
+    col_index = data.table::data.table(j = 1:3, symbol = "v"),
+    row_index = data.table::data.table(i = 1:3, symbol = "e")
+  )
   r <- lp_presolve(lp)
   expect_equal(ncol(r$A), 1L)
   expect_equal(nrow(r$A), 1L)
@@ -25,17 +29,19 @@ test_that("a chain of doubletons is eliminated and expanded exactly", {
 
 test_that("integer columns are never eliminated", {
   A <- Matrix::sparseMatrix(i = c(1, 1), j = c(1, 2), x = c(1, -1), dims = c(1, 2))
-  lp <- list(A = A, obj = c(1, 1), row_lo = 0, row_up = 0, col_lo = c(0, 0),
-             col_up = c(5, 5), maximum = FALSE,
-             col_index = data.table::data.table(j = 1:2, vtype = c("integer", "integer")),
-             row_index = data.table::data.table(i = 1L))
+  lp <- list(
+    A = A, obj = c(1, 1), row_lo = 0, row_up = 0, col_lo = c(0, 0),
+    col_up = c(5, 5), maximum = FALSE,
+    col_index = data.table::data.table(j = 1:2, vtype = c("integer", "integer")),
+    row_index = data.table::data.table(i = 1L)
+  )
   r <- lp_presolve(lp)
   expect_equal(ncol(r$A), 2L)
   expect_equal(nrow(r$eliminated), 0L)
 })
 
 test_that("the fixture solves to the same optimum through an eliminated MPS", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   skip_if_not_installed("highs")
   data(example_models, package = "multimod")
   m <- example_models$energyRt$multimod
@@ -82,7 +88,9 @@ test_that("the native presolve map equals the R reference", {
     mr <- ns$.mx_presolve_map_r(closed, sense, rhs, lp$col_lo, lp$col_up, lp$col_index$vtype)
     mn <- ns$.mx_presolve_map(scan, sense, rhs, lp$col_lo, lp$col_up, lp$col_index$vtype, full = TRUE)
     expect_equal(unname(as.list(ord(as.data.frame(mn$eliminated)))),
-                 unname(as.list(ord(as.data.frame(mr$eliminated)))), info = track)
+      unname(as.list(ord(as.data.frame(mr$eliminated)))),
+      info = track
+    )
     expect_identical(mn$jred, mr$jred)
     expect_identical(mn$ired, mr$ired)
     expect_identical(mn$ref, mr$ref)

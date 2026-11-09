@@ -92,9 +92,9 @@ node carrying it is a declaration, one without it is a reference.</p>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu">schema_type</span><span class="op">(</span><span class="fu"><a href="ast_symbol.html">ast_symbol</a></span><span class="op">(</span><span class="st">"t"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "symbol"</span>
-<span class="r-in"><span><span class="fu">schema_type</span><span class="op">(</span><span class="fu"><a href="new_ast.html">ast_set</a></span><span class="op">(</span><span class="st">"tech"</span><span class="op">)</span><span class="op">)</span>   <span class="co"># a reference</span></span></span>
+<span class="r-in"><span><span class="fu">schema_type</span><span class="op">(</span><span class="fu"><a href="new_ast.html">ast_set</a></span><span class="op">(</span><span class="st">"tech"</span><span class="op">)</span><span class="op">)</span> <span class="co"># a reference</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "set_ref"</span>
-<span class="r-in"><span><span class="fu">schema_type</span><span class="op">(</span><span class="fu"><a href="new_set.html">new_set</a></span><span class="op">(</span><span class="st">"tech"</span><span class="op">)</span><span class="op">)</span>   <span class="co"># a declaration</span></span></span>
+<span class="r-in"><span><span class="fu">schema_type</span><span class="op">(</span><span class="fu"><a href="new_set.html">new_set</a></span><span class="op">(</span><span class="st">"tech"</span><span class="op">)</span><span class="op">)</span> <span class="co"># a declaration</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "set_decl"</span>
 </code></pre></div>
     </div>

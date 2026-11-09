@@ -61,15 +61,25 @@ pyomo_format_scalar <- function(x) {
 }
 
 pyomo_dim_name <- function(dim) {
-  if (inherits(dim, "symbol")) return(dim$name)
-  if (inherits(dim, "mm_set")) return(dim$name)
-  if (inherits(dim, "character")) return(dim[[1]])
-  if (is.list(dim) && !is.null(dim$name)) return(dim$name)
+  if (inherits(dim, "symbol")) {
+    return(dim$name)
+  }
+  if (inherits(dim, "mm_set")) {
+    return(dim$name)
+  }
+  if (inherits(dim, "character")) {
+    return(dim[[1]])
+  }
+  if (is.list(dim) && !is.null(dim$name)) {
+    return(dim$name)
+  }
   as.character(dim)[1]
 }
 
 pyomo_collect_dim_names <- function(dims_obj) {
-  if (is.null(dims_obj) || length(dims_obj) == 0) return(character(0))
+  if (is.null(dims_obj) || length(dims_obj) == 0) {
+    return(character(0))
+  }
   dims_obj <- normalize_symbol_dims(dims_obj)
   dim_names <- character(length(dims_obj))
   for (i in seq_along(dims_obj)) {
@@ -99,7 +109,9 @@ pyomo_resolve_symbol <- function(name, var_names = NULL, scope = NULL, model = N
 }
 
 pyomo_resolve_base_set <- function(name, model = NULL) {
-  if (is.null(model) || is.null(model$aliases)) return(name)
+  if (is.null(model) || is.null(model$aliases)) {
+    return(name)
+  }
   for (alias_group in model$aliases) {
     if (name %in% alias_group) {
       return(alias_group[1])
@@ -110,7 +122,9 @@ pyomo_resolve_base_set <- function(name, model = NULL) {
 
 pyomo_index_brackets <- function(dims, model = NULL, var_names = NULL, scope = NULL) {
   dims <- normalize_symbol_dims(dims)
-  if (length(dims) == 0) return("")
+  if (length(dims) == 0) {
+    return("")
+  }
   symbols <- character(length(dims))
   for (i in seq_along(dims)) {
     dim <- dims[[i]]
@@ -263,8 +277,10 @@ as_pyomo.mm_mapping <- function(x, context = c("reference", "membership"), model
 #' @keywords internal
 pyomo_condition <- function(node, model = NULL, var_names = NULL, scope = NULL, ...) {
   if (inherits(node, "mm_mapping")) {
-    return(as_pyomo(node, context = "membership", model = model,
-                    var_names = var_names, scope = scope))
+    return(as_pyomo(node,
+      context = "membership", model = model,
+      var_names = var_names, scope = scope
+    ))
   }
   as_pyomo(node, model = model, var_names = var_names, scope = scope, ...)
 }
@@ -297,19 +313,21 @@ as_pyomo.mm_variable <- function(x, model = NULL, var_names = NULL, scope = NULL
 # Returns both iterator symbol names and the set names they resolve to, since
 # GMPL parsing may resolve iterator symbols to their set types
 collect_symbols <- function(node) {
-  if (is.null(node)) return(character(0))
-  
+  if (is.null(node)) {
+    return(character(0))
+  }
+
   symbols <- character(0)
-  
+
   if (inherits(node, "symbol")) {
     return(node$name)
   }
-  
+
   # Also collect set names - they may represent iterator variables outside their scope
   if (inherits(node, "mm_set")) {
     return(node$name)
   }
-  
+
   if (inherits(node, c("mm_parameter", "mm_variable"))) {
     symbols <- c(symbols, node$name)
     if (!is.null(node$dims)) {
@@ -319,78 +337,102 @@ collect_symbols <- function(node) {
     }
     return(symbols)
   }
-  
+
   if (inherits(node, "expression")) {
     symbols <- c(symbols, collect_symbols(node$lhs))
     symbols <- c(symbols, collect_symbols(node$rhs))
     return(symbols)
   }
-  
+
   if (inherits(node, c("sum", "prod", "setmin", "setmax"))) {
     symbols <- c(symbols, collect_symbols(node$value))
     return(symbols)
   }
-  
+
   if (inherits(node, "when")) {
     symbols <- c(symbols, collect_symbols(node$condition))
     symbols <- c(symbols, collect_symbols(node$then))
     symbols <- c(symbols, collect_symbols(node$otherwise))
     return(symbols)
   }
-  
+
   if (inherits(node, "unary")) {
     symbols <- c(symbols, collect_symbols(node$rhs))
     return(symbols)
   }
-  
+
   if (inherits(node, "func")) {
     symbols <- c(symbols, collect_symbols(node$arg))
     return(symbols)
   }
-  
+
   if (inherits(node, "call")) {
     for (arg in node$args) {
       symbols <- c(symbols, collect_symbols(arg))
     }
     return(symbols)
   }
-  
-  return(symbols)
+
+  symbols
 }
 
 # Python operator precedence (higher number = binds tighter)
 # Used to determine when parentheses are needed
 pyomo_precedence <- function(op) {
   switch(op,
-         "or" = 1,
-         "and" = 2,
-         "not" = 3,
-         "==" = 4, "!=" = 4, "<" = 4, "<=" = 4, ">" = 4, ">=" = 4, "<>" = 4,
-         "=" = 4, "EQ" = 4, "NE" = 4, "GT" = 4, "LT" = 4, "GE" = 4, "LE" = 4,
-         "+" = 5, "-" = 5,
-         "*" = 6, "/" = 6,
-         "^" = 7, "**" = 7,
-         10)  # default for unknown ops (atoms, function calls, etc.)
+    "or" = 1,
+    "and" = 2,
+    "not" = 3,
+    "==" = 4,
+    "!=" = 4,
+    "<" = 4,
+    "<=" = 4,
+    ">" = 4,
+    ">=" = 4,
+    "<>" = 4,
+    "=" = 4,
+    "EQ" = 4,
+    "NE" = 4,
+    "GT" = 4,
+    "LT" = 4,
+    "GE" = 4,
+    "LE" = 4,
+    "+" = 5,
+    "-" = 5,
+    "*" = 6,
+    "/" = 6,
+    "^" = 7,
+    "**" = 7,
+    10
+  ) # default for unknown ops (atoms, function calls, etc.)
 }
 
 # Check if a node needs parentheses when used as operand of parent_op
 pyomo_needs_parens <- function(node, parent_op, is_rhs = FALSE) {
-  if (!inherits(node, "expression")) return(FALSE)
-  
+  if (!inherits(node, "expression")) {
+    return(FALSE)
+  }
+
   node_prec <- pyomo_precedence(node$op)
   parent_prec <- pyomo_precedence(parent_op)
-  
+
   # Lower precedence always needs parens
-  if (node_prec < parent_prec) return(TRUE)
-  
+  if (node_prec < parent_prec) {
+    return(TRUE)
+  }
+
   # For right-associative power operator, LHS with same precedence needs parens
   # e.g., (a**b)**c needs parens, but a**(b**c) doesn't
-  if (parent_op %in% c("^", "**") && !is_rhs && node_prec == parent_prec) return(TRUE)
-  
+  if (parent_op %in% c("^", "**") && !is_rhs && node_prec == parent_prec) {
+    return(TRUE)
+  }
+
   # For left-associative ops, RHS with same precedence needs parens for subtraction/division
   # e.g., a - (b - c) needs parens, a - (b + c) needs parens if we want clarity
-  if (parent_op %in% c("-", "/") && is_rhs && node_prec == parent_prec) return(TRUE)
-  
+  if (parent_op %in% c("-", "/") && is_rhs && node_prec == parent_prec) {
+    return(TRUE)
+  }
+
   FALSE
 }
 
@@ -403,10 +445,10 @@ as_pyomo.expression <- function(x, model = NULL, var_names = NULL, scope = NULL,
   if (x$op %in% c("*", "/") && (inherits(x$lhs, c("sum", "prod")) || inherits(x$rhs, c("sum", "prod")))) {
     sum_side <- if (inherits(x$lhs, c("sum", "prod"))) "lhs" else "rhs"
     other_side <- if (sum_side == "lhs") "rhs" else "lhs"
-    
+
     sum_node <- x[[sum_side]]
     other_node <- x[[other_side]]
-    
+
     # Get iterator variable names and their set names from the sum's index
     if (!is.null(sum_node$index) && inherits(sum_node$index, "dims")) {
       iter_vars <- names(sum_node$index)
@@ -418,7 +460,7 @@ as_pyomo.expression <- function(x, model = NULL, var_names = NULL, scope = NULL,
         }
       }
       check_names <- c(iter_vars, set_names)
-      
+
       if (length(check_names) > 0) {
         # Check if other_node references any of these iterator variables or their sets
         other_symbols <- collect_symbols(other_node)
@@ -436,13 +478,17 @@ as_pyomo.expression <- function(x, model = NULL, var_names = NULL, scope = NULL,
       }
     }
   }
-  
+
   operand <- if (x$op %in% c("and", "or")) pyomo_condition else as_pyomo
-  lhs <- operand(x$lhs, model = model, var_names = var_names, scope = scope,
-                 in_filter = in_filter, ...)
-  rhs <- operand(x$rhs, model = model, var_names = var_names, scope = scope,
-                 in_filter = in_filter, ...)
-  
+  lhs <- operand(x$lhs,
+    model = model, var_names = var_names, scope = scope,
+    in_filter = in_filter, ...
+  )
+  rhs <- operand(x$rhs,
+    model = model, var_names = var_names, scope = scope,
+    in_filter = in_filter, ...
+  )
+
   # Add parentheses if needed for correct precedence
   if (pyomo_needs_parens(x$lhs, x$op, is_rhs = FALSE)) {
     lhs <- paste0("(", lhs, ")")
@@ -450,23 +496,24 @@ as_pyomo.expression <- function(x, model = NULL, var_names = NULL, scope = NULL,
   if (pyomo_needs_parens(x$rhs, x$op, is_rhs = TRUE)) {
     rhs <- paste0("(", rhs, ")")
   }
-  
+
   op <- switch(x$op,
-               "=" = "==",
-               "==" = "==",
-               "EQ" = "==",
-               "NE" = "!=",
-               "<>" = "!=",
-               "!=" = "!=",
-               "GT" = ">",
-               "LT" = "<",
-               "GE" = ">=",
-               "LE" = "<=",
-               "and" = "and",
-               "or" = "or",
-               "^" = "**",
-               "**" = "**",
-               x$op)
+    "=" = "==",
+    "==" = "==",
+    "EQ" = "==",
+    "NE" = "!=",
+    "<>" = "!=",
+    "!=" = "!=",
+    "GT" = ">",
+    "LT" = "<",
+    "GE" = ">=",
+    "LE" = "<=",
+    "and" = "and",
+    "or" = "or",
+    "^" = "**",
+    "**" = "**",
+    x$op
+  )
   paste(lhs, op, rhs)
 }
 
@@ -480,9 +527,11 @@ as_pyomo.unary <- function(x, model = NULL, var_names = NULL, scope = NULL, ...)
     return(paste0("-", rhs))
   }
   if (tolower(x$op) == "not") {
-    return(paste0("not (", pyomo_condition(x$rhs, model = model,
-                                           var_names = var_names,
-                                           scope = scope, ...), ")"))
+    return(paste0("not (", pyomo_condition(x$rhs,
+      model = model,
+      var_names = var_names,
+      scope = scope, ...
+    ), ")"))
   }
   stop("Unsupported unary operator for Pyomo export: ", x$op)
 }
@@ -523,13 +572,16 @@ pyomo_ord_card <- function(x, model = NULL, var_names = NULL, scope = NULL) {
   base <- set_name
   if (!is.null(model) && !is.null(model$aliases)) {
     for (grp in model$aliases) {
-      if (set_name %in% grp) { base <- grp[[1]]; break }
+      if (set_name %in% grp) {
+        base <- grp[[1]]
+        break
+      }
     }
   }
   pname <- paste0(fname, toupper(substring(base, 1, 1)), substring(base, 2))
 
   if (!is.null(model) && !is.null(model$parameters) &&
-      !pname %in% names(model$parameters)) {
+    !pname %in% names(model$parameters)) {
     stop(
       "Pyomo has no '", fname, "()' function, so ", fname, "(", set_name,
       ") needs a position parameter '", pname, "' declared over set '", base,
@@ -537,8 +589,10 @@ pyomo_ord_card <- function(x, model = NULL, var_names = NULL, scope = NULL) {
     )
   }
 
-  itr <- pyomo_resolve_symbol(set_name, var_names = var_names,
-                              scope = scope, model = model)
+  itr <- pyomo_resolve_symbol(set_name,
+    var_names = var_names,
+    scope = scope, model = model
+  )
   paste0("model.", pname, "[", itr, "]")
 }
 
@@ -619,9 +673,9 @@ pyomo_min_max <- function(x, wrapper = c("min", "max"), model = NULL, var_names 
 
   # Optimization: if value is just wrapper(iterator), simplify to wrapper(set)
   # e.g., min{yy in YEAR} min(yy) becomes min(model.YEAR)
-  if (!is.null(iter_info) && length(iterators) == 1 && 
-      inherits(x$value, "call") && !is.null(x$value$name) &&
-      x$value$name == wrapper && length(x$value$args) == 1) {
+  if (!is.null(iter_info) && length(iterators) == 1 &&
+    inherits(x$value, "call") && !is.null(x$value$name) &&
+    x$value$name == wrapper && length(x$value$args) == 1) {
     arg <- x$value$args[[1]]
     if (inherits(arg, "symbol") && !is.null(arg$name)) {
       # Extract iterator variable name from the iterator string (format: "var in set")
@@ -685,11 +739,15 @@ pyomo_iter_from_index <- function(index_node, model = NULL, var_names = NULL, sc
       # only the mapping case dropped the rest of the gate, so a sum ranged
       # over the whole set and indexed variables outside their domain.
       filter_expr <- if (inherits(index_node$condition, "mm_mapping")) {
-        pyomo_membership_expr(index_node$condition, model = model,
-                              var_names = var_names, scope = filter_scope)
+        pyomo_membership_expr(index_node$condition,
+          model = model,
+          var_names = var_names, scope = filter_scope
+        )
       } else {
-        as_pyomo(index_node$condition, model = model,
-                 var_names = var_names, scope = filter_scope)
+        as_pyomo(index_node$condition,
+          model = model,
+          var_names = var_names, scope = filter_scope
+        )
       }
     }
     return(list(iterators = iterators, filter = filter_expr, scope = scope_map))
@@ -699,30 +757,30 @@ pyomo_iter_from_index <- function(index_node, model = NULL, var_names = NULL, sc
   if (!inherits(dims, "dims")) {
     dims <- ast_dims(list(dims))
   }
-  
+
   # Build iterator specs from dims, using iterator names from names(dims) if available
   iterator_specs <- vector("list", length(dims))
   existing_names <- if (!is.null(scope)) unname(unlist(scope)) else character(0)
   used_names <- existing_names
-  
+
   for (i in seq_along(dims)) {
     set_name <- pyomo_dim_name(dims[[i]])
     base_set <- pyomo_resolve_base_set(set_name, model)
-    
+
     # Use iterator name from names(dims) if available, otherwise use set name
     if (!is.null(names(dims)) && i <= length(names(dims)) && nzchar(names(dims)[i])) {
       iter_var <- names(dims)[i]
     } else {
       iter_var <- set_name
     }
-    
+
     # Ensure unique iterator name
     iter_name <- pyomo_build_iterator_name(iter_var, used_names)
     used_names <- c(used_names, iter_name)
-    
+
     iterator_specs[[i]] <- list(symbol = set_name, iterator = iter_name, set = base_set)
   }
-  
+
   # Build iterator strings and scope map
   iterators <- character(length(iterator_specs))
   scope_map <- character(0)
@@ -747,8 +805,10 @@ as_pyomo.where <- function(x, ...) {
 
 #' @export
 as_pyomo.when <- function(x, model = NULL, var_names = NULL, scope = NULL, ...) {
-  cond <- pyomo_condition(x$condition, model = model, var_names = var_names,
-                          scope = scope, ...)
+  cond <- pyomo_condition(x$condition,
+    model = model, var_names = var_names,
+    scope = scope, ...
+  )
   then <- as_pyomo(x$then, model = model, var_names = var_names, scope = scope, ...)
   otherwise <- if (is.null(x$otherwise)) "0" else as_pyomo(x$otherwise, model = model, var_names = var_names, scope = scope, ...)
   paste0("(", then, " if ", cond, " else ", otherwise, ")")
@@ -777,11 +837,13 @@ render_pyomo_equation <- function(eq, model = NULL) {
   # `r` in the rule signature while the body resolved `dst` to `rd`.
   domain_dim_names <- NULL
   if (inherits(eq$domain, "mm_mapping") && !is.null(eq$domain$dims) &&
-      length(eq$domain$dims) == length(dim_names)) {
+    length(eq$domain$dims) == length(dim_names)) {
     domain_dim_names <- pyomo_collect_dim_names(eq$domain$dims)
   }
 
-  iter_map <- if (!is.null(eq$dims_index_aliases)) eq$dims_index_aliases else {
+  iter_map <- if (!is.null(eq$dims_index_aliases)) {
+    eq$dims_index_aliases
+  } else {
     aliases <- list()
     iter_source <- domain_dim_names %||% dim_names
     if (length(iter_source) > 0) {
@@ -807,10 +869,11 @@ render_pyomo_equation <- function(eq, model = NULL) {
   lhs <- as_pyomo(eq$lhs, model = model, var_names = iter_map, scope = scope)
   rhs <- as_pyomo(eq$rhs, model = model, var_names = iter_map, scope = scope)
   relation <- switch(eq$relation,
-                     "==" = "==",
-                     "<=" = "<=",
-                     ">=" = ">=",
-                     stop("Unsupported equation relation: ", eq$relation))
+    "==" = "==",
+    "<=" = "<=",
+    ">=" = ">=",
+    stop("Unsupported equation relation: ", eq$relation)
+  )
   comparison <- paste(lhs, relation, rhs)
   rule_name <- paste0("_", pyomo_safe_name(eq$name), "_rule")
   iter_args <- if (length(iter_map) > 0) paste(names(iter_map), collapse = ", ") else ""

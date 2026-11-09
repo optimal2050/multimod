@@ -48,10 +48,12 @@ test_that("every writer renders every kind of AST node", {
       out <- suppressWarnings(f(nodes[[nm]], model = m))
       expect_type(out, "character")
       expect_true(nzchar(paste(out, collapse = "")),
-                  info = paste(w, "produced nothing for", nm))
+        info = paste(w, "produced nothing for", nm)
+      )
       # as_gams() used to emit `list(name = "min", args = ...)` here
       expect_false(any(grepl("list(", out, fixed = TRUE)),
-                   info = paste(w, "leaked an R structure for", nm))
+        info = paste(w, "leaked an R structure for", nm)
+      )
     }
   }
 })
@@ -63,13 +65,16 @@ test_that("as_pyomo renders every node except its documented exceptions", {
     out <- suppressWarnings(as_pyomo(nodes[[nm]], model = m))
     expect_type(out, "character")
     expect_true(nzchar(paste(out, collapse = "")),
-                info = paste("as_pyomo produced nothing for", nm))
+      info = paste("as_pyomo produced nothing for", nm)
+    )
   }
 })
 
 test_that("a function Pyomo cannot express is refused with a clear message", {
   m <- example_models$toy
   v <- ast_variable("vGen", dims = ast_dims("tech", "region"))
-  expect_error(as_pyomo(ast_func("log", value = v), model = m),
-               "Unsupported function")
+  expect_error(
+    as_pyomo(ast_func("log", value = v), model = m),
+    "Unsupported function"
+  )
 })

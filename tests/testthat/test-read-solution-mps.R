@@ -67,7 +67,7 @@ test_that("a truncated solution file errors rather than reading partially", {
 })
 
 test_that("a solution for a different model is rejected", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   skip_if_not_installed("highs")
   data(example_models, package = "multimod")
   m <- example_models$energyRt$multimod
@@ -77,7 +77,9 @@ test_that("a solution for a different model is rejected", {
   # deliberately one column short of the index
   n <- nrow(lp$col_index) - 1L
   fake_sol(f, rep(0, n), rep(0, n),
-           rep(0, nrow(lp$row_index)), rep(0, nrow(lp$row_index)), objective = 0)
+    rep(0, nrow(lp$row_index)), rep(0, nrow(lp$row_index)),
+    objective = 0
+  )
 
   expect_error(
     read_mps_solution(f, col_index = lp$col_index, row_index = lp$row_index),
@@ -86,7 +88,7 @@ test_that("a solution for a different model is rejected", {
 })
 
 test_that("read_mps_solution reproduces the in-process solve exactly", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   skip_if_not_installed("highs")
   data(example_models, package = "multimod")
   m <- example_models$energyRt$multimod
@@ -96,7 +98,9 @@ test_that("read_mps_solution reproduces the in-process solve exactly", {
 
   f <- withr::local_tempfile(fileext = ".sol")
   fake_sol(f, ref$primal$value, ref$primal$reduced_cost,
-           ref$dual$value, ref$dual$marginal, objective = ref$objective)
+    ref$dual$value, ref$dual$marginal,
+    objective = ref$objective
+  )
 
   s <- read_mps_solution(f, col_index = lp$col_index, row_index = lp$row_index)
 
@@ -109,7 +113,7 @@ test_that("read_mps_solution reproduces the in-process solve exactly", {
 })
 
 test_that("index tables round-trip through write_mps and are found again", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   skip_if_not_installed("highs")
   data(example_models, package = "multimod")
   m <- example_models$energyRt$multimod
@@ -125,12 +129,14 @@ test_that("index tables round-trip through write_mps and are found again", {
   idx <- multimod:::.load_mps_index(d, NULL, "parquet")
   expect_equal(nrow(idx$col_index), nrow(lp$col_index))
   expect_equal(nrow(idx$row_index), nrow(lp$row_index))
-  expect_equal(attr(idx$col_index, "dim_names")$vTechAct,
-               c("tech", "region", "year", "timeslice"))
+  expect_equal(
+    attr(idx$col_index, "dim_names")$vTechAct,
+    c("tech", "region", "year", "timeslice")
+  )
 })
 
 test_that("write_energyrt_output writes one file per variable, nonzeros only", {
-  skip_on_cran()  # full energyRt model: run locally and in CI
+  skip_on_cran() # full energyRt model: run locally and in CI
   skip_if_not_installed("highs")
   data(example_models, package = "multimod")
   m <- example_models$energyRt$multimod
@@ -141,23 +147,24 @@ test_that("write_energyrt_output writes one file per variable, nonzeros only", {
   written <- write_energyrt_output(r, d, format = "arrow")
 
   vl <- readLines(file.path(d, "variable_list.csv"))
-  expect_equal(vl[1], "value")                       # energyRt's header
+  expect_equal(vl[1], "value") # energyRt's header
   expect_true(length(vl) > 1)
   # One .arrow per listed variable, plus the three files energyRt's
   # read_solution() requires. Asserted by name rather than by a bare count:
   # the count silently drifts whenever the contract gains a file, which is
   # exactly what happened when raw_data_set.csv and log.csv were added.
-  n_vars <- length(vl) - 1L                          # minus the "value" header
+  n_vars <- length(vl) - 1L # minus the "value" header
   expect_equal(sum(grepl("[.]arrow$", written)), n_vars)
   expect_setequal(
     basename(written[!grepl("[.]arrow$", written)]),
-    c("variable_list.csv", "raw_data_set.csv", "log.csv"))
+    c("variable_list.csv", "raw_data_set.csv", "log.csv")
+  )
 
   # each file carries that variable's own dimension names, not i1..iN
   act <- arrow::read_feather(file.path(d, "vTechAct.arrow"))
   expect_equal(names(act), c("tech", "region", "year", "timeslice", "value"))
-  expect_type(act$year, "integer")                   # energyRt stores year as int
-  expect_true(all(act$value != 0))                   # nonzeros only
+  expect_type(act$year, "integer") # energyRt stores year as int
+  expect_true(all(act$value != 0)) # nonzeros only
 
   # every variable's block must be its own rows - a name collision with the
   # `symbol` column previously gave every file the full nonzero set

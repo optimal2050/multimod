@@ -38,7 +38,8 @@ test_that("the three notations describe the same equation", {
                      vGen[tech,region] <= pAvail[tech,region] * vCap[tech,region]")
   a <- mm_equation(m, "eqCapLim(tech,region)$mTR(tech,region) ..
                      vGen(tech,region) =l= pAvail(tech,region) * vCap(tech,region)",
-                   lang = "gams")
+    lang = "gams"
+  )
   expect_equal(as_gams(j$lhs), as_gams(g$lhs))
   expect_equal(as_gams(j$rhs), as_gams(g$rhs))
   expect_equal(as_gams(j$lhs), as_gams(a$lhs))
@@ -56,15 +57,20 @@ test_that("a model authored in JuMP solves to the same optimum", {
   m2$equations$eqCapLim <- mm_equation(m, jump_cap, lang = "jump")
   m2$equations$eqDemand <- mm_equation(m,
     "@constraint(model, eqDemand[r in mR],
-       sum(vGen[t, r] for t in tech) >= pDemand[r])", lang = "jump")
+       sum(vGen[t, r] for t in tech) >= pDemand[r])",
+    lang = "jump"
+  )
   m2$equations$eqCost <- mm_equation(m,
     "@constraint(model, eqCost,
        vCost == sum(pCapCost[t] * vCap[t, r] + pVarCost[t] * vGen[t, r]
-                    for t in tech, r in region))", lang = "jump")
+                    for t in tech, r in region))",
+    lang = "jump"
+  )
 
   expect_true(validate(m2, stop_on_error = FALSE)$valid)
   expect_equal(solve_highs(m2, attach = FALSE)$objective, ref$objective,
-               tolerance = 1e-9)
+    tolerance = 1e-9
+  )
 })
 
 test_that("generators take several iterators, a tuple and an if filter", {
@@ -81,7 +87,8 @@ test_that("generators take several iterators, a tuple and an if filter", {
 
   flt <- mm_equation(m, "@constraint(model, eqC,
     vCost == sum(vGen[t, r] for t in tech, r in region if pCapCost[t] > 0))",
-    lang = "jump")
+    lang = "jump"
+  )
   expect_s3_class(flt$rhs$value, "when")
 })
 
@@ -109,15 +116,20 @@ test_that("brackets, unary minus and calls parse", {
 
 test_that("an anonymous constraint is refused, since an equation needs a name", {
   m <- example_models$toy
-  expect_error(mm_equation(m, "@constraint(model, vCost >= 0)", lang = "jump"),
-               "needs one")
+  expect_error(
+    mm_equation(m, "@constraint(model, vCost >= 0)", lang = "jump"),
+    "needs one"
+  )
 })
 
 test_that("a malformed statement is refused", {
   m <- example_models$toy
   expect_error(mm_equation(m, "vGen <= vCap", lang = "jump"), "@constraint")
   expect_error(mm_equation(m, "@constraint(model, eqX[r in mR], vGen[t, r])",
-                           lang = "jump"), "relational operator")
-  expect_error(mm_equation(m, "@constraint(model)", lang = "jump"),
-               "takes the model")
+    lang = "jump"
+  ), "relational operator")
+  expect_error(
+    mm_equation(m, "@constraint(model)", lang = "jump"),
+    "takes the model"
+  )
 })

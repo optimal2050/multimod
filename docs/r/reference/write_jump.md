@@ -150,9 +150,11 @@ write_jump(m, model_dir = ws, solver_dir = "jump-highs")
 #> Warning: write_feather(version = 2) has been superseded by write_ipc_file().
 
 # Barrier method for large models
-write_jump(m, model_dir = ws,
-           optimizer_attributes = list(solver = "ipm", parallel = "on"))
-#> Removing existing solver directory: C:\Users\admin\AppData\Local\Temp\Rtmp8QjY7E/energyRt_ws/solvers/jump
+write_jump(m,
+  model_dir = ws,
+  optimizer_attributes = list(solver = "ipm", parallel = "on")
+)
+#> Removing existing solver directory: C:\Users\admin\AppData\Local\Temp\Rtmpo9uBqT/energyRt_ws/solvers/jump
 #> Warning: write_feather(version = 2) has been superseded by write_ipc_file().
 #> Warning: write_feather(version = 2) has been superseded by write_ipc_file().
 #> Warning: write_feather(version = 2) has been superseded by write_ipc_file().

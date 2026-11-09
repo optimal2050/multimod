@@ -82,9 +82,9 @@ structurally different objects - see
 ## Examples
 
 ``` r
-Set("tech")                      # a declaration
+Set("tech") # a declaration
 #> <AST set> tech
-SetRef("tech")                   # a reference
+SetRef("tech") # a reference
 #> <AST set> tech
 Expression("*", Symbol("a"), Symbol("b"))
 #> <AST expression> *

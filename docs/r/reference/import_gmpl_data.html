@@ -134,9 +134,11 @@ or a list from read_gmpl_data()</p></dd>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Or import pre-parsed data, saving it as CSV in a model directory</span></span></span>
 <span class="r-in"><span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="read_gmpl_data.html">read_gmpl_data</a></span><span class="op">(</span><span class="va">data_text</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">model</span> <span class="op">&lt;-</span> <span class="fu">import_gmpl_data</span><span class="op">(</span><span class="va">model</span>, gmpl_data <span class="op">=</span> <span class="va">data</span>,</span></span>
-<span class="r-in"><span>                          model_path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span><span class="st">"gmpl-data-"</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>                          format <span class="op">=</span> <span class="st">"csv"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">model</span> <span class="op">&lt;-</span> <span class="fu">import_gmpl_data</span><span class="op">(</span><span class="va">model</span>,</span></span>
+<span class="r-in"><span>  gmpl_data <span class="op">=</span> <span class="va">data</span>,</span></span>
+<span class="r-in"><span>  model_path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span><span class="st">"gmpl-data-"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  format <span class="op">=</span> <span class="st">"csv"</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

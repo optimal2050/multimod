@@ -11,12 +11,18 @@
 #' @return Character vector of names.
 #' @keywords internal
 dual_registered_symbols <- function(model) {
-  if (is.null(model$sets) || is.null(model$mappings)) return(character(0))
+  if (is.null(model$sets) || is.null(model$mappings)) {
+    return(character(0))
+  }
   dual <- intersect(names(model$sets), names(model$mappings))
-  if (length(dual) == 0) return(character(0))
+  if (length(dual) == 0) {
+    return(character(0))
+  }
   keep <- vapply(dual, function(nm) {
     dims <- model$mappings[[nm]]$dims
-    if (length(dims) != 1L) return(FALSE)
+    if (length(dims) != 1L) {
+      return(FALSE)
+    }
     parent <- dims[[1]]$name %||% dims[[1]]
     is.character(parent) && length(parent) == 1L && parent %in% names(model$sets)
   }, logical(1))
@@ -76,7 +82,9 @@ collect_model_symbols <- function(model,
   alias_records <- data.frame()
   if (include_aliases && !is.null(model$aliases) && length(model$aliases) > 0) {
     alias_list <- lapply(model$aliases, function(group) {
-      if (length(group) <= 1) return(NULL)
+      if (length(group) <= 1) {
+        return(NULL)
+      }
       canonical <- group[[1]]
       alias_names <- setdiff(unique(group), canonical)
       build_records(alias_names, "set_alias", alias_for = canonical, source = "alias")
@@ -103,41 +111,45 @@ collect_model_symbols <- function(model,
   } else {
     table <- unique(table)
   }
-  
+
   # Add symbol name map aliases (underscore variants for hyphenated names)
   name_map_records <- data.frame()
   if (!is.null(model$metadata$symbol_name_map)) {
     name_map <- model$metadata$symbol_name_map
-    
+
     # For each actual name (with hyphens), create an alias record with underscores
     if (!is.null(name_map$reverse)) {
       for (actual_name in names(name_map$reverse)) {
         gmpl_name <- name_map$reverse[[actual_name]]
-        
+
         # Only add if different from actual name
         if (actual_name != gmpl_name) {
           # Find the type of the actual symbol
           actual_row <- table[table$name == actual_name & table$source == "model", ]
-          
+
           if (nrow(actual_row) > 0) {
             # Create alias record
             type_suffix <- switch(actual_row$type[1],
-                                  variable = "variable_alias",
-                                  parameter = "parameter_alias",
-                                  set = "set_alias",
-                                  mapping = "mapping_alias",
-                                  paste0(actual_row$type[1], "_alias"))
-            
-            name_map_records <- rbind(name_map_records,
-                                      build_records(gmpl_name, type_suffix, 
-                                                   alias_for = actual_name, 
-                                                   source = "name_map"))
+              variable = "variable_alias",
+              parameter = "parameter_alias",
+              set = "set_alias",
+              mapping = "mapping_alias",
+              paste0(actual_row$type[1], "_alias")
+            )
+
+            name_map_records <- rbind(
+              name_map_records,
+              build_records(gmpl_name, type_suffix,
+                alias_for = actual_name,
+                source = "name_map"
+              )
+            )
           }
         }
       }
     }
   }
-  
+
   # Combine with name map aliases
   if (nrow(name_map_records) > 0) {
     table <- rbind(table, name_map_records)
@@ -171,12 +183,12 @@ collect_model_symbols <- function(model,
     lookup = lookup,
     collisions = collisions
   )
-  
+
   # Attach symbol_name_map if available in model metadata
   if (!is.null(model$metadata$symbol_name_map)) {
     attr(result, "symbol_name_map") <- model$metadata$symbol_name_map
   }
-  
+
   result
 }
 
@@ -237,12 +249,18 @@ scope_contains <- function(scope, name) {
 symbol_role_priority <- function(role = "expr") {
   switch(role,
     set_ref = c("mapping", "set", "set_alias"),
-    expr = c("variable", "variable_alias", "parameter", "parameter_alias", 
-             "mapping", "mapping_alias", "set", "set_alias", "index_alias"),
-    domain = c("mapping", "mapping_alias", "parameter", "parameter_alias", 
-               "variable", "variable_alias", "set", "set_alias"),
-    default = c("variable", "variable_alias", "parameter", "parameter_alias", 
-                "mapping", "mapping_alias", "set", "set_alias", "index_alias")
+    expr = c(
+      "variable", "variable_alias", "parameter", "parameter_alias",
+      "mapping", "mapping_alias", "set", "set_alias", "index_alias"
+    ),
+    domain = c(
+      "mapping", "mapping_alias", "parameter", "parameter_alias",
+      "variable", "variable_alias", "set", "set_alias"
+    ),
+    default = c(
+      "variable", "variable_alias", "parameter", "parameter_alias",
+      "mapping", "mapping_alias", "set", "set_alias", "index_alias"
+    )
   )
 }
 
@@ -314,9 +332,11 @@ resolve_ast_symbols <- function(node,
                                 symbol_info,
                                 scope = symbol_scope(),
                                 role = "expr",
-                                context = list(component = NA_character_,
-                                               name = NA_character_,
-                                               field = NA_character_),
+                                context = list(
+                                  component = NA_character_,
+                                  name = NA_character_,
+                                  field = NA_character_
+                                ),
                                 fix = FALSE,
                                 log = new_symbol_issue_log()) {
   if (is.null(node)) {
@@ -343,10 +363,10 @@ resolve_ast_symbols <- function(node,
     if (scope_contains(scope, name)) {
       return(list(node = node, log = log))
     }
-    
+
     # Try direct lookup first
     match <- symbol_info$lookup[[tolower(name)]]
-    
+
     # If not found and we have symbol_name_map in table metadata,
     # try resolving the name (GMPL underscore -> actual hyphen)
     if (is.null(match) && !is.null(attr(symbol_info, "symbol_name_map"))) {
@@ -356,7 +376,7 @@ resolve_ast_symbols <- function(node,
         match <- symbol_info$lookup[[tolower(resolved_name)]]
       }
     }
-    
+
     if (is.null(match)) {
       entry <- data.frame(
         component = context$component,
@@ -667,10 +687,10 @@ make_valid <- function(x, ...) {
 #' @method make_valid mm_model
 #' @export
 make_valid.mm_model <- function(x,
-                             verbose = FALSE,
-                             stop_on_error = FALSE,
-                             revalidate = FALSE,
-                             ...) {
+                                verbose = FALSE,
+                                stop_on_error = FALSE,
+                                revalidate = FALSE,
+                                ...) {
   scan <- inspect_model_symbols(x, fix = TRUE)
   model <- scan$model
   attr(model, "symbol_fixes") <- scan$issues
