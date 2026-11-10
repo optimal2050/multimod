@@ -74,7 +74,9 @@ see `inst/COPYRIGHTS` and the `Copyright` field. The hash finalizer in
 
 ## Test environments
 
-* Windows 11, R 4.6.2 (local)
-* win-builder: R-devel, R-release
-* macbuilder: R-release (macOS arm64)
-* R-hub: linux, macos-arm64, gcc-asan, clang-asan
+* Windows 11, R 4.6.2 (local): 1 NOTE (new submission)
+* win-builder: R-devel (2026-11-07 r90850), R-release (4.6.2): 1 NOTE (new
+  submission)
+* R-hub: linux (R-devel), macos-arm64 (R-devel): OK
+* R-hub: gcc-asan, clang-asan (R-devel with AddressSanitizer and
+  UndefinedBehaviorSanitizer): OK, no sanitizer reports
