@@ -171,3 +171,33 @@ test_that("write_energyrt_output writes one file per variable, nonzeros only", {
   expect_true(nrow(act) < sum(r$primal$value != 0))
   expect_true(all(act$tech %in% unlist(m$sets$tech$data)))
 })
+
+# -----------------------------------------------------------------------------
+# A verdict with no values
+# -----------------------------------------------------------------------------
+# An infeasible or unbounded model gets a `Model status` line and no primal
+# section. `require_optimal = FALSE` asks for the file to be read anyway, so the
+# status comes back with empty tables; it used to stop in .hi_sol_join() with
+# "Solution file has no primal column values", which reads as a truncated file.
+
+test_that("a solution file with no primal section reads as a status", {
+  p <- tempfile(fileext = ".sol")
+  writeLines(c("Model status", "Infeasible", ""), p)
+
+  s <- read_highs_solution(p, require_optimal = FALSE)
+  expect_identical(s$status, "Infeasible")
+  expect_equal(nrow(s$columns), 0L)
+  expect_equal(nrow(s$rows), 0L)
+  expect_identical(colnames(s$columns), c("name", "primal", "dual"))
+
+  # `require_optimal = TRUE` still refuses, on the status
+  expect_error(read_highs_solution(p, require_optimal = TRUE), "not optimal")
+})
+
+test_that("a truncated optimal file is still an error", {
+  # optimal status, but the values are missing: that IS a broken file
+  p <- tempfile(fileext = ".sol")
+  writeLines(c("Model status", "Optimal", ""), p)
+  expect_error(read_highs_solution(p, require_optimal = TRUE),
+               "no primal column values")
+})

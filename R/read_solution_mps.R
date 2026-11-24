@@ -50,8 +50,14 @@ read_highs_solution <- function(file, require_optimal = TRUE) {
   oi <- grep("^Objective\\b", ln)
   if (length(oi)) obj <- suppressWarnings(as.numeric(sub("^Objective\\s+", "", ln[oi[1]])))
 
-  cols <- .hi_sol_join(primal$columns, dual$columns, "column")
-  rows <- .hi_sol_join(primal$rows, dual$rows, "row")
+  # A status that is a verdict rather than a solution -- infeasible, unbounded
+  # -- leaves the file with no primal section at all. That is an answer, and
+  # `require_optimal = FALSE` asked for the file to be read anyway, so the
+  # status and the objective come back with no values rather than an error.
+  cols <- .hi_sol_join(primal$columns, dual$columns, "column",
+                       allow_missing = !require_optimal)
+  rows <- .hi_sol_join(primal$rows, dual$rows, "row",
+                       allow_missing = !require_optimal)
 
   list(status = status, objective = obj, columns = cols, rows = rows)
 }
@@ -139,8 +145,12 @@ read_highs_solution <- function(file, require_optimal = TRUE) {
 #' Combine the primal and dual blocks for columns or rows
 #' @keywords internal
 #' @noRd
-.hi_sol_join <- function(pr, du, what) {
+.hi_sol_join <- function(pr, du, what, allow_missing = FALSE) {
   if (is.null(pr)) {
+    if (allow_missing) {
+      return(data.table::data.table(name = character(), primal = numeric(),
+                                    dual = numeric()))
+    }
     stop("Solution file has no primal ", what, " values.")
   }
   out <- data.table::data.table(name = pr$name, primal = pr$value)
