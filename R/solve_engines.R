@@ -141,7 +141,7 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
     if (verbose) {
       message(
         "solved ", basename(file), ": ", msg, ", objective ",
-        format(objective, digits = 10), " -> ", sol_file
+        format(objective, digits = 10), "\n  -> ", sol_file
       )
     }
     return(list(
@@ -176,7 +176,7 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
   if (verbose) {
     message(
       "solved ", basename(file), ": ", msg, ", objective ",
-      format(objective, digits = 10), " -> ", sol_file
+      format(objective, digits = 10), "\n  -> ", sol_file
     )
   }
   list(
