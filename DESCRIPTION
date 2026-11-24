@@ -1,6 +1,6 @@
 Package: multimod
 Title: Define and Render Mathematical Models Across Modeling Languages
-Version: 0.6.0
+Version: 0.6.0.9000
 Authors@R:
   c(person(given = "Oleg", 
           family = "Lugovoy", 

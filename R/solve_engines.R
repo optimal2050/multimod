@@ -212,7 +212,11 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
     "t1 = time()",
     "HiGHS.Highs_writeSolution(h, ARGS[2])",
     "st = HiGHS.Highs_getModelStatus(h)",
-    "println(\"MMJULIA status=\", st, \" objective=\", HiGHS.Highs_getObjectiveValue(h), \" seconds=\", round(t1 - t0, digits = 1))",
+    "res = string(\"MMJULIA status=\", st, \" objective=\", HiGHS.Highs_getObjectiveValue(h), \" seconds=\", round(t1 - t0, digits = 1))",
+    # To a file when the caller gives one, so the result can be read without
+    # capturing stdout -- capturing would buffer the solver's log until the
+    # end. Only then is stdout the solver's alone.
+    "if length(ARGS) >= 3; open(ARGS[3], \"w\") do io; println(io, res); end; else; println(res); end",
     "HiGHS.Highs_destroy(h)"
   )
 }
@@ -238,19 +242,38 @@ solve_mps <- function(file, sol_file = NULL, control = list(),
   on.exit(unlink(jl), add = TRUE)
   writeLines(.julia_highs_script(control), jl)
   if (file.exists(sol_file)) file.remove(sol_file)
+  res_file <- tempfile("mmjulia_", fileext = ".txt")
+  on.exit(unlink(res_file), add = TRUE)
+  args <- c(shQuote(jl), shQuote(file), shQuote(sol_file), shQuote(res_file))
   t0 <- Sys.time()
-  out <- suppressWarnings(system2(get_multimod_julia(),
-    c(shQuote(jl), shQuote(file), shQuote(sol_file)),
-    stdout = TRUE, stderr = TRUE
-  ))
-  if (verbose) cat(out[!grepl("^MMJULIA ", out)], sep = "\n")
+  if (isTRUE(verbose)) {
+    # stdout is INHERITED so HiGHS' log streams as the solve runs; capturing it
+    # buffers every line until the end, which is the opposite of watching a
+    # long solve. The result is read from `res_file` instead.
+    code <- suppressWarnings(system2(get_multimod_julia(), args))
+    out <- character()
+  } else {
+    out <- suppressWarnings(system2(get_multimod_julia(), args,
+                                    stdout = TRUE, stderr = TRUE))
+    code <- attr(out, "status") %||% 0L
+  }
   if (!file.exists(sol_file)) {
     stop(
-      "HiGHS (Julia) wrote no solution (exit ", attr(out, "status") %||% 0L, ").\n",
-      paste(utils::tail(out, 15), collapse = "\n")
+      "HiGHS (Julia) wrote no solution (exit ", code, ").\n",
+      if (length(out)) {
+        paste(utils::tail(out, 15), collapse = "\n")
+      } else {
+        "  Its output was streamed above."
+      }
     )
   }
-  line <- utils::tail(grep("^MMJULIA ", out, value = TRUE), 1)
+  line <- if (file.exists(res_file)) {
+    utils::tail(grep("^MMJULIA ", readLines(res_file, warn = FALSE),
+                     value = TRUE), 1)
+  } else {
+    character()
+  }
+  if (!length(line)) line <- utils::tail(grep("^MMJULIA ", out, value = TRUE), 1)
   msg <- if (length(line)) .highs_model_status(sub(".*status=(\\S+) objective=.*", "\\1", line)) else NA_character_
   obj <- if (length(line)) suppressWarnings(as.numeric(sub(".*objective=(\\S+).*", "\\1", line))) else NA_real_
   if (require_optimal && !isTRUE(grepl("optimal", msg, ignore.case = TRUE))) {
